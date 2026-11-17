@@ -1,0 +1,63 @@
+import json,hashlib,zipfile,itertools
+from pathlib import Path
+P=Path(__file__).resolve().parent;PRE=P.parent/'research-20261104-smithy-215';assert not(P/'RECEIPT.json').exists()
+def read(p):return json.loads(Path(p).read_text())
+def put(n,d):(P/n).write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+def bind(p):
+ p=Path(p).resolve();b=p.read_bytes();return dict(path=str(p),bytes=len(b),sha256=hashlib.sha256(b).hexdigest())
+checks=[]
+def check(k,v):
+ checks.append(dict(check=k,passed=bool(v)));assert v,k
+r=read(P/'raw-source-audit.json')['candidates'][0];n=r['nbt_decoded_original'];pal=n['palette'];cells={tuple(b['pos']):b for b in n['blocks']}
+check('size DV',n['size']==[23,12,22] and n['DataVersion']==3337)
+check('counts',len(pal)==84 and len(n['blocks'])==1285 and r['nonair']==1285 and r['air']==0 and sum('nbt'in b for b in n['blocks'])==14 and n['entities']==[])
+check('stored plus omitted',len(cells)==1285 and 6072-len(cells)==4787 and not any(a['Name']=='minecraft:air' for a in pal))
+check('7 actual viewed diagrams',len(list(P.glob('*.png')))==7)
+expected=['All original state indices; no air palette; ?=omitted NOTair; rows z; columns x.']
+for y in range(12):
+ expected.append(f'y={y}')
+ for z in range(22):expected.append(f'z{z}: '+','.join(f'{v}x{len(list(g))}' for v,g in itertools.groupby([cells.get((x,y,z),{}).get('state','?') for x in range(23)])))
+check('full RLE exact264rows6072positions',(P/'F05-full-layer-index-rle.txt').read_text()=='\n'.join(expected)+'\n')
+check('one damaged anvil and two empty cauldrons',sum(pal[b['state']]['Name']=='minecraft:damaged_anvil' for b in n['blocks'])==1 and sum(pal[b['state']]['Name']=='minecraft:cauldron' for b in n['blocks'])==2)
+check('three furnaces unlit empty',len(furnaces:=[b for b in n['blocks'] if pal[b['state']]['Name']=='minecraft:furnace'])==3 and all(pal[b['state']]['Properties']['lit']=='false' and b['nbt']['Items']==[] and b['nbt']['BurnTime']==0 for b in furnaces))
+check('two complete upper beds top slab supports',sum(pal[b['state']]['Name']=='minecraft:gray_bed' for b in n['blocks'])==4 and all(pal[cells[(x,4,z)]['state']]['Properties']['type']=='top' for x in [14,15] for z in [9,10]))
+check('no ladder scaffold',not any(a['Name'] in ['minecraft:ladder','minecraft:scaffolding'] for a in pal))
+check('fixed archive',bind(r['source_archive'])['sha256']==r['source_archive_sha256'])
+with zipfile.ZipFile(r['source_archive']) as z:check('source member hash',hashlib.sha256(z.read(r['member'])).hexdigest()==r['nbt_sha256'])
+ctx=read(P/'source-context.json');previousmeta=read(P.parent/'research-20261104-smithy-213/source-context.json')['metadata'];check('metadata three exact reuse excluding current case identifier',[{k:v for k,v in a.items() if k!='id'} for a in ctx['metadata']]==[{k:v for k,v in a.items() if k!='id'} for a in previousmeta])
+extra=read(P/'exact-location-json-context.json');check('four full original context JSON',len(extra['matches'])==4)
+check('structureset76 equal-weight entries',len(extra['matches'][1]['json']['structures'])==76 and all(a['weight']==1 for a in extra['matches'][1]['json']['structures']))
+comp=read(P/'saved-complete-family-comparison.json')
+for b,c in comp.items():check('full saved case '+b,next(a for a in read(c['path'])['cases'] if a['id']=='F02')==c['complete_saved_case'] and bind(c['path'])['sha256']==c['sha256'])
+scan=read(P/'additional-device-candidates.json');check('machine scan364 source pairs unique',len(scan['scanned'])==364 and len({(a['source_archive'],a['member']) for a in scan['scanned']})==364 and len(scan['device_candidates'])==38)
+seven=dict(
+ layout='一体废墟基座，西南低翼floor0/use1锅-炉-损砧工作端，东侧底层双炉/箱与中北水洼；东主屋floor4/use5两床、箱和锅。双层工住/低侧翼可辨，不拆三炉、房间、残墙计多栋；上下完整联系未证，尚不称可用山脚铁匠铺。',
+ proportion='23×12×22/DV3337，声明6072位置，1285stored全非air、0显式air、4787省略；84palette/14BE/entities[]。12层264RLE/6072位置逐行实际读，最高y11孤阶为残饰，不算12经营层。',
+ facade='cobble/stonebrick/mossy/cracked主体，残拱、铁栏/木栏/藤草蛛网，局部木门和薄活板，双对门各上下半共4实际门而非8门。低翼(6/7,1/2,11)south闭门，东上屋(12/13,5/6,18)north闭门；未保存开口不等显式air。',
+ roof='主屋floor4大片top spruce slab与double slab，y7..9石阶/残墙收拢留缺口，y10/11局部藤与孤阶，原名destroyed及破口不自动证明最终防雨。西低翼残顶部与东高盖仍一体整体；阶的top/bottom、inner/outer状态不是同样实心立方碰撞。',
+ materials='西南锅(5,1,19)、北向未燃空炉(6,1,19)、west damagedanvil(7,1,19)为相关铁作线索；东两west空未燃炉(18,1,10/11)。另上锅(18,5,11)空，14水源格在floor0北中洼，不直接当淬火管线。三营火空且unlit；四箱均vanilla plains_house loot，seed保留，不冒称weaponsmith奖励。两完整north灰床heads(14/15,5,9)/feet(14/15,5,10)，床下top spruce slab，不补床或材料。',
+ circulation='低双门下(6/7,0,11)cracked石砖，上双门下(12/13,4,18)top spruce slab；上门外(12,5,19)本身top slab、(13,5,19)省略，未认作全净空。无ladder/scaffolding，西北z2/3孤阶群距主体上层远，东南残阶也未闭合连续上下路线；不把分散阶、藤或缺墙当已可登楼。低工作区入口、床层、锅位的完整材料/NPC流未运行。',
+ ground_support='单块不规则绿地/碎石基底承两翼，西炉与砧下(6/7,0,19)为cobble，东木床层在石墙体上。无原jigsaw强接未读翼，唯一root size1直池单source成立；WORLD_SURFACE_WG/beard_thin不等现场地形已验，y-1与4787省略周边原地形未知。')
+limits=[
+'84palette/14BE/entities[]、12层264RLE6072位置、7PNG实际全部读看；1285stored与4787omitted严格区分，灰分类图不是最终纹理/碰撞。',
+'完整读唯一templatepool、root、76权1结构表及directbiometag共4JSON；第一次pretty输出46token截断不记全文，随后compact全部完整读。五个嵌套biometag未读，原版plains_house loot不在当前Jar、未跨运行环境补查。3metadata exact213已读全文复用，仅排除caseID差别，无新增全文信用。',
+'Root jigsaw start0/size1/max64/WORLD_SURFACE_WG/beard_thin、empty spawn overrides，原root不是hostile mob配置；structure_set随机spread30/sep12/salt14357621/freq1并排除villages6chunk。76entries不是76建筑研究，也不据此推世界已生成。',
+'唯一whole源静态研究完成，相关下锅炉砧与上床层可辨，但毁损、上下升降路线、门外薄半砖/省略格、净空和地形未闭合；作者HOLD0，不以废墟尺寸新颖制造1合格提议。',
+'完整095F02七观察/whole_boundary/semantic比较与138F02全部保存观察绑定复用；095完整内梯至独立砧/药/床房间，138后脚手架与地下花室不同且旧限保留。当前无可证上下路线，不凭层数、炉数量、破损外观或职业物件另造空间族，旧作者pending状态不改写历史最终接受。',
+'新增364 frozen archive/member机器扫描在已有2230维度列之外，38设备线索、364rawhash仅候选发现，不是364/38整栋参考；房间/田块/mob/同木种外观不计。原old passed PNG不重开，未声称所有本地来源穷尽。',
+'本screen F01/F02 cherry与旧mountains工具匠/武器匠role+occupancy相同、F04birchwitch与211mangrove同；未重复原图/NBT全文研究。F03trials源名chambers只保留未完整研究，不能直接当整栋；仅F05本批完整整项。',
+'157first206与203first209各后续0，COD4153/847、NPC01/05/06totalunknown；0新提议pending[]，未达1000不制作。',
+'无Java/游戏/网络/生产资产/共享Jar/Git/主清单/用户实例原档/声音亮度唤醒焦点改动，不删未完成任务、不报主动工时或全部完成。']
+put('manual-review.json',dict(batch=216,case='F05',source={k:v for k,v in r.items() if k not in ['nbt_decoded_original','material_counts']},seven_dimensions=seven,limits=limits,status='HOLD_RUINED_WORK_LIVING_ROUTE_COMPLETENESS_ZERO',complete_original_spatial_study=True,new_reference_proposal=0,formal_credit_added=0,actual_reading=dict(palette=84,BE=14,entities=0,layers=12,RLE_rows=264,positions=6072,PNG_actual_viewed=7,full_metadata=0,metadata_exact_reuse=3,full_context_JSON=4)))
+for name in ['latest-independent-admissions.json','carried-forward-pending.json']:
+ d=read(PRE/name);d['previous215_binding']=bind(PRE/name);d['203first209_current216_increment']=0;d['157first206_current216_increment']=0
+ if name.startswith('latest'):d['current_batch_formal_credit_added']=0
+ else:d['current_batch_new_pending']=0;d['current_batch_pending_cases']=[];d['216F05_ruin_route0']=dict(increment=0,new_pending=0)
+ put(name,d)
+protected=[]
+for f in read(PRE/'protected-inputs-current.json')['files']:
+ old=f['current215'];now=bind(old['path']);protected.append(dict(last215_checkpoint=old,current216=now,unchanged=old==now))
+put('protected-inputs-current.json',dict(files=protected,baseline='saved215 checkpoint',this_chat_product_writes=False,concurrent_changes_not_reverted=True))
+put('verification.json',dict(status='PASS',check_count=len(checks),checks=checks,machine_checks_not_reference_credit=True))
+s=dict(batch=216,status='COMPLETE_ORIGINAL_RUINED_WORK_LIVING_HOUSE_STUDY_HOLD_ZERO',formal_credit_added=0,accepted203_first209_current_increment=0,accepted157_first206_current_increment=0,COD4_accepted=153,COD4_gap=847,NPC01_total=None,NPC05_total=None,NPC06_total=None,new_complete_whole_studies=1,new_qualifying_proposals=0,active_pending=[],java_run=False,game_run=False,network_used=False,production=False,masterlists_edited=False,all_tasks_complete=False,actual_active_work_hours=None,protected_input_concurrent_changes=sum(not a['unchanged'] for a in protected),next='Use saved364machine discovery leads for an applicable whole processing building; no generic sleeping-house or component credit. taiga_house brewing-stand lead requires purpose check before whole study.')
+put('session.json',s);put('active-checkpoint.json',s);files=[bind(f) for f in sorted(P.iterdir()) if f.is_file() and f.name!='RECEIPT.json'];put('RECEIPT.json',dict(**s,files=files,verification_checks=len(checks)));print(json.dumps(dict(receipt=bind(P/'RECEIPT.json'),files=len(files),checks=len(checks)),ensure_ascii=False))
