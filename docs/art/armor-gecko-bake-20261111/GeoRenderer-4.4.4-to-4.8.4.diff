@@ -1,0 +1,51 @@
+--- 4.4.4/software/bernie/geckolib/renderer/GeoRenderer.java
++++ 4.8.4/software/bernie/geckolib/renderer/GeoRenderer.java
+@@ -40,7 +40,7 @@
+ 	 * Gets the texture resource location to render for the given animatable
+ 	 */
+ 	default ResourceLocation getTextureLocation(T animatable) {
+-		return getGeoModel().getTextureResource(animatable);
++		return getGeoModel().getTextureResource(animatable, this);
+ 	}
+ 
+ 	/**
+@@ -76,7 +76,7 @@
+ 	 * white tint when exploding.
+ 	 * @deprecated Use {@link GeoRenderer#getPackedOverlay(GeoAnimatable, float, float)}
+ 	 */
+-	@Deprecated(forRemoval = true)
++	@Deprecated
+ 	default int getPackedOverlay(T animatable, float u) {
+ 		return OverlayTexture.NO_OVERLAY;
+ 	}
+@@ -127,7 +127,7 @@
+ 		float blue = renderColor.getBlueFloat();
+ 		float alpha = renderColor.getAlphaFloat();
+ 		int packedOverlay = getPackedOverlay(animatable, 0, partialTick);
+-		BakedGeoModel model = getGeoModel().getBakedModel(getGeoModel().getModelResource(animatable));
++		BakedGeoModel model = getGeoModel().getBakedModel(getGeoModel().getModelResource(animatable, this));
+ 
+ 		if (renderType == null)
+ 			renderType = getRenderType(animatable, getTextureLocation(animatable), bufferSource, partialTick);
+@@ -149,6 +149,7 @@
+ 		poseStack.popPose();
+ 
+ 		renderFinal(poseStack, animatable, model, bufferSource, buffer, partialTick, packedLight, packedOverlay, red, green, blue, alpha);
++		doPostRenderCleanup();
+ 	}
+ 
+ 	/**
+@@ -230,6 +231,13 @@
+ 	 */
+ 	default void renderFinal(PoseStack poseStack, T animatable, BakedGeoModel model, MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight,
+ 							int packedOverlay, float red, float green, float blue, float alpha) {}
++
++	/**
++	 * Called after all render operations are completed and the render pass is considered functionally complete.
++	 * <p>
++	 * Use this method to clean up any leftover persistent objects stored during rendering or any other post-render maintenance tasks as required
++	 */
++	default void doPostRenderCleanup() {}
+ 
+ 	/**
+ 	 * Renders the provided {@link GeoBone} and its associated child bones

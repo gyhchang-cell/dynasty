@@ -1,0 +1,31 @@
+"""Two original IE full kits: default source binding and standard1.20 UV context, software only."""
+from pathlib import Path
+import json,re,hashlib,importlib.util,inspect
+import numpy as np
+from PIL import Image,ImageDraw
+D=Path(__file__).resolve().parent;R=D.parents[2];SRC=D/'source';RES=SRC/'src/main/resources/assets/immersiveengineering';GEN=SRC/'src/generated/resources/assets/immersiveengineering';J=SRC/'src/main/java/blusunrize/immersiveengineering';MESH=R/'docs/art/armor-three-slot-closure-20261111/layout-study.json';HELPER=R/'docs/art/armor-native-face-uv-20261111/render_native.py';CONTRACT=HELPER.parent/'native-uv-contract.json';RASTER=R/'tools/art/secondary-cuboid/review_models.py'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def load(p,n):
+ spec=importlib.util.spec_from_file_location(n,p);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
+
+def main():
+ reg=(J/'common/register/IEItems.java').read_text();prior=json.loads(MESH.read_text());helper=load(HELPER,'native_faces_only');contract=json.loads(CONTRACT.read_text());r=load(RASTER,'ie_reference_raster');code=inspect.getsource(r.raster).replace(".convert('RGB')",".convert('RGBA')").replace('color=np.zeros((*xx.shape,3)) if silhouette else atlas[ty,tx]*shade','mask &= atlas[ty,tx,3]>127\n            color=np.zeros((*xx.shape,3)) if silhouette else atlas[ty,tx,:3]*shade');exec(code,r.__dict__);nodes=[]
+ for name,origin,size,uv,mirror,pos,deformation,slot in prior['mesh_declarations']:
+  nodes.append({'name':name,'parent':'root','pose':pos+[0,0,0],'cubes':[{'origin':origin,'size':size,'uv':[uv[0],uv[1]+(32 if slot=='leggings' else 0)],'mirror':mirror,'deformation':deformation}]})
+ q,faces=helper.quads(nodes,contract);assert len(q)==60;pages=[];chains=[]
+ for material,cls in [('steel','SteelArmorItem'),('faraday','FaradaySuitItem')]:
+  p=J/f'common/items/{cls}.java';src=p.read_text();assert f'class {cls} extends ArmorItem' in src and 'super(mat, type, new Properties().stacksTo(1))' in src and f'new {cls}(slot)' in reg and f'"armor_{material}_"' in reg;assert 'slot==EquipmentSlot.LEGS?"_legs": ""' in src;assert 'getHumanoidArmorModel' not in src and 'initializeClient' not in src
+  icon_sources=[];canvas=Image.new('RGB',(1120,460),(75,80,85));draw=ImageDraw.Draw(canvas);draw.text((12,10),f'ORIGINAL REFERENCE PNG / NOT DYNASTY / IE:{material}',fill='white')
+  for i,slot in enumerate(['helmet','chestplate','leggings','boots']):
+   model=GEN/f'models/item/armor_{material}_{slot}.json';mj=json.loads(model.read_text());assert mj['textures']['layer0']==f'immersiveengineering:item/armor_{material}_{slot}';icon=RES/f'textures/item/armor_{material}_{slot}.png';im=Image.open(icon).convert('RGBA');assert im.size==(16,16);big=im.resize((160,160),Image.Resampling.NEAREST);canvas.paste(big,(12+i*175,52),big);draw.text((12+i*175,225),slot,fill='white');icon_sources.append({'path':str(icon.relative_to(R)),'sha256':sha(icon)})
+   texture=RES/f'textures/models/armor_{material}{"_legs" if slot=="leggings" else ""}.png';chains.append({'case_key':'immersiveengineering:'+material,'id':f'immersiveengineering:armor_{material}_{slot}','slot':slot,'class':str(p.relative_to(R)),'class_sha256':sha(p),'item_model':str(model.relative_to(R)),'item_model_sha256':sha(model),'icon':str(icon.relative_to(R)),'icon_sha256':sha(icon),'texture':str(texture.relative_to(R)),'texture_sha256':sha(texture),'model_context':'ArmorItem default model; class has no custom extension method; external Forge hooks not executed','trim_overrides_counted_as_designs':0})
+  layers=[];atlas=Image.new('RGBA',(64,64))
+  for i,suffix in enumerate(['','_legs']):
+   path=RES/f'textures/models/armor_{material}{suffix}.png';im=Image.open(path).convert('RGBA');assert im.size==(64,32);atlas.paste(im,(0,32*i));big=im.resize((320,160),Image.Resampling.NEAREST);canvas.paste(big,(760,52+i*195),big);layers.append({'path':str(path.relative_to(R)),'sha256':sha(path)})
+  n=f'{material}-native-source-page.png';canvas.save(D/n);pages.append({'case_key':'immersiveengineering:'+material,'kind':'source','path':n,'sha256':sha(D/n),'icons':icon_sources,'layers':layers,'runtime_acceptance':False})
+  ap=D/f'{material}-ANALYSIS-ONLY-atlas.png';atlas.save(ap);gp=D/f'{material}-GRAY-ANALYSIS-ONLY.png';gray=Image.new('RGBA',atlas.size,(180,180,180,0));gray.putalpha(atlas.getchannel('A'));gray.save(gp);r.TEX_SIZE=64;canvas=Image.new('RGB',(1800,510),(68,73,78));draw=ImageDraw.Draw(canvas);draw.text((10,9),f'NATIVE DEFAULT1.20 UV CONTEXT / SOFTWARE / NOT GAME / IE:{material}',font=r.font(14),fill='white')
+  for i,(yaw,label) in enumerate(zip([0,45,90,180,45,0],['FRONT','45','SIDE','BACK','GRAY','BLACK'])):
+   r.TEX=gp if i==4 else ap;canvas.paste(r.raster(q,yaw,6,size=(300,420),silhouette=i==5),(300*i,40));draw.text((300*i+10,474),label,font=r.font(15),fill='white')
+  n=f'{material}-standard-layout.png';canvas.save(D/n);pages.append({'case_key':'immersiveengineering:'+material,'kind':'software_layout','path':n,'sha256':sha(D/n),'analysis_atlas':ap.name,'analysis_atlas_sha256':sha(ap),'gray_analysis_atlas':gp.name,'gray_analysis_atlas_sha256':sha(gp),'runtime_acceptance':False})
+ out={'slot_chains':chains,'pages':pages,'nodes':nodes,'faces':faces,'mesh_context':str(MESH.relative_to(R)),'mesh_context_sha256':sha(MESH),'face_helper':str(HELPER.relative_to(R)),'face_helper_sha256':sha(HELPER),'reused1_20_face_context_comparison':'docs/art/armor-botania-layout-20261111/source-context-comparison.json','raster':str(RASTER.relative_to(R)),'raster_sha256':sha(RASTER),'registration_source':str((J/'common/register/IEItems.java').relative_to(R)),'registration_source_sha256':sha(J/'common/register/IEItems.java'),'limits':['Default untrimmed complete sets only; vanilla trim recolors/overlays do not add design count','Default source1.20 armor dimensions including leg deformation; source declarations only, Forge hooks/mixin/runtime not executed','Alpha cutoff/depth overlap is software-specific and cannot prove worn seams or native texture noise'],'production_changes':0,'game_starts':0};(D/'study.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n');print('8 static slot chains,8icons,4layerPNG,2source pages and2six-view software layouts.')
+if __name__=='__main__':main()

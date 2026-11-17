@@ -1,0 +1,115 @@
+"""Check fixed inputs, exact copies, cumulative ownership, and production safeguards."""
+from pathlib import Path
+from contextlib import ExitStack
+from datetime import datetime, timezone
+import hashlib
+import json
+import zipfile
+
+D = Path(__file__).resolve().parent
+R = D.parents[2]
+
+
+def read(p):
+    return json.loads(p.read_text())
+
+
+def sha(p):
+    return hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def save(name, data):
+    (D / name).write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+
+
+def main():
+    ctx, baseline = read(D / 'collection-context.json'), read(D / 'source-baseline.json')
+    changes = [p for p, h in baseline.items() if not (R / p).is_file() or sha(R / p) != h]
+    assert sha(R / ctx['collector']) == ctx['collector_sha256']
+    assert sha(R / ctx['prior_ledger']) == ctx['prior_ledger_sha256']
+    prior = read(R / ctx['prior_ledger'])
+    assert len(prior['groups']) == 145 and len(prior['case_to_group']) == 340 and len(prior['reviewed_case_keys']) == 341
+    for row in prior['source_reviews']:
+        assert sha(R / row['path']) == row['sha256']
+    assert set(ctx['skipped_previously_reviewed_cases']) == set(prior['reviewed_case_keys'])
+    receipt = read(next(D.glob('texture-requirements-receipt-*.json')))
+    assert len(receipt['targets']) == len(set(receipt['targets'])) == 24
+    assert receipt['sha256'] == sha(R / receipt['snapshot']) == sha(R / 'docs/art/USER_TEXTURE_REQUIREMENTS.md') == sha(Path('/Users/a15356015027/.codex/user-preferences/texture-requirements.md'))
+    prov, review = read(D / 'provenance.json'), read(D / 'semantic-review.json')
+    selected, supplements = read(D / 'provenance-index-selection.json'), read(D / 'same-family-completion.json')
+    icons = [a for c in prov['cases'] for a in c['icons']]
+    key = lambda a: (a['jar'], a['entry'], a['sha256'])
+    original = [a for c in selected['cases'] for a in c['icons']]
+    assert len(original) == 50 and len(supplements) == 18 and len(icons) == 68
+    assert {key(a) for a in icons} == {key(a) for a in original + supplements}
+    cases = {c['case_key'] for c in prov['cases']}
+    assert len(cases) == 33 and not cases & set(prior['reviewed_case_keys'])
+    for index in prov['indexes']:
+        assert sha(R / index['path']) == index['sha256']
+    assert len(review['pages_opened']) == 7 and all((D / p).is_file() for p in review['pages_opened'])
+    included = [c for row in review['observations'] for c in row['cases']]
+    excluded = review['excluded_cases']
+    flat = included + [e['case_key'] for e in excluded]
+    assert len(included) == 21 and len(excluded) == 12 and len(flat) == len(set(flat)) == 33 and set(flat) == cases
+    worn = read(D / 'selected-worn-provenance.json')
+    assert len(worn['textures']) == 10 and len({a['sha256'] for a in worn['textures']}) == worn['distinct_payloads'] == 8
+    assert worn['additional_design_credit'] == 0 and not any(a['runtime_binding_proven'] for a in worn['textures'])
+    with ExitStack() as stack:
+        jars = {a['path']: stack.enter_context(zipfile.ZipFile(a['path'])) for a in prov['archives']}
+        for a in prov['archives']:
+            assert sha(Path(a['path'])) == a['sha256']
+        for a in icons + worn['textures']:
+            assert sha(D / a['local']) == a['sha256'] == hashlib.sha256(jars[a['jar']].read(a['entry'])).hexdigest()
+        rooted = excluded[0]['source']
+        raw = jars[rooted['jar']].read(rooted['entry'])
+        assert hashlib.sha256(raw).hexdigest() == rooted['sha256']
+        assert rooted['value'] in json.loads(raw)[rooted['inspected_key']]
+    groups = {g['semantic_group']: g for g in prior['groups']}
+    new = append = 0
+    for row in review['observations']:
+        k = row['semantic_group']
+        if row['credit'] == 'NEW_CONSERVATIVE_LEARNING_GROUP':
+            assert k not in groups
+            groups[k] = {'semantic_group': k, 'cases': [], 'observations': []}
+            new += 1
+        else:
+            assert row['credit'] == 'APPEND_TO_PRIOR_GROUP_ZERO_NEW_DESIGNS' and row['prior_group'] == k and k in groups
+            append += 1
+        groups[k]['cases'] = sorted(set(groups[k]['cases']) | set(row['cases']))
+        groups[k]['observations'].append({'source': str((D / 'semantic-review.json').relative_to(R)), 'observation': row['observation']})
+    owners = {}
+    for k, group in groups.items():
+        for c in group['cases']:
+            assert c not in owners
+            owners[c] = k
+    assert new == 9 and append == 2 and len(groups) == 154 and len(owners) == 361
+    excluded_all = prior['excluded_cases'] + excluded
+    reviewed = sorted(set(owners) | {e['case_key'] for e in excluded_all})
+    assert len(reviewed) == 374 and len(excluded_all) == 13
+    cumulative = {**prior, 'source_reviews': prior['source_reviews'] + [{'path': str((D / 'semantic-review.json').relative_to(R)), 'sha256': sha(D / 'semantic-review.json')}],
+                  'groups': [g for _, g in sorted(groups.items())], 'case_to_group': dict(sorted(owners.items())),
+                  'excluded_cases': excluded_all, 'reviewed_case_keys': reviewed,
+                  'name_families': 374, 'armor_name_families': 361, 'conservative_learning_groups': 154}
+    save('combined-semantic-ledger.json', cumulative)
+    save('reference-gate-accounting.json', {'required_valid_related_independent_designs': 1000,
+         'reviewed_name_families': 374, 'armor_name_families_after_exclusion': 361,
+         'excluded_non_player_equipment': 1, 'excluded_player_accessory_or_slot_unproven': 12,
+         'excluded_from_full_armor_gate': 13, 'conservative_learning_groups_in_current_subset': 154,
+         'validated_independent_design_total': None, 'maximum_credit_under_current_one_per_group_policy': 154,
+         'unfilled_minimum_under_current_policy': 846, 'reference_gate_met': False,
+         'gap_limit': '学习组包含不完整套及反例，尚非独立完整设计验收；846仅为全部学习组合格时的最低缺口。'})
+    result = {'checked_at': datetime.now(timezone.utc).isoformat(), 'status': 'PASS_RESEARCH_EVIDENCE' if not changes else 'SOURCE_CHANGED_REVIEW_REQUIRED',
+              'source_protected_paths': len(baseline), 'source_unchanged': not changes, 'changed_paths': changes,
+              'native_icon_png_viewed': 68, 'native_worn_entries_viewed': 10, 'distinct_worn_payloads': 8,
+              'new_learning_groups': 9, 'combined_learning_groups': 154,
+              'combined_reviewed_names': 374, 'combined_armor_names': 361,
+              'reference_gate_met': False, 'rules_sha256': receipt['sha256'],
+              'new_artwork': 0, 'production_changes': 0, 'game_starts': 0, 'checklist_deletions': 0}
+    assert review['new_artwork'] == review['production_changes'] == 0 and not review['gate_met']
+    save('verification.json', result)
+    print(json.dumps(result, ensure_ascii=False))
+    assert not changes
+
+
+if __name__ == '__main__':
+    main()

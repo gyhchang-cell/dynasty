@@ -1,0 +1,47 @@
+--- 4.4.4/software/bernie/geckolib/loading/object/BakedModelFactory.java
++++ 4.8.4/software/bernie/geckolib/loading/object/BakedModelFactory.java
+@@ -46,7 +46,7 @@
+ 	 * Builtin method to construct the quad list from the various vertices and related data, to make it easier.<br>
+ 	 * Vertices have already been mirrored here if {@code mirror} is true
+ 	 */
+-	default GeoQuad[] buildQuads(UVUnion uvUnion, VertexSet vertices, Cube cube, float textureWidth, float textureHeight, boolean mirror) {
++	default @Nullable GeoQuad[] buildQuads(UVUnion uvUnion, VertexSet vertices, Cube cube, float textureWidth, float textureHeight, boolean mirror) {
+ 		GeoQuad[] quads = new GeoQuad[6];
+ 
+ 		quads[0] = buildQuad(vertices, cube, uvUnion, textureWidth, textureHeight, mirror, Direction.WEST);
+@@ -62,7 +62,7 @@
+ 	/**
+ 	 * Build an individual quad
+ 	 */
+-	default GeoQuad buildQuad(VertexSet vertices, Cube cube, UVUnion uvUnion, float textureWidth, float textureHeight, boolean mirror, Direction direction) {
++	default @Nullable GeoQuad buildQuad(VertexSet vertices, Cube cube, UVUnion uvUnion, float textureWidth, float textureHeight, boolean mirror, Direction direction) {
+ 		if (!uvUnion.isBoxUV()) {
+ 			FaceUV faceUV = uvUnion.faceUV().fromDirection(direction);
+ 
+@@ -70,7 +70,7 @@
+ 				return null;
+ 
+ 			return GeoQuad.build(vertices.verticesForQuad(direction, false, mirror || cube.mirror() == Boolean.TRUE), faceUV.uv(), faceUV.uvSize(),
+-					textureWidth, textureHeight, mirror, direction);
++					faceUV.uvRotation(), textureWidth, textureHeight, mirror, direction);
+ 		}
+ 
+ 		double[] uv = cube.uv().boxUVCoords();
+@@ -103,7 +103,7 @@
+ 			};
+ 		};
+ 
+-		return GeoQuad.build(vertices.verticesForQuad(direction, true, mirror || cube.mirror() == Boolean.TRUE), uvData[0], uvData[1], textureWidth, textureHeight, mirror, direction);
++		return GeoQuad.build(vertices.verticesForQuad(direction, true, mirror || cube.mirror() == Boolean.TRUE), uvData[0], uvData[1], FaceUV.Rotation.NONE, textureWidth, textureHeight, mirror, direction);
+ 	}
+ 
+ 	static BakedModelFactory getForNamespace(String namespace) {
+@@ -167,7 +167,7 @@
+ 
+ 			pivot = pivot.multiply(-1, 1, 1);
+ 			rotation = new Vec3(Math.toRadians(-rotation.x), Math.toRadians(-rotation.y), Math.toRadians(rotation.z));
+-			GeoQuad[] quads = buildQuads(cube.uv(), new VertexSet(origin, vertexSize, inflate), cube, (float)properties.textureWidth(), (float)properties.textureHeight(), mirror);
++			@Nullable GeoQuad[] quads = buildQuads(cube.uv(), new VertexSet(origin, vertexSize, inflate), cube, (float)properties.textureWidth(), (float)properties.textureHeight(), mirror);
+ 
+ 			return new GeoCube(quads, pivot, rotation, size, inflate, mirror);
+ 		}
