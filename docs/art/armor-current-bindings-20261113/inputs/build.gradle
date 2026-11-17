@@ -1,0 +1,510 @@
+plugins {
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = mod_version
+group = mod_group_id
+
+base {
+    archivesName = mod_id
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+println "Java: ${System.getProperty 'java.version'}, JVM: ${System.getProperty 'java.vm.version'} (${System.getProperty 'java.vendor'}), Arch: ${System.getProperty 'os.arch'}"
+
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+
+    runs {
+        configureEach {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            // Runtime GeckoLib refmaps use SRG names; official-mapped dev clients need this bridge.
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', file('build/createSrgToMcp/output.srg').absolutePath
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
+        }
+
+        client {
+            property 'forge.enabledGameTestNamespaces', project.findProperty('gameTestNamespaces') ?: mod_id
+        }
+
+        server {
+            property 'forge.enabledGameTestNamespaces', project.findProperty('gameTestNamespaces') ?: mod_id
+            args '--nogui'
+        }
+
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', project.findProperty('gameTestNamespaces') ?: mod_id
+        }
+
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+        }
+    }
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// =====================================================================================
+// 导出任务（IDEA 里对应两个运行配置：导出 Dynasty 模组 / 导出 Dynasty 整合包）
+// Export tasks — wired to two IDEA run configurations.
+// =====================================================================================
+def dynastyHome = System.getProperty('user.home')
+def dynastyExportDir = file("${dynastyHome}/Desktop/导出")
+def hmclGameDir = file("${dynastyHome}/Public/.minecraft")
+
+/** 把 build/libs 里的本体 jar 复制到某目录，返回文件名 / copies the mod jar into a folder */
+def copyOwnJar = { File targetDir ->
+    targetDir.mkdirs()
+    def jars = file('build/libs').listFiles()?.findAll {
+        it.name == "dynasty-${mod_version}.jar"
+    }
+    jars?.each { new File(targetDir, it.name).bytes = it.bytes }
+    return jars?.collect { it.name } ?: []
+}
+
+def runPython = { String script ->
+    def f = file(script)
+    if (!f.exists()) {
+        throw new GradleException("缺少打包脚本：${script}")
+    }
+    exec { commandLine 'python3', f.absolutePath }
+}
+
+def openDir = { File dir ->
+    if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+        try {
+            exec { commandLine 'open', dir.absolutePath }
+        } catch (Exception ignored) {
+        }
+    }
+}
+
+/**
+ * 把 modpack/mods 里的全部 jar + 最新本体 jar 同步进 HMCL 的 Dynasty 实例。
+ * 同时写「版本隔离目录」与「全局 mods 目录」，所以启动器开不开版本隔离都能加载。
+ *
+ * Syncs every pack jar plus the freshly built mod into the HMCL "Dynasty" instance
+ * (both the version-isolated folder and the global mods folder).
+ */
+def syncHmcl = {
+    if (!hmclGameDir.isDirectory()) {
+        logger.lifecycle("（未发现 HMCL 目录 ${hmclGameDir}，跳过同步）")
+        return 0
+    }
+    // 目标：全局 mods + 版本隔离目录 + 所有名字里带 Dynasty 的实例（含 HMCL 导入整合包生成的实例）
+    def modTargets = [new File(hmclGameDir, 'mods'),
+                      new File(hmclGameDir, "versions/Dynasty 王朝 ${mod_version}/mods")]
+    def versionsDir = new File(hmclGameDir, 'versions')
+    if (versionsDir.isDirectory()) {
+        versionsDir.listFiles()?.each { dir ->
+            if (dir.isDirectory() && dir.name.contains('Dynasty')) {
+                modTargets.add(new File(dir, 'mods'))
+            }
+        }
+    }
+    // 必须删掉的坏文件：
+    //   * 旧版 item-filters → FTB Quests 起不来
+    //   * CustomSkinLoader 的 Universal 版 → 缺类崩溃
+    //   * TexTrue's Embeddium Options → Embeddium 明确声明不兼容（0.0.0-NOT-COMPATIBLE）
+    def blacklist = ['item-filters-forge-2001.1.0-build.53.jar',
+                     'CustomSkinLoader_Universal-15.0.1.jar',
+                     'CustomSkinLoader_Universal-15.0.jar',
+                     'textrues_embeddium_options-0.1.5+mc1.20.1.jar',
+                     'sodiumoptionsapi-forge-1.0.10-1.20.1.jar',
+                     // Inventory Profiles Next 会挡住背包左上角的任务按钮
+                     'InventoryProfilesNext-forge-1.20-1.10.20.jar',
+                     'libIPN-forge-1.20-4.0.2.jar']
+
+    int total = 0
+    modTargets.unique().each { dir ->
+        dir.mkdirs()
+        def names = [] as Set
+        file('modpack/mods').listFiles()?.each { f ->
+            if (f.name.endsWith('.jar')) {
+                new File(dir, f.name).bytes = f.bytes
+                names.add(f.name)
+            }
+        }
+        copyOwnJar(dir).each { names.add(it) }
+        // 删除上一次同步过、现在已被整合包移除的模组（只删我们自己放过的东西）
+        def manifest = new File(dir, '.dynasty-pack-jars.txt')
+        if (manifest.exists()) {
+            manifest.readLines().findAll { it.endsWith('.jar') && !names.contains(it) }.each { stale ->
+                if (new File(dir, stale).delete()) {
+                    logger.lifecycle("   已移除旧模组: ${stale}")
+                }
+            }
+        }
+        blacklist.each { bad ->
+            def file = new File(dir, bad)
+            if (file.exists() && file.delete()) {
+                logger.lifecycle("   已移除不兼容模组: ${bad}")
+            }
+        }
+        manifest.text = names.join('\n')
+        total = names.size()
+        logger.lifecycle("✅ 已同步 ${names.size()} 个 jar → ${dir}")
+    }
+    // 顺带同步整合包实例目录 / also refresh the ready-made instance folder
+    def instanceDir = file('整合包实例/mods')
+    instanceDir.mkdirs()
+    file('modpack/mods').listFiles()?.each { f ->
+        if (f.name.endsWith('.jar')) {
+            new File(instanceDir, f.name).bytes = f.bytes
+        }
+    }
+    copyOwnJar(instanceDir)
+
+    // 把 modpack/config 里的配置（FTB 任务书等）同步进游戏目录
+    def configSource = file('modpack/config')
+    if (configSource.isDirectory()) {
+        def configTargets = [new File(hmclGameDir, 'config'),
+                             new File(hmclGameDir, "versions/Dynasty 王朝 ${mod_version}/config")]
+        if (versionsDir.isDirectory()) {
+            versionsDir.listFiles()?.each { dir ->
+                if (dir.isDirectory() && dir.name.contains('Dynasty')) {
+                    configTargets.add(new File(dir, 'config'))
+                }
+            }
+        }
+            configTargets.unique().each { target ->
+            target.mkdirs()
+            configSource.eachFileRecurse { f ->
+                if (f.isFile()) {
+                    def relative = configSource.toPath().relativize(f.toPath()).toString()
+                    def dest = new File(target, relative)
+                    dest.parentFile.mkdirs()
+                    dest.bytes = f.bytes
+                }
+            }
+            // 删掉源里已经没有的任务章节（例如被精简掉的章节）/ drop removed quest chapters
+            def questDir = new File(target, 'ftbquests/quests/chapters')
+            if (questDir.isDirectory()) {
+                def keep = file('modpack/config/ftbquests/quests/chapters').listFiles()
+                        ?.collect { it.name } as Set ?: ([] as Set)
+                questDir.listFiles()?.each { stale ->
+                    if (stale.name.startsWith('dynasty_') && !keep.contains(stale.name)) {
+                        if (stale.delete()) {
+                            logger.lifecycle("   已移除旧任务章节: ${stale.name}")
+                        }
+                    }
+                }
+            }
+            logger.lifecycle("✅ 已同步整合包 config → ${target}")
+        }
+    }
+    return total
+}
+
+/** 只做同步：把最新 jar + 整合包模组刷新进 HMCL 实例 */
+tasks.register('syncHmcl') {
+    group = 'dynasty'
+    description = '把最新本体 jar 与整合包模组同步进 HMCL 的 Dynasty 实例（含全局 mods）'
+    dependsOn 'build'
+    doLast {
+        syncHmcl()
+    }
+}
+
+/** 导出模组：出 build/libs/dynasty-x.jar → 桌面「导出」文件夹 + 同步进 HMCL 实例 */
+tasks.register('exportMod') {
+    group = 'dynasty'
+    description = '导出 Dynasty 模组 jar（build/libs → 桌面/导出/Dynasty模组 + 同步 HMCL 实例）'
+    dependsOn 'build'
+    doLast {
+        def out = new File(dynastyExportDir, 'Dynasty模组')
+        def names = copyOwnJar(out)
+        logger.lifecycle("✅ 已导出模组：${out}")
+        names.each { logger.lifecycle("   ${it}") }
+        syncHmcl()
+        openDir(out)
+    }
+}
+
+/** 导出整合包：仅完整游玩 mrpack、Modrinth mrpack、CurseForge ZIP。 */
+tasks.register('exportModpack') {
+    group = 'dynasty'
+    description = '仅导出完整游玩 mrpack、Modrinth 上传 mrpack、CurseForge 上传 ZIP'
+    dependsOn 'build'
+    doLast {
+        def verificationFailures = []
+        runPython('tools/art/make_modpack.py')
+        exec {
+            commandLine 'python3', file('tools/art/make_uploadable_packs.py').absolutePath,
+                    '--modrinth-filename', "dynasty-${project.version}-modrinth.mrpack", '--bundle-ftb'
+        }
+
+        // 模组解析自检：把「缺前置 / 不兼容」这类会让游戏起不来的问题在导出阶段就报出来
+        def verifier = file('tools/art/verify_modpack.py')
+        if (verifier.exists()) {
+            try {
+                exec {
+                    commandLine 'python3', verifier.absolutePath,
+                            file('modpack/mods').absolutePath
+                }
+            } catch (Exception e) {
+                verificationFailures.add("自检脚本执行异常")
+                logger.lifecycle("（自检脚本执行异常：${e.message}）")
+            }
+        }
+
+        // 任务书自检：id 能否被 FTB 解析、前置是否都指向真实任务、引用是否存在、坐标是否铺开
+        def questVerifier = file('tools/art/verify_ftbquests.py')
+        if (questVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', questVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("任务书自检发现异常")
+                logger.lifecycle("（任务书自检发现异常：${e.message}）")
+            }
+        }
+
+        // 世界生成自检：噪声 id / 生物群系 / 特征 / 结构的引用是否都真实存在
+        // （地府崩溃过一次：地表规则里把噪声名当方块名改掉了，这里能在导出阶段拦住）
+        def worldgenVerifier = file('tools/art/verify_worldgen.py')
+        if (worldgenVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', worldgenVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("世界生成自检发现异常")
+                logger.lifecycle("（世界生成自检发现异常：${e.message}）")
+            }
+        }
+
+        // 特征顺序自检：复刻原版 FeatureSorter，避免 Feature order cycle（进天朝崩过一次）
+        def featureOrderVerifier = file('tools/art/verify_feature_order.py')
+        if (featureOrderVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', featureOrderVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("特征顺序自检发现异常")
+                logger.lifecycle("（特征顺序自检发现异常：${e.message}）")
+            }
+        }
+
+        // 实体自检：每个实体都要有渲染器与贴图（九霄天将 / 东海龙王 缺渲染器崩过）
+        def entityVerifier = file('tools/art/verify_entities.py')
+        if (entityVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', entityVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("实体自检发现异常")
+                logger.lifecycle("（实体自检发现异常：${e.message}）")
+            }
+        }
+
+        // 装备自检：护甲 / 饰品的表、贴图、模型、配方、词条、Curios 标签六处必须齐全
+        //（曾经漏注册 / 漏进 Curios 标签 → 物品根本戴不上）
+        def gearVerifier = file('tools/art/verify_gear.py')
+        if (gearVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', gearVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("装备自检发现异常")
+                logger.lifecycle("（装备自检发现异常：${e.message}）")
+            }
+        }
+
+        // 科举题库自检：三档题库的选项 / 答案下标 / 重复题干 / 门槛升序 / 内置兜底数量
+        def kejuVerifier = file('tools/art/verify_keju.py')
+        if (kejuVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', kejuVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("科举题库自检发现异常")
+                logger.lifecycle("（科举题库自检发现异常：${e.message}）")
+            }
+        }
+
+        // 词条自检：每个物品（item./block. 双查）与每个模组效果都要有中英词条
+        //（只查 item. 会把方块误判成「缺词条」，所以两边都认）
+        def langVerifier = file('tools/art/verify_lang.py')
+        if (langVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', langVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("词条自检发现异常")
+                logger.lifecycle("（词条自检发现异常：${e.message}）")
+            }
+        }
+
+        // 数值审计：饰品表的编码与数值是否在设计上下限内（百分比写成点数 / 生命上限扣太狠
+        // 这类问题在游戏里很难发现，这里直接拦）
+        def balanceVerifier = file('tools/art/verify_balance.py')
+        if (balanceVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', balanceVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("数值审计发现异常")
+                logger.lifecycle("（数值审计发现异常：${e.message}）")
+            }
+        }
+
+        // 战利品表自检：结构引用的箱子表存在 + 表里物品存在 + 权重/数量合法（表名打错箱子就是空的）
+        def lootVerifier = file('tools/art/verify_loot.py')
+        if (lootVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', lootVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("战利品表自检发现异常")
+                logger.lifecycle("（战利品表自检发现异常：${e.message}）")
+            }
+        }
+
+        // 创造栏自检：注册过的物品必须在创造模式物品栏里能找到（曾漏掉 130 件饰品 + 73 件物品）
+        def tabVerifier = file('tools/art/verify_tab.py')
+        if (tabVerifier.exists()) {
+            try {
+                exec { commandLine 'python3', tabVerifier.absolutePath }
+            } catch (Exception e) {
+                verificationFailures.add("创造栏自检发现异常")
+                logger.lifecycle("（创造栏自检发现异常：${e.message}）")
+            }
+        }
+
+        if (!verificationFailures.isEmpty()) {
+            throw new GradleException("导出自检未通过，未更新桌面成品：${verificationFailures.join('、')}。请查看上方详细信息。")
+        }
+
+        def out = new File(dynastyExportDir, 'Dynasty整合包')
+        out.mkdirs()
+        def exportNames = [
+                "dynasty-${project.version}.mrpack",
+                "dynasty-${project.version}-modrinth.mrpack",
+                "dynasty-modpack-${project.version}.zip"
+        ].collect { it.toString() }
+        exportNames.each { name ->
+            if (!file("dist/${name}").isFile()) throw new GradleException("缺少整合包成品：${name}")
+        }
+        // Preserve old generated archives outside the current three-file export.
+        def history = new File(dynastyExportDir, "Dynasty整合包历史/${System.currentTimeMillis()}")
+        out.listFiles()?.findAll { f ->
+            f.isFile() && !exportNames.contains(f.name) && (
+                    (f.name.startsWith('dynasty-') && (f.name.endsWith('.zip') || f.name.endsWith('.mrpack'))) ||
+                    f.name == 'Modrinth上传说明.txt' || f.name == 'Dynasty-1.20.1-FTB任务与连锁补装.zip')
+        }?.each { f ->
+            history.mkdirs()
+            java.nio.file.Files.move(f.toPath(), new File(history, f.name).toPath())
+        }
+        exportNames.each { name -> new File(out, name).bytes = file("dist/${name}").bytes }
+        logger.lifecycle("✅ 已导出整合包：${out}（仅 3 个成品）")
+        logger.lifecycle("   dynasty-${project.version}.mrpack → 完整游玩；dynasty-${project.version}-modrinth.mrpack → Modrinth 上传；dynasty-modpack-${project.version}.zip → CurseForge 上传")
+        openDir(out)
+    }
+}
+
+/**
+ * 跑整合包：构建本体 → 生成 dist/（可上传包）→ 组装一个「整合包实例」目录，直接能丢进启动器。
+ * Modpack runner: build the mod, regenerate dist/, and assemble a ready-to-play instance folder.
+ */
+tasks.register('dynastyModpack') {
+    group = 'dynasty'
+    description = '构建本体 + 生成整合包(dist/) + 组装可直接放进启动器的实例目录（整合包实例/mods）'
+    dependsOn 'build'
+    doLast {
+        def instanceDir = file('整合包实例/mods')
+        instanceDir.mkdirs()
+        int copied = 0
+        [file('build/libs'), file('modpack/mods')].each { dir ->
+            if (dir != null && dir.isDirectory()) {
+                dir.listFiles().each { f ->
+                    if (f.name.endsWith('.jar') && !f.name.contains('sources') && !f.name.contains('javadoc')) {
+                        new File(instanceDir, f.name).bytes = f.bytes
+                        copied++
+                    }
+                }
+            }
+        }
+        ['tools/art/make_modpack.py', 'tools/art/make_manual_and_guide.py',
+         'tools/art/make_uploadable_packs.py'].each { script -> runPython(script) }
+        logger.lifecycle("✅ 整合包实例已就绪：${instanceDir}（${copied} 个 jar）")
+        syncHmcl()
+        logger.lifecycle("   把这个目录里的 mods/ 丢进 1.20.1 + Forge 47.4.10 的实例即可开玩。")
+        if (org.gradle.internal.os.OperatingSystem.current().isMacOsX()) {
+            try {
+                exec { commandLine 'open', file('整合包实例').absolutePath }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+}
+
+repositories {
+    // 本地 Maven 仓库：放置整合包内的第三方模组（libs/repo 由 tools/art/make_local_repo.py 生成）
+    maven {
+        url = uri('libs/repo')
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    implementation fg.deobf("software.bernie.geckolib:geckolib-forge-1.20.1:4.8.4")
+
+    // 第三方开源模组：开发环境只做「编译依赖」（Mixin 模组在 official 映射的开发环境无法应用，
+    // 属于 Forge 开发环境的已知限制）；完整运行时统一由整合包 modpack/mods/ 提供（生产环境正常）。
+    // Curios is compile-only here: Mixin-based third-party mods cannot be applied in the official-mapped
+    // dev workspace. The full set ships inside modpack/mods/ for real gameplay.
+    compileOnly fg.deobf("top.theillusivec4.curios:curios-forge:5.14.1+1.20.1")
+    compileOnly fg.deobf("mezz.jei:jei-1.20.1-forge:15.59.0.210")
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'     : mod_id,
+                'Specification-Vendor'    : mod_authors,
+                'Specification-Version'   : '1',
+                'Implementation-Title'    : project.name,
+                'Implementation-Version'  : project.jar.archiveVersion,
+                'Implementation-Vendor'   : mod_authors,
+                'Implementation-Timestamp': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            artifact jar
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/mcmodsrepo"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
