@@ -1,0 +1,71 @@
+{
+  "status": "IN_PROGRESS bounded source reading checkpoint, no whole candidate or credit",
+  "recorded_utc": "2026-11-11T15:27:04.778906+00:00",
+  "source_refs": [
+    {
+      "path": "tools/cod4/sweep-receipt-research/helpers/combat-spectrum/sources/DaFuqs__Spectrum/src/main/java/de/dafuqs/spectrum/entity/entity/MonstrosityEntity.java",
+      "sha256": "366a41c1501ee447e9e5211935e312dbe5c206c2940aa8cae806d062eec6f4df",
+      "bytes": 18537,
+      "ranges": [
+        [
+          1,
+          100
+        ],
+        [
+          210,
+          252
+        ]
+      ],
+      "whole_file_read": false
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/helpers/combat-spectrum/sources/DaFuqs__Spectrum/src/main/java/de/dafuqs/spectrum/entity/entity/KindlingEntity.java",
+      "sha256": "9511711fe84c9abbf2260f6955a44bc1d361e0888b38097a81cfcd46ff5249cb",
+      "bytes": 27793,
+      "ranges": [
+        [
+          290,
+          315
+        ]
+      ],
+      "whole_file_read": false
+    }
+  ],
+  "actual_excerpts": [
+    {
+      "path": "tools/cod4/sweep-receipt-research/helpers/combat-spectrum/sources/DaFuqs__Spectrum/src/main/java/de/dafuqs/spectrum/entity/entity/MonstrosityEntity.java",
+      "lines": [
+        1,
+        100
+      ],
+      "raw_sha256": "b4a6eb18b38f973fe9edf64cf2d56a3608970fda17db326026fb01ea92658cb2",
+      "raw_excerpt_utf8": "package de.dafuqs.spectrum.entity.entity;\n\nimport com.google.common.collect.*;\nimport de.dafuqs.additionalentityattributes.*;\nimport de.dafuqs.revelationary.api.advancements.*;\nimport de.dafuqs.spectrum.entity.ai.*;\nimport de.dafuqs.spectrum.networking.*;\nimport de.dafuqs.spectrum.particle.*;\nimport de.dafuqs.spectrum.registries.*;\nimport de.dafuqs.spectrum.sound.*;\nimport net.minecraft.block.*;\nimport net.minecraft.entity.*;\nimport net.minecraft.entity.ai.*;\nimport net.minecraft.entity.ai.control.*;\nimport net.minecraft.entity.ai.goal.*;\nimport net.minecraft.entity.ai.pathing.*;\nimport net.minecraft.entity.attribute.*;\nimport net.minecraft.entity.damage.*;\nimport net.minecraft.entity.effect.*;\nimport net.minecraft.entity.mob.*;\nimport net.minecraft.entity.player.*;\nimport net.minecraft.nbt.*;\nimport net.minecraft.particle.*;\nimport net.minecraft.server.world.*;\nimport net.minecraft.text.*;\nimport net.minecraft.util.math.*;\nimport net.minecraft.util.math.intprovider.*;\nimport net.minecraft.world.*;\nimport org.jetbrains.annotations.*;\n\nimport java.util.*;\nimport java.util.function.*;\n\npublic class MonstrosityEntity extends SpectrumBossEntity implements RangedAttackMob {\n\t\n\tpublic static final UUID BONUS_DAMAGE_UUID = UUID.fromString(\"4425979b-f987-4937-875a-1e26d727c67f\");\n\n\tpublic static @Nullable MonstrosityEntity theOneAndOnly = null;\n\tpublic static final Predicate<LivingEntity> ENTITY_TARGETS = (entity) -> {\n\t\tif (entity instanceof PlayerEntity player) {\n\t\t\tif (player.isSpectator() || player.isCreative()) {\n\t\t\t\treturn false;\n\t\t\t}\n\t\t\treturn !AdvancementHelper.hasAdvancement(player, SpectrumAdvancements.KILLED_MONSTROSITY);\n\t\t}\n\t\treturn false;\n\t};\n\tprivate final TargetPredicate TARGET_PREDICATE = TargetPredicate.createAttackable().setPredicate(ENTITY_TARGETS);\n\t\n\tprivate static final float MAX_LIFE_LOST_PER_TICK = 20F;\n\tprivate static final int GROW_STRONGER_EVERY_X_TICKS = 400;\n\t\n\tprivate Vec3d targetPosition = Vec3d.ZERO;\n\tprivate MovementType movementType = MovementType.SWOOPING_TO_POSITION;\n\t\n\tprivate float previousHealth;\n\tprivate int timesGottenStronger = 0;\n\tprivate int ticksWithoutTarget = 0;\n\n\tpublic MonstrosityEntity(EntityType<? extends MonstrosityEntity> entityType, World world) {\n\t\tsuper(entityType, world);\n\t\tthis.moveControl = new MonstrosityMoveControl(this);\n\t\tthis.experiencePoints = 500;\n\t\tthis.noClip = true;\n\t\tthis.ignoreCameraFrustum = true;\n\t\tthis.previousHealth = getHealth();\n\n\t\tif (!world.isClient && (MonstrosityEntity.theOneAndOnly == null || MonstrosityEntity.theOneAndOnly.isRemoved() || !MonstrosityEntity.theOneAndOnly.isAlive())) {\n\t\t\tMonstrosityEntity.theOneAndOnly = this;\n\t\t} else {\n\t\t\tthis.remove(RemovalReason.DISCARDED);\n\t\t}\n\t}\n\n\t@Override\n\tpublic void playSpawnEffects() {\n\t\tsuper.playSpawnEffects();\n\t}\n\t\n\t@Override\n\tpublic void onRemoved() {\n\t\tif (theOneAndOnly == this) {\n\t\t\ttheOneAndOnly = null;\n\t\t}\n\t\tsuper.onRemoved();\n\t}\n\t\n\t@Override\n\tprotected BodyControl createBodyControl() {\n\t\treturn new EmptyBodyControl(this);\n\t}\n\t\n\t@Override\n\tprotected void initGoals() {\n\t\tthis.goalSelector.add(1, new StartSwoopAttackGoal());\n\t\tthis.goalSelector.add(2, new SwoopMovementGoal());\n\t\tthis.goalSelector.add(3, new RetreatAndAttackGoal(40));\n\t\tthis.goalSelector.add(3, new ProjectileAttackGoal(this, 1.0, 40, 28.0F));\n\t\tthis.goalSelector.add(4, new WanderAroundFarGoal(this, 1.0));\n\t\tthis.goalSelector.add(5, new FlyGoal(this, 1.0));\n"
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/helpers/combat-spectrum/sources/DaFuqs__Spectrum/src/main/java/de/dafuqs/spectrum/entity/entity/MonstrosityEntity.java",
+      "lines": [
+        210,
+        252
+      ],
+      "raw_sha256": "37715816dfc88f1fd359c02e3b1feaba82b69dc2cc4d4d0216c0ac36ea2f2c4a",
+      "raw_excerpt_utf8": "\t\tthis.timesGottenStronger += amount;\n\n\t\tMultimap<EntityAttribute, EntityAttributeModifier> map = Multimaps.newMultimap(Maps.newLinkedHashMap(), ArrayList::new);\n\t\tEntityAttributeModifier jeopardantModifier = new EntityAttributeModifier(BONUS_DAMAGE_UUID, \"spectrum:monstrosity_bonus\", 1.0 + timesGottenStronger * 0.1, EntityAttributeModifier.Operation.MULTIPLY_TOTAL);\n\t\tmap.put(EntityAttributes.GENERIC_ATTACK_DAMAGE, jeopardantModifier);\n\t\tthis.getAttributes().addTemporaryModifiers(map);\n\n\t\tplaySound(SpectrumSoundEvents.ENTITY_MONSTROSITY_GROWL, 1.0F, 1.0F);\n\t\tfor (float i = 0; i <= 1.0; i += 0.2) {\n\t\t\tSpectrumS2CPacketSender.playParticleWithPatternAndVelocity(null, (ServerWorld) this.getWorld(), new Vec3d(getX(), getBodyY(i), getZ()), SpectrumParticleTypes.WHITE_SPARKLE_RISING, VectorPattern.SIXTEEN, 0.05F);\n\t\t}\n\t}\n\t\n\tpublic static DefaultAttributeContainer createMonstrosityAttributes() {\n\t\treturn HostileEntity.createHostileAttributes()\n\t\t\t\t.add(EntityAttributes.GENERIC_MAX_HEALTH, 600.0)\n\t\t\t\t.add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 24.0)\n\t\t\t\t.add(EntityAttributes.GENERIC_FOLLOW_RANGE, 48.0)\n\t\t\t\t.add(EntityAttributes.GENERIC_ARMOR, 18.0)\n\t\t\t\t.add(EntityAttributes.GENERIC_ARMOR_TOUGHNESS, 4.0)\n\t\t\t\t.add(EntityAttributes.GENERIC_ATTACK_KNOCKBACK, 2.0)\n\t\t\t\t.add(AdditionalEntityAttributes.MAGIC_PROTECTION, 4.0)\n\t\t\t\t.build();\n\t}\n\t\n\t@Override\n\tpublic boolean damage(DamageSource source, float amount) {\n\t\tif (!this.getWorld().isClient() && isNonVanillaKillCommandDamage(source, amount)) {\n\t\t\t// na, we do not feel like dying rn, we ballin\n\t\t\tthis.setHealth(this.getHealth() + this.getMaxHealth() / 2);\n\t\t\tthis.growStronger(8);\n\t\t\tthis.playSound(getHurtSound(source), 2.0F, 1.5F);\n\t\t\treturn false;\n\t\t}\n\t\treturn super.damage(source, amount);\n\t}\n\n\t@Override\n\tpublic boolean canSee(Entity entity) {\n\t\tif (entity.getWorld() != this.getWorld()) {\n\t\t\treturn false;\n\t\t}\n\t\treturn entity.getPos().distanceTo(this.getPos()) < 128;\n"
+    },
+    {
+      "path": "tools/cod4/sweep-receipt-research/helpers/combat-spectrum/sources/DaFuqs__Spectrum/src/main/java/de/dafuqs/spectrum/entity/entity/KindlingEntity.java",
+      "lines": [
+        290,
+        315
+      ],
+      "raw_sha256": "9faaa435fe31dd8c4e176f86958ea34a904c0506bac81e7ddb663858371c8a83",
+      "raw_excerpt_utf8": "\t\n\t@Override\n\tpublic boolean handleFallDamage(float fallDistance, float damageMultiplier, DamageSource damageSource) {\n\t\treturn false;\n\t}\n\t\n\t@Override\n\tpublic boolean damage(DamageSource source, float amount) {\n\t\tif (source.getAttacker() instanceof KindlingEntity) {\n\t\t\tamount = 1;\n\t\t\t\n\t\t\tif (random.nextBoolean()) {\n\t\t\t\tsetChillTime(0);\n\t\t\t}\n\t\t}\n\t\t\n\t\tif (amount > 1) {\n\t\t\tsetPlaying(false);\n\t\t}\n\t\t\n\t\tthornsFlag = source.isOf(DamageTypes.THORNS);\n\t\t\n\t\treturn super.damage(source, amount);\n\t}\n\t\n\t// makes it so Kindlings are not angered by thorns damage\n"
+    }
+  ],
+  "actual_selected_ranges": 3,
+  "actual_distinct_lines": 169,
+  "complete_wholes_established": 0,
+  "candidate_credit": 0,
+  "formal_credit": 0,
+  "source_provenance_not_yet_closed": true,
+  "next_scope": "Complete SpectrumBossEntity helper/Monstrosity growStronger and damage-limiter body, fixed provenance and nearest whole dedup before any candidate; Kindling exploratory only0. Current priority new Main136v2 current53 proposal; no source restart.",
+  "production_changes": false
+}
