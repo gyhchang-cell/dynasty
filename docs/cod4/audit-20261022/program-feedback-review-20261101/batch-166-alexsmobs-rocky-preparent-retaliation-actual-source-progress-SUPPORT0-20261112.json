@@ -1,0 +1,564 @@
+{
+  "batch": 166,
+  "recorded_at": "2026-11-11T22:14:12.636764+00:00",
+  "status": "COMPLETE_PRIVATE_SOURCE_STUDY_SUPPORT0",
+  "decision": "SUPPORT0_PRE_PARENT_RETALIATION_AND_HURT_INDEPENDENT_IMPULSE",
+  "author_maximum_prospective_whole_credit": 0,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "source_identity": {
+    "mod_manifest": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/source.json",
+      "sha256": "96d942e4d07a12c6d8710a7733eab737f0b787b61b7efa28245eddf8a2948a79",
+      "bytes": 67902
+    },
+    "declared_metadata": {
+      "repo": "AlexModGuy/AlexsMobs",
+      "commit": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "acquisition": "fixed local cached source; verified against pinned Git tree",
+      "research_credit": 0
+    },
+    "archive": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "remote_tree_newly_verified": false,
+    "loaded_runtime_verified": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+        "sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+        "bytes": 20515
+      },
+      "kind": "mod",
+      "source_total_lines": 465,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            465
+          ],
+          "bytes": 20515,
+          "sha256": "a7105a72f9c4ad1208f096b5354130b3583def2668ca09b28fa54c5004c6909a",
+          "raw_utf8_keepends": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.config.AMConfig;\nimport com.github.alexthe666.alexsmobs.effect.AMEffectRegistry;\nimport com.github.alexthe666.alexsmobs.entity.ai.AdvancedPathNavigateNoTeleport;\nimport com.github.alexthe666.alexsmobs.entity.ai.GroundPathNavigatorWide;\nimport com.github.alexthe666.alexsmobs.entity.ai.MovementControllerCustomCollisions;\nimport com.github.alexthe666.alexsmobs.entity.util.Maths;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMTagRegistry;\nimport com.github.alexthe666.citadel.server.entity.collision.ICustomCollisions;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.damagesource.DamageTypes;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.item.FallingBlockEntity;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.*;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.Fallable;\nimport net.minecraft.world.level.block.PointedDripstoneBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.level.pathfinder.PathFinder;\nimport net.minecraft.world.level.pathfinder.WalkNodeEvaluator;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\nimport java.util.EnumSet;\nimport java.util.List;\n\npublic class EntityRockyRoller extends Monster implements ICustomCollisions {\n\n    private static final EntityDataAccessor<Boolean> ROLLING = SynchedEntityData.defineId(EntityRockyRoller.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> ANGRY = SynchedEntityData.defineId(EntityRockyRoller.class, EntityDataSerializers.BOOLEAN);\n    public float rollProgress;\n    public float prevRollProgress;\n    public int rollCounter = 0;\n    public float clientRoll = 0;\n    private int maxRollTime = 50;\n    private Vec3 rollDelta;\n    private float rollYRot;\n    private int rollCooldown = 0;\n    private int earthquakeCooldown = 0;\n\n    protected EntityRockyRoller(EntityType<? extends Monster> monster, Level level) {\n        super(monster, level);\n        this.xpReward = 8;\n        this.moveControl = new MovementControllerCustomCollisions(this);\n    }\n\n    public boolean checkSpawnRules(LevelAccessor worldIn, MobSpawnType spawnReasonIn) {\n        return AMEntityRegistry.rollSpawn(AMConfig.rockyRollerSpawnRolls, this.getRandom(), spawnReasonIn);\n    }\n\n\n    public static boolean checkRockyRollerSpawnRules(EntityType<? extends Monster> animal, ServerLevelAccessor worldIn, MobSpawnType reason, BlockPos pos, RandomSource random) {\n        return worldIn.getDifficulty() != Difficulty.PEACEFUL && isDarkEnoughToSpawn(worldIn, pos, random) && (worldIn.getBlockState(pos.below()).is(AMTagRegistry.ROCKY_ROLLER_SPAWNS) || worldIn.getBlockState(pos.below()).isSolid());\n    }\n\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 10.0D).add(Attributes.ARMOR, 20.0D).add(Attributes.FOLLOW_RANGE, 20.0D).add(Attributes.KNOCKBACK_RESISTANCE, 0.7F).add(Attributes.ATTACK_DAMAGE, 2.0D).add(Attributes.MOVEMENT_SPEED, 0.25F);\n    }\n\n    protected PathNavigation createNavigation(Level worldIn) {\n        return new Navigator(this, worldIn);\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new AIMelee());\n        this.goalSelector.addGoal(2, new AIRollIdle(this));\n        this.goalSelector.addGoal(3, new WaterAvoidingRandomStrollGoal(this, 0.8D));\n        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(5, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false, true));\n        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, false, true));\n        this.targetSelector.addGoal(3, new HurtByTargetGoal(this));\n    }\n\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(ANGRY, false);\n        this.entityData.define(ROLLING, false);\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return AMSoundRegistry.ROCKY_ROLLER_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return AMSoundRegistry.ROCKY_ROLLER_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return AMSoundRegistry.ROCKY_ROLLER_HURT.get();\n    }\n\n    public void tick() {\n        super.tick();\n        prevRollProgress = rollProgress;\n\n        if (isRolling()) {\n            if (rollProgress < 5F)\n                rollProgress++;\n        } else {\n            if (rollProgress > 0F)\n                rollProgress--;\n        }\n\n        if (!this.level().isClientSide) {\n            this.setAngry(this.getTarget() != null && this.getTarget().isAlive() && this.distanceToSqr(this.getTarget()) < 20 * 20);\n        }\n        if (this.isRolling() && rollCooldown <= 0) {\n            this.handleRoll();\n            if (this.isAngry() && this.isAlive()) {\n                for (Entity entity : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(0.3F))) {\n                    if (!isAlliedTo(entity) && entity != this) {\n                        entity.hurt(this.damageSources().mobAttack(this), (isTarget(entity) ? 5.0F : 2.0F) + random.nextFloat() * 2.0F);\n                        launch(entity, isTarget(entity));\n                        if (isTarget(entity)) {\n                            maxRollTime = rollCounter + 10;\n                        }\n                    }\n                }\n            }\n            if (this.rollCounter > 2 && !this.isMoving() || !this.isAlive()) {\n                this.setRolling(false);\n            }\n            this.setMaxUpStep(1F);\n        } else {\n            this.setMaxUpStep(0.66F);\n            this.rollCounter = 0;\n        }\n        if (rollCooldown > 0) {\n            rollCooldown--;\n        }\n        if (earthquakeCooldown > 0) {\n            earthquakeCooldown--;\n        }\n    }\n\n    private boolean isMoving() {\n        return this.getDeltaMovement().lengthSqr() > 0.02D;\n    }\n\n    private void earthquake() {\n        boolean flag = false;\n        List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(6, 8, 6));\n        for (LivingEntity e : list) {\n            if (!(e instanceof EntityRockyRoller) && e.isAlive()) {\n                e.addEffect(new MobEffectInstance(AMEffectRegistry.EARTHQUAKE.get(), 20, 0, false, false, true));\n                flag = true;\n            }\n        }\n        if (!this.level().canSeeSky(this.blockPosition()) && this.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING)) {\n            BlockPos ceil = this.blockPosition().offset(0, 2, 0);\n            while ((!level().getBlockState(ceil).isSolid() || level().getBlockState(ceil).getBlock() == Blocks.POINTED_DRIPSTONE) && ceil.getY() < level().getMaxBuildHeight()) {\n                ceil = ceil.above();\n            }\n            final int i = 2 + random.nextInt(2);\n            final int j = 2 + random.nextInt(2);\n            final int k = 2 + random.nextInt(2);\n            final float f = (float) (i + j + k) * 0.333F + 0.5F;\n            final double fTimesF = f * f;\n\n            for (BlockPos blockpos1 : BlockPos.betweenClosed(ceil.offset(-i, -j, -k), ceil.offset(i, j, k))) {\n                if (blockpos1.distSqr(ceil) <= fTimesF && level().getBlockState(blockpos1).getBlock() instanceof Fallable) {\n                    if (isHangingDripstone(blockpos1)) {\n                        while (isHangingDripstone(blockpos1.above()) && blockpos1.getY() < level().getMaxBuildHeight()) {\n                            blockpos1 = blockpos1.above();\n                        }\n                        if (isHangingDripstone(blockpos1)) {\n                            Vec3 vec3 = Vec3.atBottomCenterOf(blockpos1);\n                            FallingBlockEntity fallingblockentity = FallingBlockEntity.fall(level(), new BlockPos((int) vec3.x, (int) vec3.y, (int) vec3.z), level().getBlockState(blockpos1));\n                            this.level().destroyBlock(blockpos1, false);\n                            this.level().addFreshEntity(fallingblockentity);\n                        }\n                    } else {\n                        this.level().scheduleTick(blockpos1, level().getBlockState(blockpos1).getBlock(), 2);\n                    }\n                    flag = true;\n                }\n            }\n        }\n        if(flag){\n            this.gameEvent(GameEvent.ENTITY_ROAR);\n            this.playSound(AMSoundRegistry.ROCKY_ROLLER_EARTHQUAKE.get(), this.getSoundVolume(), this.getVoicePitch());\n        }\n    }\n\n    private boolean isHangingDripstone(BlockPos pos) {\n        return level().getBlockState(pos).getBlock() instanceof PointedDripstoneBlock && level().getBlockState(pos).getValue(PointedDripstoneBlock.TIP_DIRECTION) == Direction.DOWN;\n    }\n\n    private boolean isTarget(Entity entity) {\n        return this.getTarget() != null && this.getTarget().is(entity);\n    }\n\n    public boolean isRolling() {\n        return this.entityData.get(ROLLING);\n    }\n\n    public void setRolling(boolean rolling) {\n        this.entityData.set(ROLLING, Boolean.valueOf(rolling));\n    }\n\n    public boolean isAngry() {\n        return this.entityData.get(ANGRY);\n    }\n\n    public void setAngry(boolean angry) {\n        this.entityData.set(ANGRY, Boolean.valueOf(angry));\n    }\n\n    private void handleRoll() {\n        ++this.rollCounter;\n        if (!this.level().isClientSide) {\n            if (this.horizontalCollision && earthquakeCooldown == 0 & this.isAngry()) {\n                earthquakeCooldown = maxRollTime;\n                this.earthquake();\n            }\n            if (this.rollCounter > maxRollTime) {\n                this.setRolling(false);\n                this.rollCooldown = 10 + random.nextInt(10);\n                this.rollCounter = 0;\n                this.setDeltaMovement(Vec3.ZERO);\n            } else {\n                Vec3 vec3 = this.getDeltaMovement();\n                if (this.rollCounter == 1) {\n                    float f = this.getYRot() * Mth.DEG_TO_RAD;\n                    float f1 = this.isBaby() ? 0.2F : 0.35F;\n                    this.rollYRot = this.getYRot();\n                    this.rollDelta = new Vec3(vec3.x + (double) (-Mth.sin(f) * f1), 0.0D, vec3.z + (double) (Mth.cos(f) * f1));\n                    this.setDeltaMovement(this.rollDelta.add(0.0D, 0.27D, 0.0D));\n                } else {\n                    this.setYRot(rollYRot);\n                    this.setYHeadRot(rollYRot);\n                    this.setYBodyRot(rollYRot);\n                    this.setDeltaMovement(this.rollDelta.x, vec3.y, this.rollDelta.z);\n                }\n            }\n        }\n    }\n\n    private void rollFor(int time) {\n        if (this.rollCooldown == 0) {\n            this.maxRollTime = time;\n            earthquakeCooldown = 0;\n            this.setRolling(true);\n        }\n    }\n\n    private void launch(Entity e, boolean huge) {\n        if (e.onGround()) {\n            final double d0 = e.getX() - this.getX();\n            final double d1 = e.getZ() - this.getZ();\n            final double d2 = Math.max(d0 * d0 + d1 * d1, 0.001D);\n            final float f = huge ? 1.0F : 0.35F;\n            e.push(d0 / d2 * f, huge ? 0.5D : 0.2F, d1 / d2 * f);\n        }\n    }\n\n    @Override\n    public boolean isInvulnerableTo(DamageSource source) {\n        return source.equals(\"fallingStalactite\") || super.isInvulnerableTo(source);\n    }\n\n    public int getMaxFallDistance() {\n        return super.getMaxFallDistance() * 2;\n    }\n\n    public boolean causeFallDamage(float distance, float damageMultiplier) {\n        return false;\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    public boolean canBeCollidedWith() {\n        return this.isAlive();\n    }\n\n    public void push(Entity entity) {\n        entity.setDeltaMovement(entity.getDeltaMovement().add(this.getDeltaMovement()));\n    }\n\n    @Override\n    public boolean canPassThrough(BlockPos blockPos, BlockState blockstate, VoxelShape voxelShape) {\n        return blockstate.getBlock() instanceof PointedDripstoneBlock;\n    }\n\n    public boolean isColliding(BlockPos pos, BlockState blockstate) {\n        return !(blockstate.getBlock() instanceof PointedDripstoneBlock) && super.isColliding(pos, blockstate);\n    }\n\n    public Vec3 collide(Vec3 vec3) {\n        return ICustomCollisions.getAllowedMovementForEntity(this, vec3);\n    }\n\n    public boolean hurt(DamageSource dmg, float amount) {\n        if (!this.isMoving() && !dmg.is(DamageTypes.MAGIC) && dmg.getDirectEntity() instanceof LivingEntity livingentity && !(livingentity instanceof EntityRockyRoller)) {\n            if (!dmg.is(DamageTypes.EXPLOSION) && !livingentity.hurtMarked) {\n                livingentity.hurt(damageSources().thorns(this), 2.0F);\n            }\n        }\n        return super.hurt(dmg, amount);\n    }\n\n    static class RockyRollerNodeEvaluator extends WalkNodeEvaluator {\n        protected BlockPathTypes evaluateBlockPathType(BlockGetter level, BlockPos pos, BlockPathTypes typeIn) {\n            return level.getBlockState(pos).getBlock() instanceof PointedDripstoneBlock ? BlockPathTypes.OPEN : super.evaluateBlockPathType(level, pos, typeIn);\n        }\n    }\n\n    class AIRollIdle extends Goal {\n        EntityRockyRoller rockyRoller;\n\n        public AIRollIdle(EntityRockyRoller p_29328_) {\n            this.rockyRoller = p_29328_;\n            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));\n        }\n\n        public boolean canUse() {\n            if (this.rockyRoller.onGround()) {\n                if (rockyRoller.isRolling() || rockyRoller.rollCooldown > 0 || rockyRoller.getTarget() != null && rockyRoller.getTarget().isAlive()) {\n                    return false;\n                } else {\n                    float f = rockyRoller.getYRot() * Mth.DEG_TO_RAD;\n                    int i = 0;\n                    int j = 0;\n                    float f1 = -Mth.sin(f);\n                    float f2 = Mth.cos(f);\n                    if ((double) Math.abs(f1) > 0.5D) {\n                        i = (int) ((float) i + f1 / Math.abs(f1));\n                    }\n\n                    if ((double) Math.abs(f2) > 0.5D) {\n                        j = (int) ((float) j + f2 / Math.abs(f2));\n                    }\n\n                    return rockyRoller.level().getBlockState(rockyRoller.blockPosition().offset(i, -1, j)).isAir();\n                }\n            }\n            return false;\n        }\n\n        public boolean canContinueToUse() {\n            return false;\n        }\n\n        public void start() {\n            this.rockyRoller.rollFor(30 + random.nextInt(30));\n        }\n\n        public boolean isInterruptable() {\n            return false;\n        }\n    }\n\n    private class AIMelee extends Goal {\n\n        private BlockPos rollFromPos = null;\n        private int rollTimeout = 0;\n\n        public AIMelee() {\n            this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));\n        }\n\n        @Override\n        public boolean canUse() {\n            return EntityRockyRoller.this.getTarget() != null && EntityRockyRoller.this.getTarget().isAlive() && !EntityRockyRoller.this.isRolling();\n        }\n\n        public void tick() {\n            LivingEntity enemy = EntityRockyRoller.this.getTarget();\n            double d0 = this.validRollDistance(enemy);\n            double distToEnemySqr = EntityRockyRoller.this.distanceTo(enemy);\n            if (rollFromPos == null || enemy.distanceToSqr(rollFromPos.getX() + 0.5F, rollFromPos.getY() + 0.5F, rollFromPos.getZ() + 0.5) > 60 || !canEntitySeePosition(enemy, rollFromPos)) {\n                rollFromPos = getRollAtPosition(enemy);\n            }\n            EntityRockyRoller.this.lookAt(enemy, 100, 5);\n\n            if (rollTimeout < 40 && rollFromPos != null && (distToEnemySqr <= d0 && EntityRockyRoller.this.distanceToSqr(rollFromPos.getX() + 0.5F, rollFromPos.getY() + 0.5F, rollFromPos.getZ() + 0.5) > 2.25F)) {\n                EntityRockyRoller.this.getNavigation().moveTo(rollFromPos.getX() + 0.5F, rollFromPos.getY() + 0.5F, rollFromPos.getZ() + 0.5F, 1.6D);\n                rollTimeout++;\n            } else {\n                double d1 = enemy.getX() - EntityRockyRoller.this.getX();\n                double d2 = enemy.getZ() - EntityRockyRoller.this.getZ();\n                float f = (float) (Mth.atan2(d2, d1) * (double) Mth.RAD_TO_DEG) - 90.0F;\n                EntityRockyRoller.this.setYRot(f);\n                EntityRockyRoller.this.yBodyRot = f;\n                EntityRockyRoller.this.rollFor(30 + random.nextInt(40));\n            }\n        }\n\n        public void stop() {\n            super.stop();\n            rollTimeout = 0;\n        }\n\n        protected double validRollDistance(LivingEntity attackTarget) {\n            return 3.0F + attackTarget.getBbWidth();\n        }\n\n        private boolean canEntitySeePosition(LivingEntity entity, BlockPos destinationBlock) {\n            Vec3 Vector3d = new Vec3(entity.getX(), entity.getY() + 0.5F, entity.getZ());\n            Vec3 blockVec = net.minecraft.world.phys.Vec3.atCenterOf(destinationBlock);\n            BlockHitResult result = entity.level().clip(new ClipContext(Vector3d, blockVec, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, entity));\n            return result != null && (result.getBlockPos().equals(destinationBlock) || entity.level().getBlockState(result.getBlockPos()).getBlock() == Blocks.POINTED_DRIPSTONE);\n        }\n\n\n        public BlockPos getRollAtPosition(Entity target) {\n            float radius = EntityRockyRoller.this.getRandom().nextInt(2) + 6 + target.getBbWidth();\n            int orbit = EntityRockyRoller.this.getRandom().nextInt(360);\n            float angle = (Maths.STARTING_ANGLE * orbit);\n            double extraX = radius * Mth.sin(Mth.PI + angle);\n            double extraZ = radius * Mth.cos(angle);\n            BlockPos circlePos = new BlockPos((int) (target.getX() + extraX), (int) target.getEyeY(), (int) (target.getZ() + extraZ));\n            while (!EntityRockyRoller.this.level().getBlockState(circlePos).isAir() && circlePos.getY() < EntityRockyRoller.this.level().getMaxBuildHeight()) {\n                circlePos = circlePos.above();\n            }\n            while (!EntityRockyRoller.this.level().getBlockState(circlePos.below()).entityCanStandOn(EntityRockyRoller.this.level(), circlePos.below(), EntityRockyRoller.this) && circlePos.getY() > 1) {\n                circlePos = circlePos.below();\n            }\n            if (EntityRockyRoller.this.getWalkTargetValue(circlePos) > -1) {\n                return circlePos;\n            }\n            return null;\n        }\n    }\n\n    static class Navigator extends AdvancedPathNavigateNoTeleport {\n\n        public Navigator(Mob mob, Level world) {\n            super(mob, world, true);\n        }\n\n        protected PathFinder createPathFinder(int i) {\n            this.nodeEvaluator = new RockyRollerNodeEvaluator();\n            return new PathFinder(this.nodeEvaluator, i);\n        }\n    }\n}\n"
+        }
+      ],
+      "identity": {
+        "manifest_relative_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityRockyRoller.java",
+        "git_blob_sha1": "480286326e7cdc623c41af9d3a9444f0878f35fa",
+        "raw_and_blob_equal_local_manifest": true,
+        "new_remote_tree_authentication": false
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderRockyRoller.java",
+        "sha256": "e177667b161d84ce57f1c0d6e4fd40b7943ce0d2abd7ff5f5709ffc7c15275fd",
+        "bytes": 1339
+      },
+      "kind": "mod",
+      "source_total_lines": 26,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            26
+          ],
+          "bytes": 1339,
+          "sha256": "e177667b161d84ce57f1c0d6e4fd40b7943ce0d2abd7ff5f5709ffc7c15275fd",
+          "raw_utf8_keepends": "package com.github.alexthe666.alexsmobs.client.render;\n\nimport com.github.alexthe666.alexsmobs.client.model.ModelRockyRoller;\nimport com.github.alexthe666.alexsmobs.entity.EntityRockyRoller;\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport net.minecraft.client.renderer.entity.EntityRendererProvider;\nimport net.minecraft.client.renderer.entity.MobRenderer;\nimport net.minecraft.resources.ResourceLocation;\n\npublic class RenderRockyRoller extends MobRenderer<EntityRockyRoller, ModelRockyRoller> {\n    private static final ResourceLocation TEXTURE = new ResourceLocation(\"alexsmobs:textures/entity/rocky_roller.png\");\n    private static final ResourceLocation TEXTURE_ANGRY = new ResourceLocation(\"alexsmobs:textures/entity/rocky_roller_angry.png\");\n    private static final ResourceLocation TEXTURE_ROLLING = new ResourceLocation(\"alexsmobs:textures/entity/rocky_roller_rolling.png\");\n\n    public RenderRockyRoller(EntityRendererProvider.Context renderManagerIn) {\n        super(renderManagerIn, new ModelRockyRoller(), 0.7F);\n    }\n\n    protected void scale(EntityRockyRoller entitylivingbaseIn, PoseStack matrixStackIn, float partialTickTime) {\n    }\n\n\n    public ResourceLocation getTextureLocation(EntityRockyRoller entity) {\n        return entity.isRolling() ? TEXTURE_ROLLING : entity.isAngry() ? TEXTURE_ANGRY : TEXTURE;\n    }\n}\n"
+        }
+      ],
+      "identity": {
+        "manifest_relative_path": "src/main/java/com/github/alexthe666/alexsmobs/client/render/RenderRockyRoller.java",
+        "git_blob_sha1": "02b9824bf5e3b3faef11b97e884a02d153c2d7ab",
+        "raw_and_blob_equal_local_manifest": true,
+        "new_remote_tree_authentication": false
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+        "bytes": 56666
+      },
+      "kind": "mod",
+      "source_total_lines": 378,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            107,
+            115
+          ],
+          "bytes": 2403,
+          "sha256": "7c82403130621f83c0577a0ae3605088f0fe81d9e99b88ef21f597876c498e5c",
+          "raw_utf8_keepends": "    public static final RegistryObject<EntityType<EntityToucan>> TOUCAN = DEF_REG.register(\"toucan\", () -> registerEntity(EntityType.Builder.of(EntityToucan::new, MobCategory.CREATURE).sized(0.45F, 0.45F).setTrackingRange(10), \"toucan\"));\n    public static final RegistryObject<EntityType<EntityManedWolf>> MANED_WOLF = DEF_REG.register(\"maned_wolf\", () -> registerEntity(EntityType.Builder.of(EntityManedWolf::new, MobCategory.CREATURE).sized(0.9F, 1.26F).setTrackingRange(10), \"maned_wolf\"));\n    public static final RegistryObject<EntityType<EntityAnaconda>> ANACONDA = DEF_REG.register(\"anaconda\", () -> registerEntity(EntityType.Builder.of(EntityAnaconda::new, MobCategory.CREATURE).sized(0.8F, 0.8F).setTrackingRange(10), \"anaconda\"));\n    public static final RegistryObject<EntityType<EntityAnacondaPart>> ANACONDA_PART = DEF_REG.register(\"anaconda_part\", () -> registerEntity(EntityType.Builder.of(EntityAnacondaPart::new, MobCategory.MISC).sized(0.8F, 0.8F).setShouldReceiveVelocityUpdates(true).setUpdateInterval(1).setTrackingRange(10), \"anaconda_part\"));\n    public static final RegistryObject<EntityType<EntityVineLasso>> VINE_LASSO = DEF_REG.register(\"vine_lasso\", () -> registerEntity(EntityType.Builder.of(EntityVineLasso::new, MobCategory.MISC).sized(0.85F, 0.2F).setCustomClientFactory(EntityVineLasso::new).fireImmune(), \"vine_lasso\"));\n    public static final RegistryObject<EntityType<EntityAnteater>> ANTEATER = DEF_REG.register(\"anteater\", () -> registerEntity(EntityType.Builder.of(EntityAnteater::new, MobCategory.CREATURE).sized(1.3F, 1.1F).setTrackingRange(10), \"anteater\"));\n    public static final RegistryObject<EntityType<EntityRockyRoller>> ROCKY_ROLLER = DEF_REG.register(\"rocky_roller\", () -> registerEntity(EntityType.Builder.of(EntityRockyRoller::new, MobCategory.MONSTER).sized(1.2F, 1.45F).setTrackingRange(8), \"rocky_roller\"));\n    public static final RegistryObject<EntityType<EntityFlutter>> FLUTTER = DEF_REG.register(\"flutter\", () -> registerEntity(EntityType.Builder.of(EntityFlutter::new, MobCategory.AMBIENT).sized(0.5F, 0.7F).setTrackingRange(6), \"flutter\"));\n    public static final RegistryObject<EntityType<EntityPollenBall>> POLLEN_BALL = DEF_REG.register(\"pollen_ball\", () -> registerEntity(EntityType.Builder.of(EntityPollenBall::new, MobCategory.MISC).sized(0.35F, 0.35F).setCustomClientFactory(EntityPollenBall::new).fireImmune(), \"pollen_ball\"));\n"
+        },
+        {
+          "lines": [
+            211,
+            218
+          ],
+          "bytes": 1276,
+          "sha256": "4b3ef7bcd5a0ba955687b08dbe8320e5fa68b8b340ab5d9019e11ef2750d22e5",
+          "raw_utf8_keepends": "        SpawnPlacements.register(COSMAW.get(), SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityCosmaw::canCosmawSpawn);\n        SpawnPlacements.register(TOUCAN.get(), spawnsOnLeaves, Heightmap.Types.MOTION_BLOCKING, EntityToucan::canToucanSpawn);\n        SpawnPlacements.register(MANED_WOLF.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityManedWolf::checkAnimalSpawnRules);\n        SpawnPlacements.register(ANACONDA.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityAnaconda::canAnacondaSpawn);\n        SpawnPlacements.register(ANTEATER.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityAnteater::canAnteaterSpawn);\n        SpawnPlacements.register(ROCKY_ROLLER.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityRockyRoller::checkRockyRollerSpawnRules);\n        SpawnPlacements.register(FLUTTER.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityFlutter::canFlutterSpawn);\n        SpawnPlacements.register(GELADA_MONKEY.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityGeladaMonkey::checkAnimalSpawnRules);\n"
+        },
+        {
+          "lines": [
+            305,
+            312
+          ],
+          "bytes": 630,
+          "sha256": "0bf584cceb79cf667bf8118d1ca818771cd3f84dfc1b62f2fafd7bfb4baba93c",
+          "raw_utf8_keepends": "        event.put(MANED_WOLF.get(), EntityManedWolf.bakeAttributes().build());\n        event.put(ANACONDA.get(), EntityAnaconda.bakeAttributes().build());\n        event.put(ANACONDA_PART.get(), EntityAnacondaPart.bakeAttributes().build());\n        event.put(ANTEATER.get(), EntityAnteater.bakeAttributes().build());\n        event.put(ROCKY_ROLLER.get(), EntityRockyRoller.bakeAttributes().build());\n        event.put(FLUTTER.get(), EntityFlutter.bakeAttributes().build());\n        event.put(GELADA_MONKEY.get(), EntityGeladaMonkey.bakeAttributes().build());\n        event.put(JERBOA.get(), EntityJerboa.bakeAttributes().build());\n"
+        }
+      ],
+      "identity": {
+        "manifest_relative_path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+        "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+        "raw_and_blob_equal_local_manifest": true,
+        "new_remote_tree_authentication": false
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/ClientProxy.java",
+        "sha256": "f9777f5cbdfe27d6d4057d78d42f1ae37cab5f1e16e13ddc12840d72feb45c17",
+        "bytes": 29352
+      },
+      "kind": "mod",
+      "source_total_lines": 474,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            189,
+            201
+          ],
+          "bytes": 1166,
+          "sha256": "7732f887d75ae343745c4a184147e1fb9faf3b063cf83196f07ef957da4a98dc",
+          "raw_utf8_keepends": "        EntityRenderers.register(AMEntityRegistry.COSMAW.get(), RenderCosmaw::new);\n        EntityRenderers.register(AMEntityRegistry.TOUCAN.get(), RenderToucan::new);\n        EntityRenderers.register(AMEntityRegistry.MANED_WOLF.get(), RenderManedWolf::new);\n        EntityRenderers.register(AMEntityRegistry.ANACONDA.get(), RenderAnaconda::new);\n        EntityRenderers.register(AMEntityRegistry.ANACONDA_PART.get(), RenderAnacondaPart::new);\n        EntityRenderers.register(AMEntityRegistry.VINE_LASSO.get(), RenderVineLasso::new);\n        EntityRenderers.register(AMEntityRegistry.ANTEATER.get(), RenderAnteater::new);\n        EntityRenderers.register(AMEntityRegistry.ROCKY_ROLLER.get(), RenderRockyRoller::new);\n        EntityRenderers.register(AMEntityRegistry.FLUTTER.get(), RenderFlutter::new);\n        EntityRenderers.register(AMEntityRegistry.POLLEN_BALL.get(), RenderPollenBall::new);\n        EntityRenderers.register(AMEntityRegistry.GELADA_MONKEY.get(), RenderGeladaMonkey::new);\n        EntityRenderers.register(AMEntityRegistry.JERBOA.get(), RenderJerboa::new);\n        EntityRenderers.register(AMEntityRegistry.TERRAPIN.get(), RenderTerrapin::new);\n"
+        }
+      ],
+      "identity": {
+        "manifest_relative_path": "src/main/java/com/github/alexthe666/alexsmobs/ClientProxy.java",
+        "git_blob_sha1": "5ab752b9c5d1c63c97e95bef813837f271a0c413",
+        "raw_and_blob_equal_local_manifest": true,
+        "new_remote_tree_authentication": false
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/AlexsMobs.java",
+        "sha256": "c17c9cb9965964dc8f59a6334a1a65a3fd5b97da21f4b0e4fec6b68b6735673e",
+        "bytes": 11881
+      },
+      "kind": "mod",
+      "source_total_lines": 184,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            51,
+            114
+          ],
+          "bytes": 3824,
+          "sha256": "ce29f73ff7e6a8be0b5215ac52715d98b6e82db1e3e2650a7a5d96eb024224a0",
+          "raw_utf8_keepends": "@Mod(AlexsMobs.MODID)\n@Mod.EventBusSubscriber(modid = AlexsMobs.MODID)\npublic class AlexsMobs {\n    public static final Logger LOGGER = LogManager.getLogger();\n    public static final String MODID = \"alexsmobs\";\n    public static final SimpleChannel NETWORK_WRAPPER;\n    private static final String PROTOCOL_VERSION = Integer.toString(1);\n    public static final CommonProxy PROXY = DistExecutor.runForDist(() -> ClientProxy::new, () -> CommonProxy::new);\n    private static int packetsRegistered;\n    private static boolean isAprilFools = false;\n    private static boolean isHalloween = false;\n\n    static {\n        NetworkRegistry.ChannelBuilder channel = NetworkRegistry.ChannelBuilder.named(new ResourceLocation(\"alexsmobs\", \"main_channel\"));\n        String version = PROTOCOL_VERSION;\n        version.getClass();\n        channel = channel.clientAcceptedVersions(version::equals);\n        version = PROTOCOL_VERSION;\n        version.getClass();\n        NETWORK_WRAPPER = channel.serverAcceptedVersions(version::equals).networkProtocolVersion(() -> {\n            return PROTOCOL_VERSION;\n        }).simpleChannel();\n    }\n\n    public AlexsMobs() {\n        IEventBus modBusEvent = FMLJavaModLoadingContext.get().getModEventBus();\n        modBusEvent.addListener(this::setup);\n        modBusEvent.addListener(this::setupClient);\n        modBusEvent.addListener(this::onModConfigEvent);\n        modBusEvent.addListener(this::setupEntityModelLayers);\n        final ModLoadingContext modLoadingContext = ModLoadingContext.get();\n        AMBlockRegistry.DEF_REG.register(modBusEvent);\n        AMEntityRegistry.DEF_REG.register(modBusEvent);\n        AMItemRegistry.DEF_REG.register(modBusEvent);\n        AMTileEntityRegistry.DEF_REG.register(modBusEvent);\n        AMPointOfInterestRegistry.DEF_REG.register(modBusEvent);\n        AMFeatureRegistry.DEF_REG.register(modBusEvent);\n        AMSoundRegistry.DEF_REG.register(modBusEvent);\n        AMParticleRegistry.DEF_REG.register(modBusEvent);\n        AMPaintingRegistry.DEF_REG.register(modBusEvent);\n        AMEffectRegistry.EFFECT_DEF_REG.register(modBusEvent);\n        AMEffectRegistry.POTION_DEF_REG.register(modBusEvent);\n        AMEnchantmentRegistry.DEF_REG.register(modBusEvent);\n        AMMenuRegistry.DEF_REG.register(modBusEvent);\n        AMRecipeRegistry.DEF_REG.register(modBusEvent);\n        AMLootRegistry.DEF_REG.register(modBusEvent);\n        AMBannerRegistry.DEF_REG.register(modBusEvent);\n        AMCreativeTabRegistry.DEF_REG.register(modBusEvent);\n        final DeferredRegister<Codec<? extends BiomeModifier>> biomeModifiers = DeferredRegister.create(ForgeRegistries.Keys.BIOME_MODIFIER_SERIALIZERS, AlexsMobs.MODID);\n        biomeModifiers.register(modBusEvent);\n        biomeModifiers.register(\"am_mob_spawns\", AMMobSpawnBiomeModifier::makeCodec);\n        biomeModifiers.register(\"am_leafcutter_ant_spawns\", AMLeafcutterAntBiomeModifier::makeCodec);\n        final DeferredRegister<Codec<? extends StructureModifier>> structureModifiers = DeferredRegister.create(ForgeRegistries.Keys.STRUCTURE_MODIFIER_SERIALIZERS, AlexsMobs.MODID);\n        structureModifiers.register(modBusEvent);\n        structureModifiers.register(\"am_structure_spawns\", AMMobSpawnStructureModifier::makeCodec);\n        modLoadingContext.registerConfig(ModConfig.Type.COMMON, ConfigHolder.COMMON_SPEC, \"alexsmobs.toml\");\n        PROXY.init();\n        MinecraftForge.EVENT_BUS.register(this);\n        MinecraftForge.EVENT_BUS.register(new ServerEvents());\n        Calendar calendar = Calendar.getInstance();\n        calendar.setTime(new Date());\n        isAprilFools = calendar.get(Calendar.MONTH) + 1 == 4 && calendar.get(Calendar.DATE) == 1;\n        isHalloween = calendar.get(Calendar.MONTH) + 1 == 10 && calendar.get(Calendar.DATE) >= 29 && calendar.get(Calendar.DATE) <= 31;\n    }\n"
+        },
+        {
+          "lines": [
+            180,
+            184
+          ],
+          "bytes": 113,
+          "sha256": "999475cce954d6b3c456b5dd20863cfb5f26c95d6d35f19046cc2ccd1d93b5f4",
+          "raw_utf8_keepends": "    private void setupClient(FMLClientSetupEvent event) {\n        event.enqueueWork(PROXY::clientInit);\n    }\n\n}\n"
+        }
+      ],
+      "identity": {
+        "manifest_relative_path": "src/main/java/com/github/alexthe666/alexsmobs/AlexsMobs.java",
+        "git_blob_sha1": "6a67eede7ed85f8335776a75e23780e86f4d2e8d",
+        "raw_and_blob_equal_local_manifest": true,
+        "new_remote_tree_authentication": false
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/effect/AMEffectRegistry.java",
+        "sha256": "b3c8059779cc920b72d36092a0194bff526b4989f75111cd7d71480f1c0eac62",
+        "bytes": 10254
+      },
+      "kind": "mod",
+      "source_total_lines": 88,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            40
+          ],
+          "bytes": 3570,
+          "sha256": "8494f5ed2fe02633f94b9d0446ef16ab5457de62cd422d6148a4de15b4ce2198",
+          "raw_utf8_keepends": "package com.github.alexthe666.alexsmobs.effect;\n\nimport com.github.alexthe666.alexsmobs.AlexsMobs;\nimport com.github.alexthe666.alexsmobs.item.AMItemRegistry;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.alchemy.Potion;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.item.alchemy.Potions;\nimport net.minecraft.world.item.crafting.Ingredient;\nimport net.minecraftforge.common.brewing.BrewingRecipeRegistry;\nimport net.minecraftforge.registries.DeferredRegister;\nimport net.minecraftforge.registries.ForgeRegistries;\nimport net.minecraftforge.registries.RegistryObject;\n\npublic class AMEffectRegistry {\n    public static final DeferredRegister<MobEffect> EFFECT_DEF_REG = DeferredRegister.create(ForgeRegistries.MOB_EFFECTS, AlexsMobs.MODID);\n    public static final DeferredRegister<Potion> POTION_DEF_REG = DeferredRegister.create(ForgeRegistries.POTIONS, AlexsMobs.MODID);\n\n    public static final RegistryObject<MobEffect> KNOCKBACK_RESISTANCE = EFFECT_DEF_REG.register(\"knockback_resistance\", ()-> new EffectKnockbackResistance());\n    public static final RegistryObject<MobEffect> LAVA_VISION = EFFECT_DEF_REG.register(\"lava_vision\", ()-> new EffectLavaVision());\n    public static final RegistryObject<MobEffect> SUNBIRD_BLESSING = EFFECT_DEF_REG.register(\"sunbird_blessing\", ()-> new EffectSunbird(false));\n    public static final RegistryObject<MobEffect> SUNBIRD_CURSE = EFFECT_DEF_REG.register(\"sunbird_curse\", ()-> new EffectSunbird(true));\n    public static final RegistryObject<MobEffect> POISON_RESISTANCE = EFFECT_DEF_REG.register(\"poison_resistance\", ()-> new EffectPoisonResistance());\n    public static final RegistryObject<MobEffect> OILED = EFFECT_DEF_REG.register(\"oiled\", ()-> new EffectOiled());\n    public static final RegistryObject<MobEffect> ORCAS_MIGHT = EFFECT_DEF_REG.register(\"orcas_might\", ()-> new EffectOrcaMight());\n    public static final RegistryObject<MobEffect> BUG_PHEROMONES = EFFECT_DEF_REG.register(\"bug_pheromones\", ()-> new EffectBugPheromones());\n    public static final RegistryObject<MobEffect> SOULSTEAL = EFFECT_DEF_REG.register(\"soulsteal\", ()-> new EffectSoulsteal());\n    public static final RegistryObject<MobEffect> CLINGING = EFFECT_DEF_REG.register(\"clinging\", ()-> new EffectClinging());\n    public static final RegistryObject<MobEffect> ENDER_FLU = EFFECT_DEF_REG.register(\"ender_flu\", ()-> new EffectEnderFlu());\n    public static final RegistryObject<MobEffect> FEAR = EFFECT_DEF_REG.register(\"fear\", ()-> new EffectFear());\n    public static final RegistryObject<MobEffect> TIGERS_BLESSING = EFFECT_DEF_REG.register(\"tigers_blessing\", ()-> new EffectTigersBlessing());\n    public static final RegistryObject<MobEffect> DEBILITATING_STING = EFFECT_DEF_REG.register(\"debilitating_sting\", ()-> new EffectDebilitatingSting());\n    public static final RegistryObject<MobEffect> EXSANGUINATION = EFFECT_DEF_REG.register(\"exsanguination\", ()-> new EffectExsanguination());\n    public static final RegistryObject<MobEffect> EARTHQUAKE = EFFECT_DEF_REG.register(\"earthquake\", ()-> new EffectEarthquake());\n    public static final RegistryObject<MobEffect> FLEET_FOOTED = EFFECT_DEF_REG.register(\"fleet_footed\", ()-> new EffectFleetFooted());\n    public static final RegistryObject<MobEffect> POWER_DOWN = EFFECT_DEF_REG.register(\"power_down\", ()-> new EffectPowerDown());\n"
+        }
+      ],
+      "identity": {
+        "manifest_relative_path": "src/main/java/com/github/alexthe666/alexsmobs/effect/AMEffectRegistry.java",
+        "git_blob_sha1": "372bcf5cc702c6feb37159c1f4019a89c8a424d5",
+        "raw_and_blob_equal_local_manifest": true,
+        "new_remote_tree_authentication": false
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSource.java",
+        "sha256": "8b19b3cb51c9139b48464bb0c6700ea27a652a677afde0e8daf812f08b3e4dd1",
+        "bytes": 4744
+      },
+      "kind": "native",
+      "source_total_lines": 153,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            153
+          ],
+          "bytes": 4744,
+          "sha256": "8b19b3cb51c9139b48464bb0c6700ea27a652a677afde0e8daf812f08b3e4dd1",
+          "raw_utf8_keepends": "package net.minecraft.world.damagesource;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.Holder;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.tags.TagKey;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.phys.Vec3;\n\npublic class DamageSource {\n   private final Holder<DamageType> type;\n   @Nullable\n   private final Entity causingEntity;\n   @Nullable\n   private final Entity directEntity;\n   @Nullable\n   private final Vec3 damageSourcePosition;\n\n   public String toString() {\n      return \"DamageSource (\" + this.type().msgId() + \")\";\n   }\n\n   public float getFoodExhaustion() {\n      return this.type().exhaustion();\n   }\n\n   public boolean isIndirect() {\n      return this.causingEntity != this.directEntity;\n   }\n\n   public DamageSource(Holder<DamageType> p_270906_, @Nullable Entity p_270796_, @Nullable Entity p_270459_, @Nullable Vec3 p_270623_) {\n      this.type = p_270906_;\n      this.causingEntity = p_270459_;\n      this.directEntity = p_270796_;\n      this.damageSourcePosition = p_270623_;\n   }\n\n   public DamageSource(Holder<DamageType> p_270818_, @Nullable Entity p_270162_, @Nullable Entity p_270115_) {\n      this(p_270818_, p_270162_, p_270115_, (Vec3)null);\n   }\n\n   public DamageSource(Holder<DamageType> p_270690_, Vec3 p_270579_) {\n      this(p_270690_, (Entity)null, (Entity)null, p_270579_);\n   }\n\n   public DamageSource(Holder<DamageType> p_270811_, @Nullable Entity p_270660_) {\n      this(p_270811_, p_270660_, p_270660_);\n   }\n\n   public DamageSource(Holder<DamageType> p_270475_) {\n      this(p_270475_, (Entity)null, (Entity)null, (Vec3)null);\n   }\n\n   @Nullable\n   public Entity getDirectEntity() {\n      return this.directEntity;\n   }\n\n   @Nullable\n   public Entity getEntity() {\n      return this.causingEntity;\n   }\n\n   public Component getLocalizedDeathMessage(LivingEntity p_19343_) {\n      String s = \"death.attack.\" + this.type().msgId();\n      if (this.causingEntity == null && this.directEntity == null) {\n         LivingEntity livingentity1 = p_19343_.getKillCredit();\n         String s1 = s + \".player\";\n         return livingentity1 != null ? Component.translatable(s1, p_19343_.getDisplayName(), livingentity1.getDisplayName()) : Component.translatable(s, p_19343_.getDisplayName());\n      } else {\n         Component component = this.causingEntity == null ? this.directEntity.getDisplayName() : this.causingEntity.getDisplayName();\n         Entity entity = this.causingEntity;\n         ItemStack itemstack1;\n         if (entity instanceof LivingEntity) {\n            LivingEntity livingentity = (LivingEntity)entity;\n            itemstack1 = livingentity.getMainHandItem();\n         } else {\n            itemstack1 = ItemStack.EMPTY;\n         }\n\n         ItemStack itemstack = itemstack1;\n         return !itemstack.isEmpty() && itemstack.hasCustomHoverName() ? Component.translatable(s + \".item\", p_19343_.getDisplayName(), component, itemstack.getDisplayName()) : Component.translatable(s, p_19343_.getDisplayName(), component);\n      }\n   }\n\n   public String getMsgId() {\n      return this.type().msgId();\n   }\n\n   public boolean scalesWithDifficulty() {\n      boolean flag;\n      switch (this.type().scaling()) {\n         case NEVER:\n            flag = false;\n            break;\n         case WHEN_CAUSED_BY_LIVING_NON_PLAYER:\n            flag = this.causingEntity instanceof LivingEntity && !(this.causingEntity instanceof Player);\n            break;\n         case ALWAYS:\n            flag = true;\n            break;\n         default:\n            throw new IncompatibleClassChangeError();\n      }\n\n      return flag;\n   }\n\n   public boolean isCreativePlayer() {\n      Entity entity = this.getEntity();\n      if (entity instanceof Player player) {\n         if (player.getAbilities().instabuild) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n   @Nullable\n   public Vec3 getSourcePosition() {\n      if (this.damageSourcePosition != null) {\n         return this.damageSourcePosition;\n      } else {\n         return this.directEntity != null ? this.directEntity.position() : null;\n      }\n   }\n\n   @Nullable\n   public Vec3 sourcePositionRaw() {\n      return this.damageSourcePosition;\n   }\n\n   public boolean is(TagKey<DamageType> p_270890_) {\n      return this.type.is(p_270890_);\n   }\n\n   public boolean is(ResourceKey<DamageType> p_276108_) {\n      return this.type.is(p_276108_);\n   }\n\n   public DamageType type() {\n      return this.type.value();\n   }\n\n   public Holder<DamageType> typeHolder() {\n      return this.type;\n   }\n}"
+        }
+      ],
+      "identity": {
+        "archive_member": "net/minecraft/world/damagesource/DamageSource.java",
+        "exact_archive_bytes": true
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSources.java",
+        "sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+        "bytes": 8519
+      },
+      "kind": "native",
+      "source_total_lines": 254,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            85
+          ],
+          "bytes": 3816,
+          "sha256": "057edc6611e8c0b63e2f0d6cd16624ec3641819caa0294296e055506b4ca5acb",
+          "raw_utf8_keepends": "package net.minecraft.world.damagesource;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.Registry;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.AbstractArrow;\nimport net.minecraft.world.entity.projectile.Fireball;\nimport net.minecraft.world.entity.projectile.FireworkRocketEntity;\nimport net.minecraft.world.entity.projectile.WitherSkull;\nimport net.minecraft.world.level.Explosion;\nimport net.minecraft.world.phys.Vec3;\n\npublic class DamageSources {\n   private final Registry<DamageType> damageTypes;\n   private final DamageSource inFire;\n   private final DamageSource lightningBolt;\n   private final DamageSource onFire;\n   private final DamageSource lava;\n   private final DamageSource hotFloor;\n   private final DamageSource inWall;\n   private final DamageSource cramming;\n   private final DamageSource drown;\n   private final DamageSource starve;\n   private final DamageSource cactus;\n   private final DamageSource fall;\n   private final DamageSource flyIntoWall;\n   private final DamageSource fellOutOfWorld;\n   private final DamageSource generic;\n   private final DamageSource magic;\n   private final DamageSource wither;\n   private final DamageSource dragonBreath;\n   private final DamageSource dryOut;\n   private final DamageSource sweetBerryBush;\n   private final DamageSource freeze;\n   private final DamageSource stalagmite;\n   private final DamageSource outsideBorder;\n   private final DamageSource genericKill;\n\n   public DamageSources(RegistryAccess p_270740_) {\n      this.damageTypes = p_270740_.registryOrThrow(Registries.DAMAGE_TYPE);\n      this.inFire = this.source(DamageTypes.IN_FIRE);\n      this.lightningBolt = this.source(DamageTypes.LIGHTNING_BOLT);\n      this.onFire = this.source(DamageTypes.ON_FIRE);\n      this.lava = this.source(DamageTypes.LAVA);\n      this.hotFloor = this.source(DamageTypes.HOT_FLOOR);\n      this.inWall = this.source(DamageTypes.IN_WALL);\n      this.cramming = this.source(DamageTypes.CRAMMING);\n      this.drown = this.source(DamageTypes.DROWN);\n      this.starve = this.source(DamageTypes.STARVE);\n      this.cactus = this.source(DamageTypes.CACTUS);\n      this.fall = this.source(DamageTypes.FALL);\n      this.flyIntoWall = this.source(DamageTypes.FLY_INTO_WALL);\n      this.fellOutOfWorld = this.source(DamageTypes.FELL_OUT_OF_WORLD);\n      this.generic = this.source(DamageTypes.GENERIC);\n      this.magic = this.source(DamageTypes.MAGIC);\n      this.wither = this.source(DamageTypes.WITHER);\n      this.dragonBreath = this.source(DamageTypes.DRAGON_BREATH);\n      this.dryOut = this.source(DamageTypes.DRY_OUT);\n      this.sweetBerryBush = this.source(DamageTypes.SWEET_BERRY_BUSH);\n      this.freeze = this.source(DamageTypes.FREEZE);\n      this.stalagmite = this.source(DamageTypes.STALAGMITE);\n      this.outsideBorder = this.source(DamageTypes.OUTSIDE_BORDER);\n      this.genericKill = this.source(DamageTypes.GENERIC_KILL);\n   }\n\n   private DamageSource source(ResourceKey<DamageType> p_270957_) {\n      return new DamageSource(this.damageTypes.getHolderOrThrow(p_270957_));\n   }\n\n   private DamageSource source(ResourceKey<DamageType> p_270142_, @Nullable Entity p_270696_) {\n      return new DamageSource(this.damageTypes.getHolderOrThrow(p_270142_), p_270696_);\n   }\n\n   private DamageSource source(ResourceKey<DamageType> p_270076_, @Nullable Entity p_270656_, @Nullable Entity p_270242_) {\n      return new DamageSource(this.damageTypes.getHolderOrThrow(p_270076_), p_270656_, p_270242_);\n   }\n\n   public DamageSource inFire() {\n      return this.inFire;\n   }\n"
+        },
+        {
+          "lines": [
+            167,
+            181
+          ],
+          "bytes": 497,
+          "sha256": "3bd0ce02e6f12ce65e844714c25aefa1f6ea601bfffab0a8cc7262cc7c74bfa9",
+          "raw_utf8_keepends": "   public DamageSource fallingBlock(Entity p_270643_) {\n      return this.source(DamageTypes.FALLING_BLOCK, p_270643_);\n   }\n\n   public DamageSource anvil(Entity p_270112_) {\n      return this.source(DamageTypes.FALLING_ANVIL, p_270112_);\n   }\n\n   public DamageSource fallingStalactite(Entity p_270720_) {\n      return this.source(DamageTypes.FALLING_STALACTITE, p_270720_);\n   }\n\n   public DamageSource sting(LivingEntity p_270689_) {\n      return this.source(DamageTypes.STING, p_270689_);\n   }\n"
+        },
+        {
+          "lines": [
+            227,
+            229
+          ],
+          "bytes": 112,
+          "sha256": "8c675ff88d9110a961aaed95fdf8f2ec534b09a1edee3a6a9c286e2f60dcb2c4",
+          "raw_utf8_keepends": "   public DamageSource thorns(Entity p_270917_) {\n      return this.source(DamageTypes.THORNS, p_270917_);\n   }\n"
+        }
+      ],
+      "identity": {
+        "archive_member": "net/minecraft/world/damagesource/DamageSources.java",
+        "exact_archive_bytes": true
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+        "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "bytes": 131153
+      },
+      "kind": "native",
+      "source_total_lines": 3473,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1058,
+            1207
+          ],
+          "bytes": 5768,
+          "sha256": "f6a916065112be34fbef5c8515d227c302a1ac0276d25eeb1d5d9769ffd788a6",
+          "raw_utf8_keepends": "   public boolean hurt(DamageSource p_21016_, float p_21017_) {\n      if (!net.minecraftforge.common.ForgeHooks.onLivingAttack(this, p_21016_, p_21017_)) return false;\n      if (this.isInvulnerableTo(p_21016_)) {\n         return false;\n      } else if (this.level().isClientSide) {\n         return false;\n      } else if (this.isDeadOrDying()) {\n         return false;\n      } else if (p_21016_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {\n         return false;\n      } else {\n         if (this.isSleeping() && !this.level().isClientSide) {\n            this.stopSleeping();\n         }\n\n         this.noActionTime = 0;\n         float f = p_21017_;\n         boolean flag = false;\n         float f1 = 0.0F;\n         if (p_21017_ > 0.0F && this.isDamageSourceBlocked(p_21016_)) {\n            net.minecraftforge.event.entity.living.ShieldBlockEvent ev = net.minecraftforge.common.ForgeHooks.onShieldBlock(this, p_21016_, p_21017_);\n            if(!ev.isCanceled()) {\n            if(ev.shieldTakesDamage()) this.hurtCurrentlyUsedShield(p_21017_);\n            f1 = ev.getBlockedDamage();\n            p_21017_ -= ev.getBlockedDamage();\n            if (!p_21016_.is(DamageTypeTags.IS_PROJECTILE)) {\n               Entity entity = p_21016_.getDirectEntity();\n               if (entity instanceof LivingEntity) {\n                  LivingEntity livingentity = (LivingEntity)entity;\n                  this.blockUsingShield(livingentity);\n               }\n            }\n\n            flag = p_21017_ <= 0;\n         }\n         }\n\n         if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {\n            p_21017_ *= 5.0F;\n         }\n\n         this.walkAnimation.setSpeed(1.5F);\n         boolean flag1 = true;\n         if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {\n            if (p_21017_ <= this.lastHurt) {\n               return false;\n            }\n\n            this.actuallyHurt(p_21016_, p_21017_ - this.lastHurt);\n            this.lastHurt = p_21017_;\n            flag1 = false;\n         } else {\n            this.lastHurt = p_21017_;\n            this.invulnerableTime = 20;\n            this.actuallyHurt(p_21016_, p_21017_);\n            this.hurtDuration = 10;\n            this.hurtTime = this.hurtDuration;\n         }\n\n         if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n            this.hurtHelmet(p_21016_, p_21017_);\n            p_21017_ *= 0.75F;\n         }\n\n         Entity entity1 = p_21016_.getEntity();\n         if (entity1 != null) {\n            if (entity1 instanceof LivingEntity) {\n               LivingEntity livingentity1 = (LivingEntity)entity1;\n               if (!p_21016_.is(DamageTypeTags.NO_ANGER)) {\n                  this.setLastHurtByMob(livingentity1);\n               }\n            }\n\n            if (entity1 instanceof Player) {\n               Player player1 = (Player)entity1;\n               this.lastHurtByPlayerTime = 100;\n               this.lastHurtByPlayer = player1;\n            } else if (entity1 instanceof net.minecraft.world.entity.TamableAnimal tamableEntity) {\n               if (tamableEntity.isTame()) {\n                  this.lastHurtByPlayerTime = 100;\n                  LivingEntity livingentity2 = tamableEntity.getOwner();\n                  if (livingentity2 instanceof Player) {\n                     Player player = (Player)livingentity2;\n                     this.lastHurtByPlayer = player;\n                  } else {\n                     this.lastHurtByPlayer = null;\n                  }\n               }\n            }\n         }\n\n         if (flag1) {\n            if (flag) {\n               this.level().broadcastEntityEvent(this, (byte)29);\n            } else {\n               this.level().broadcastDamageEvent(this, p_21016_);\n            }\n\n            if (!p_21016_.is(DamageTypeTags.NO_IMPACT) && (!flag || p_21017_ > 0.0F)) {\n               this.markHurt();\n            }\n\n            if (entity1 != null && !p_21016_.is(DamageTypeTags.IS_EXPLOSION)) {\n               double d0 = entity1.getX() - this.getX();\n\n               double d1;\n               for(d1 = entity1.getZ() - this.getZ(); d0 * d0 + d1 * d1 < 1.0E-4D; d1 = (Math.random() - Math.random()) * 0.01D) {\n                  d0 = (Math.random() - Math.random()) * 0.01D;\n               }\n\n               this.knockback((double)0.4F, d0, d1);\n               if (!flag) {\n                  this.indicateDamage(d0, d1);\n               }\n            }\n         }\n\n         if (this.isDeadOrDying()) {\n            if (!this.checkTotemDeathProtection(p_21016_)) {\n               SoundEvent soundevent = this.getDeathSound();\n               if (flag1 && soundevent != null) {\n                  this.playSound(soundevent, this.getSoundVolume(), this.getVoicePitch());\n               }\n\n               this.die(p_21016_);\n            }\n         } else if (flag1) {\n            this.playHurtSound(p_21016_);\n         }\n\n         boolean flag2 = !flag || p_21017_ > 0.0F;\n         if (flag2) {\n            this.lastDamageSource = p_21016_;\n            this.lastDamageStamp = this.level().getGameTime();\n         }\n\n         if (this instanceof ServerPlayer) {\n            CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer)this, p_21016_, f, p_21017_, flag);\n            if (f1 > 0.0F && f1 < 3.4028235E37F) {\n               ((ServerPlayer)this).awardStat(Stats.CUSTOM.get(Stats.DAMAGE_BLOCKED_BY_SHIELD), Math.round(f1 * 10.0F));\n            }\n         }\n\n         if (entity1 instanceof ServerPlayer) {\n            CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer)entity1, this, p_21016_, f, p_21017_, flag);\n         }\n\n         return flag2;\n      }\n   }\n"
+        }
+      ],
+      "identity": {
+        "archive_member": "net/minecraft/world/entity/LivingEntity.java",
+        "exact_archive_bytes": true
+      },
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "kind": "native",
+      "source_total_lines": 3566,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1465,
+            1473
+          ],
+          "bytes": 264,
+          "sha256": "a2a61da48f410b13e3b2ed553cc213f35739aa22089e8aaa5cbac56b6eb5f779",
+          "raw_utf8_keepends": "   public void push(double p_20286_, double p_20287_, double p_20288_) {\n      this.setDeltaMovement(this.getDeltaMovement().add(p_20286_, p_20287_, p_20288_));\n      this.hasImpulse = true;\n   }\n\n   protected void markHurt() {\n      this.hurtMarked = true;\n   }\n\n"
+        },
+        {
+          "lines": [
+            2426,
+            2440
+          ],
+          "bytes": 692,
+          "sha256": "9c4daedd39e846bbc1afd65f96d5b03f971a1a52eb826a78c4eafec3aa118790",
+          "raw_utf8_keepends": "   public boolean isInvulnerableTo(DamageSource p_20122_) {\n      return this.isRemoved() || this.invulnerable && !p_20122_.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !p_20122_.isCreativePlayer() || p_20122_.is(DamageTypeTags.IS_FIRE) && this.fireImmune() || p_20122_.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE);\n   }\n\n   public boolean isInvulnerable() {\n      return this.invulnerable;\n   }\n\n   public void setInvulnerable(boolean p_20332_) {\n      this.invulnerable = p_20332_;\n   }\n\n   public void copyPosition(Entity p_20360_) {\n      this.moveTo(p_20360_.getX(), p_20360_.getY(), p_20360_.getZ(), p_20360_.getYRot(), p_20360_.getXRot());\n   }\n"
+        }
+      ],
+      "identity": {
+        "archive_member": "net/minecraft/world/entity/Entity.java",
+        "exact_archive_bytes": true
+      },
+      "semantic_credit": 0
+    }
+  ],
+  "actual_reading_coverage": {
+    "files": 10,
+    "ranges": 16,
+    "unique_lines": 1068,
+    "whole_files": 3,
+    "counting": "Only actual recovered selected source ranges, each line once. Containing-method/identity support0, no semantic credit by file/hook/range count."
+  },
+  "whole_lifecycle_findings": [
+    {
+      "id": 1,
+      "observation": "Whole RockyRoller465 and renderer26 actually read, bounded entity registry creates ROCKY_ROLLER and binds spawn/attributes. Mod constructor registers entity/effect deferred registries; client declaration registers renderer. Large registry/proxy methods are bounded support, not full source chains or loaded-game proof."
+    },
+    {
+      "id": 2,
+      "observation": "isMoving checks deltaMovement.lengthSqr()>0.02, not position-delta success or an authoritative stationary flag. Hurt override first tests !isMoving, non-MAGIC DamageType key, directEntity Living and not another RockyRoller; it does not use causingEntity for this qualification."
+    },
+    {
+      "id": 3,
+      "observation": "If source is not exact EXPLOSION key and direct Living hurtMarked is false, request living.hurt(thorns(this),2). Return ignored; then always return super.hurt original source/amount. Reaction precedes original admission and has no own side/positive-amount/dead/invulnerable gate. No assertion parent success or attacker HP loss."
+    },
+    {
+      "id": 4,
+      "observation": "Native DamageSources.thorns constructs DamageSource with same direct/causing RockyRoller. Native Entity markHurt sets hurtMarked; raw bit has no attempt identity, expiry/ownership or originating-projectile proof here. Whole DamageSource153 distinguishes direct versus causing entities and ResourceKey/TagKey tests."
+    },
+    {
+      "id": 5,
+      "observation": "Rocky isInvulnerableTo compares source.equals(\"fallingStalactite\") before super. Native DamageSource has no equals override and native fallingStalactite factory returns a DamageSource object. For that ordinary factory source, the string comparison does not identify FALLING_STALACTITE type. This is a fixed-source mismatch, not proof of current Dynasty bug or authorization to fix."
+    },
+    {
+      "id": 6,
+      "observation": "Own causeFallDamage alwaysfalse and checkFallDamage empty. These separate explicit fall hooks and inherited super invulnerability still exist; failed string comparison cannot imply no fall protection or every damage accepted."
+    },
+    {
+      "id": 7,
+      "observation": "Server sets ANGRY from retained live target within20 squared-distance radius. Outer rolling collision block has no explicit server guard; each nearby Living nonally/self receives hurt request then launch regardless hurt bool. launch uses grounded condition and direct push, not knockback-resistance check."
+    },
+    {
+      "id": 8,
+      "observation": "Native Entity.push(double) adds delta movement and sets hasImpulse, distinct from markHurt/hurtMarked. Collision target equality is rechecked against current getTarget, not a captured immutable victim. Target contact writes maxRollTime=rollCounter+10 even if hurt failed; repeated contact can repeatedly move this deadline. Not proof of indefinite actual rolling."
+    },
+    {
+      "id": 9,
+      "observation": "handleRoll increments counter; server collision+angry+earthquakeCooldown0 requests earthquake then updates cooldown; counter>max stops roll, sets10..19 cooldown, counter0 and ZERO delta. Otherwise records launch heading/motion first tick and reuses horizontal rollDelta. Outer block continues its already-entered collision processing after handleRoll even if that call setRollingfalse."
+    },
+    {
+      "id": 10,
+      "observation": "Outer low movement after counter>2 or death stops ROLLING but does not itself set normal timeout cooldown, stop navigation or clear rollDelta. Next nonrolling branch resets counter and maxUpStep; rollFor gates only rollCooldown0. AIMelee.stop resets rollTimeout but not rollFromPos; full class has no own NBT persistence for rolling/anger/timers/origin. Native base lifecycle/intermediate inheritance not fully read."
+    },
+    {
+      "id": 11,
+      "observation": "Earthquake requests20tick effect on returned alive non-Rocky targets and sets flag regardless addEffect result. Underground+MOB_GRIEFING falling-block/scheduled-tick requests may also set flag; roar/sound only test flag, not effect/world admission. EffectEarthquake source absent in this cache, so its control policy is unexpanded. Citadel custom collision consumer also absent/unexpanded."
+    },
+    {
+      "id": 12,
+      "observation": "Renderer texture priority rolling then angry else normal. These show source states, not damage admission or per-refusal receipt. Native LivingEntity full hurt method shows attack/invulnerability/client/dead/fire/cooldown rejection and return flag, but actual effect settlement/Forge listener arbitration and intermediate Mob inheritance not fully expanded. No real pixel/network/HP acceptance."
+    }
+  ],
+  "limits": [
+    "Mod files rawSHA256 and blobSHA1 match local pinned manifest declarations; no new remote commit/tree authentication. Native4 source members exactly match verified cached Forge1.20.1-47.4.10 source ZIP. Neither binds loaded binary/classpath/runtime compatibility.",
+    "DamageSource string comparison conclusion bounded to ordinary native factory DamageSource. Custom subclasses/listener rewrites/current Dynasty runtime untested; no production fix authorized or applied.",
+    "Movement threshold/direct attacker bit/damage key are exact predicates, not real successful displacement, final HP settlement, all-explosion tag, immunity or same-attack attribution.",
+    "Counter-hurt and contact hurt results ignored; direct impulse and timer writes can occur without successful damage. Neither global immunity nor reliable control success follows; parent/Forge/other listeners remain boundaries.",
+    "Entity tick and hurt lack own server guards in read branches; native update scheduling/loaded side/Citadel collision implementation unexpanded. No claim single server-authoritative production or convergence.",
+    "Full earthquake helper read but effect class, native falling-block/world generation/admission and exact block/collision protocols not expanded. Sound and flags are attempt state, not successful effect/control/world receipt.",
+    "Model/texture/audio resources not opened or edited; only whole renderer26 source. No visual/animation/texture creation or claimed pixels. Existing large registry/proxy bounded binding declarations only.",
+    "Five complete prior decisions read, not their raw chains or all524. Maximum new credit0, formal0, no ID/append/proposal/executor. Research source counts/bytes/hashes/changed predicate order provide no semantic credit.",
+    "Program524/252/gap476false; ecology actualMain61/gap939false, author ecology0. All160/Piglin/other once permanently consumed. No formal/master/session/pending/ownership/external prompts/production/Jar/game/tasks/hours changes."
+  ],
+  "application_to_Dynasty": [
+    "Do not derive Boss immune text from counterattack, ordinary hurt sound, rolling texture, effect existence or hurtfalse alone. Produce refusal from the real authoritative attempted-operation decision and scope it to actual target.",
+    "Audit side effects before final damage admission separately: direct movement, damage recursion/source attribution and delayed timers need independent acceptance or explicit request semantics. Preserve original ordinary type9 no-gray-text requirement.",
+    "Pure private source study; retain original background and main-menu button-only scope. No new Rocky/quake mechanic, source fix, asset/UI/Jar or game modification."
+  ],
+  "complete_owner_comparison": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-166-alexsmobs-rocky-preparent-retaliation-complete-owner-comparison-SUPPORT0-20261112.json",
+    "sha256": "5994a92f46df16f2ef4e064603a56aefbb51ebaf06cf9676a7ec40dca01d2df1",
+    "bytes": 49589
+  },
+  "current_applied524_receipt": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program160-Main-actual524-three-file-application-20261112.json",
+    "sha256": "ada9ff45b3b06535a70d0f446454a421b1f4dcae473ed473ed87d7054ecd5fdd",
+    "bytes": 6497
+  },
+  "current_program": {
+    "count": 524,
+    "groups": 252,
+    "gap": 476,
+    "gate": false,
+    "bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "f23a93a8c5201f4e6b89af4fdd83903fd3170cbbb0b61354637a9f5578316ae1",
+        "bytes": 56347366
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "aff7ae82b78794a82dbedb5f5018cadef41cedf217e84478a9585de4575e7dc8",
+        "bytes": 429903
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "dd47f20db628646eef569de8919ebed7dfa59677d1e84f82772b12ece21d6e82",
+        "bytes": 631
+      }
+    ]
+  },
+  "current_ecology": {
+    "Main_count": 61,
+    "gap": 939,
+    "gate": false,
+    "actual_Main_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-piglin-EA0062-Main-actual61-data-application-20261112.json",
+      "sha256": "542ad99c7f47a6f75cff06a3294907c7f61f7c6c409ab2fb7d480addc23e865e",
+      "bytes": 7511
+    },
+    "bindings5": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "b1be99bffc779ecc652b46430aac4042b2777aadf3ac9e510a0d638f95e98f38",
+        "bytes": 3479310
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "e84436f74106da8382bb005728bf9708e2ba8694946ae5bd2174f45352612dbf",
+        "bytes": 3327763
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "5f03ae730b11ee2a70845c1cb01fdf05778fe16521c5ee1bff590681f3a81a57",
+        "bytes": 836053
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "3dd7ae446daef245ed80649ded0efdb44866790fcc1a43bbe46315ff57d7e897",
+        "bytes": 200365
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "b997b14d7f44936699efbf34a8c66dc5ec9f9e14a8e01abaa1865c315a34a13e",
+        "bytes": 958863
+      }
+    ],
+    "new_source_credit": 0
+  },
+  "protected8": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "reading_recovery": [
+    "Rocky1..160 had only been a previous-batch prescreen; this study actually reread1..161 and completed162..465. No old partial reading claimed whole without completion.",
+    "Initial client/ClientProxy and gradle.properties paths absent; corrected actual root ClientProxy. EffectEarthquake file absent despite registry declaration; its implementation is a limitation, not fabricated source.",
+    "Broad file-name and AMEffectRegistry grep outputs clipped; discovery only. Selected full source ranges separately read. DamageSources167..181 and Entity1465..1473 recovered explicitly after a clipped combined grep call."
+  ],
+  "preselection_zero_credit": [
+    {
+      "topic": "BloodMagic GenericHandler",
+      "actual_read": "217..487 only including complete onLivingHurt and onLivingDamage; other helpers/producers unexpanded; not selected as a candidate",
+      "credit": 0
+    }
+  ],
+  "consumed_plans_replayed": false,
+  "production_changes": false,
+  "native_acceptance": false,
+  "original_UI_implemented": false,
+  "tasks_deleted": 0,
+  "all_tasks_complete": false,
+  "active_hours_claimed": null
+}

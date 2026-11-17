@@ -1,0 +1,163 @@
+{
+  "created_utc": "2026-11-11T19:42:22.057070+00:00",
+  "batch": 156,
+  "status": "ACTUAL_SOURCE_RESEARCH_COMPLETE_SUPPORT0",
+  "decision": "SUPPORT0",
+  "formal_credit": 0,
+  "formal_candidate_id": null,
+  "semantic_family": "native-evoker-fangs-signed-phase-owner-qualified-damage-and-independent-client-cue-support",
+  "source_identity": {
+    "kind": "fixed local mapped Forge1.20.1-47.4.10 source archive entry exact bytes",
+    "archive": {
+      "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "new_remote_Git_authentication_claimed": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/EvokerFangs.java",
+        "sha256": "8bca91998082239c416b4909fc57396ac93fc814e32300fdb8c6ab2479e696bd",
+        "bytes": 5153
+      },
+      "archive_entry": "net/minecraft/world/entity/projectile/EvokerFangs.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 147,
+      "whole_file_actually_read": true,
+      "reading_recovery": "The earlier combined source dump was clipped and earned no actual-reading claim. Entity lines1..100 and101..147 were then read in separate bounded outputs; renderer50/model59 were recovered completely.",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            147
+          ],
+          "bytes": 5153,
+          "sha256": "8bca91998082239c416b4909fc57396ac93fc814e32300fdb8c6ab2479e696bd",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.TraceableEntity;\nimport net.minecraft.world.level.Level;\n\npublic class EvokerFangs extends Entity implements TraceableEntity {\n   public static final int ATTACK_DURATION = 20;\n   public static final int LIFE_OFFSET = 2;\n   public static final int ATTACK_TRIGGER_TICKS = 14;\n   private int warmupDelayTicks;\n   private boolean sentSpikeEvent;\n   private int lifeTicks = 22;\n   private boolean clientSideAttackStarted;\n   @Nullable\n   private LivingEntity owner;\n   @Nullable\n   private UUID ownerUUID;\n\n   public EvokerFangs(EntityType<? extends EvokerFangs> p_36923_, Level p_36924_) {\n      super(p_36923_, p_36924_);\n   }\n\n   public EvokerFangs(Level p_36926_, double p_36927_, double p_36928_, double p_36929_, float p_36930_, int p_36931_, LivingEntity p_36932_) {\n      this(EntityType.EVOKER_FANGS, p_36926_);\n      this.warmupDelayTicks = p_36931_;\n      this.setOwner(p_36932_);\n      this.setYRot(p_36930_ * (180F / (float)Math.PI));\n      this.setPos(p_36927_, p_36928_, p_36929_);\n   }\n\n   protected void defineSynchedData() {\n   }\n\n   public void setOwner(@Nullable LivingEntity p_36939_) {\n      this.owner = p_36939_;\n      this.ownerUUID = p_36939_ == null ? null : p_36939_.getUUID();\n   }\n\n   @Nullable\n   public LivingEntity getOwner() {\n      if (this.owner == null && this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         Entity entity = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         if (entity instanceof LivingEntity) {\n            this.owner = (LivingEntity)entity;\n         }\n      }\n\n      return this.owner;\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_36941_) {\n      this.warmupDelayTicks = p_36941_.getInt(\"Warmup\");\n      if (p_36941_.hasUUID(\"Owner\")) {\n         this.ownerUUID = p_36941_.getUUID(\"Owner\");\n      }\n\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_36943_) {\n      p_36943_.putInt(\"Warmup\", this.warmupDelayTicks);\n      if (this.ownerUUID != null) {\n         p_36943_.putUUID(\"Owner\", this.ownerUUID);\n      }\n\n   }\n\n   public void tick() {\n      super.tick();\n      if (this.level().isClientSide) {\n         if (this.clientSideAttackStarted) {\n            --this.lifeTicks;\n            if (this.lifeTicks == 14) {\n               for(int i = 0; i < 12; ++i) {\n                  double d0 = this.getX() + (this.random.nextDouble() * 2.0D - 1.0D) * (double)this.getBbWidth() * 0.5D;\n                  double d1 = this.getY() + 0.05D + this.random.nextDouble();\n                  double d2 = this.getZ() + (this.random.nextDouble() * 2.0D - 1.0D) * (double)this.getBbWidth() * 0.5D;\n                  double d3 = (this.random.nextDouble() * 2.0D - 1.0D) * 0.3D;\n                  double d4 = 0.3D + this.random.nextDouble() * 0.3D;\n                  double d5 = (this.random.nextDouble() * 2.0D - 1.0D) * 0.3D;\n                  this.level().addParticle(ParticleTypes.CRIT, d0, d1 + 1.0D, d2, d3, d4, d5);\n               }\n            }\n         }\n      } else if (--this.warmupDelayTicks < 0) {\n         if (this.warmupDelayTicks == -8) {\n            for(LivingEntity livingentity : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(0.2D, 0.0D, 0.2D))) {\n               this.dealDamageTo(livingentity);\n            }\n         }\n\n         if (!this.sentSpikeEvent) {\n            this.level().broadcastEntityEvent(this, (byte)4);\n            this.sentSpikeEvent = true;\n         }\n\n         if (--this.lifeTicks < 0) {\n            this.discard();\n         }\n      }\n\n   }\n\n   private void dealDamageTo(LivingEntity p_36945_) {\n      LivingEntity livingentity = this.getOwner();\n      if (p_36945_.isAlive() && !p_36945_.isInvulnerable() && p_36945_ != livingentity) {\n         if (livingentity == null) {\n            p_36945_.hurt(this.damageSources().magic(), 6.0F);\n         } else {\n            if (livingentity.isAlliedTo(p_36945_)) {\n               return;\n            }\n\n            p_36945_.hurt(this.damageSources().indirectMagic(this, livingentity), 6.0F);\n         }\n\n      }\n   }\n\n   public void handleEntityEvent(byte p_36935_) {\n      super.handleEntityEvent(p_36935_);\n      if (p_36935_ == 4) {\n         this.clientSideAttackStarted = true;\n         if (!this.isSilent()) {\n            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.EVOKER_FANGS_ATTACK, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.2F + 0.85F, false);\n         }\n      }\n\n   }\n\n   public float getAnimationProgress(float p_36937_) {\n      if (!this.clientSideAttackStarted) {\n         return 0.0F;\n      } else {\n         int i = this.lifeTicks - 2;\n         return i <= 0 ? 1.0F : 1.0F - ((float)i - p_36937_) / 20.0F;\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EvokerFangsRenderer.java",
+        "sha256": "dccb91f73e5e9d7de0266dd1c49ef4cbe77e1801e1c68ab76c0c81e683297f48",
+        "bytes": 2235
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EvokerFangsRenderer.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 50,
+      "whole_file_actually_read": true,
+      "reading_recovery": "The earlier combined source dump was clipped and earned no actual-reading claim. Entity lines1..100 and101..147 were then read in separate bounded outputs; renderer50/model59 were recovered completely.",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            50
+          ],
+          "bytes": 2235,
+          "sha256": "dccb91f73e5e9d7de0266dd1c49ef4cbe77e1801e1c68ab76c0c81e683297f48",
+          "raw_utf8_keepends": "package net.minecraft.client.renderer.entity;\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.blaze3d.vertex.VertexConsumer;\nimport com.mojang.math.Axis;\nimport net.minecraft.client.model.EvokerFangsModel;\nimport net.minecraft.client.model.geom.ModelLayers;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.texture.OverlayTexture;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.projectile.EvokerFangs;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class EvokerFangsRenderer extends EntityRenderer<EvokerFangs> {\n   private static final ResourceLocation TEXTURE_LOCATION = new ResourceLocation(\"textures/entity/illager/evoker_fangs.png\");\n   private final EvokerFangsModel<EvokerFangs> model;\n\n   public EvokerFangsRenderer(EntityRendererProvider.Context p_174100_) {\n      super(p_174100_);\n      this.model = new EvokerFangsModel<>(p_174100_.bakeLayer(ModelLayers.EVOKER_FANGS));\n   }\n\n   public void render(EvokerFangs p_114528_, float p_114529_, float p_114530_, PoseStack p_114531_, MultiBufferSource p_114532_, int p_114533_) {\n      float f = p_114528_.getAnimationProgress(p_114530_);\n      if (f != 0.0F) {\n         float f1 = 2.0F;\n         if (f > 0.9F) {\n            f1 *= (1.0F - f) / 0.1F;\n         }\n\n         p_114531_.pushPose();\n         p_114531_.mulPose(Axis.YP.rotationDegrees(90.0F - p_114528_.getYRot()));\n         p_114531_.scale(-f1, -f1, f1);\n         float f2 = 0.03125F;\n         p_114531_.translate(0.0D, -0.626D, 0.0D);\n         p_114531_.scale(0.5F, 0.5F, 0.5F);\n         this.model.setupAnim(p_114528_, f, 0.0F, 0.0F, p_114528_.getYRot(), p_114528_.getXRot());\n         VertexConsumer vertexconsumer = p_114532_.getBuffer(this.model.renderType(TEXTURE_LOCATION));\n         this.model.renderToBuffer(p_114531_, vertexconsumer, p_114533_, OverlayTexture.NO_OVERLAY, 1.0F, 1.0F, 1.0F, 1.0F);\n         p_114531_.popPose();\n         super.render(p_114528_, p_114529_, p_114530_, p_114531_, p_114532_, p_114533_);\n      }\n   }\n\n   public ResourceLocation getTextureLocation(EvokerFangs p_114526_) {\n      return TEXTURE_LOCATION;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/model/EvokerFangsModel.java",
+        "sha256": "1912e4396dffcc22208e655caac09902f71bfd453cff8542707ba802ca80961e",
+        "bytes": 2631
+      },
+      "archive_entry": "net/minecraft/client/model/EvokerFangsModel.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 59,
+      "whole_file_actually_read": true,
+      "reading_recovery": "The earlier combined source dump was clipped and earned no actual-reading claim. Entity lines1..100 and101..147 were then read in separate bounded outputs; renderer50/model59 were recovered completely.",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            59
+          ],
+          "bytes": 2631,
+          "sha256": "1912e4396dffcc22208e655caac09902f71bfd453cff8542707ba802ca80961e",
+          "raw_utf8_keepends": "package net.minecraft.client.model;\n\nimport net.minecraft.client.model.geom.ModelPart;\nimport net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.CubeListBuilder;\nimport net.minecraft.client.model.geom.builders.LayerDefinition;\nimport net.minecraft.client.model.geom.builders.MeshDefinition;\nimport net.minecraft.client.model.geom.builders.PartDefinition;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class EvokerFangsModel<T extends Entity> extends HierarchicalModel<T> {\n   private static final String BASE = \"base\";\n   private static final String UPPER_JAW = \"upper_jaw\";\n   private static final String LOWER_JAW = \"lower_jaw\";\n   private final ModelPart root;\n   private final ModelPart base;\n   private final ModelPart upperJaw;\n   private final ModelPart lowerJaw;\n\n   public EvokerFangsModel(ModelPart p_170555_) {\n      this.root = p_170555_;\n      this.base = p_170555_.getChild(\"base\");\n      this.upperJaw = p_170555_.getChild(\"upper_jaw\");\n      this.lowerJaw = p_170555_.getChild(\"lower_jaw\");\n   }\n\n   public static LayerDefinition createBodyLayer() {\n      MeshDefinition meshdefinition = new MeshDefinition();\n      PartDefinition partdefinition = meshdefinition.getRoot();\n      partdefinition.addOrReplaceChild(\"base\", CubeListBuilder.create().texOffs(0, 0).addBox(0.0F, 0.0F, 0.0F, 10.0F, 12.0F, 10.0F), PartPose.offset(-5.0F, 24.0F, -5.0F));\n      CubeListBuilder cubelistbuilder = CubeListBuilder.create().texOffs(40, 0).addBox(0.0F, 0.0F, 0.0F, 4.0F, 14.0F, 8.0F);\n      partdefinition.addOrReplaceChild(\"upper_jaw\", cubelistbuilder, PartPose.offset(1.5F, 24.0F, -4.0F));\n      partdefinition.addOrReplaceChild(\"lower_jaw\", cubelistbuilder, PartPose.offsetAndRotation(-1.5F, 24.0F, 4.0F, 0.0F, (float)Math.PI, 0.0F));\n      return LayerDefinition.create(meshdefinition, 64, 32);\n   }\n\n   public void setupAnim(T p_102632_, float p_102633_, float p_102634_, float p_102635_, float p_102636_, float p_102637_) {\n      float f = p_102633_ * 2.0F;\n      if (f > 1.0F) {\n         f = 1.0F;\n      }\n\n      f = 1.0F - f * f * f;\n      this.upperJaw.zRot = (float)Math.PI - f * 0.35F * (float)Math.PI;\n      this.lowerJaw.zRot = (float)Math.PI + f * 0.35F * (float)Math.PI;\n      float f1 = (p_102633_ + Mth.sin(p_102633_ * 2.7F)) * 0.6F * 12.0F;\n      this.upperJaw.y = 24.0F - f1;\n      this.lowerJaw.y = this.upperJaw.y;\n      this.base.y = this.upperJaw.y;\n   }\n\n   public ModelPart root() {\n      return this.root;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "reading_coverage": {
+    "files": 3,
+    "ranges": 3,
+    "whole_files": 3,
+    "unique_selected_lines": 256,
+    "coverage_is_not_semantic_credit": true
+  },
+  "comparison": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-156-native-evoker-fangs-complete-owner-comparison-SUPPORT0-20261112.json",
+    "sha256": "bb5da3f0fe1c8b20e01f96d7f429b5ffcf78cca54feebcb8ad0de8eb9ff3b70e",
+    "bytes": 27170
+  },
+  "whole_lifecycle_findings": [
+    {
+      "source": "EvokerFangs.java:15..74",
+      "finding": "Warmup and ownerUUID are saved, but lifeTicks defaults22 and sentSpikeEvent/clientSideAttackStarted defaultfalse are not saved here. setOwner writes reference and UUID together; getOwner lazily resolves UUID only on ServerLevel and caches a LivingEntity. Missing Owner on read does not clear an existing owner/UUID on a reused object; cached owner liveness is not revalidated here."
+    },
+    {
+      "source": "EvokerFangs.java:76..108",
+      "finding": "Server predecrements signed warmup on every tick, enters the active branch only below0, and queries inflated0.2 horizontal bounding box LivingEntities only at exactly-8. A newly constructed warmup0 fangs reaches damage on its eighth entity tick. Then event4 is broadcast only if sentSpikeEvent false, then lifeTicks decrements and discards below0; initial22 allows23 active negative-warmup ticks, not23 total ticks independent of initial warmup."
+    },
+    {
+      "source": "EvokerFangs.java:93..107",
+      "finding": "Saved warmup-7 reaches damage at the next tick; a fresh entity loaded with saved-8 predecrements to-9 and never catches that exact damage point absent external mutation. Because sentSpikeEvent resets after load, a load entering-8 can process damage before its first renewed event4. No one-time damage receipt or restart catch-up exists in this class."
+    },
+    {
+      "source": "EvokerFangs.java:112..126",
+      "finding": "Per target requires alive, !isInvulnerable() and target!=resolvedowner. A null owner calls magic6; resolvedowner rejects owner.isAlliedTo(target), then calls indirectMagic(this,owner)6. This is one-directional ally checking. Both hurt return values are ignored; passing this local prefilter and reaching the call does not prove accepted damage or positive health change."
+    },
+    {
+      "source": "EvokerFangs.java:128..145",
+      "finding": "Client event4 sets attackStarted true and requests local attack sound unless silent; it carries no target identity, immunity reason or result. It does not reset lifeTicks on repeated events. Progress returns0 before start, otherwise derives from lifeTicks-2 and partial tick, clamping1 once that integer is<=0. No damage-success signal feeds this clock."
+    },
+    {
+      "source": "EvokerFangs.java:78..92",
+      "finding": "Only started client decrements its own lifeTicks and emits12 CRIT particles exactly when that local value is14. The initial22 clock nominally reaches that point after8 client ticks, but packet arrival and client scheduling are not a synchronized server damage acknowledgement. A late/repeated event does not replay a fresh lifeTicks22 particle sequence."
+    },
+    {
+      "source": "EvokerFangsRenderer.java:25..44",
+      "finding": "The render function skips its body when progress==0. Otherwise f1 starts2, shrinks by(1-progress)/0.1 after progress>0.9, applies yaw/scale/translation and passes progress to model.setupAnim. It renders the named texture with NO_OVERLAY and invokes super only inside that branch. These are local presentation transforms, not target qualification or damage outcome."
+    },
+    {
+      "source": "EvokerFangsModel.java:24..59",
+      "finding": "The whole model has base/upper_jaw/lower_jaw. setupAnim uses min(2*progress,1), cubed complement for opposing jaw z rotations, and (progress+sin(progress*2.7))*0.6*12 for shared vertical movement. The setup method reads no target/health/hurt result. Source dimensions/texture64x32 and math provide interface context only; no new model/texture or measured pixels are claimed."
+    }
+  ],
+  "application_to_Dynasty": [
+    "For future authoritative Boss refusal feedback, use the actual refused control or damage decision with an identified target/reason. A native fangs attack-start cue, local CRIT effect or jaw animation cannot substitute for that result.",
+    "Keep persisted phase/owner semantics and restart behavior distinct from client presentation. Any future fix must preserve native ownership/allies and define missed-phase or settlement receipt policy explicitly rather than inferring it from sound.",
+    "Original UI work is not implemented by research: preserve main background, revise only requested main buttons, consider world options, and remove unhelpful spawn-egg/basic tutorials after the applicable gates and authorized implementation scope are met."
+  ],
+  "limits": [
+    "New actual source reading is exactly these three whole files256 lines; old353 complete four business fields and both migration non-evidence business objects were read, but their old broader raw chains were not newly reread.",
+    "Generic entity-event transport was read in earlier151 work only and remains unchanged context; it is not newly counted or independently verified by this receipt. Delivery, tracker initial state, scheduling and actual user pixels/audio/MP effects are unverified.",
+    "No current native hurt listener, immunity hook, maximum-health interaction, owner dimension transfer/reuse exploit, or crash-atomic damage/resource acquisition proof is claimed. Forge mapped local ZIP identity is not new authenticated Git provenance.",
+    "No Java/Gradle/game/script/import/help/test run, production UI/assets/model/UV/building/sharedJar/save/session/active/pending/ownership edits, task deletion, grants, markers, append plan or executor activity. Consumed151/152/153 and all old once authorities stay permanently consumed."
+  ],
+  "protected_after": {
+    "formal_program": 521,
+    "groups": 249,
+    "gap": 479,
+    "gate": false,
+    "NBT_gate_satisfied": false,
+    "ecology_context_reported_by_Main": 57,
+    "production_changes": false,
+    "master_session_active_pending_ownership_changes": false,
+    "task_deletions": 0,
+    "original_UI_implemented": false,
+    "all_tasks_complete": false,
+    "hours_claimed": false
+  }
+}

@@ -1,0 +1,515 @@
+{
+  "created_utc": "2026-11-11T20:36:10.118088+00:00",
+  "batch": 160,
+  "status": "ACTUAL_SOURCE_RESEARCH_COMPLETE_HOLD",
+  "decision": "HOLD",
+  "author_maximum_prospective_whole_credit": 1,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_candidate_id": null,
+  "semantic_family": "native-end-crystal-damage-admission-participant-qualified-ritual-abort-and-asymmetric-protection-cleanup",
+  "source_identity": {
+    "kind": "fixed local mapped Forge1.20.1-47.4.10 source archive entry exact bytes",
+    "archive": {
+      "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "new_remote_Git_authentication_claimed": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/boss/enderdragon/EndCrystal.java",
+        "sha256": "78f3649e3a36d42b754e234a848a35523428bbf5f24034f08a099d2fa1a3b197",
+        "bytes": 5041
+      },
+      "archive_entry": "net/minecraft/world/entity/boss/enderdragon/EndCrystal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 141,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            141
+          ],
+          "bytes": 5041,
+          "sha256": "78f3649e3a36d42b754e234a848a35523428bbf5f24034f08a099d2fa1a3b197",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.boss.enderdragon;\n\nimport java.util.Optional;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.NbtUtils;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.tags.DamageTypeTags;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.ExplosionDamageCalculator;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.BaseFireBlock;\nimport net.minecraft.world.level.dimension.end.EndDragonFight;\n\npublic class EndCrystal extends Entity {\n   private static final EntityDataAccessor<Optional<BlockPos>> DATA_BEAM_TARGET = SynchedEntityData.defineId(EndCrystal.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);\n   private static final EntityDataAccessor<Boolean> DATA_SHOW_BOTTOM = SynchedEntityData.defineId(EndCrystal.class, EntityDataSerializers.BOOLEAN);\n   public int time;\n\n   public EndCrystal(EntityType<? extends EndCrystal> p_31037_, Level p_31038_) {\n      super(p_31037_, p_31038_);\n      this.blocksBuilding = true;\n      this.time = this.random.nextInt(100000);\n   }\n\n   public EndCrystal(Level p_31040_, double p_31041_, double p_31042_, double p_31043_) {\n      this(EntityType.END_CRYSTAL, p_31040_);\n      this.setPos(p_31041_, p_31042_, p_31043_);\n   }\n\n   protected Entity.MovementEmission getMovementEmission() {\n      return Entity.MovementEmission.NONE;\n   }\n\n   protected void defineSynchedData() {\n      this.getEntityData().define(DATA_BEAM_TARGET, Optional.empty());\n      this.getEntityData().define(DATA_SHOW_BOTTOM, true);\n   }\n\n   public void tick() {\n      ++this.time;\n      if (this.level() instanceof ServerLevel) {\n         BlockPos blockpos = this.blockPosition();\n         if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(blockpos).isAir()) {\n            this.level().setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level(), blockpos));\n         }\n      }\n\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_31062_) {\n      if (this.getBeamTarget() != null) {\n         p_31062_.put(\"BeamTarget\", NbtUtils.writeBlockPos(this.getBeamTarget()));\n      }\n\n      p_31062_.putBoolean(\"ShowBottom\", this.showsBottom());\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_31055_) {\n      if (p_31055_.contains(\"BeamTarget\", 10)) {\n         this.setBeamTarget(NbtUtils.readBlockPos(p_31055_.getCompound(\"BeamTarget\")));\n      }\n\n      if (p_31055_.contains(\"ShowBottom\", 1)) {\n         this.setShowBottom(p_31055_.getBoolean(\"ShowBottom\"));\n      }\n\n   }\n\n   public boolean isPickable() {\n      return true;\n   }\n\n   public boolean hurt(DamageSource p_31050_, float p_31051_) {\n      if (this.isInvulnerableTo(p_31050_)) {\n         return false;\n      } else if (p_31050_.getEntity() instanceof EnderDragon) {\n         return false;\n      } else {\n         if (!this.isRemoved() && !this.level().isClientSide) {\n            this.remove(Entity.RemovalReason.KILLED);\n            if (!p_31050_.is(DamageTypeTags.IS_EXPLOSION)) {\n               DamageSource damagesource = p_31050_.getEntity() != null ? this.damageSources().explosion(this, p_31050_.getEntity()) : null;\n               this.level().explode(this, damagesource, (ExplosionDamageCalculator)null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);\n            }\n\n            this.onDestroyedBy(p_31050_);\n         }\n\n         return true;\n      }\n   }\n\n   public void kill() {\n      this.onDestroyedBy(this.damageSources().generic());\n      super.kill();\n   }\n\n   private void onDestroyedBy(DamageSource p_31048_) {\n      if (this.level() instanceof ServerLevel) {\n         EndDragonFight enddragonfight = ((ServerLevel)this.level()).getDragonFight();\n         if (enddragonfight != null) {\n            enddragonfight.onCrystalDestroyed(this, p_31048_);\n         }\n      }\n\n   }\n\n   public void setBeamTarget(@Nullable BlockPos p_31053_) {\n      this.getEntityData().set(DATA_BEAM_TARGET, Optional.ofNullable(p_31053_));\n   }\n\n   @Nullable\n   public BlockPos getBeamTarget() {\n      return this.getEntityData().get(DATA_BEAM_TARGET).orElse((BlockPos)null);\n   }\n\n   public void setShowBottom(boolean p_31057_) {\n      this.getEntityData().set(DATA_SHOW_BOTTOM, p_31057_);\n   }\n\n   public boolean showsBottom() {\n      return this.getEntityData().get(DATA_SHOW_BOTTOM);\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_31046_) {\n      return super.shouldRenderAtSqrDistance(p_31046_) || this.getBeamTarget() != null;\n   }\n\n   public ItemStack getPickResult() {\n      return new ItemStack(Items.END_CRYSTAL);\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/dimension/end/EndDragonFight.java",
+        "sha256": "09105ce7d49eddf7d182c06260e8849e811ff317447b0ab07f6551949a24e858",
+        "bytes": 22908
+      },
+      "archive_entry": "net/minecraft/world/level/dimension/end/EndDragonFight.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 537,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            537
+          ],
+          "bytes": 22908,
+          "sha256": "09105ce7d49eddf7d182c06260e8849e811ff317447b0ab07f6551949a24e858",
+          "raw_utf8_keepends": "package net.minecraft.world.level.dimension.end;\n\nimport com.google.common.annotations.VisibleForTesting;\nimport com.google.common.collect.ContiguousSet;\nimport com.google.common.collect.DiscreteDomain;\nimport com.google.common.collect.Lists;\nimport com.google.common.collect.Range;\nimport com.google.common.collect.Sets;\nimport com.mojang.logging.LogUtils;\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport it.unimi.dsi.fastutil.objects.ObjectArrayList;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.UUID;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.Util;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.UUIDUtil;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.data.worldgen.features.EndFeatures;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.server.level.FullChunkStatus;\nimport net.minecraft.server.level.ServerBossEvent;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.server.level.TicketType;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.util.Unit;\nimport net.minecraft.world.BossEvent;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.boss.enderdragon.EndCrystal;\nimport net.minecraft.world.entity.boss.enderdragon.EnderDragon;\nimport net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;\nimport net.minecraft.world.level.ChunkPos;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.entity.TheEndPortalBlockEntity;\nimport net.minecraft.world.level.block.state.pattern.BlockInWorld;\nimport net.minecraft.world.level.block.state.pattern.BlockPattern;\nimport net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;\nimport net.minecraft.world.level.block.state.predicate.BlockPredicate;\nimport net.minecraft.world.level.chunk.ChunkAccess;\nimport net.minecraft.world.level.chunk.ChunkStatus;\nimport net.minecraft.world.level.chunk.LevelChunk;\nimport net.minecraft.world.level.levelgen.Heightmap;\nimport net.minecraft.world.level.levelgen.feature.EndPodiumFeature;\nimport net.minecraft.world.level.levelgen.feature.SpikeFeature;\nimport net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;\nimport net.minecraft.world.phys.AABB;\nimport org.slf4j.Logger;\n\npublic class EndDragonFight {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final int MAX_TICKS_BEFORE_DRAGON_RESPAWN = 1200;\n   private static final int TIME_BETWEEN_CRYSTAL_SCANS = 100;\n   public static final int TIME_BETWEEN_PLAYER_SCANS = 20;\n   private static final int ARENA_SIZE_CHUNKS = 8;\n   public static final int ARENA_TICKET_LEVEL = 9;\n   private static final int GATEWAY_COUNT = 20;\n   private static final int GATEWAY_DISTANCE = 96;\n   public static final int DRAGON_SPAWN_Y = 128;\n   private final Predicate<Entity> validPlayer;\n   private final ServerBossEvent dragonEvent = (ServerBossEvent)(new ServerBossEvent(Component.translatable(\"entity.minecraft.ender_dragon\"), BossEvent.BossBarColor.PINK, BossEvent.BossBarOverlay.PROGRESS)).setPlayBossMusic(true).setCreateWorldFog(true);\n   private final ServerLevel level;\n   private final BlockPos origin;\n   private final ObjectArrayList<Integer> gateways = new ObjectArrayList<>();\n   private final BlockPattern exitPortalPattern;\n   private int ticksSinceDragonSeen;\n   private int crystalsAlive;\n   private int ticksSinceCrystalsScanned;\n   private int ticksSinceLastPlayerScan = 21;\n   private boolean dragonKilled;\n   private boolean previouslyKilled;\n   private boolean skipArenaLoadedCheck = false;\n   @Nullable\n   private UUID dragonUUID;\n   private boolean needsStateScanning = true;\n   @Nullable\n   private BlockPos portalLocation;\n   @Nullable\n   private DragonRespawnAnimation respawnStage;\n   private int respawnTime;\n   @Nullable\n   private List<EndCrystal> respawnCrystals;\n\n   public EndDragonFight(ServerLevel p_289759_, long p_289805_, EndDragonFight.Data p_289800_) {\n      this(p_289759_, p_289805_, p_289800_, BlockPos.ZERO);\n   }\n\n   public EndDragonFight(ServerLevel p_289771_, long p_289793_, EndDragonFight.Data p_289768_, BlockPos p_289794_) {\n      this.level = p_289771_;\n      this.origin = p_289794_;\n      this.validPlayer = EntitySelector.ENTITY_STILL_ALIVE.and(EntitySelector.withinDistance((double)p_289794_.getX(), (double)(128 + p_289794_.getY()), (double)p_289794_.getZ(), 192.0D));\n      this.needsStateScanning = p_289768_.needsStateScanning;\n      this.dragonUUID = p_289768_.dragonUUID.orElse((UUID)null);\n      this.dragonKilled = p_289768_.dragonKilled;\n      this.previouslyKilled = p_289768_.previouslyKilled;\n      if (p_289768_.isRespawning) {\n         this.respawnStage = DragonRespawnAnimation.START;\n      }\n\n      this.portalLocation = p_289768_.exitPortalLocation.orElse((BlockPos)null);\n      this.gateways.addAll(p_289768_.gateways.orElseGet(() -> {\n         ObjectArrayList<Integer> objectarraylist = new ObjectArrayList<>(ContiguousSet.create(Range.closedOpen(0, 20), DiscreteDomain.integers()));\n         Util.shuffle(objectarraylist, RandomSource.create(p_289793_));\n         return objectarraylist;\n      }));\n      this.exitPortalPattern = BlockPatternBuilder.start().aisle(\"       \", \"       \", \"       \", \"   #   \", \"       \", \"       \", \"       \").aisle(\"       \", \"       \", \"       \", \"   #   \", \"       \", \"       \", \"       \").aisle(\"       \", \"       \", \"       \", \"   #   \", \"       \", \"       \", \"       \").aisle(\"  ###  \", \" #   # \", \"#     #\", \"#  #  #\", \"#     #\", \" #   # \", \"  ###  \").aisle(\"       \", \"  ###  \", \" ##### \", \" ##### \", \" ##### \", \"  ###  \", \"       \").where('#', BlockInWorld.hasState(BlockPredicate.forBlock(Blocks.BEDROCK))).build();\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForTesting\n   public void skipArenaLoadedCheck() {\n      this.skipArenaLoadedCheck = true;\n   }\n\n   public EndDragonFight.Data saveData() {\n      return new EndDragonFight.Data(this.needsStateScanning, this.dragonKilled, this.previouslyKilled, false, Optional.ofNullable(this.dragonUUID), Optional.ofNullable(this.portalLocation), Optional.of(this.gateways));\n   }\n\n   public void tick() {\n      this.dragonEvent.setVisible(!this.dragonKilled);\n      if (++this.ticksSinceLastPlayerScan >= 20) {\n         this.updatePlayers();\n         this.ticksSinceLastPlayerScan = 0;\n      }\n\n      if (!this.dragonEvent.getPlayers().isEmpty()) {\n         this.level.getChunkSource().addRegionTicket(TicketType.DRAGON, new ChunkPos(0, 0), 9, Unit.INSTANCE);\n         boolean flag = this.isArenaLoaded();\n         if (this.needsStateScanning && flag) {\n            this.scanState();\n            this.needsStateScanning = false;\n         }\n\n         if (this.respawnStage != null) {\n            if (this.respawnCrystals == null && flag) {\n               this.respawnStage = null;\n               this.tryRespawn();\n            }\n\n            this.respawnStage.tick(this.level, this, this.respawnCrystals, this.respawnTime++, this.portalLocation);\n         }\n\n         if (!this.dragonKilled) {\n            if ((this.dragonUUID == null || ++this.ticksSinceDragonSeen >= 1200) && flag) {\n               this.findOrCreateDragon();\n               this.ticksSinceDragonSeen = 0;\n            }\n\n            if (++this.ticksSinceCrystalsScanned >= 100 && flag) {\n               this.updateCrystalCount();\n               this.ticksSinceCrystalsScanned = 0;\n            }\n         }\n      } else {\n         this.level.getChunkSource().removeRegionTicket(TicketType.DRAGON, new ChunkPos(0, 0), 9, Unit.INSTANCE);\n      }\n\n   }\n\n   private void scanState() {\n      LOGGER.info(\"Scanning for legacy world dragon fight...\");\n      boolean flag = this.hasActiveExitPortal();\n      if (flag) {\n         LOGGER.info(\"Found that the dragon has been killed in this world already.\");\n         this.previouslyKilled = true;\n      } else {\n         LOGGER.info(\"Found that the dragon has not yet been killed in this world.\");\n         this.previouslyKilled = false;\n         if (this.findExitPortal() == null) {\n            this.spawnExitPortal(false);\n         }\n      }\n\n      List<? extends EnderDragon> list = this.level.getDragons();\n      if (list.isEmpty()) {\n         this.dragonKilled = true;\n      } else {\n         EnderDragon enderdragon = list.get(0);\n         this.dragonUUID = enderdragon.getUUID();\n         LOGGER.info(\"Found that there's a dragon still alive ({})\", (Object)enderdragon);\n         this.dragonKilled = false;\n         if (!flag) {\n            LOGGER.info(\"But we didn't have a portal, let's remove it.\");\n            enderdragon.discard();\n            this.dragonUUID = null;\n         }\n      }\n\n      if (!this.previouslyKilled && this.dragonKilled) {\n         this.dragonKilled = false;\n      }\n\n   }\n\n   private void findOrCreateDragon() {\n      List<? extends EnderDragon> list = this.level.getDragons();\n      if (list.isEmpty()) {\n         LOGGER.debug(\"Haven't seen the dragon, respawning it\");\n         this.createNewDragon();\n      } else {\n         LOGGER.debug(\"Haven't seen our dragon, but found another one to use.\");\n         this.dragonUUID = list.get(0).getUUID();\n      }\n\n   }\n\n   protected void setRespawnStage(DragonRespawnAnimation p_64088_) {\n      if (this.respawnStage == null) {\n         throw new IllegalStateException(\"Dragon respawn isn't in progress, can't skip ahead in the animation.\");\n      } else {\n         this.respawnTime = 0;\n         if (p_64088_ == DragonRespawnAnimation.END) {\n            this.respawnStage = null;\n            this.dragonKilled = false;\n            EnderDragon enderdragon = this.createNewDragon();\n            if (enderdragon != null) {\n               for(ServerPlayer serverplayer : this.dragonEvent.getPlayers()) {\n                  CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, enderdragon);\n               }\n            }\n         } else {\n            this.respawnStage = p_64088_;\n         }\n\n      }\n   }\n\n   private boolean hasActiveExitPortal() {\n      for(int i = -8; i <= 8; ++i) {\n         for(int j = -8; j <= 8; ++j) {\n            LevelChunk levelchunk = this.level.getChunk(i, j);\n\n            for(BlockEntity blockentity : levelchunk.getBlockEntities().values()) {\n               if (blockentity instanceof TheEndPortalBlockEntity) {\n                  return true;\n               }\n            }\n         }\n      }\n\n      return false;\n   }\n\n   @Nullable\n   private BlockPattern.BlockPatternMatch findExitPortal() {\n      ChunkPos chunkpos = new ChunkPos(this.origin);\n\n      for(int i = -8 + chunkpos.x; i <= 8 + chunkpos.x; ++i) {\n         for(int j = -8 + chunkpos.z; j <= 8 + chunkpos.z; ++j) {\n            LevelChunk levelchunk = this.level.getChunk(i, j);\n\n            for(BlockEntity blockentity : levelchunk.getBlockEntities().values()) {\n               if (blockentity instanceof TheEndPortalBlockEntity) {\n                  BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch = this.exitPortalPattern.find(this.level, blockentity.getBlockPos());\n                  if (blockpattern$blockpatternmatch != null) {\n                     BlockPos blockpos = blockpattern$blockpatternmatch.getBlock(3, 3, 3).getPos();\n                     if (this.portalLocation == null) {\n                        this.portalLocation = blockpos;\n                     }\n\n                     return blockpattern$blockpatternmatch;\n                  }\n               }\n            }\n         }\n      }\n\n      BlockPos blockpos1 = EndPodiumFeature.getLocation(this.origin);\n      int k = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, blockpos1).getY();\n\n      for(int l = k; l >= this.level.getMinBuildHeight(); --l) {\n         BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch1 = this.exitPortalPattern.find(this.level, new BlockPos(blockpos1.getX(), l, blockpos1.getZ()));\n         if (blockpattern$blockpatternmatch1 != null) {\n            if (this.portalLocation == null) {\n               this.portalLocation = blockpattern$blockpatternmatch1.getBlock(3, 3, 3).getPos();\n            }\n\n            return blockpattern$blockpatternmatch1;\n         }\n      }\n\n      return null;\n   }\n\n   private boolean isArenaLoaded() {\n      if (this.skipArenaLoadedCheck) {\n         return true;\n      } else {\n         ChunkPos chunkpos = new ChunkPos(this.origin);\n\n         for(int i = -8 + chunkpos.x; i <= 8 + chunkpos.x; ++i) {\n            for(int j = 8 + chunkpos.z; j <= 8 + chunkpos.z; ++j) {\n               ChunkAccess chunkaccess = this.level.getChunk(i, j, ChunkStatus.FULL, false);\n               if (!(chunkaccess instanceof LevelChunk)) {\n                  return false;\n               }\n\n               FullChunkStatus fullchunkstatus = ((LevelChunk)chunkaccess).getFullStatus();\n               if (!fullchunkstatus.isOrAfter(FullChunkStatus.BLOCK_TICKING)) {\n                  return false;\n               }\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private void updatePlayers() {\n      Set<ServerPlayer> set = Sets.newHashSet();\n\n      for(ServerPlayer serverplayer : this.level.getPlayers(this.validPlayer)) {\n         this.dragonEvent.addPlayer(serverplayer);\n         set.add(serverplayer);\n      }\n\n      Set<ServerPlayer> set1 = Sets.newHashSet(this.dragonEvent.getPlayers());\n      set1.removeAll(set);\n\n      for(ServerPlayer serverplayer1 : set1) {\n         this.dragonEvent.removePlayer(serverplayer1);\n      }\n\n   }\n\n   private void updateCrystalCount() {\n      this.ticksSinceCrystalsScanned = 0;\n      this.crystalsAlive = 0;\n\n      for(SpikeFeature.EndSpike spikefeature$endspike : SpikeFeature.getSpikesForLevel(this.level)) {\n         this.crystalsAlive += this.level.getEntitiesOfClass(EndCrystal.class, spikefeature$endspike.getTopBoundingBox()).size();\n      }\n\n      LOGGER.debug(\"Found {} end crystals still alive\", (int)this.crystalsAlive);\n   }\n\n   public void setDragonKilled(EnderDragon p_64086_) {\n      if (p_64086_.getUUID().equals(this.dragonUUID)) {\n         this.dragonEvent.setProgress(0.0F);\n         this.dragonEvent.setVisible(false);\n         this.spawnExitPortal(true);\n         this.spawnNewGateway();\n         if (!this.previouslyKilled) {\n            this.level.setBlockAndUpdate(this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)), Blocks.DRAGON_EGG.defaultBlockState());\n         }\n\n         this.previouslyKilled = true;\n         this.dragonKilled = true;\n      }\n\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForTesting\n   public void removeAllGateways() {\n      this.gateways.clear();\n   }\n\n   private void spawnNewGateway() {\n      if (!this.gateways.isEmpty()) {\n         int i = this.gateways.remove(this.gateways.size() - 1);\n         int j = Mth.floor(96.0D * Math.cos(2.0D * (-Math.PI + 0.15707963267948966D * (double)i)));\n         int k = Mth.floor(96.0D * Math.sin(2.0D * (-Math.PI + 0.15707963267948966D * (double)i)));\n         this.spawnNewGateway(new BlockPos(j, 75, k));\n      }\n   }\n\n   private void spawnNewGateway(BlockPos p_64090_) {\n      this.level.levelEvent(3000, p_64090_, 0);\n      this.level.registryAccess().registry(Registries.CONFIGURED_FEATURE).flatMap((p_258993_) -> {\n         return p_258993_.getHolder(EndFeatures.END_GATEWAY_DELAYED);\n      }).ifPresent((p_256486_) -> {\n         p_256486_.value().place(this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), p_64090_);\n      });\n   }\n\n   private void spawnExitPortal(boolean p_64094_) {\n      EndPodiumFeature endpodiumfeature = new EndPodiumFeature(p_64094_);\n      if (this.portalLocation == null) {\n         for(this.portalLocation = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.origin)).below(); this.level.getBlockState(this.portalLocation).is(Blocks.BEDROCK) && this.portalLocation.getY() > this.level.getSeaLevel(); this.portalLocation = this.portalLocation.below()) {\n         }\n      }\n\n      endpodiumfeature.place(FeatureConfiguration.NONE, this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.portalLocation);\n   }\n\n   @Nullable\n   private EnderDragon createNewDragon() {\n      this.level.getChunkAt(new BlockPos(this.origin.getX(), 128 + this.origin.getY(), this.origin.getZ()));\n      EnderDragon enderdragon = EntityType.ENDER_DRAGON.create(this.level);\n      if (enderdragon != null) {\n         enderdragon.setDragonFight(this);\n         enderdragon.setFightOrigin(this.origin);\n         enderdragon.getPhaseManager().setPhase(EnderDragonPhase.HOLDING_PATTERN);\n         enderdragon.moveTo((double)this.origin.getX(), (double)(128 + this.origin.getY()), (double)this.origin.getZ(), this.level.random.nextFloat() * 360.0F, 0.0F);\n         this.level.addFreshEntity(enderdragon);\n         this.dragonUUID = enderdragon.getUUID();\n      }\n\n      return enderdragon;\n   }\n\n   public void updateDragon(EnderDragon p_64097_) {\n      if (p_64097_.getUUID().equals(this.dragonUUID)) {\n         this.dragonEvent.setProgress(p_64097_.getHealth() / p_64097_.getMaxHealth());\n         this.ticksSinceDragonSeen = 0;\n         if (p_64097_.hasCustomName()) {\n            this.dragonEvent.setName(p_64097_.getDisplayName());\n         }\n      }\n\n   }\n\n   public int getCrystalsAlive() {\n      return this.crystalsAlive;\n   }\n\n   public void onCrystalDestroyed(EndCrystal p_64083_, DamageSource p_64084_) {\n      if (this.respawnStage != null && this.respawnCrystals.contains(p_64083_)) {\n         LOGGER.debug(\"Aborting respawn sequence\");\n         this.respawnStage = null;\n         this.respawnTime = 0;\n         this.resetSpikeCrystals();\n         this.spawnExitPortal(true);\n      } else {\n         this.updateCrystalCount();\n         Entity entity = this.level.getEntity(this.dragonUUID);\n         if (entity instanceof EnderDragon) {\n            ((EnderDragon)entity).onCrystalDestroyed(p_64083_, p_64083_.blockPosition(), p_64084_);\n         }\n      }\n\n   }\n\n   public boolean hasPreviouslyKilledDragon() {\n      return this.previouslyKilled;\n   }\n\n   public void tryRespawn() {\n      if (this.dragonKilled && this.respawnStage == null) {\n         BlockPos blockpos = this.portalLocation;\n         if (blockpos == null) {\n            LOGGER.debug(\"Tried to respawn, but need to find the portal first.\");\n            BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch = this.findExitPortal();\n            if (blockpattern$blockpatternmatch == null) {\n               LOGGER.debug(\"Couldn't find a portal, so we made one.\");\n               this.spawnExitPortal(true);\n            } else {\n               LOGGER.debug(\"Found the exit portal & saved its location for next time.\");\n            }\n\n            blockpos = this.portalLocation;\n         }\n\n         List<EndCrystal> list1 = Lists.newArrayList();\n         BlockPos blockpos1 = blockpos.above(1);\n\n         for(Direction direction : Direction.Plane.HORIZONTAL) {\n            List<EndCrystal> list = this.level.getEntitiesOfClass(EndCrystal.class, new AABB(blockpos1.relative(direction, 2)));\n            if (list.isEmpty()) {\n               return;\n            }\n\n            list1.addAll(list);\n         }\n\n         LOGGER.debug(\"Found all crystals, respawning dragon.\");\n         this.respawnDragon(list1);\n      }\n\n   }\n\n   private void respawnDragon(List<EndCrystal> p_64092_) {\n      if (this.dragonKilled && this.respawnStage == null) {\n         for(BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch = this.findExitPortal(); blockpattern$blockpatternmatch != null; blockpattern$blockpatternmatch = this.findExitPortal()) {\n            for(int i = 0; i < this.exitPortalPattern.getWidth(); ++i) {\n               for(int j = 0; j < this.exitPortalPattern.getHeight(); ++j) {\n                  for(int k = 0; k < this.exitPortalPattern.getDepth(); ++k) {\n                     BlockInWorld blockinworld = blockpattern$blockpatternmatch.getBlock(i, j, k);\n                     if (blockinworld.getState().is(Blocks.BEDROCK) || blockinworld.getState().is(Blocks.END_PORTAL)) {\n                        this.level.setBlockAndUpdate(blockinworld.getPos(), Blocks.END_STONE.defaultBlockState());\n                     }\n                  }\n               }\n            }\n         }\n\n         this.respawnStage = DragonRespawnAnimation.START;\n         this.respawnTime = 0;\n         this.spawnExitPortal(false);\n         this.respawnCrystals = p_64092_;\n      }\n\n   }\n\n   public void resetSpikeCrystals() {\n      for(SpikeFeature.EndSpike spikefeature$endspike : SpikeFeature.getSpikesForLevel(this.level)) {\n         for(EndCrystal endcrystal : this.level.getEntitiesOfClass(EndCrystal.class, spikefeature$endspike.getTopBoundingBox())) {\n            endcrystal.setInvulnerable(false);\n            endcrystal.setBeamTarget((BlockPos)null);\n         }\n      }\n   }\n\n   public void addPlayer(ServerPlayer player) {\n      this.dragonEvent.addPlayer(player);\n   }\n\n   public void removePlayer(ServerPlayer player) {\n      this.dragonEvent.removePlayer(player);\n   }\n\n   @Nullable\n   public UUID getDragonUUID() {\n      return this.dragonUUID;\n   }\n\n   public static record Data(boolean needsStateScanning, boolean dragonKilled, boolean previouslyKilled, boolean isRespawning, Optional<UUID> dragonUUID, Optional<BlockPos> exitPortalLocation, Optional<List<Integer>> gateways) {\n      public static final Codec<EndDragonFight.Data> CODEC = RecordCodecBuilder.create((p_289803_) -> {\n         return p_289803_.group(Codec.BOOL.fieldOf(\"NeedsStateScanning\").orElse(true).forGetter(EndDragonFight.Data::needsStateScanning), Codec.BOOL.fieldOf(\"DragonKilled\").orElse(false).forGetter(EndDragonFight.Data::dragonKilled), Codec.BOOL.fieldOf(\"PreviouslyKilled\").orElse(false).forGetter(EndDragonFight.Data::previouslyKilled), Codec.BOOL.optionalFieldOf(\"IsRespawning\", Boolean.valueOf(false)).forGetter(EndDragonFight.Data::isRespawning), UUIDUtil.CODEC.optionalFieldOf(\"Dragon\").forGetter(EndDragonFight.Data::dragonUUID), BlockPos.CODEC.optionalFieldOf(\"ExitPortalLocation\").forGetter(EndDragonFight.Data::exitPortalLocation), Codec.list(Codec.INT).optionalFieldOf(\"Gateways\").forGetter(EndDragonFight.Data::gateways)).apply(p_289803_, EndDragonFight.Data::new);\n      });\n      public static final EndDragonFight.Data DEFAULT = new EndDragonFight.Data(true, false, false, false, Optional.empty(), Optional.empty(), Optional.empty());\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/dimension/end/DragonRespawnAnimation.java",
+        "sha256": "81b014cb90429d39763d3fdeb1bd0f63426e32048c8c292fb5cc817f993d93e4",
+        "bytes": 4843
+      },
+      "archive_entry": "net/minecraft/world/level/dimension/end/DragonRespawnAnimation.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 100,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            100
+          ],
+          "bytes": 4843,
+          "sha256": "81b014cb90429d39763d3fdeb1bd0f63426e32048c8c292fb5cc817f993d93e4",
+          "raw_utf8_keepends": "package net.minecraft.world.level.dimension.end;\n\nimport com.google.common.collect.ImmutableList;\nimport java.util.List;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.boss.enderdragon.EndCrystal;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.levelgen.feature.Feature;\nimport net.minecraft.world.level.levelgen.feature.SpikeFeature;\nimport net.minecraft.world.level.levelgen.feature.configurations.SpikeConfiguration;\n\npublic enum DragonRespawnAnimation {\n   START {\n      public void tick(ServerLevel p_64017_, EndDragonFight p_64018_, List<EndCrystal> p_64019_, int p_64020_, BlockPos p_64021_) {\n         BlockPos blockpos = new BlockPos(0, 128, 0);\n\n         for(EndCrystal endcrystal : p_64019_) {\n            endcrystal.setBeamTarget(blockpos);\n         }\n\n         p_64018_.setRespawnStage(PREPARING_TO_SUMMON_PILLARS);\n      }\n   },\n   PREPARING_TO_SUMMON_PILLARS {\n      public void tick(ServerLevel p_64026_, EndDragonFight p_64027_, List<EndCrystal> p_64028_, int p_64029_, BlockPos p_64030_) {\n         if (p_64029_ < 100) {\n            if (p_64029_ == 0 || p_64029_ == 50 || p_64029_ == 51 || p_64029_ == 52 || p_64029_ >= 95) {\n               p_64026_.levelEvent(3001, new BlockPos(0, 128, 0), 0);\n            }\n         } else {\n            p_64027_.setRespawnStage(SUMMONING_PILLARS);\n         }\n\n      }\n   },\n   SUMMONING_PILLARS {\n      public void tick(ServerLevel p_64035_, EndDragonFight p_64036_, List<EndCrystal> p_64037_, int p_64038_, BlockPos p_64039_) {\n         int i = 40;\n         boolean flag = p_64038_ % 40 == 0;\n         boolean flag1 = p_64038_ % 40 == 39;\n         if (flag || flag1) {\n            List<SpikeFeature.EndSpike> list = SpikeFeature.getSpikesForLevel(p_64035_);\n            int j = p_64038_ / 40;\n            if (j < list.size()) {\n               SpikeFeature.EndSpike spikefeature$endspike = list.get(j);\n               if (flag) {\n                  for(EndCrystal endcrystal : p_64037_) {\n                     endcrystal.setBeamTarget(new BlockPos(spikefeature$endspike.getCenterX(), spikefeature$endspike.getHeight() + 1, spikefeature$endspike.getCenterZ()));\n                  }\n               } else {\n                  int k = 10;\n\n                  for(BlockPos blockpos : BlockPos.betweenClosed(new BlockPos(spikefeature$endspike.getCenterX() - 10, spikefeature$endspike.getHeight() - 10, spikefeature$endspike.getCenterZ() - 10), new BlockPos(spikefeature$endspike.getCenterX() + 10, spikefeature$endspike.getHeight() + 10, spikefeature$endspike.getCenterZ() + 10))) {\n                     p_64035_.removeBlock(blockpos, false);\n                  }\n\n                  p_64035_.explode((Entity)null, (double)((float)spikefeature$endspike.getCenterX() + 0.5F), (double)spikefeature$endspike.getHeight(), (double)((float)spikefeature$endspike.getCenterZ() + 0.5F), 5.0F, Level.ExplosionInteraction.BLOCK);\n                  SpikeConfiguration spikeconfiguration = new SpikeConfiguration(true, ImmutableList.of(spikefeature$endspike), new BlockPos(0, 128, 0));\n                  Feature.END_SPIKE.place(spikeconfiguration, p_64035_, p_64035_.getChunkSource().getGenerator(), RandomSource.create(), new BlockPos(spikefeature$endspike.getCenterX(), 45, spikefeature$endspike.getCenterZ()));\n               }\n            } else if (flag) {\n               p_64036_.setRespawnStage(SUMMONING_DRAGON);\n            }\n         }\n\n      }\n   },\n   SUMMONING_DRAGON {\n      public void tick(ServerLevel p_64044_, EndDragonFight p_64045_, List<EndCrystal> p_64046_, int p_64047_, BlockPos p_64048_) {\n         if (p_64047_ >= 100) {\n            p_64045_.setRespawnStage(END);\n            p_64045_.resetSpikeCrystals();\n\n            for(EndCrystal endcrystal : p_64046_) {\n               endcrystal.setBeamTarget((BlockPos)null);\n               p_64044_.explode(endcrystal, endcrystal.getX(), endcrystal.getY(), endcrystal.getZ(), 6.0F, Level.ExplosionInteraction.NONE);\n               endcrystal.discard();\n            }\n         } else if (p_64047_ >= 80) {\n            p_64044_.levelEvent(3001, new BlockPos(0, 128, 0), 0);\n         } else if (p_64047_ == 0) {\n            for(EndCrystal endcrystal1 : p_64046_) {\n               endcrystal1.setBeamTarget(new BlockPos(0, 128, 0));\n            }\n         } else if (p_64047_ < 5) {\n            p_64044_.levelEvent(3001, new BlockPos(0, 128, 0), 0);\n         }\n\n      }\n   },\n   END {\n      public void tick(ServerLevel p_64053_, EndDragonFight p_64054_, List<EndCrystal> p_64055_, int p_64056_, BlockPos p_64057_) {\n      }\n   };\n\n   public abstract void tick(ServerLevel p_64005_, EndDragonFight p_64006_, List<EndCrystal> p_64007_, int p_64008_, BlockPos p_64009_);\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/EndCrystalItem.java",
+        "sha256": "e7758c221f437eae426f3ccf7385729ec8c7cf1a88bba22d2c6d57b1fe47d349",
+        "bytes": 2444
+      },
+      "archive_entry": "net/minecraft/world/item/EndCrystalItem.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 61,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            61
+          ],
+          "bytes": 2444,
+          "sha256": "e7758c221f437eae426f3ccf7385729ec8c7cf1a88bba22d2c6d57b1fe47d349",
+          "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport java.util.List;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.boss.enderdragon.EndCrystal;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.dimension.end.EndDragonFight;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.AABB;\n\npublic class EndCrystalItem extends Item {\n   public EndCrystalItem(Item.Properties p_41174_) {\n      super(p_41174_);\n   }\n\n   public InteractionResult useOn(UseOnContext p_41176_) {\n      Level level = p_41176_.getLevel();\n      BlockPos blockpos = p_41176_.getClickedPos();\n      BlockState blockstate = level.getBlockState(blockpos);\n      if (!blockstate.is(Blocks.OBSIDIAN) && !blockstate.is(Blocks.BEDROCK)) {\n         return InteractionResult.FAIL;\n      } else {\n         BlockPos blockpos1 = blockpos.above();\n         if (!level.isEmptyBlock(blockpos1)) {\n            return InteractionResult.FAIL;\n         } else {\n            double d0 = (double)blockpos1.getX();\n            double d1 = (double)blockpos1.getY();\n            double d2 = (double)blockpos1.getZ();\n            List<Entity> list = level.getEntities((Entity)null, new AABB(d0, d1, d2, d0 + 1.0D, d1 + 2.0D, d2 + 1.0D));\n            if (!list.isEmpty()) {\n               return InteractionResult.FAIL;\n            } else {\n               if (level instanceof ServerLevel) {\n                  EndCrystal endcrystal = new EndCrystal(level, d0 + 0.5D, d1, d2 + 0.5D);\n                  endcrystal.setShowBottom(false);\n                  level.addFreshEntity(endcrystal);\n                  level.gameEvent(p_41176_.getPlayer(), GameEvent.ENTITY_PLACE, blockpos1);\n                  EndDragonFight enddragonfight = ((ServerLevel)level).getDragonFight();\n                  if (enddragonfight != null) {\n                     enddragonfight.tryRespawn();\n                  }\n               }\n\n               p_41176_.getItemInHand().shrink(1);\n               return InteractionResult.sidedSuccess(level.isClientSide);\n            }\n         }\n      }\n   }\n\n   public boolean isFoil(ItemStack p_41178_) {\n      return true;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/levelgen/feature/SpikeFeature.java",
+        "sha256": "af87ad0b30520d5f7c13797e6c0c61beeb5ccdc423cb614fd4d5329c396a8c7e",
+        "bytes": 8471
+      },
+      "archive_entry": "net/minecraft/world/level/levelgen/feature/SpikeFeature.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 185,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            185
+          ],
+          "bytes": 8471,
+          "sha256": "af87ad0b30520d5f7c13797e6c0c61beeb5ccdc423cb614fd4d5329c396a8c7e",
+          "raw_utf8_keepends": "package net.minecraft.world.level.levelgen.feature;\n\nimport com.google.common.cache.CacheBuilder;\nimport com.google.common.cache.CacheLoader;\nimport com.google.common.cache.LoadingCache;\nimport com.google.common.collect.Lists;\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport it.unimi.dsi.fastutil.ints.IntArrayList;\nimport java.util.List;\nimport java.util.concurrent.TimeUnit;\nimport java.util.stream.IntStream;\nimport net.minecraft.Util;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.SectionPos;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.boss.enderdragon.EndCrystal;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.WorldGenLevel;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.IronBarsBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.dimension.DimensionType;\nimport net.minecraft.world.level.levelgen.feature.configurations.SpikeConfiguration;\nimport net.minecraft.world.phys.AABB;\n\npublic class SpikeFeature extends Feature<SpikeConfiguration> {\n   public static final int NUMBER_OF_SPIKES = 10;\n   private static final int SPIKE_DISTANCE = 42;\n   private static final LoadingCache<Long, List<SpikeFeature.EndSpike>> SPIKE_CACHE = CacheBuilder.newBuilder().expireAfterWrite(5L, TimeUnit.MINUTES).build(new SpikeFeature.SpikeCacheLoader());\n\n   public SpikeFeature(Codec<SpikeConfiguration> p_66852_) {\n      super(p_66852_);\n   }\n\n   public static List<SpikeFeature.EndSpike> getSpikesForLevel(WorldGenLevel p_66859_) {\n      RandomSource randomsource = RandomSource.create(p_66859_.getSeed());\n      long i = randomsource.nextLong() & 65535L;\n      return SPIKE_CACHE.getUnchecked(i);\n   }\n\n   public boolean place(FeaturePlaceContext<SpikeConfiguration> p_160372_) {\n      SpikeConfiguration spikeconfiguration = p_160372_.config();\n      WorldGenLevel worldgenlevel = p_160372_.level();\n      RandomSource randomsource = p_160372_.random();\n      BlockPos blockpos = p_160372_.origin();\n      List<SpikeFeature.EndSpike> list = spikeconfiguration.getSpikes();\n      if (list.isEmpty()) {\n         list = getSpikesForLevel(worldgenlevel);\n      }\n\n      for(SpikeFeature.EndSpike spikefeature$endspike : list) {\n         if (spikefeature$endspike.isCenterWithinChunk(blockpos)) {\n            this.placeSpike(worldgenlevel, randomsource, spikeconfiguration, spikefeature$endspike);\n         }\n      }\n\n      return true;\n   }\n\n   private void placeSpike(ServerLevelAccessor p_225247_, RandomSource p_225248_, SpikeConfiguration p_225249_, SpikeFeature.EndSpike p_225250_) {\n      int i = p_225250_.getRadius();\n\n      for(BlockPos blockpos : BlockPos.betweenClosed(new BlockPos(p_225250_.getCenterX() - i, p_225247_.getMinBuildHeight(), p_225250_.getCenterZ() - i), new BlockPos(p_225250_.getCenterX() + i, p_225250_.getHeight() + 10, p_225250_.getCenterZ() + i))) {\n         if (blockpos.distToLowCornerSqr((double)p_225250_.getCenterX(), (double)blockpos.getY(), (double)p_225250_.getCenterZ()) <= (double)(i * i + 1) && blockpos.getY() < p_225250_.getHeight()) {\n            this.setBlock(p_225247_, blockpos, Blocks.OBSIDIAN.defaultBlockState());\n         } else if (blockpos.getY() > 65) {\n            this.setBlock(p_225247_, blockpos, Blocks.AIR.defaultBlockState());\n         }\n      }\n\n      if (p_225250_.isGuarded()) {\n         int j1 = -2;\n         int k1 = 2;\n         int j = 3;\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();\n\n         for(int k = -2; k <= 2; ++k) {\n            for(int l = -2; l <= 2; ++l) {\n               for(int i1 = 0; i1 <= 3; ++i1) {\n                  boolean flag = Mth.abs(k) == 2;\n                  boolean flag1 = Mth.abs(l) == 2;\n                  boolean flag2 = i1 == 3;\n                  if (flag || flag1 || flag2) {\n                     boolean flag3 = k == -2 || k == 2 || flag2;\n                     boolean flag4 = l == -2 || l == 2 || flag2;\n                     BlockState blockstate = Blocks.IRON_BARS.defaultBlockState().setValue(IronBarsBlock.NORTH, Boolean.valueOf(flag3 && l != -2)).setValue(IronBarsBlock.SOUTH, Boolean.valueOf(flag3 && l != 2)).setValue(IronBarsBlock.WEST, Boolean.valueOf(flag4 && k != -2)).setValue(IronBarsBlock.EAST, Boolean.valueOf(flag4 && k != 2));\n                     this.setBlock(p_225247_, blockpos$mutableblockpos.set(p_225250_.getCenterX() + k, p_225250_.getHeight() + i1, p_225250_.getCenterZ() + l), blockstate);\n                  }\n               }\n            }\n         }\n      }\n\n      EndCrystal endcrystal = EntityType.END_CRYSTAL.create(p_225247_.getLevel());\n      if (endcrystal != null) {\n         endcrystal.setBeamTarget(p_225249_.getCrystalBeamTarget());\n         endcrystal.setInvulnerable(p_225249_.isCrystalInvulnerable());\n         endcrystal.moveTo((double)p_225250_.getCenterX() + 0.5D, (double)(p_225250_.getHeight() + 1), (double)p_225250_.getCenterZ() + 0.5D, p_225248_.nextFloat() * 360.0F, 0.0F);\n         p_225247_.addFreshEntity(endcrystal);\n         this.setBlock(p_225247_, new BlockPos(p_225250_.getCenterX(), p_225250_.getHeight(), p_225250_.getCenterZ()), Blocks.BEDROCK.defaultBlockState());\n      }\n\n   }\n\n   public static class EndSpike {\n      public static final Codec<SpikeFeature.EndSpike> CODEC = RecordCodecBuilder.create((p_66890_) -> {\n         return p_66890_.group(Codec.INT.fieldOf(\"centerX\").orElse(0).forGetter((p_160382_) -> {\n            return p_160382_.centerX;\n         }), Codec.INT.fieldOf(\"centerZ\").orElse(0).forGetter((p_160380_) -> {\n            return p_160380_.centerZ;\n         }), Codec.INT.fieldOf(\"radius\").orElse(0).forGetter((p_160378_) -> {\n            return p_160378_.radius;\n         }), Codec.INT.fieldOf(\"height\").orElse(0).forGetter((p_160376_) -> {\n            return p_160376_.height;\n         }), Codec.BOOL.fieldOf(\"guarded\").orElse(false).forGetter((p_160374_) -> {\n            return p_160374_.guarded;\n         })).apply(p_66890_, SpikeFeature.EndSpike::new);\n      });\n      private final int centerX;\n      private final int centerZ;\n      private final int radius;\n      private final int height;\n      private final boolean guarded;\n      private final AABB topBoundingBox;\n\n      public EndSpike(int p_66881_, int p_66882_, int p_66883_, int p_66884_, boolean p_66885_) {\n         this.centerX = p_66881_;\n         this.centerZ = p_66882_;\n         this.radius = p_66883_;\n         this.height = p_66884_;\n         this.guarded = p_66885_;\n         this.topBoundingBox = new AABB((double)(p_66881_ - p_66883_), (double)DimensionType.MIN_Y, (double)(p_66882_ - p_66883_), (double)(p_66881_ + p_66883_), (double)DimensionType.MAX_Y, (double)(p_66882_ + p_66883_));\n      }\n\n      public boolean isCenterWithinChunk(BlockPos p_66892_) {\n         return SectionPos.blockToSectionCoord(p_66892_.getX()) == SectionPos.blockToSectionCoord(this.centerX) && SectionPos.blockToSectionCoord(p_66892_.getZ()) == SectionPos.blockToSectionCoord(this.centerZ);\n      }\n\n      public int getCenterX() {\n         return this.centerX;\n      }\n\n      public int getCenterZ() {\n         return this.centerZ;\n      }\n\n      public int getRadius() {\n         return this.radius;\n      }\n\n      public int getHeight() {\n         return this.height;\n      }\n\n      public boolean isGuarded() {\n         return this.guarded;\n      }\n\n      public AABB getTopBoundingBox() {\n         return this.topBoundingBox;\n      }\n   }\n\n   static class SpikeCacheLoader extends CacheLoader<Long, List<SpikeFeature.EndSpike>> {\n      public List<SpikeFeature.EndSpike> load(Long p_66910_) {\n         IntArrayList intarraylist = Util.toShuffledList(IntStream.range(0, 10), RandomSource.create(p_66910_));\n         List<SpikeFeature.EndSpike> list = Lists.newArrayList();\n\n         for(int i = 0; i < 10; ++i) {\n            int j = Mth.floor(42.0D * Math.cos(2.0D * (-Math.PI + (Math.PI / 10D) * (double)i)));\n            int k = Mth.floor(42.0D * Math.sin(2.0D * (-Math.PI + (Math.PI / 10D) * (double)i)));\n            int l = intarraylist.get(i);\n            int i1 = 2 + l / 3;\n            int j1 = 76 + l * 3;\n            boolean flag = l == 1 || l == 2;\n            list.add(new SpikeFeature.EndSpike(j, k, i1, j1, flag));\n         }\n\n         return list;\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EndCrystalRenderer.java",
+        "sha256": "ad9974afb48bdd638ab9a910c49207206a49fac65f539f097a3a44b3f3203578",
+        "bytes": 5550
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EndCrystalRenderer.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 111,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            111
+          ],
+          "bytes": 5550,
+          "sha256": "ad9974afb48bdd638ab9a910c49207206a49fac65f539f097a3a44b3f3203578",
+          "raw_utf8_keepends": "package net.minecraft.client.renderer.entity;\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.blaze3d.vertex.VertexConsumer;\nimport com.mojang.math.Axis;\nimport net.minecraft.client.model.geom.ModelLayers;\nimport net.minecraft.client.model.geom.ModelPart;\nimport net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.CubeListBuilder;\nimport net.minecraft.client.model.geom.builders.LayerDefinition;\nimport net.minecraft.client.model.geom.builders.MeshDefinition;\nimport net.minecraft.client.model.geom.builders.PartDefinition;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.RenderType;\nimport net.minecraft.client.renderer.culling.Frustum;\nimport net.minecraft.client.renderer.texture.OverlayTexture;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.boss.enderdragon.EndCrystal;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport org.joml.Quaternionf;\n\n@OnlyIn(Dist.CLIENT)\npublic class EndCrystalRenderer extends EntityRenderer<EndCrystal> {\n   private static final ResourceLocation END_CRYSTAL_LOCATION = new ResourceLocation(\"textures/entity/end_crystal/end_crystal.png\");\n   private static final RenderType RENDER_TYPE = RenderType.entityCutoutNoCull(END_CRYSTAL_LOCATION);\n   private static final float SIN_45 = (float)Math.sin((Math.PI / 4D));\n   private static final String GLASS = \"glass\";\n   private static final String BASE = \"base\";\n   private final ModelPart cube;\n   private final ModelPart glass;\n   private final ModelPart base;\n\n   public EndCrystalRenderer(EntityRendererProvider.Context p_173970_) {\n      super(p_173970_);\n      this.shadowRadius = 0.5F;\n      ModelPart modelpart = p_173970_.bakeLayer(ModelLayers.END_CRYSTAL);\n      this.glass = modelpart.getChild(\"glass\");\n      this.cube = modelpart.getChild(\"cube\");\n      this.base = modelpart.getChild(\"base\");\n   }\n\n   public static LayerDefinition createBodyLayer() {\n      MeshDefinition meshdefinition = new MeshDefinition();\n      PartDefinition partdefinition = meshdefinition.getRoot();\n      partdefinition.addOrReplaceChild(\"glass\", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -4.0F, -4.0F, 8.0F, 8.0F, 8.0F), PartPose.ZERO);\n      partdefinition.addOrReplaceChild(\"cube\", CubeListBuilder.create().texOffs(32, 0).addBox(-4.0F, -4.0F, -4.0F, 8.0F, 8.0F, 8.0F), PartPose.ZERO);\n      partdefinition.addOrReplaceChild(\"base\", CubeListBuilder.create().texOffs(0, 16).addBox(-6.0F, 0.0F, -6.0F, 12.0F, 4.0F, 12.0F), PartPose.ZERO);\n      return LayerDefinition.create(meshdefinition, 64, 32);\n   }\n\n   public void render(EndCrystal p_114162_, float p_114163_, float p_114164_, PoseStack p_114165_, MultiBufferSource p_114166_, int p_114167_) {\n      p_114165_.pushPose();\n      float f = getY(p_114162_, p_114164_);\n      float f1 = ((float)p_114162_.time + p_114164_) * 3.0F;\n      VertexConsumer vertexconsumer = p_114166_.getBuffer(RENDER_TYPE);\n      p_114165_.pushPose();\n      p_114165_.scale(2.0F, 2.0F, 2.0F);\n      p_114165_.translate(0.0F, -0.5F, 0.0F);\n      int i = OverlayTexture.NO_OVERLAY;\n      if (p_114162_.showsBottom()) {\n         this.base.render(p_114165_, vertexconsumer, p_114167_, i);\n      }\n\n      p_114165_.mulPose(Axis.YP.rotationDegrees(f1));\n      p_114165_.translate(0.0F, 1.5F + f / 2.0F, 0.0F);\n      p_114165_.mulPose((new Quaternionf()).setAngleAxis(((float)Math.PI / 3F), SIN_45, 0.0F, SIN_45));\n      this.glass.render(p_114165_, vertexconsumer, p_114167_, i);\n      float f2 = 0.875F;\n      p_114165_.scale(0.875F, 0.875F, 0.875F);\n      p_114165_.mulPose((new Quaternionf()).setAngleAxis(((float)Math.PI / 3F), SIN_45, 0.0F, SIN_45));\n      p_114165_.mulPose(Axis.YP.rotationDegrees(f1));\n      this.glass.render(p_114165_, vertexconsumer, p_114167_, i);\n      p_114165_.scale(0.875F, 0.875F, 0.875F);\n      p_114165_.mulPose((new Quaternionf()).setAngleAxis(((float)Math.PI / 3F), SIN_45, 0.0F, SIN_45));\n      p_114165_.mulPose(Axis.YP.rotationDegrees(f1));\n      this.cube.render(p_114165_, vertexconsumer, p_114167_, i);\n      p_114165_.popPose();\n      p_114165_.popPose();\n      BlockPos blockpos = p_114162_.getBeamTarget();\n      if (blockpos != null) {\n         float f3 = (float)blockpos.getX() + 0.5F;\n         float f4 = (float)blockpos.getY() + 0.5F;\n         float f5 = (float)blockpos.getZ() + 0.5F;\n         float f6 = (float)((double)f3 - p_114162_.getX());\n         float f7 = (float)((double)f4 - p_114162_.getY());\n         float f8 = (float)((double)f5 - p_114162_.getZ());\n         p_114165_.translate(f6, f7, f8);\n         EnderDragonRenderer.renderCrystalBeams(-f6, -f7 + f, -f8, p_114164_, p_114162_.time, p_114165_, p_114166_, p_114167_);\n      }\n\n      super.render(p_114162_, p_114163_, p_114164_, p_114165_, p_114166_, p_114167_);\n   }\n\n   public static float getY(EndCrystal p_114159_, float p_114160_) {\n      float f = (float)p_114159_.time + p_114160_;\n      float f1 = Mth.sin(f * 0.2F) / 2.0F + 0.5F;\n      f1 = (f1 * f1 + f1) * 0.4F;\n      return f1 - 1.4F;\n   }\n\n   public ResourceLocation getTextureLocation(EndCrystal p_114157_) {\n      return END_CRYSTAL_LOCATION;\n   }\n\n   public boolean shouldRender(EndCrystal p_114169_, Frustum p_114170_, double p_114171_, double p_114172_, double p_114173_) {\n      return super.shouldRender(p_114169_, p_114170_, p_114171_, p_114172_, p_114173_) || p_114169_.getBeamTarget() != null;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/levelgen/feature/configurations/SpikeConfiguration.java",
+        "sha256": "0bb19fb91504206843bcbb406992e6ac94275991a613d5bd4690d3b04637eabc",
+        "bytes": 1893
+      },
+      "archive_entry": "net/minecraft/world/level/levelgen/feature/configurations/SpikeConfiguration.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 48,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            48
+          ],
+          "bytes": 1893,
+          "sha256": "0bb19fb91504206843bcbb406992e6ac94275991a613d5bd4690d3b04637eabc",
+          "raw_utf8_keepends": "package net.minecraft.world.level.levelgen.feature.configurations;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport java.util.List;\nimport java.util.Optional;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.level.levelgen.feature.SpikeFeature;\n\npublic class SpikeConfiguration implements FeatureConfiguration {\n   public static final Codec<SpikeConfiguration> CODEC = RecordCodecBuilder.create((p_68115_) -> {\n      return p_68115_.group(Codec.BOOL.fieldOf(\"crystal_invulnerable\").orElse(false).forGetter((p_161195_) -> {\n         return p_161195_.crystalInvulnerable;\n      }), SpikeFeature.EndSpike.CODEC.listOf().fieldOf(\"spikes\").forGetter((p_161193_) -> {\n         return p_161193_.spikes;\n      }), BlockPos.CODEC.optionalFieldOf(\"crystal_beam_target\").forGetter((p_161191_) -> {\n         return Optional.ofNullable(p_161191_.crystalBeamTarget);\n      })).apply(p_68115_, SpikeConfiguration::new);\n   });\n   private final boolean crystalInvulnerable;\n   private final List<SpikeFeature.EndSpike> spikes;\n   @Nullable\n   private final BlockPos crystalBeamTarget;\n\n   public SpikeConfiguration(boolean p_68105_, List<SpikeFeature.EndSpike> p_68106_, @Nullable BlockPos p_68107_) {\n      this(p_68105_, p_68106_, Optional.ofNullable(p_68107_));\n   }\n\n   private SpikeConfiguration(boolean p_68109_, List<SpikeFeature.EndSpike> p_68110_, Optional<BlockPos> p_68111_) {\n      this.crystalInvulnerable = p_68109_;\n      this.spikes = p_68110_;\n      this.crystalBeamTarget = p_68111_.orElse((BlockPos)null);\n   }\n\n   public boolean isCrystalInvulnerable() {\n      return this.crystalInvulnerable;\n   }\n\n   public List<SpikeFeature.EndSpike> getSpikes() {\n      return this.spikes;\n   }\n\n   @Nullable\n   public BlockPos getCrystalBeamTarget() {\n      return this.crystalBeamTarget;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "archive_entry": "net/minecraft/world/entity/Entity.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 3566,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            322,
+            336
+          ],
+          "bytes": 355,
+          "sha256": "227895bbc7d1234379403d97ce805b3fb892398c46e638d7824fad00f9b204e3",
+          "raw_utf8_keepends": "   public boolean removeTag(String p_20138_) {\n      return this.tags.remove(p_20138_);\n   }\n\n   public void kill() {\n      this.remove(Entity.RemovalReason.KILLED);\n      this.gameEvent(GameEvent.ENTITY_DIE);\n   }\n\n   public final void discard() {\n      this.remove(Entity.RemovalReason.DISCARDED);\n   }\n\n   protected abstract void defineSynchedData();\n\n"
+        },
+        {
+          "lines": [
+            338,
+            363
+          ],
+          "bytes": 536,
+          "sha256": "8c012f4730ac5fef3c62b9bded63dbc4d96d8d90cd53e448d80395a58bf5d17c",
+          "raw_utf8_keepends": "      return this.entityData;\n   }\n\n   public boolean equals(Object p_20245_) {\n      if (p_20245_ instanceof Entity) {\n         return ((Entity)p_20245_).id == this.id;\n      } else {\n         return false;\n      }\n   }\n\n   public int hashCode() {\n      return this.id;\n   }\n\n   public void remove(Entity.RemovalReason p_146834_) {\n      this.setRemoved(p_146834_);\n      this.invalidateCaps();\n   }\n\n   public void onClientRemoval() {\n   }\n\n   public void setPose(Pose p_20125_) {\n      this.entityData.set(DATA_POSE, p_20125_);\n   }\n"
+        },
+        {
+          "lines": [
+            2422,
+            2441
+          ],
+          "bytes": 1224,
+          "sha256": "1042cd3e76f899910d42c406c99675cdb4c0335e38b2396d6b6c3411a773c7c3",
+          "raw_utf8_keepends": "      String s = this.level() == null ? \"~NULL~\" : this.level().toString();\n      return this.removalReason != null ? String.format(Locale.ROOT, \"%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f, removed=%s]\", this.getClass().getSimpleName(), this.getName().getString(), this.id, s, this.getX(), this.getY(), this.getZ(), this.removalReason) : String.format(Locale.ROOT, \"%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f]\", this.getClass().getSimpleName(), this.getName().getString(), this.id, s, this.getX(), this.getY(), this.getZ());\n   }\n\n   public boolean isInvulnerableTo(DamageSource p_20122_) {\n      return this.isRemoved() || this.invulnerable && !p_20122_.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !p_20122_.isCreativePlayer() || p_20122_.is(DamageTypeTags.IS_FIRE) && this.fireImmune() || p_20122_.is(DamageTypeTags.IS_FALL) && this.getType().is(EntityTypeTags.FALL_DAMAGE_IMMUNE);\n   }\n\n   public boolean isInvulnerable() {\n      return this.invulnerable;\n   }\n\n   public void setInvulnerable(boolean p_20332_) {\n      this.invulnerable = p_20332_;\n   }\n\n   public void copyPosition(Entity p_20360_) {\n      this.moveTo(p_20360_.getX(), p_20360_.getY(), p_20360_.getZ(), p_20360_.getYRot(), p_20360_.getXRot());\n   }\n\n"
+        },
+        {
+          "lines": [
+            3352,
+            3373
+          ],
+          "bytes": 527,
+          "sha256": "66240b5a5db9ec4f7ba1e9722829794158b7513e264800dc36cc717a01c59547",
+          "raw_utf8_keepends": "   @Nullable\n   public Entity.RemovalReason getRemovalReason() {\n      return this.removalReason;\n   }\n\n   public final void setRemoved(Entity.RemovalReason p_146876_) {\n      if (this.removalReason == null) {\n         this.removalReason = p_146876_;\n      }\n\n      if (this.removalReason.shouldDestroy()) {\n         this.stopRiding();\n      }\n\n      this.getPassengers().forEach(Entity::stopRiding);\n      this.levelCallback.onRemove(p_146876_);\n   }\n\n   protected void unsetRemoved() {\n      this.removalReason = null;\n   }\n\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSource.java",
+        "sha256": "8b19b3cb51c9139b48464bb0c6700ea27a652a677afde0e8daf812f08b3e4dd1",
+        "bytes": 4744
+      },
+      "archive_entry": "net/minecraft/world/damagesource/DamageSource.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 153,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            109,
+            123
+          ],
+          "bytes": 270,
+          "sha256": "f43911f3ad25d9dc22f101f46c5af7b19e7c1db8ac1cf76ed1ce226e8bccd921",
+          "raw_utf8_keepends": "\n      return flag;\n   }\n\n   public boolean isCreativePlayer() {\n      Entity entity = this.getEntity();\n      if (entity instanceof Player player) {\n         if (player.getAbilities().instabuild) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+        "sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "bytes": 67036
+      },
+      "archive_entry": "net/minecraft/server/level/ServerLevel.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 1567,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            223,
+            234
+          ],
+          "bytes": 782,
+          "sha256": "050de776135d59275657ea3efd21307989977e23e2e3712bccf3c29372c41412",
+          "raw_utf8_keepends": "         p_215002_.setGameType(p_214999_.getDefaultGameType());\n      }\n\n      long i = p_214999_.getWorldData().worldGenOptions().seed();\n      this.structureCheck = new StructureCheck(this.chunkSource.chunkScanner(), this.registryAccess(), p_214999_.getStructureManager(), p_215003_, chunkgenerator, this.chunkSource.randomState(), this, chunkgenerator.getBiomeSource(), i, datafixer);\n      this.structureManager = new StructureManager(this, p_214999_.getWorldData().worldGenOptions(), this.structureCheck);\n      if (this.dimension() == Level.END && this.dimensionTypeRegistration().is(BuiltinDimensionTypes.END)) {\n         this.dragonFight = new EndDragonFight(this, i, p_214999_.getWorldData().endDragonFightData());\n      } else {\n         this.dragonFight = null;\n      }\n\n"
+        },
+        {
+          "lines": [
+            311,
+            324
+          ],
+          "bytes": 413,
+          "sha256": "776f1a52445ce3c0ff12103c7c9d67f69009d77a2b8453c9d2af2a135a85e532",
+          "raw_utf8_keepends": "      if (flag) {\n         this.resetEmptyTime();\n      }\n\n      if (flag || this.emptyTime++ < 300) {\n         profilerfiller.push(\"entities\");\n         if (this.dragonFight != null) {\n            profilerfiller.push(\"dragonFight\");\n            this.dragonFight.tick();\n            profilerfiller.pop();\n         }\n\n         this.entityTickList.forEach((p_184065_) -> {\n            if (!p_184065_.isRemoved()) {\n"
+        },
+        {
+          "lines": [
+            749,
+            760
+          ],
+          "bytes": 366,
+          "sha256": "65bba2bd3099ffe978d6696528c0ab8fc197869653de04196f0225e8d8d7e070",
+          "raw_utf8_keepends": "\n         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.level.LevelEvent.Save(this));\n      }\n   }\n\n   private void saveLevelData() {\n      if (this.dragonFight != null) {\n         this.server.getWorldData().setEndDragonFightData(this.dragonFight.saveData());\n      }\n\n      this.getChunkSource().getDataStorage().save();\n   }\n"
+        },
+        {
+          "lines": [
+            1371,
+            1380
+          ],
+          "bytes": 220,
+          "sha256": "69e81b9e05c8e76412c4176ef366a25b9ab2950621683b2a90681a275b98792f",
+          "raw_utf8_keepends": "      return this.server.getWorldData().worldGenOptions().seed();\n   }\n\n   @Nullable\n   public EndDragonFight getDragonFight() {\n      return this.dragonFight;\n   }\n\n   public ServerLevel getLevel() {\n      return this;\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java",
+        "sha256": "d7f3b46f407cbaf23c61152a314119c295619347b41527cd3000887d029cc232",
+        "bytes": 36863
+      },
+      "archive_entry": "net/minecraft/world/entity/boss/enderdragon/EnderDragon.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 908,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            377,
+            402
+          ],
+          "bytes": 847,
+          "sha256": "38c993623dcc1f53a940c65773e0c76b6b663aa452b1a9960da8bb3a8bcce0ab",
+          "raw_utf8_keepends": "   private void checkCrystals() {\n      if (this.nearestCrystal != null) {\n         if (this.nearestCrystal.isRemoved()) {\n            this.nearestCrystal = null;\n         } else if (this.tickCount % 10 == 0 && this.getHealth() < this.getMaxHealth()) {\n            this.setHealth(this.getHealth() + 1.0F);\n         }\n      }\n\n      if (this.random.nextInt(10) == 0) {\n         List<EndCrystal> list = this.level().getEntitiesOfClass(EndCrystal.class, this.getBoundingBox().inflate(32.0D));\n         EndCrystal endcrystal = null;\n         double d0 = Double.MAX_VALUE;\n\n         for(EndCrystal endcrystal1 : list) {\n            double d1 = endcrystal1.distanceToSqr(this);\n            if (d1 < d0) {\n               d0 = d1;\n               endcrystal = endcrystal1;\n            }\n         }\n\n         this.nearestCrystal = endcrystal;\n      }\n\n   }\n"
+        },
+        {
+          "lines": [
+            836,
+            850
+          ],
+          "bytes": 643,
+          "sha256": "ac9599998f8bb85425ddb3b1c526b6a64bdcccf5bd22f5eda01fa766718135b1",
+          "raw_utf8_keepends": "   public void onCrystalDestroyed(EndCrystal p_31125_, BlockPos p_31126_, DamageSource p_31127_) {\n      Player player;\n      if (p_31127_.getEntity() instanceof Player) {\n         player = (Player)p_31127_.getEntity();\n      } else {\n         player = this.level().getNearestPlayer(CRYSTAL_DESTROY_TARGETING, (double)p_31126_.getX(), (double)p_31126_.getY(), (double)p_31126_.getZ());\n      }\n\n      if (p_31125_ == this.nearestCrystal) {\n         this.hurt(this.head, this.damageSources().explosion(p_31125_, player), 10.0F);\n      }\n\n      this.phaseManager.getCurrentPhase().onCrystalDestroyed(p_31125_, p_31126_, p_31127_, player);\n   }\n\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+        "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "bytes": 52218
+      },
+      "archive_entry": "net/minecraft/world/entity/EntityType.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 775,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            194,
+            195
+          ],
+          "bytes": 437,
+          "sha256": "7ea392f703e71acdf4a443fff2a1a90bf3ac5fbc34e1e1a63b4aede4d77fe55d",
+          "raw_utf8_keepends": "   public static final EntityType<EndCrystal> END_CRYSTAL = register(\"end_crystal\", EntityType.Builder.<EndCrystal>of(EndCrystal::new, MobCategory.MISC).sized(2.0F, 2.0F).clientTrackingRange(16).updateInterval(Integer.MAX_VALUE));\n   public static final EntityType<EnderDragon> ENDER_DRAGON = register(\"ender_dragon\", EntityType.Builder.of(EnderDragon::new, MobCategory.MONSTER).fireImmune().sized(16.0F, 8.0F).clientTrackingRange(10));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/Items.java",
+        "sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+        "bytes": 142779
+      },
+      "archive_entry": "net/minecraft/world/item/Items.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 1326,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1124,
+            1124
+          ],
+          "bytes": 136,
+          "sha256": "b7d07f65d8f91acf1c9b41fe0674d72fc89fda3eb6b1ab9cfacd086fc5990844",
+          "raw_utf8_keepends": "   public static final Item END_CRYSTAL = registerItem(\"end_crystal\", new EndCrystalItem((new Item.Properties()).rarity(Rarity.RARE)));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EntityRenderers.java",
+        "sha256": "ec00e8196afb7d3812419956d39f0f9919543b13ff2929c1aa6dcb01304d5e98",
+        "bytes": 12707
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EntityRenderers.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 244,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            114,
+            114
+          ],
+          "bytes": 65,
+          "sha256": "78a4a94077faee5dcd2a0d0296237eb8bc118a2d909fd1963f578bd8344144c9",
+          "raw_utf8_keepends": "      register(EntityType.END_CRYSTAL, EndCrystalRenderer::new);\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/levelgen/feature/Feature.java",
+        "sha256": "35fd4836772093ef7b542aa7fcff9b47d97bce1cf8a92c62b422a669e1b73428",
+        "bytes": 16660
+      },
+      "archive_entry": "net/minecraft/world/level/levelgen/feature/Feature.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 200,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            89,
+            89
+          ],
+          "bytes": 130,
+          "sha256": "c9f5f8a65f85e1f596fada23f098a98fe1815be0a673f2aaa2b8554ed7260501",
+          "raw_utf8_keepends": "   public static final Feature<SpikeConfiguration> END_SPIKE = register(\"end_spike\", new SpikeFeature(SpikeConfiguration.CODEC));\n"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "reading_coverage": {
+    "files": 15,
+    "ranges": 22,
+    "whole_files": 7,
+    "unique_selected_lines": 1375,
+    "coverage_is_not_semantic_credit": true
+  },
+  "comparison": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-160-native-end-crystal-participant-abort-complete-owner-comparison-HOLD-20261112.json",
+    "sha256": "84489b3495a7786b7bc9c97086855a61ff71a680fc40b0175606cb4015e71a5d",
+    "bytes": 383020
+  },
+  "whole_lifecycle_findings": [
+    {
+      "source": "EndCrystalItem.java whole; Items.java:1124; EntityType.java:194-195",
+      "observation": "Actual item binding admits OBSIDIAN/BEDROCK, empty block above and no entity in the 1x2 box. Server creates EndCrystal with bottom hidden, ignores addFreshEntity boolean, emits ENTITY_PLACE and requests current end fight tryRespawn. Item stack shrink and sidedSuccess follow; outer creative handling/payment receipts were not expanded. Item success is not proof of actual crystal or ritual admission."
+    },
+    {
+      "source": "EndDragonFight.java:452-507; Entity.java:341-350",
+      "observation": "tryRespawn requires dragonKilled and no current stage, finds/creates portal, and queries four horizontal boxes two blocks from portal.above1. Each box must contain at least one EndCrystal; all returned lists are added, so not exactly four participants and no fresh same-item payment test. respawnDragon replaces matched portal blocks, sets START/time0, spawns inactive portal and stores the provided crystal list. contains later uses Entity.equals integer entity id, not UUID membership, object-reference-only identity or continuous geometric quorum."
+    },
+    {
+      "source": "EndCrystal.java:82-115; Entity.java:2426-2435; DamageSource.java:113-122",
+      "observation": "hurt first uses native isInvulnerableTo (removed, invulnerable flag with BYPASSES_INVULNERABILITY/creative-player exceptions, fire/fall type predicates), then rejects causing EnderDragon. Own amount is not tested. Other own unremoved server path removes KILLED, requests strength6 block explosion only if incoming source lacks IS_EXPLOSION, then invokes fight callback and returns true; live client path can return true without server mutation. Already removed calls are rejected by inherited gate, not reported as true. This is source-level direct-call behavior, not a natural zero-damage attack result or all outer event admission."
+    },
+    {
+      "source": "EndCrystal.java:102-115; Entity.java:326-356,3357-3368",
+      "observation": "kill directly invokes generic-source destroy callback before super.kill and has no own hurt/removed/invulnerability guard; base kill removes and emits ENTITY_DIE. Final inherited discard removes DISCARDED without a direct EndCrystal destroy callback. Repeated explicit kill calls are not proven idempotent; normal death entry assumptions, engine callbacks and exception outcomes are unexpanded. hurt may call explosion before its own callback; do not treat current stage as an immutable captured lease across external calls."
+    },
+    {
+      "source": "EndDragonFight.java:431-446,509-516; SpikeFeature.java:129-163",
+      "observation": "Callback while stage nonnull AND respawnCrystals.contains(crystal) clears stage, resets time0, resets current spike-column crystals and requests active exit portal. It does not explicitly null the stored list, clear beam on every surviving participant, delete all created crystals, refund item cost or restore previous terrain. reset scans ALL currently found EndCrystals in each spike AABB, not just a tracked spawned UUID list. TopBoundingBox spans DimensionType.MIN_Y..MAX_Y with spike XZ radius. No guaranteed all-world cleanup or rollback."
+    },
+    {
+      "source": "DragonRespawnAnimation.java whole; SpikeFeature.java whole; SpikeConfiguration.java whole; Feature.java:89",
+      "observation": "START points participant beams to(0,128,0); preparation requests event3001 at defined counts; pillars direct beams at selected spike, remove blocks/explode and call registered END_SPIKE with invulnerable=true/center beam. Spike creation sets those flags before unchecked addFreshEntity; feature placement return and terrain writes are not validated here. The world construction is an existing implementation read only: no new building design, placement or building-reference credit."
+    },
+    {
+      "source": "DragonRespawnAnimation.java:71-92; EndDragonFight.java:219-238,401-414",
+      "observation": "At SUMMONING_DRAGON time>=100 first setRespawnStage(END): stage becomes null, dragonKilled=false and createNewDragon is requested; criterion trigger only checks created object nonnull, not returned world-admission boolean. Then resetSpikeCrystals, then for each captured participant clear beam, request explosion with NONE and discard. This differs from member-destruction abort. No all-or-nothing transaction, runtime explosion behavior, successful dragon spawn or exactly-once advancement proof; external failures can leave intermediate state."
+    },
+    {
+      "source": "EndDragonFight.java:431-446; EnderDragon.java:377-402,836-850",
+      "observation": "Non-abort callback refreshes crystal count then looks up dragonUUID and dispatches current dragon callback if actual object is EnderDragon. Dragon selects causing Player or nearest eligible player; only pointer-equal nearestCrystal requests head explosion damage10, then current phase callback. checkCrystals heals via direct setHealth every10 ticks when nearest exists, and probabilistically resamples within inflated32 box. All dragon damage/heal/phase support stays old495 context0; no count for re-reading."
+    },
+    {
+      "source": "ServerLevel.java:223-234,311-324,749-760,1371-1380; EndDragonFight.java whole",
+      "observation": "Native server creates fight only END dimension plus END dimension type; server tick conditionally dispatches fight; within fight stages advance only when boss-event players nonempty. Arena-loaded flag qualifies some scans/reconstruction, not every active stage tick. Timers count dispatches, not measured wall seconds. saveLevelData calls fight.saveData; own Data omits stage/time/list and saveData sets isRespawning=false, so no checkpoint continuation guarantee. Legacy constructor START reconstruction and possible missing-list paths remain untested, not a reproduced crash or fix."
+    },
+    {
+      "source": "EndCrystal.java:24-76,117-135; EndCrystalRenderer.java whole; EntityRenderers.java:114",
+      "observation": "Actual renderer reads optional beam target and showBottom with local time-driven bob/rotation; beam nonnull also expands render eligibility. Own save stores optional BeamTarget and ShowBottom, not private local time or an admitted ritual receipt. A remaining beam target does not prove an active server stage or invulnerability. Network transport, beam helper depth/occlusion, event3001 consumer, native pixels/audio and art quality were not tested; no unique denial cue is produced by own rejected-hurt branches."
+    }
+  ],
+  "reading_recovery": {
+    "owner461_combined_output_clipped_not_counted_until_full_bounded_recovery": true,
+    "DamageSource113_118_initial_partial_extended_through123_for_complete_method": true,
+    "SpikeFeature1_114_extended115_185_before_whole_file_claim": true
+  },
+  "application_to_Dynasty": [
+    "Record exact protected object, current membership and destruction/clear reason before producing boss feedback; a generic hurt boolean or existing beam cannot explain control immunity. Ordinary player constitution gains no gray hints.",
+    "A phase exit must enumerate success and abort cleanup separately: protected actors/visual targets/world effects can have different ownership scopes. Source example is research only; do not introduce a new ritual or gameplay.",
+    "Native admission and actual settlement require explicit evidence, preserve IDs/NBT/task/reward continuity. No item/basic spawn-egg tutorial text, UI code or backgrounds were modified."
+  ],
+  "limits": [
+    "At most one whole pending Main actual source review and pointwise author ACK; may merge0. No producer/goal/phase/renderer/helper/source-file or species split credits.",
+    "Seven complete old records and two migration whole judgments preserved. No old raw chains globally re-read; discovery is not global novelty.",
+    "Bounded Entity/Dragon/ServerLevel/DamageSource ranges only; no entire engine, explosion event listeners, packet/sound/renderer helper admission, runtime or reopen acceptance.",
+    "All previous execution plans remain consumed. No script execution/import/help, Java/Gradle/game/UI/process/display/audio/brightness/network/Git or production/master/task writes."
+  ],
+  "protected_after": {
+    "formal_program": 522,
+    "groups": 250,
+    "gap": 478,
+    "gate": false,
+    "ecology_Main_reported": 58,
+    "new_ecology_source_credit": 0,
+    "production_changes": false,
+    "native_acceptance": false,
+    "master_session_active_pending_ownership_changes": false,
+    "original_UI_implemented": false,
+    "task_deletions": 0,
+    "all_tasks_complete": false,
+    "hours_claimed": false
+  }
+}

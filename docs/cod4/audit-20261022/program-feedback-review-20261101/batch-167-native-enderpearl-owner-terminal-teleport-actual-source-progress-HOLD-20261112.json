@@ -1,0 +1,812 @@
+{
+  "batch": 167,
+  "recorded_at": "2026-11-11T22:25:57.484864+00:00",
+  "status": "COMPLETE_PRIVATE_SOURCE_STUDY_AUTHOR_HOLD",
+  "decision": "AUTHOR_HOLD_MAXIMUM_ONE_WHOLE_OWNER_QUALIFIED_TERMINAL_TELEPORT_POLICY_OR_MAIN_MERGE0",
+  "author_maximum_prospective_whole_credit": 1,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "semantic_family": "owner-qualified native pearl impact-to-terminal teleport cancellation and ineffective null-owner invalidation across normalcopy",
+  "source_identity": {
+    "archive": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "exact_source_members": 19,
+    "new_remote_authentication": false,
+    "current_loaded_binary_verified": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ThrownEnderpearl.java",
+        "sha256": "64a69e1aa3f69a93da44c21fb27f0bf8068d8325d7e69df2e7582b2c3f7592ff",
+        "bytes": 4008
+      },
+      "source_total_lines": 99,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/projectile/ThrownEnderpearl.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            99
+          ],
+          "bytes": 4008,
+          "sha256": "64a69e1aa3f69a93da44c21fb27f0bf8068d8325d7e69df2e7582b2c3f7592ff",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.monster.Endermite;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\n\npublic class ThrownEnderpearl extends ThrowableItemProjectile {\n   public ThrownEnderpearl(EntityType<? extends ThrownEnderpearl> p_37491_, Level p_37492_) {\n      super(p_37491_, p_37492_);\n   }\n\n   public ThrownEnderpearl(Level p_37499_, LivingEntity p_37500_) {\n      super(EntityType.ENDER_PEARL, p_37500_, p_37499_);\n   }\n\n   protected Item getDefaultItem() {\n      return Items.ENDER_PEARL;\n   }\n\n   protected void onHitEntity(EntityHitResult p_37502_) {\n      super.onHitEntity(p_37502_);\n      p_37502_.getEntity().hurt(this.damageSources().thrown(this, this.getOwner()), 0.0F);\n   }\n\n   protected void onHit(HitResult p_37504_) {\n      super.onHit(p_37504_);\n\n      for(int i = 0; i < 32; ++i) {\n         this.level().addParticle(ParticleTypes.PORTAL, this.getX(), this.getY() + this.random.nextDouble() * 2.0D, this.getZ(), this.random.nextGaussian(), 0.0D, this.random.nextGaussian());\n      }\n\n      if (!this.level().isClientSide && !this.isRemoved()) {\n         Entity entity = this.getOwner();\n         if (entity instanceof ServerPlayer) {\n            ServerPlayer serverplayer = (ServerPlayer)entity;\n            if (serverplayer.connection.isAcceptingMessages() && serverplayer.level() == this.level() && !serverplayer.isSleeping()) {\n               net.minecraftforge.event.entity.EntityTeleportEvent.EnderPearl event = net.minecraftforge.event.ForgeEventFactory.onEnderPearlLand(serverplayer, this.getX(), this.getY(), this.getZ(), this, 5.0F, p_37504_);\n               if (!event.isCanceled()) { // Don't indent to lower patch size\n               if (this.random.nextFloat() < 0.05F && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {\n                  Endermite endermite = EntityType.ENDERMITE.create(this.level());\n                  if (endermite != null) {\n                     endermite.moveTo(entity.getX(), entity.getY(), entity.getZ(), entity.getYRot(), entity.getXRot());\n                     this.level().addFreshEntity(endermite);\n                  }\n               }\n\n               if (entity.isPassenger()) {\n                  serverplayer.dismountTo(this.getX(), this.getY(), this.getZ());\n               } else {\n                  entity.teleportTo(this.getX(), this.getY(), this.getZ());\n               }\n\n               entity.teleportTo(event.getTargetX(), event.getTargetY(), event.getTargetZ());\n               entity.resetFallDistance();\n               entity.hurt(this.damageSources().fall(), event.getAttackDamage());\n               } //Forge: End\n            }\n         } else if (entity != null) {\n            entity.teleportTo(this.getX(), this.getY(), this.getZ());\n            entity.resetFallDistance();\n         }\n\n         this.discard();\n      }\n\n   }\n\n   public void tick() {\n      Entity entity = this.getOwner();\n      if (entity instanceof Player && !entity.isAlive()) {\n         this.discard();\n      } else {\n         super.tick();\n      }\n\n   }\n\n   @Nullable\n   public Entity changeDimension(ServerLevel p_37506_, net.minecraftforge.common.util.ITeleporter teleporter) {\n      Entity entity = this.getOwner();\n      if (entity != null && entity.level().dimension() != p_37506_.dimension()) {\n         this.setOwner((Entity)null);\n      }\n\n      return super.changeDimension(p_37506_, teleporter);\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/EnderpearlItem.java",
+        "sha256": "3c2bbdf9b75487bb6f0e322074710ea6493d1840ffb2de95585df0a7aefdb970",
+        "bytes": 1533
+      },
+      "source_total_lines": 35,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/item/EnderpearlItem.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            35
+          ],
+          "bytes": 1533,
+          "sha256": "3c2bbdf9b75487bb6f0e322074710ea6493d1840ffb2de95585df0a7aefdb970",
+          "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.ThrownEnderpearl;\nimport net.minecraft.world.level.Level;\n\npublic class EnderpearlItem extends Item {\n   public EnderpearlItem(Item.Properties p_41188_) {\n      super(p_41188_);\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_41190_, Player p_41191_, InteractionHand p_41192_) {\n      ItemStack itemstack = p_41191_.getItemInHand(p_41192_);\n      p_41190_.playSound((Player)null, p_41191_.getX(), p_41191_.getY(), p_41191_.getZ(), SoundEvents.ENDER_PEARL_THROW, SoundSource.NEUTRAL, 0.5F, 0.4F / (p_41190_.getRandom().nextFloat() * 0.4F + 0.8F));\n      p_41191_.getCooldowns().addCooldown(this, 20);\n      if (!p_41190_.isClientSide) {\n         ThrownEnderpearl thrownenderpearl = new ThrownEnderpearl(p_41190_, p_41191_);\n         thrownenderpearl.setItem(itemstack);\n         thrownenderpearl.shootFromRotation(p_41191_, p_41191_.getXRot(), p_41191_.getYRot(), 0.0F, 1.5F, 1.0F);\n         p_41190_.addFreshEntity(thrownenderpearl);\n      }\n\n      p_41191_.awardStat(Stats.ITEM_USED.get(this));\n      if (!p_41191_.getAbilities().instabuild) {\n         itemstack.shrink(1);\n      }\n\n      return InteractionResultHolder.sidedSuccess(itemstack, p_41190_.isClientSide());\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/Projectile.java",
+        "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+        "bytes": 8381
+      },
+      "source_total_lines": 220,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/projectile/Projectile.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            220
+          ],
+          "bytes": 8381,
+          "sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport com.google.common.base.MoreObjects;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.network.protocol.game.ClientGamePacketListener;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.TraceableEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic abstract class Projectile extends Entity implements TraceableEntity {\n   @Nullable\n   private UUID ownerUUID;\n   @Nullable\n   private Entity cachedOwner;\n   private boolean leftOwner;\n   private boolean hasBeenShot;\n\n   protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {\n      super(p_37248_, p_37249_);\n   }\n\n   public void setOwner(@Nullable Entity p_37263_) {\n      if (p_37263_ != null) {\n         this.ownerUUID = p_37263_.getUUID();\n         this.cachedOwner = p_37263_;\n      }\n\n   }\n\n   @Nullable\n   public Entity getOwner() {\n      if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n         return this.cachedOwner;\n      } else if (this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         this.cachedOwner = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         return this.cachedOwner;\n      } else {\n         return null;\n      }\n   }\n\n   public Entity getEffectSource() {\n      return MoreObjects.firstNonNull(this.getOwner(), this);\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_37265_) {\n      if (this.ownerUUID != null) {\n         p_37265_.putUUID(\"Owner\", this.ownerUUID);\n      }\n\n      if (this.leftOwner) {\n         p_37265_.putBoolean(\"LeftOwner\", true);\n      }\n\n      p_37265_.putBoolean(\"HasBeenShot\", this.hasBeenShot);\n   }\n\n   protected boolean ownedBy(Entity p_150172_) {\n      return p_150172_.getUUID().equals(this.ownerUUID);\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_37262_) {\n      if (p_37262_.hasUUID(\"Owner\")) {\n         this.ownerUUID = p_37262_.getUUID(\"Owner\");\n         this.cachedOwner = null;\n      }\n\n      this.leftOwner = p_37262_.getBoolean(\"LeftOwner\");\n      this.hasBeenShot = p_37262_.getBoolean(\"HasBeenShot\");\n   }\n\n   public void tick() {\n      if (!this.hasBeenShot) {\n         this.gameEvent(GameEvent.PROJECTILE_SHOOT, this.getOwner());\n         this.hasBeenShot = true;\n      }\n\n      if (!this.leftOwner) {\n         this.leftOwner = this.checkLeftOwner();\n      }\n\n      super.tick();\n   }\n\n   private boolean checkLeftOwner() {\n      Entity entity = this.getOwner();\n      if (entity != null) {\n         for(Entity entity1 : this.level().getEntities(this, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0D), (p_37272_) -> {\n            return !p_37272_.isSpectator() && p_37272_.isPickable();\n         })) {\n            if (entity1.getRootVehicle() == entity.getRootVehicle()) {\n               return false;\n            }\n         }\n      }\n\n      return true;\n   }\n\n   public void shoot(double p_37266_, double p_37267_, double p_37268_, float p_37269_, float p_37270_) {\n      Vec3 vec3 = (new Vec3(p_37266_, p_37267_, p_37268_)).normalize().add(this.random.triangle(0.0D, 0.0172275D * (double)p_37270_), this.random.triangle(0.0D, 0.0172275D * (double)p_37270_), this.random.triangle(0.0D, 0.0172275D * (double)p_37270_)).scale((double)p_37269_);\n      this.setDeltaMovement(vec3);\n      double d0 = vec3.horizontalDistance();\n      this.setYRot((float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI)));\n      this.setXRot((float)(Mth.atan2(vec3.y, d0) * (double)(180F / (float)Math.PI)));\n      this.yRotO = this.getYRot();\n      this.xRotO = this.getXRot();\n   }\n\n   public void shootFromRotation(Entity p_37252_, float p_37253_, float p_37254_, float p_37255_, float p_37256_, float p_37257_) {\n      float f = -Mth.sin(p_37254_ * ((float)Math.PI / 180F)) * Mth.cos(p_37253_ * ((float)Math.PI / 180F));\n      float f1 = -Mth.sin((p_37253_ + p_37255_) * ((float)Math.PI / 180F));\n      float f2 = Mth.cos(p_37254_ * ((float)Math.PI / 180F)) * Mth.cos(p_37253_ * ((float)Math.PI / 180F));\n      this.shoot((double)f, (double)f1, (double)f2, p_37256_, p_37257_);\n      Vec3 vec3 = p_37252_.getDeltaMovement();\n      this.setDeltaMovement(this.getDeltaMovement().add(vec3.x, p_37252_.onGround() ? 0.0D : vec3.y, vec3.z));\n   }\n\n   protected void onHit(HitResult p_37260_) {\n      HitResult.Type hitresult$type = p_37260_.getType();\n      if (hitresult$type == HitResult.Type.ENTITY) {\n         this.onHitEntity((EntityHitResult)p_37260_);\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, p_37260_.getLocation(), GameEvent.Context.of(this, (BlockState)null));\n      } else if (hitresult$type == HitResult.Type.BLOCK) {\n         BlockHitResult blockhitresult = (BlockHitResult)p_37260_;\n         this.onHitBlock(blockhitresult);\n         BlockPos blockpos = blockhitresult.getBlockPos();\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, blockpos, GameEvent.Context.of(this, this.level().getBlockState(blockpos)));\n      }\n\n   }\n\n   protected void onHitEntity(EntityHitResult p_37259_) {\n   }\n\n   protected void onHitBlock(BlockHitResult p_37258_) {\n      BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());\n      blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);\n   }\n\n   public void lerpMotion(double p_37279_, double p_37280_, double p_37281_) {\n      this.setDeltaMovement(p_37279_, p_37280_, p_37281_);\n      if (this.xRotO == 0.0F && this.yRotO == 0.0F) {\n         double d0 = Math.sqrt(p_37279_ * p_37279_ + p_37281_ * p_37281_);\n         this.setXRot((float)(Mth.atan2(p_37280_, d0) * (double)(180F / (float)Math.PI)));\n         this.setYRot((float)(Mth.atan2(p_37279_, p_37281_) * (double)(180F / (float)Math.PI)));\n         this.xRotO = this.getXRot();\n         this.yRotO = this.getYRot();\n         this.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());\n      }\n\n   }\n\n   protected boolean canHitEntity(Entity p_37250_) {\n      if (!p_37250_.canBeHitByProjectile()) {\n         return false;\n      } else {\n         Entity entity = this.getOwner();\n         return entity == null || this.leftOwner || !entity.isPassengerOfSameVehicle(p_37250_);\n      }\n   }\n\n   protected void updateRotation() {\n      Vec3 vec3 = this.getDeltaMovement();\n      double d0 = vec3.horizontalDistance();\n      this.setXRot(lerpRotation(this.xRotO, (float)(Mth.atan2(vec3.y, d0) * (double)(180F / (float)Math.PI))));\n      this.setYRot(lerpRotation(this.yRotO, (float)(Mth.atan2(vec3.x, vec3.z) * (double)(180F / (float)Math.PI))));\n   }\n\n   protected static float lerpRotation(float p_37274_, float p_37275_) {\n      while(p_37275_ - p_37274_ < -180.0F) {\n         p_37274_ -= 360.0F;\n      }\n\n      while(p_37275_ - p_37274_ >= 180.0F) {\n         p_37274_ += 360.0F;\n      }\n\n      return Mth.lerp(0.2F, p_37274_, p_37275_);\n   }\n\n   public Packet<ClientGamePacketListener> getAddEntityPacket() {\n      Entity entity = this.getOwner();\n      return new ClientboundAddEntityPacket(this, entity == null ? 0 : entity.getId());\n   }\n\n   public void recreateFromPacket(ClientboundAddEntityPacket p_150170_) {\n      super.recreateFromPacket(p_150170_);\n      Entity entity = this.level().getEntity(p_150170_.getData());\n      if (entity != null) {\n         this.setOwner(entity);\n      }\n\n   }\n\n   public boolean mayInteract(Level p_150167_, BlockPos p_150168_) {\n      Entity entity = this.getOwner();\n      if (entity instanceof Player) {\n         return entity.mayInteract(p_150167_, p_150168_);\n      } else {\n         return entity == null || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(p_150167_, entity);\n      }\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ThrowableItemProjectile.java",
+        "sha256": "51b5e1366aa2c4e6de230b27fd2a0c9bdcf524e08d2cac6f2306f48651da537d",
+        "bytes": 2421
+      },
+      "source_total_lines": 64,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/projectile/ThrowableItemProjectile.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            64
+          ],
+          "bytes": 2421,
+          "sha256": "51b5e1366aa2c4e6de230b27fd2a0c9bdcf524e08d2cac6f2306f48651da537d",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\n\npublic abstract class ThrowableItemProjectile extends ThrowableProjectile implements ItemSupplier {\n   private static final EntityDataAccessor<ItemStack> DATA_ITEM_STACK = SynchedEntityData.defineId(ThrowableItemProjectile.class, EntityDataSerializers.ITEM_STACK);\n\n   public ThrowableItemProjectile(EntityType<? extends ThrowableItemProjectile> p_37442_, Level p_37443_) {\n      super(p_37442_, p_37443_);\n   }\n\n   public ThrowableItemProjectile(EntityType<? extends ThrowableItemProjectile> p_37432_, double p_37433_, double p_37434_, double p_37435_, Level p_37436_) {\n      super(p_37432_, p_37433_, p_37434_, p_37435_, p_37436_);\n   }\n\n   public ThrowableItemProjectile(EntityType<? extends ThrowableItemProjectile> p_37438_, LivingEntity p_37439_, Level p_37440_) {\n      super(p_37438_, p_37439_, p_37440_);\n   }\n\n   public void setItem(ItemStack p_37447_) {\n      if (!p_37447_.is(this.getDefaultItem()) || p_37447_.hasTag()) {\n         this.getEntityData().set(DATA_ITEM_STACK, p_37447_.copyWithCount(1));\n      }\n\n   }\n\n   protected abstract Item getDefaultItem();\n\n   protected ItemStack getItemRaw() {\n      return this.getEntityData().get(DATA_ITEM_STACK);\n   }\n\n   public ItemStack getItem() {\n      ItemStack itemstack = this.getItemRaw();\n      return itemstack.isEmpty() ? new ItemStack(this.getDefaultItem()) : itemstack;\n   }\n\n   protected void defineSynchedData() {\n      this.getEntityData().define(DATA_ITEM_STACK, ItemStack.EMPTY);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_37449_) {\n      super.addAdditionalSaveData(p_37449_);\n      ItemStack itemstack = this.getItemRaw();\n      if (!itemstack.isEmpty()) {\n         p_37449_.put(\"Item\", itemstack.save(new CompoundTag()));\n      }\n\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_37445_) {\n      super.readAdditionalSaveData(p_37445_);\n      ItemStack itemstack = ItemStack.of(p_37445_.getCompound(\"Item\"));\n      this.setItem(itemstack);\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ThrowableProjectile.java",
+        "sha256": "f1982b097109a0ae8299c36bc5b7769f6a8fb9587e214ebb610e8366fb3d2ea4",
+        "bytes": 3597
+      },
+      "source_total_lines": 95,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/projectile/ThrowableProjectile.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            95
+          ],
+          "bytes": 3597,
+          "sha256": "f1982b097109a0ae8299c36bc5b7769f6a8fb9587e214ebb610e8366fb3d2ea4",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic abstract class ThrowableProjectile extends Projectile {\n   protected ThrowableProjectile(EntityType<? extends ThrowableProjectile> p_37466_, Level p_37467_) {\n      super(p_37466_, p_37467_);\n   }\n\n   protected ThrowableProjectile(EntityType<? extends ThrowableProjectile> p_37456_, double p_37457_, double p_37458_, double p_37459_, Level p_37460_) {\n      this(p_37456_, p_37460_);\n      this.setPos(p_37457_, p_37458_, p_37459_);\n   }\n\n   protected ThrowableProjectile(EntityType<? extends ThrowableProjectile> p_37462_, LivingEntity p_37463_, Level p_37464_) {\n      this(p_37462_, p_37463_.getX(), p_37463_.getEyeY() - (double)0.1F, p_37463_.getZ(), p_37464_);\n      this.setOwner(p_37463_);\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_37470_) {\n      double d0 = this.getBoundingBox().getSize() * 4.0D;\n      if (Double.isNaN(d0)) {\n         d0 = 4.0D;\n      }\n\n      d0 *= 64.0D;\n      return p_37470_ < d0 * d0;\n   }\n\n   public void tick() {\n      super.tick();\n      HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);\n      boolean flag = false;\n      if (hitresult.getType() == HitResult.Type.BLOCK) {\n         BlockPos blockpos = ((BlockHitResult)hitresult).getBlockPos();\n         BlockState blockstate = this.level().getBlockState(blockpos);\n         if (blockstate.is(Blocks.NETHER_PORTAL)) {\n            this.handleInsidePortal(blockpos);\n            flag = true;\n         } else if (blockstate.is(Blocks.END_GATEWAY)) {\n            BlockEntity blockentity = this.level().getBlockEntity(blockpos);\n            if (blockentity instanceof TheEndGatewayBlockEntity && TheEndGatewayBlockEntity.canEntityTeleport(this)) {\n               TheEndGatewayBlockEntity.teleportEntity(this.level(), blockpos, blockstate, this, (TheEndGatewayBlockEntity)blockentity);\n            }\n\n            flag = true;\n         }\n      }\n\n      if (hitresult.getType() != HitResult.Type.MISS && !flag && !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) {\n         this.onHit(hitresult);\n      }\n\n      this.checkInsideBlocks();\n      Vec3 vec3 = this.getDeltaMovement();\n      double d2 = this.getX() + vec3.x;\n      double d0 = this.getY() + vec3.y;\n      double d1 = this.getZ() + vec3.z;\n      this.updateRotation();\n      float f;\n      if (this.isInWater()) {\n         for(int i = 0; i < 4; ++i) {\n            float f1 = 0.25F;\n            this.level().addParticle(ParticleTypes.BUBBLE, d2 - vec3.x * 0.25D, d0 - vec3.y * 0.25D, d1 - vec3.z * 0.25D, vec3.x, vec3.y, vec3.z);\n         }\n\n         f = 0.8F;\n      } else {\n         f = 0.99F;\n      }\n\n      this.setDeltaMovement(vec3.scale((double)f));\n      if (!this.isNoGravity()) {\n         Vec3 vec31 = this.getDeltaMovement();\n         this.setDeltaMovement(vec31.x, vec31.y - (double)this.getGravity(), vec31.z);\n      }\n\n      this.setPos(d2, d0, d1);\n   }\n\n   protected float getGravity() {\n      return 0.03F;\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/ProjectileImpactEvent.java",
+        "sha256": "3d523f4271309527065f36780d67ca98fe9c16737e8ed725881ecdf79fef0712",
+        "bytes": 2871
+      },
+      "source_total_lines": 92,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraftforge/event/entity/ProjectileImpactEvent.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            92
+          ],
+          "bytes": 2871,
+          "sha256": "3d523f4271309527065f36780d67ca98fe9c16737e8ed725881ecdf79fef0712",
+          "raw_utf8_keepends": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.event.ForgeEventFactory;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport org.jetbrains.annotations.NotNull;\n\nimport java.util.Objects;\n\n/**\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n * This event is fired when a projectile entity impacts something.<br>\n * This event is fired via {@link ForgeEventFactory#onProjectileImpact(Projectile, HitResult)}\n * This event is fired for all vanilla projectiles by Forge,\n * custom projectiles should fire this event and check the result in a similar fashion.\n * This event is cancelable. When canceled, the impact will not be processed and the projectile will continue flying.\n * Killing or other handling of the entity after event cancellation is up to the modder.\n * You can also directly set the {@link ImpactResult} to change the impact behaviour.\n * @see #setImpactResult(ImpactResult)\n */\n@Cancelable\npublic class ProjectileImpactEvent extends EntityEvent\n{\n    private final HitResult ray;\n    private final Projectile projectile;\n\n    private ImpactResult result = ImpactResult.DEFAULT;\n\n    public ProjectileImpactEvent(Projectile projectile, HitResult ray)\n    {\n        super(projectile);\n        this.ray = ray;\n        this.projectile = projectile;\n    }\n\n    /**\n     * {@inheritDoc}\n     * @deprecated Use {@link #setImpactResult(ImpactResult)} instead.\n     */\n    @Deprecated(forRemoval = true, since = \"1.20.1\")\n    public void setCanceled(boolean cancel)\n    {\n        super.setCanceled(cancel);\n    }\n\n    public HitResult getRayTraceResult()\n    {\n        return ray;\n    }\n\n    public Projectile getProjectile()\n    {\n        return projectile;\n    }\n\n    public void setImpactResult(@NotNull ImpactResult newResult)\n    {\n        this.result = Objects.requireNonNull(newResult, \"ImpactResult cannot be null\");\n    }\n\n    public ImpactResult getImpactResult()\n    {\n        return result;\n    }\n\n    public enum ImpactResult\n    {\n        /**\n         * The default behaviour, the projectile will be destroyed and the hit will be processed.\n         */\n        DEFAULT,\n        /**\n         * The projectile will pass through the current entity as if it wasn't there. This will return default behaviour if there is no entity.\n         */\n        SKIP_ENTITY,\n        /**\n         * Damage the entity and stop the projectile here, the projectile will not pierce.\n         */\n        STOP_AT_CURRENT,\n        /**\n         * Cancel the piercing aspect of the projectile, and do not damage the entity.\n         */\n        STOP_AT_CURRENT_NO_DAMAGE\n    }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/network/protocol/game/ClientboundPlayerPositionPacket.java",
+        "sha256": "97c150b33a9ee6b926e8da33952dd61d32cb2b4f0e63d29c7b320be7e57ec91f",
+        "bytes": 2210
+      },
+      "source_total_lines": 78,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/network/protocol/game/ClientboundPlayerPositionPacket.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            78
+          ],
+          "bytes": 2210,
+          "sha256": "97c150b33a9ee6b926e8da33952dd61d32cb2b4f0e63d29c7b320be7e57ec91f",
+          "raw_utf8_keepends": "package net.minecraft.network.protocol.game;\n\nimport java.util.Set;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.protocol.Packet;\nimport net.minecraft.world.entity.RelativeMovement;\n\npublic class ClientboundPlayerPositionPacket implements Packet<ClientGamePacketListener> {\n   private final double x;\n   private final double y;\n   private final double z;\n   private final float yRot;\n   private final float xRot;\n   private final Set<RelativeMovement> relativeArguments;\n   private final int id;\n\n   public ClientboundPlayerPositionPacket(double p_275438_, double p_275354_, double p_275276_, float p_275280_, float p_275203_, Set<RelativeMovement> p_275228_, int p_275614_) {\n      this.x = p_275438_;\n      this.y = p_275354_;\n      this.z = p_275276_;\n      this.yRot = p_275280_;\n      this.xRot = p_275203_;\n      this.relativeArguments = p_275228_;\n      this.id = p_275614_;\n   }\n\n   public ClientboundPlayerPositionPacket(FriendlyByteBuf p_179158_) {\n      this.x = p_179158_.readDouble();\n      this.y = p_179158_.readDouble();\n      this.z = p_179158_.readDouble();\n      this.yRot = p_179158_.readFloat();\n      this.xRot = p_179158_.readFloat();\n      this.relativeArguments = RelativeMovement.unpack(p_179158_.readUnsignedByte());\n      this.id = p_179158_.readVarInt();\n   }\n\n   public void write(FriendlyByteBuf p_132820_) {\n      p_132820_.writeDouble(this.x);\n      p_132820_.writeDouble(this.y);\n      p_132820_.writeDouble(this.z);\n      p_132820_.writeFloat(this.yRot);\n      p_132820_.writeFloat(this.xRot);\n      p_132820_.writeByte(RelativeMovement.pack(this.relativeArguments));\n      p_132820_.writeVarInt(this.id);\n   }\n\n   public void handle(ClientGamePacketListener p_132817_) {\n      p_132817_.handleMovePlayer(this);\n   }\n\n   public double getX() {\n      return this.x;\n   }\n\n   public double getY() {\n      return this.y;\n   }\n\n   public double getZ() {\n      return this.z;\n   }\n\n   public float getYRot() {\n      return this.yRot;\n   }\n\n   public float getXRot() {\n      return this.xRot;\n   }\n\n   public int getId() {\n      return this.id;\n   }\n\n   public Set<RelativeMovement> getRelativeArguments() {\n      return this.relativeArguments;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.java",
+        "sha256": "6a6603167dabe5c00175d9360775ca554d303d7e44fe6a58a3a0fc018d8dbfef",
+        "bytes": 742
+      },
+      "source_total_lines": 28,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            28
+          ],
+          "bytes": 742,
+          "sha256": "6a6603167dabe5c00175d9360775ca554d303d7e44fe6a58a3a0fc018d8dbfef",
+          "raw_utf8_keepends": "package net.minecraft.network.protocol.game;\n\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.protocol.Packet;\n\npublic class ServerboundAcceptTeleportationPacket implements Packet<ServerGamePacketListener> {\n   private final int id;\n\n   public ServerboundAcceptTeleportationPacket(int p_133788_) {\n      this.id = p_133788_;\n   }\n\n   public ServerboundAcceptTeleportationPacket(FriendlyByteBuf p_179538_) {\n      this.id = p_179538_.readVarInt();\n   }\n\n   public void write(FriendlyByteBuf p_133797_) {\n      p_133797_.writeVarInt(this.id);\n   }\n\n   public void handle(ServerGamePacketListener p_133794_) {\n      p_133794_.handleAcceptTeleportPacket(this);\n   }\n\n   public int getId() {\n      return this.id;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/RelativeMovement.java",
+        "sha256": "81382efc3f5d1d67363150cdcd9af522a82e3fc46c83b45ddfe0ef85848a642b",
+        "bytes": 1134
+      },
+      "source_total_lines": 50,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/RelativeMovement.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            50
+          ],
+          "bytes": 1134,
+          "sha256": "81382efc3f5d1d67363150cdcd9af522a82e3fc46c83b45ddfe0ef85848a642b",
+          "raw_utf8_keepends": "package net.minecraft.world.entity;\n\nimport java.util.EnumSet;\nimport java.util.Set;\n\npublic enum RelativeMovement {\n   X(0),\n   Y(1),\n   Z(2),\n   Y_ROT(3),\n   X_ROT(4);\n\n   public static final Set<RelativeMovement> ALL = Set.of(values());\n   public static final Set<RelativeMovement> ROTATION = Set.of(X_ROT, Y_ROT);\n   private final int bit;\n\n   private RelativeMovement(int p_265098_) {\n      this.bit = p_265098_;\n   }\n\n   private int getMask() {\n      return 1 << this.bit;\n   }\n\n   private boolean isSet(int p_265420_) {\n      return (p_265420_ & this.getMask()) == this.getMask();\n   }\n\n   public static Set<RelativeMovement> unpack(int p_265683_) {\n      Set<RelativeMovement> set = EnumSet.noneOf(RelativeMovement.class);\n\n      for(RelativeMovement relativemovement : values()) {\n         if (relativemovement.isSet(p_265683_)) {\n            set.add(relativemovement);\n         }\n      }\n\n      return set;\n   }\n\n   public static int pack(Set<RelativeMovement> p_265525_) {\n      int i = 0;\n\n      for(RelativeMovement relativemovement : p_265525_) {\n         i |= relativemovement.getMask();\n      }\n\n      return i;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/common/util/ITeleporter.java",
+        "sha256": "096010c2b339b7fee2a2a9091d9cb135944d528eacb9eaedebb7b513b8d92a02",
+        "bytes": 3846
+      },
+      "source_total_lines": 92,
+      "whole_file_actually_read": true,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraftforge/common/util/ITeleporter.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            92
+          ],
+          "bytes": 3846,
+          "sha256": "096010c2b339b7fee2a2a9091d9cb135944d528eacb9eaedebb7b513b8d92a02",
+          "raw_utf8_keepends": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.common.util;\n\nimport java.util.function.Function;\n\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.portal.PortalInfo;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraft.world.level.portal.PortalForcer;\nimport net.minecraft.server.level.ServerLevel;\nimport org.jetbrains.annotations.Nullable;\n\n/**\n * Interface for handling the placement of entities during dimension change.\n * <p>\n * An implementation of this interface can be used to place the entity\n * in a safe location, or generate a return portal, for instance.\n * <p>\n * See the {@link PortalForcer} class, which has\n * been patched to implement this interface, for a vanilla example.\n */\npublic interface ITeleporter\n{\n    /**\n     * Called to handle placing the entity in the new world.\n     * <p>\n     * The initial position of the entity will be its\n     * position in the origin world, multiplied horizontally\n     * by the computed cross-dimensional movement factor.\n     * <p>\n     * Note that the supplied entity has not yet been spawned\n     * in the destination world at the time.\n     *\n     * @param entity the entity to be placed\n     * @param currentWorld the entity's origin\n     * @param destWorld the entity's destination\n     * @param yaw the suggested yaw value to apply\n     * @param repositionEntity a function to reposition the entity, which returns the new entity in the new dimension. This is the vanilla implementation of the dimension travel logic. If the supplied boolean is true, it is attempted to spawn a new portal.\n     *\n     * @return the entity in the new World. Vanilla creates for most {@link Entity}s a new instance and copy the data. But <b>you are not allowed</b> to create a new instance for {@link Player}s! Move the player and update its state, see {@link ServerPlayer#changeDimension(ServerLevel, ITeleporter)}\n     */\n    default Entity placeEntity(Entity entity, ServerLevel currentWorld, ServerLevel destWorld, float yaw, Function<Boolean, Entity> repositionEntity)\n    {\n        return repositionEntity.apply(true);\n    }\n\n    /**\n     * Gets the PortalInfo. defaultPortalInfo references the\n     * vanilla code and should not be used for your purposes.\n     * Override this method to handle your own logic.\n     * <p>\n     * Return {@code null} to prevent teleporting.\n     *\n     * @param entity The entity teleporting before the teleport\n     * @param destWorld The world the entity is teleporting to\n     * @param defaultPortalInfo A reference to the vanilla method for getting portal info. You should implement your own logic instead of using this\n     *\n     * @return The location, rotation, and motion of the entity in the destWorld after the teleport\n     */\n    @Nullable\n    default PortalInfo getPortalInfo(Entity entity, ServerLevel destWorld, Function<ServerLevel, PortalInfo> defaultPortalInfo)\n    {\n        return this.isVanilla() ? defaultPortalInfo.apply(destWorld) : new PortalInfo(entity.position(), Vec3.ZERO, entity.getYRot(), entity.getXRot());\n    }\n\n    /**\n     * Is this teleporter the vanilla instance.\n     */\n    default boolean isVanilla()\n    {\n        return this.getClass() == PortalForcer.class;\n    }\n\n    /**\n     * Called when vanilla wants to play the portal sound after teleporting. Return true to play the vanilla sound.\n     * @param player the player\n     * @param sourceWorld the source world\n     * @param destWorld the target world\n     * @return true to play the vanilla sound\n     */\n    default boolean playTeleportSound(ServerPlayer player, ServerLevel sourceWorld, ServerLevel destWorld)\n    {\n        return true;\n    }\n\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+        "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+        "bytes": 46418
+      },
+      "source_total_lines": 997,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraftforge/event/ForgeEventFactory.java",
+      "evidence": [
+        {
+          "lines": [
+            672,
+            711
+          ],
+          "bytes": 2007,
+          "sha256": "450f4206cc762d97443aec06702b4afbd1efe50feeb08429a3147402d608f90f",
+          "raw_utf8_keepends": "    public static ProjectileImpactEvent.ImpactResult onProjectileImpactResult(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return ProjectileImpactEvent.ImpactResult.SKIP_ENTITY;\n\n        return event.getImpactResult();\n    }\n\n    /**\n     * This sister method exists due to an oversight in the original introduction of adding\n     * {@link ProjectileImpactEvent.ImpactResult ImpactResult} to {@link ProjectileImpactEvent}. Prior to its addition,\n     * the cancelling of this event would call <i>all</i> behavior within the if-clause of the while loop to stop and\n     * then break out of the loop early. When the result was added, the default cancellation was changed to\n     * {@link ProjectileImpactEvent.ImpactResult#SKIP_ENTITY}, breaking the ability to use\n     * {@link Event#setCanceled(boolean)} to actually cancel the event logic.\n     * <p>\n     * While not entirely ideal, this preserves compatibility with older 1.20.1 mods that rely on the cancellation of\n     * the projectile impact event.\n     *\n     * @return The result of the event, or {@code null} if it was cancelled.\n     * @see <a href=\"https://github.com/MinecraftForge/MinecraftForge/pull/10481\">PR #10481</a>\n     */\n    public static @Nullable ProjectileImpactEvent.ImpactResult onProjectileImpactResultNullable(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return null;\n\n        return event.getImpactResult();\n    }\n\n    public static boolean onProjectileImpact(Projectile projectile, HitResult ray)\n    {\n        return onProjectileImpactResult(projectile, ray) != ProjectileImpactEvent.ImpactResult.DEFAULT;\n    }\n"
+        },
+        {
+          "lines": [
+            867,
+            873
+          ],
+          "bytes": 466,
+          "sha256": "6dac1763d8f2eeb37d042b7e656f93a187dd706bce4775e226a9c994260bc04b",
+          "raw_utf8_keepends": "    @ApiStatus.Internal\n    public static EntityTeleportEvent.EnderPearl onEnderPearlLand(ServerPlayer entity, double targetX, double targetY, double targetZ, ThrownEnderpearl pearlEntity, float attackDamage, HitResult hitResult)\n    {\n        EntityTeleportEvent.EnderPearl event = new EntityTeleportEvent.EnderPearl(entity, targetX, targetY, targetZ, pearlEntity, attackDamage, hitResult);\n        MinecraftForge.EVENT_BUS.post(event);\n        return event;\n    }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/EntityTeleportEvent.java",
+        "sha256": "d3d36cdad413fddee4739d379ee0baceb6cb1b98c9ec16be97dc3ea735512f32",
+        "bytes": 7916
+      },
+      "source_total_lines": 225,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "evidence": [
+        {
+          "lines": [
+            1,
+            55
+          ],
+          "bytes": 2246,
+          "sha256": "780c7265935ae63729107267ad00f17a0a4b24e817e615c8803738209c741f66",
+          "raw_utf8_keepends": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.projectile.ThrownEnderpearl;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport net.minecraftforge.eventbus.api.Event;\nimport net.minecraftforge.fml.LogicalSide;\nimport org.jetbrains.annotations.ApiStatus;\nimport org.jetbrains.annotations.Nullable;\n\n/**\n * EntityTeleportEvent is fired when an event involving any teleportation of an Entity occurs.<br>\n * If a method utilizes this {@link Event} as its parameter, the method will\n * receive every child event of this class.<br>\n * <br>\n * {@link #getTarget()} contains the target destination.<br>\n * {@link #getPrev()} contains the entity's current position.<br>\n * <br>\n * All children of this event are fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n **/\n@Cancelable\npublic class EntityTeleportEvent extends EntityEvent\n{\n    protected double targetX;\n    protected double targetY;\n    protected double targetZ;\n\n    public EntityTeleportEvent(Entity entity, double targetX, double targetY, double targetZ) {\n        super(entity);\n        this.targetX = targetX;\n        this.targetY = targetY;\n        this.targetZ = targetZ;\n    }\n\n    public double getTargetX() { return targetX; }\n    public void setTargetX(double targetX) { this.targetX = targetX; }\n    public double getTargetY() { return targetY; }\n    public void setTargetY(double targetY) { this.targetY = targetY; }\n    public double getTargetZ() { return targetZ; }\n    public void setTargetZ(double targetZ) { this.targetZ = targetZ; }\n    public Vec3 getTarget() { return new Vec3(this.targetX, this.targetY, this.targetZ); }\n    public double getPrevX() { return getEntity().getX(); }\n    public double getPrevY() { return getEntity().getY(); }\n    public double getPrevZ() { return getEntity().getZ(); }\n    public Vec3 getPrev() { return getEntity().position(); }\n"
+        },
+        {
+          "lines": [
+            136,
+            193
+          ],
+          "bytes": 1792,
+          "sha256": "1b4d6d2ad0a6288b4667e1471ba45e7b2926c794ca2d96c1501c08a35d7f1672",
+          "raw_utf8_keepends": "    /**\n     * EntityTeleportEvent.EnderPearl is fired before an Entity is teleported from an EnderPearlEntity.\n     * <br>\n     * This event is {@link Cancelable}.<br>\n     * If the event is not canceled, the entity will be teleported.\n     * <br>\n     * This event does not have a result. {@link HasResult}<br>\n     * <br>\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n     * <br>\n     * This event is only fired on the {@link LogicalSide#SERVER} side.<br>\n     * <br>\n     * If this event is canceled, the entity will not be teleported.\n     */\n    @Cancelable\n    public static class EnderPearl extends EntityTeleportEvent\n    {\n        private final ServerPlayer player;\n        private final ThrownEnderpearl pearlEntity;\n        private float attackDamage;\n        private final HitResult hitResult;\n\n        @ApiStatus.Internal\n        public EnderPearl(ServerPlayer entity, double targetX, double targetY, double targetZ, ThrownEnderpearl pearlEntity, float attackDamage, HitResult hitResult)\n        {\n            super(entity, targetX, targetY, targetZ);\n            this.pearlEntity = pearlEntity;\n            this.player = entity;\n            this.attackDamage = attackDamage;\n            this.hitResult = hitResult;\n        }\n\n        public ThrownEnderpearl getPearlEntity()\n        {\n            return pearlEntity;\n        }\n\n        public ServerPlayer getPlayer()\n        {\n            return player;\n        }\n\n        @Nullable\n        public HitResult getHitResult()\n        {\n            return this.hitResult;\n        }\n\n        public float getAttackDamage()\n        {\n            return attackDamage;\n        }\n\n        public void setAttackDamage(float attackDamage)\n        {\n            this.attackDamage = attackDamage;\n        }\n    }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "source_total_lines": 3566,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/Entity.java",
+      "evidence": [
+        {
+          "lines": [
+            331,
+            333
+          ],
+          "bytes": 89,
+          "sha256": "ade4809d60e859037c6bfbb399944e86fa1f72281e29b59b6549d3b29c689898",
+          "raw_utf8_keepends": "   public final void discard() {\n      this.remove(Entity.RemovalReason.DISCARDED);\n   }\n"
+        },
+        {
+          "lines": [
+            1598,
+            1767
+          ],
+          "bytes": 7314,
+          "sha256": "ea0fbea975e21a760552de1597ee1765bc164651dd8574c98b5661289bb4b59b",
+          "raw_utf8_keepends": "   public CompoundTag saveWithoutId(CompoundTag p_20241_) {\n      try {\n         if (this.vehicle != null) {\n            p_20241_.put(\"Pos\", this.newDoubleList(this.vehicle.getX(), this.getY(), this.vehicle.getZ()));\n         } else {\n            p_20241_.put(\"Pos\", this.newDoubleList(this.getX(), this.getY(), this.getZ()));\n         }\n\n         Vec3 vec3 = this.getDeltaMovement();\n         p_20241_.put(\"Motion\", this.newDoubleList(vec3.x, vec3.y, vec3.z));\n         p_20241_.put(\"Rotation\", this.newFloatList(this.getYRot(), this.getXRot()));\n         p_20241_.putFloat(\"FallDistance\", this.fallDistance);\n         p_20241_.putShort(\"Fire\", (short)this.remainingFireTicks);\n         p_20241_.putShort(\"Air\", (short)this.getAirSupply());\n         p_20241_.putBoolean(\"OnGround\", this.onGround());\n         p_20241_.putBoolean(\"Invulnerable\", this.invulnerable);\n         p_20241_.putInt(\"PortalCooldown\", this.portalCooldown);\n         p_20241_.putUUID(\"UUID\", this.getUUID());\n         Component component = this.getCustomName();\n         if (component != null) {\n            p_20241_.putString(\"CustomName\", Component.Serializer.toJson(component));\n         }\n\n         if (this.isCustomNameVisible()) {\n            p_20241_.putBoolean(\"CustomNameVisible\", this.isCustomNameVisible());\n         }\n\n         if (this.isSilent()) {\n            p_20241_.putBoolean(\"Silent\", this.isSilent());\n         }\n\n         if (this.isNoGravity()) {\n            p_20241_.putBoolean(\"NoGravity\", this.isNoGravity());\n         }\n\n         if (this.hasGlowingTag) {\n            p_20241_.putBoolean(\"Glowing\", true);\n         }\n\n         int i = this.getTicksFrozen();\n         if (i > 0) {\n            p_20241_.putInt(\"TicksFrozen\", this.getTicksFrozen());\n         }\n\n         if (this.hasVisualFire) {\n            p_20241_.putBoolean(\"HasVisualFire\", this.hasVisualFire);\n         }\n\n         p_20241_.putBoolean(\"CanUpdate\", canUpdate);\n\n         if (!this.tags.isEmpty()) {\n            ListTag listtag = new ListTag();\n\n            for(String s : this.tags) {\n               listtag.add(StringTag.valueOf(s));\n            }\n\n            p_20241_.put(\"Tags\", listtag);\n         }\n\n         CompoundTag caps = serializeCaps();\n         if (caps != null) p_20241_.put(\"ForgeCaps\", caps);\n         if (persistentData != null) p_20241_.put(\"ForgeData\", persistentData.copy());\n\n         this.addAdditionalSaveData(p_20241_);\n         if (this.isVehicle()) {\n            ListTag listtag1 = new ListTag();\n\n            for(Entity entity : this.getPassengers()) {\n               CompoundTag compoundtag = new CompoundTag();\n               if (entity.saveAsPassenger(compoundtag)) {\n                  listtag1.add(compoundtag);\n               }\n            }\n\n            if (!listtag1.isEmpty()) {\n               p_20241_.put(\"Passengers\", listtag1);\n            }\n         }\n\n         return p_20241_;\n      } catch (Throwable throwable) {\n         CrashReport crashreport = CrashReport.forThrowable(throwable, \"Saving entity NBT\");\n         CrashReportCategory crashreportcategory = crashreport.addCategory(\"Entity being saved\");\n         this.fillCrashReportCategory(crashreportcategory);\n         throw new ReportedException(crashreport);\n      }\n   }\n\n   public void load(CompoundTag p_20259_) {\n      try {\n         ListTag listtag = p_20259_.getList(\"Pos\", 6);\n         ListTag listtag1 = p_20259_.getList(\"Motion\", 6);\n         ListTag listtag2 = p_20259_.getList(\"Rotation\", 5);\n         double d0 = listtag1.getDouble(0);\n         double d1 = listtag1.getDouble(1);\n         double d2 = listtag1.getDouble(2);\n         this.setDeltaMovement(Math.abs(d0) > 10.0D ? 0.0D : d0, Math.abs(d1) > 10.0D ? 0.0D : d1, Math.abs(d2) > 10.0D ? 0.0D : d2);\n         double d3 = 3.0000512E7D;\n         this.setPosRaw(Mth.clamp(listtag.getDouble(0), -3.0000512E7D, 3.0000512E7D), Mth.clamp(listtag.getDouble(1), -2.0E7D, 2.0E7D), Mth.clamp(listtag.getDouble(2), -3.0000512E7D, 3.0000512E7D));\n         this.setYRot(listtag2.getFloat(0));\n         this.setXRot(listtag2.getFloat(1));\n         this.setOldPosAndRot();\n         this.setYHeadRot(this.getYRot());\n         this.setYBodyRot(this.getYRot());\n         this.fallDistance = p_20259_.getFloat(\"FallDistance\");\n         this.remainingFireTicks = p_20259_.getShort(\"Fire\");\n         if (p_20259_.contains(\"Air\")) {\n            this.setAirSupply(p_20259_.getShort(\"Air\"));\n         }\n\n         this.onGround = p_20259_.getBoolean(\"OnGround\");\n         this.invulnerable = p_20259_.getBoolean(\"Invulnerable\");\n         this.portalCooldown = p_20259_.getInt(\"PortalCooldown\");\n         if (p_20259_.hasUUID(\"UUID\")) {\n            this.uuid = p_20259_.getUUID(\"UUID\");\n            this.stringUUID = this.uuid.toString();\n         }\n\n         if (Double.isFinite(this.getX()) && Double.isFinite(this.getY()) && Double.isFinite(this.getZ())) {\n            if (Double.isFinite((double)this.getYRot()) && Double.isFinite((double)this.getXRot())) {\n               this.reapplyPosition();\n               this.setRot(this.getYRot(), this.getXRot());\n               if (p_20259_.contains(\"CustomName\", 8)) {\n                  String s = p_20259_.getString(\"CustomName\");\n\n                  try {\n                     this.setCustomName(Component.Serializer.fromJson(s));\n                  } catch (Exception exception) {\n                     LOGGER.warn(\"Failed to parse entity custom name {}\", s, exception);\n                  }\n               }\n\n               this.setCustomNameVisible(p_20259_.getBoolean(\"CustomNameVisible\"));\n               this.setSilent(p_20259_.getBoolean(\"Silent\"));\n               this.setNoGravity(p_20259_.getBoolean(\"NoGravity\"));\n               this.setGlowingTag(p_20259_.getBoolean(\"Glowing\"));\n               this.setTicksFrozen(p_20259_.getInt(\"TicksFrozen\"));\n               this.hasVisualFire = p_20259_.getBoolean(\"HasVisualFire\");\n               if (p_20259_.contains(\"ForgeData\", 10)) persistentData = p_20259_.getCompound(\"ForgeData\");\n               if (p_20259_.contains(\"CanUpdate\", 99)) this.canUpdate(p_20259_.getBoolean(\"CanUpdate\"));\n               if (p_20259_.contains(\"ForgeCaps\", 10)) deserializeCaps(p_20259_.getCompound(\"ForgeCaps\"));\n               if (p_20259_.contains(\"Tags\", 9)) {\n                  this.tags.clear();\n                  ListTag listtag3 = p_20259_.getList(\"Tags\", 8);\n                  int i = Math.min(listtag3.size(), 1024);\n\n                  for(int j = 0; j < i; ++j) {\n                     this.tags.add(listtag3.getString(j));\n                  }\n               }\n\n               this.readAdditionalSaveData(p_20259_);\n               if (this.repositionEntityAfterLoad()) {\n                  this.reapplyPosition();\n               }\n\n            } else {\n               throw new IllegalStateException(\"Entity has invalid rotation\");\n            }\n         } else {\n            throw new IllegalStateException(\"Entity has invalid position\");\n         }\n      } catch (Throwable throwable) {\n         CrashReport crashreport = CrashReport.forThrowable(throwable, \"Loading entity NBT\");\n         CrashReportCategory crashreportcategory = crashreport.addCategory(\"Entity being loaded\");\n         this.fillCrashReportCategory(crashreportcategory);\n         throw new ReportedException(crashreport);\n      }\n   }\n"
+        },
+        {
+          "lines": [
+            2339,
+            2341
+          ],
+          "bytes": 74,
+          "sha256": "9f72a54f62e6ac178b270dd4b84d444e1ea66e6379101e173ae02fe92368ca33",
+          "raw_utf8_keepends": "   public void resetFallDistance() {\n      this.fallDistance = 0.0F;\n   }\n"
+        },
+        {
+          "lines": [
+            2442,
+            2494
+          ],
+          "bytes": 2366,
+          "sha256": "bfd501460909cb67fb8aa206d017e86fe16cf20de4d8db146f737521873bff8d",
+          "raw_utf8_keepends": "   public void restoreFrom(Entity p_20362_) {\n      CompoundTag compoundtag = p_20362_.saveWithoutId(new CompoundTag());\n      compoundtag.remove(\"Dimension\");\n      this.load(compoundtag);\n      this.portalCooldown = p_20362_.portalCooldown;\n      this.portalEntrancePos = p_20362_.portalEntrancePos;\n   }\n\n   @Nullable\n   public Entity changeDimension(ServerLevel p_20118_) {\n      return this.changeDimension(p_20118_, p_20118_.getPortalForcer());\n   }\n   @Nullable\n   public Entity changeDimension(ServerLevel p_20118_, net.minecraftforge.common.util.ITeleporter teleporter) {\n      if (!net.minecraftforge.common.ForgeHooks.onTravelToDimension(this, p_20118_.dimension())) return null;\n      if (this.level() instanceof ServerLevel && !this.isRemoved()) {\n         this.level().getProfiler().push(\"changeDimension\");\n         this.unRide();\n         this.level().getProfiler().push(\"reposition\");\n         PortalInfo portalinfo = teleporter.getPortalInfo(this, p_20118_, this::findDimensionEntryPoint);\n         if (portalinfo == null) {\n            return null;\n         } else {\n            Entity transportedEntity = teleporter.placeEntity(this, (ServerLevel) this.level, p_20118_, this.yRot, spawnPortal -> { //Forge: Start vanilla logic\n            this.level().getProfiler().popPush(\"reloading\");\n            Entity entity = this.getType().create(p_20118_);\n            if (entity != null) {\n               entity.restoreFrom(this);\n               entity.moveTo(portalinfo.pos.x, portalinfo.pos.y, portalinfo.pos.z, portalinfo.yRot, entity.getXRot());\n               entity.setDeltaMovement(portalinfo.speed);\n               p_20118_.addDuringTeleport(entity);\n               if (spawnPortal && p_20118_.dimension() == Level.END) {\n                  ServerLevel.makeObsidianPlatform(p_20118_);\n               }\n            }\n            return entity;\n            }); //Forge: End vanilla logic\n\n            this.removeAfterChangingDimensions();\n            this.level().getProfiler().pop();\n            ((ServerLevel)this.level()).resetEmptyTime();\n            p_20118_.resetEmptyTime();\n            this.level().getProfiler().pop();\n            return transportedEntity;\n         }\n      } else {\n         return null;\n      }\n   }\n\n   protected void removeAfterChangingDimensions() {\n      this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION);\n   }\n"
+        },
+        {
+          "lines": [
+            2679,
+            2697
+          ],
+          "bytes": 645,
+          "sha256": "fb42c49d3c85d10ecf1dd1dc6ab65d9fd1a5b14c73539472923c1079baebd343",
+          "raw_utf8_keepends": "   public void dismountTo(double p_146825_, double p_146826_, double p_146827_) {\n      this.teleportTo(p_146825_, p_146826_, p_146827_);\n   }\n\n   public void teleportTo(double p_19887_, double p_19888_, double p_19889_) {\n      if (this.level() instanceof ServerLevel) {\n         this.moveTo(p_19887_, p_19888_, p_19889_, this.getYRot(), this.getXRot());\n         this.teleportPassengers();\n      }\n   }\n\n   private void teleportPassengers() {\n      this.getSelfAndPassengers().forEach((p_185977_) -> {\n         for(Entity entity : p_185977_.passengers) {\n            p_185977_.positionRider(entity, Entity::moveTo);\n         }\n\n      });\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerPlayer.java",
+        "sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+        "bytes": 73789
+      },
+      "source_total_lines": 1745,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/server/level/ServerPlayer.java",
+      "evidence": [
+        {
+          "lines": [
+            668,
+            706
+          ],
+          "bytes": 1376,
+          "sha256": "598118136e060845970acddab861f359df044318dd7c9bcd81c91c1ebce1e4ab",
+          "raw_utf8_keepends": "   public boolean hurt(DamageSource p_9037_, float p_9038_) {\n      if (this.isInvulnerableTo(p_9037_)) {\n         return false;\n      } else {\n         boolean flag = this.server.isDedicatedServer() && this.isPvpAllowed() && p_9037_.is(DamageTypeTags.IS_FALL);\n         if (!flag && this.spawnInvulnerableTime > 0 && !p_9037_.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {\n            return false;\n         } else {\n            Entity entity = p_9037_.getEntity();\n            if (entity instanceof Player) {\n               Player player = (Player)entity;\n               if (!this.canHarmPlayer(player)) {\n                  return false;\n               }\n            }\n\n            if (entity instanceof AbstractArrow) {\n               AbstractArrow abstractarrow = (AbstractArrow)entity;\n               Entity entity1 = abstractarrow.getOwner();\n               if (entity1 instanceof Player) {\n                  Player player1 = (Player)entity1;\n                  if (!this.canHarmPlayer(player1)) {\n                     return false;\n                  }\n               }\n            }\n\n            return super.hurt(p_9037_, p_9038_);\n         }\n      }\n   }\n\n   public boolean canHarmPlayer(Player p_9064_) {\n      return !this.isPvpAllowed() ? false : super.canHarmPlayer(p_9064_);\n   }\n\n   private boolean isPvpAllowed() {\n      return this.server.isPvpAllowed();\n   }\n"
+        },
+        {
+          "lines": [
+            918,
+            925
+          ],
+          "bytes": 308,
+          "sha256": "669fa350521b9287f76346cc24459dcc561868069673d22dd98f6b477a3773b9",
+          "raw_utf8_keepends": "   public void dismountTo(double p_143389_, double p_143390_, double p_143391_) {\n      this.removeVehicle();\n      this.setPos(p_143389_, p_143390_, p_143391_);\n   }\n\n   public boolean isInvulnerableTo(DamageSource p_9182_) {\n      return super.isInvulnerableTo(p_9182_) || this.isChangingDimension();\n   }\n"
+        },
+        {
+          "lines": [
+            1191,
+            1193
+          ],
+          "bytes": 199,
+          "sha256": "7883b89051ff0525e578c5ea90f8779d8ef79962099722273b8e2e872f9fcbe6",
+          "raw_utf8_keepends": "   public void teleportTo(double p_8969_, double p_8970_, double p_8971_) {\n      this.connection.teleport(p_8969_, p_8970_, p_8971_, this.getYRot(), this.getXRot(), RelativeMovement.ROTATION);\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/network/ServerGamePacketListenerImpl.java",
+        "sha256": "e33f2a3082a3c949ac458b2c5d93133f7777399c0712c12493c458b2d9a2c3e1",
+        "bytes": 86494
+      },
+      "source_total_lines": 1742,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/server/network/ServerGamePacketListenerImpl.java",
+      "evidence": [
+        {
+          "lines": [
+            338,
+            340
+          ],
+          "bytes": 91,
+          "sha256": "e45f2f135f43842bf3e1022f1c481125780ac297bf855f3869133ad0a30703cc",
+          "raw_utf8_keepends": "   public boolean isAcceptingMessages() {\n      return this.connection.isConnected();\n   }\n"
+        },
+        {
+          "lines": [
+            467,
+            486
+          ],
+          "bytes": 960,
+          "sha256": "5c0dac1ea340f09e068c61c589ee2c24dd3b2239a7570faac9fdf38f28a109fb",
+          "raw_utf8_keepends": "   public void handleAcceptTeleportPacket(ServerboundAcceptTeleportationPacket p_9835_) {\n      PacketUtils.ensureRunningOnSameThread(p_9835_, this, this.player.serverLevel());\n      if (p_9835_.getId() == this.awaitingTeleport) {\n         if (this.awaitingPositionFromClient == null) {\n            this.disconnect(Component.translatable(\"multiplayer.disconnect.invalid_player_movement\"));\n            return;\n         }\n\n         this.player.absMoveTo(this.awaitingPositionFromClient.x, this.awaitingPositionFromClient.y, this.awaitingPositionFromClient.z, this.player.getYRot(), this.player.getXRot());\n         this.lastGoodX = this.awaitingPositionFromClient.x;\n         this.lastGoodY = this.awaitingPositionFromClient.y;\n         this.lastGoodZ = this.awaitingPositionFromClient.z;\n         if (this.player.isChangingDimension()) {\n            this.player.hasChangedDimension();\n         }\n\n         this.awaitingPositionFromClient = null;\n      }\n\n   }\n"
+        },
+        {
+          "lines": [
+            963,
+            981
+          ],
+          "bytes": 1248,
+          "sha256": "b67249eb2d6cfd4319db2f067ed4087d29e9c1d6824047573cae7f741fc8fc66",
+          "raw_utf8_keepends": "   public void teleport(double p_9775_, double p_9776_, double p_9777_, float p_9778_, float p_9779_) {\n      this.teleport(p_9775_, p_9776_, p_9777_, p_9778_, p_9779_, Collections.emptySet());\n   }\n\n   public void teleport(double p_9781_, double p_9782_, double p_9783_, float p_9784_, float p_9785_, Set<RelativeMovement> p_9786_) {\n      double d0 = p_9786_.contains(RelativeMovement.X) ? this.player.getX() : 0.0D;\n      double d1 = p_9786_.contains(RelativeMovement.Y) ? this.player.getY() : 0.0D;\n      double d2 = p_9786_.contains(RelativeMovement.Z) ? this.player.getZ() : 0.0D;\n      float f = p_9786_.contains(RelativeMovement.Y_ROT) ? this.player.getYRot() : 0.0F;\n      float f1 = p_9786_.contains(RelativeMovement.X_ROT) ? this.player.getXRot() : 0.0F;\n      this.awaitingPositionFromClient = new Vec3(p_9781_, p_9782_, p_9783_);\n      if (++this.awaitingTeleport == Integer.MAX_VALUE) {\n         this.awaitingTeleport = 0;\n      }\n\n      this.awaitingTeleportTime = this.tickCount;\n      this.player.absMoveTo(p_9781_, p_9782_, p_9783_, p_9784_, p_9785_);\n      this.player.connection.send(new ClientboundPlayerPositionPacket(p_9781_ - d0, p_9782_ - d1, p_9783_ - d2, p_9784_ - f, p_9785_ - f1, p_9786_, this.awaitingTeleport));\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/multiplayer/ClientPacketListener.java",
+        "sha256": "397cccc120d7d8884f1327ddd5bef8fcc601fefee9b98f02f5eaaf65c57d7980",
+        "bytes": 125790
+      },
+      "source_total_lines": 2483,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "evidence": [
+        {
+          "lines": [
+            594,
+            665
+          ],
+          "bytes": 2374,
+          "sha256": "6f082f0a7e690f33dfe048fe70725453143e73786e16b7cca761c3cdbc35eafb",
+          "raw_utf8_keepends": "   public void handleMovePlayer(ClientboundPlayerPositionPacket p_105056_) {\n      PacketUtils.ensureRunningOnSameThread(p_105056_, this, this.minecraft);\n      Player player = this.minecraft.player;\n      Vec3 vec3 = player.getDeltaMovement();\n      boolean flag = p_105056_.getRelativeArguments().contains(RelativeMovement.X);\n      boolean flag1 = p_105056_.getRelativeArguments().contains(RelativeMovement.Y);\n      boolean flag2 = p_105056_.getRelativeArguments().contains(RelativeMovement.Z);\n      double d0;\n      double d1;\n      if (flag) {\n         d0 = vec3.x();\n         d1 = player.getX() + p_105056_.getX();\n         player.xOld += p_105056_.getX();\n         player.xo += p_105056_.getX();\n      } else {\n         d0 = 0.0D;\n         d1 = p_105056_.getX();\n         player.xOld = d1;\n         player.xo = d1;\n      }\n\n      double d2;\n      double d3;\n      if (flag1) {\n         d2 = vec3.y();\n         d3 = player.getY() + p_105056_.getY();\n         player.yOld += p_105056_.getY();\n         player.yo += p_105056_.getY();\n      } else {\n         d2 = 0.0D;\n         d3 = p_105056_.getY();\n         player.yOld = d3;\n         player.yo = d3;\n      }\n\n      double d4;\n      double d5;\n      if (flag2) {\n         d4 = vec3.z();\n         d5 = player.getZ() + p_105056_.getZ();\n         player.zOld += p_105056_.getZ();\n         player.zo += p_105056_.getZ();\n      } else {\n         d4 = 0.0D;\n         d5 = p_105056_.getZ();\n         player.zOld = d5;\n         player.zo = d5;\n      }\n\n      player.setPos(d1, d3, d5);\n      player.setDeltaMovement(d0, d2, d4);\n      float f = p_105056_.getYRot();\n      float f1 = p_105056_.getXRot();\n      if (p_105056_.getRelativeArguments().contains(RelativeMovement.X_ROT)) {\n         player.setXRot(player.getXRot() + f1);\n         player.xRotO += f1;\n      } else {\n         player.setXRot(f1);\n         player.xRotO = f1;\n      }\n\n      if (p_105056_.getRelativeArguments().contains(RelativeMovement.Y_ROT)) {\n         player.setYRot(player.getYRot() + f);\n         player.yRotO += f;\n      } else {\n         player.setYRot(f);\n         player.yRotO = f;\n      }\n\n      this.connection.send(new ServerboundAcceptTeleportationPacket(p_105056_.getId()));\n      this.connection.send(new ServerboundMovePlayerPacket.PosRot(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot(), false));\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+        "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "bytes": 52218
+      },
+      "source_total_lines": 775,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/entity/EntityType.java",
+      "evidence": [
+        {
+          "lines": [
+            192,
+            199
+          ],
+          "bytes": 1604,
+          "sha256": "38c193d758c345a890c074284e78caf38dc53571703ccc7f532179ae61ccf768",
+          "raw_utf8_keepends": "   public static final EntityType<ThrownEgg> EGG = register(\"egg\", EntityType.Builder.<ThrownEgg>of(ThrownEgg::new, MobCategory.MISC).sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10));\n   public static final EntityType<ElderGuardian> ELDER_GUARDIAN = register(\"elder_guardian\", EntityType.Builder.of(ElderGuardian::new, MobCategory.MONSTER).sized(1.9975F, 1.9975F).clientTrackingRange(10));\n   public static final EntityType<EndCrystal> END_CRYSTAL = register(\"end_crystal\", EntityType.Builder.<EndCrystal>of(EndCrystal::new, MobCategory.MISC).sized(2.0F, 2.0F).clientTrackingRange(16).updateInterval(Integer.MAX_VALUE));\n   public static final EntityType<EnderDragon> ENDER_DRAGON = register(\"ender_dragon\", EntityType.Builder.of(EnderDragon::new, MobCategory.MONSTER).fireImmune().sized(16.0F, 8.0F).clientTrackingRange(10));\n   public static final EntityType<ThrownEnderpearl> ENDER_PEARL = register(\"ender_pearl\", EntityType.Builder.<ThrownEnderpearl>of(ThrownEnderpearl::new, MobCategory.MISC).sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10));\n   public static final EntityType<EnderMan> ENDERMAN = register(\"enderman\", EntityType.Builder.of(EnderMan::new, MobCategory.MONSTER).sized(0.6F, 2.9F).clientTrackingRange(8));\n   public static final EntityType<Endermite> ENDERMITE = register(\"endermite\", EntityType.Builder.of(Endermite::new, MobCategory.MONSTER).sized(0.4F, 0.3F).clientTrackingRange(8));\n   public static final EntityType<Evoker> EVOKER = register(\"evoker\", EntityType.Builder.of(Evoker::new, MobCategory.MONSTER).sized(0.6F, 1.95F).clientTrackingRange(8));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/item/Items.java",
+        "sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+        "bytes": 142779
+      },
+      "source_total_lines": 1326,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/item/Items.java",
+      "evidence": [
+        {
+          "lines": [
+            970,
+            976
+          ],
+          "bytes": 825,
+          "sha256": "6f1fc57043a241c12952d7556eb6a3f463759bf8ff3362021ffb43a2b82a98f1",
+          "raw_utf8_keepends": "   public static final Item CHICKEN = registerItem(\"chicken\", new Item((new Item.Properties()).food(Foods.CHICKEN)));\n   public static final Item COOKED_CHICKEN = registerItem(\"cooked_chicken\", new Item((new Item.Properties()).food(Foods.COOKED_CHICKEN)));\n   public static final Item ROTTEN_FLESH = registerItem(\"rotten_flesh\", new Item((new Item.Properties()).food(Foods.ROTTEN_FLESH)));\n   public static final Item ENDER_PEARL = registerItem(\"ender_pearl\", new EnderpearlItem((new Item.Properties()).stacksTo(16)));\n   public static final Item BLAZE_ROD = registerItem(\"blaze_rod\", new Item(new Item.Properties()));\n   public static final Item GHAST_TEAR = registerItem(\"ghast_tear\", new Item(new Item.Properties()));\n   public static final Item GOLD_NUGGET = registerItem(\"gold_nugget\", new Item(new Item.Properties()));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSources.java",
+        "sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+        "bytes": 8519
+      },
+      "source_total_lines": 254,
+      "whole_file_actually_read": false,
+      "identity_kind": "exact_cached_mapped_Forge1.20.1-47.4.10_source_archive_member_bytes",
+      "archive_member": "net/minecraft/world/damagesource/DamageSources.java",
+      "evidence": [
+        {
+          "lines": [
+            123,
+            125
+          ],
+          "bytes": 61,
+          "sha256": "e10d1cfc420d39061f943db03bcadc97f394be0cc998bfc57654ea9263aa8b8f",
+          "raw_utf8_keepends": "   public DamageSource fall() {\n      return this.fall;\n   }\n"
+        },
+        {
+          "lines": [
+            219,
+            221
+          ],
+          "bytes": 151,
+          "sha256": "178617244b23b0b1b7dbaf67b6600aba3cb7d29f407a2b234879419968537a5d",
+          "raw_utf8_keepends": "   public DamageSource thrown(Entity p_270388_, @Nullable Entity p_270485_) {\n      return this.source(DamageTypes.THROWN, p_270388_, p_270485_);\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "actual_reading_coverage": {
+    "files": 19,
+    "ranges": 30,
+    "unique_lines": 1446,
+    "whole_files": 10,
+    "scope": "Actual selected batch167 reads. Reused own166 DamageSource constructors/native hurt context excluded from totals. Files/helpers/packets/source counts earn0."
+  },
+  "reused_own_support": {
+    "batch166_progress": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-166-alexsmobs-rocky-preparent-retaliation-actual-source-progress-SUPPORT0-20261112.json",
+      "sha256": "92f7a7eacf318cbfa8487bec837deb810dc289361c5919c4c1fea6ad6eb63a5f",
+      "bytes": 78150
+    },
+    "source_ranges": [
+      {
+        "path": "net/minecraft/world/damagesource/DamageSource.java",
+        "lines": [
+          1,
+          153
+        ],
+        "scope": "constructors/getters direct/causing roles"
+      },
+      {
+        "path": "net/minecraft/world/damagesource/DamageSources.java",
+        "lines": [
+          1,
+          85
+        ],
+        "scope": "fall cachedsource constructor andsource factories"
+      },
+      {
+        "path": "net/minecraft/world/entity/LivingEntity.java",
+        "lines": [
+          1058,
+          1207
+        ],
+        "scope": "priorlimitednativehurtcontext, nofinalHPpipeline"
+      }
+    ],
+    "new_semantic_credit": 0
+  },
+  "whole_lifecycle_findings": [
+    {
+      "id": 1,
+      "observation": "Native EntityType/Items declarations create ThrownEnderpearl/EnderpearlItem. Whole item use requests throw sound and20cooldown, server creates/configures/shoots/addFreshEntity ignoring admission bool, awardsuse and shrinks noncreative stack, returns sidedSuccess. Outeruse/cooldown/inventory dispatcher unexpanded; no own spawn-failure rollback."
+    },
+    {
+      "id": 2,
+      "observation": "Constructor inheritance sets Living owner in ThrowableProjectile; carrier copies nondefault/tagged stack count1. Whole Projectile stores ownerUUID/cachedOwner; getOwner trusts nonremoved cachedentity without samelevel/alive/UUID recheck, else server-current-world UUID lookup. Lookup internals unexpanded."
+    },
+    {
+      "id": 3,
+      "observation": "Whole Throwable tick handles NetherPortal/EndGateway separately, otherwise nonMISS calls onHit only if Forge impact boolfalse. Canceledimpact becomesSKIP_ENTITY; any nonDEFAULT suppresses this callercallback, including STOP enums without directly implementing stop/discard here. Alternate portals unexpanded."
+    },
+    {
+      "id": 4,
+      "observation": "Pearl onHit first super-dispatches child entity callback: target.hurt(thrown(pearl,currentOwner),0) ignoredbool, then landgameevent. Block hit invokes blockcallback thenlandevent. All precede32PORTAL particle requests and ownserver/!removed owner branch. Zero amount is still a callback, later cancellation not rollback."
+    },
+    {
+      "id": 5,
+      "observation": "After callbacks/particles, server unremoved branch resolves owner again. ServerPlayer requires connection.isConnected, exactsamelevel object and notsleeping; no ownalive check here. Pearl.tick separately discards if resolvedowner is Player and !alive, otherwiseparenttick. Owner/event mutation/reentry not immutable attempt identity."
+    },
+    {
+      "id": 6,
+      "observation": "Qualifiedplayer posts cancelable mutable EnderPearl event with currentpearlXYZ, pearlreference, initialattackDamage5 andHitResult. Factory posts/returns event. Base getPrev reads live currententity coordinates; targetXYZ andattackDamage writable, damage setterunclamped. Actual listeners/global arbitration unexpanded."
+    },
+    {
+      "id": 7,
+      "observation": "Canceled inner event skips endermite, raw destination, eventdestination, resetFallDistance andselfhurt; normal return still reaches outerdiscard. Earlier zerohurt/land/particles/itemcost not undone. Outer impact suppression instead skips entering onHit. Listener mutation/throw/reentry can invalidate normal-return assumptions."
+    },
+    {
+      "id": 8,
+      "observation": "Uncanceledplayer branch attempts5percent Endermite onlywithmobspawning, places at capturedowner currentcoordinates beforemovement and ignores worldadmissionbool. Spawn chance/request not proof of birth, teleport, HP settlement or material receipt."
+    },
+    {
+      "id": 9,
+      "observation": "Uncanceledplayer first handles currentpearlXYZ: passenger ServerPlayer.dismountTo removesvehicle+setPos, nonpassenger teleportTo delegatesconnection. Then both call capturedentity.teleportTo(eventXYZ). No postevent revalidation of owner/liveness/world/geometry in this branch. Sameowner two operations, not atomic two-target policy or collision-safe result."
+    },
+    {
+      "id": 10,
+      "observation": "Event-coordinate playerteleport is followed by resetFallDistance=0 then fall-source hurt(eventAttackDamage), boolignored. Exactnew fall getter/thrown factory read; own166 constructors prove ordinaryfall noentities. ServerPlayerhurt invuln/changingdimension/spawn/PvP checks beforeparent, so no finalHP proof and selfdamage doesnot gate earlier movement."
+    },
+    {
+      "id": 11,
+      "observation": "Nonnull non-ServerPlayer owner uses Entity.teleportTo(currentpearlXYZ)+resetFallDistance withoutPearl event/playerqualification/selfhurt/endermite. Entityteleport acts onlywhen ownerlevelServerLevel, moveTo andpassengerplacement in thatlevel; doesnot transfer ownertopearlworld. Nullowner skipmove. Normalserver unremoved pathsdiscard afterward."
+    },
+    {
+      "id": 12,
+      "observation": "ServerPlayerteleport calls connectionwithROTATION relativeflags. Completeservermethod updatesawaitedposition/id, increments/resetsid, absMoveTo andsendspacket. Normalnonpassenger can issue raw/event two packets; passenger rawsetPos doesnot itselfcallconnection, then eventpacket. Counts conditional, no always-twopacket claim."
+    },
+    {
+      "id": 13,
+      "observation": "Whole position/ACK packets carryXYZ/angles/relativeflags/id andackid, no pearlUUID/owner-generation/cancel/reason/damage result. Completeclienthandler appliesposition/axisvelocity/angles andsendsack+PosRot; servermatching-ID ACK useslatestawaitedposition then clears. Protocol is positionreceipt context, not actualTCP/render or refusal/HP receipt."
+    },
+    {
+      "id": 14,
+      "observation": "PearlchangeDimension compares currentowner.dimension reference !=destination.dimension then calls setOwner(null). Whole parentsetOwner onlyrunsnonnull; null request leaves currentUUID/cache. This exactfixed caller/callee mismatch is not actual cross-world exploit or loadedDynasty bug."
+    },
+    {
+      "id": 15,
+      "observation": "EntitychangeDimension travel/server/removed/portalinfo gates lead throughITeleporter placement. Defaultplace invokesprovidedcopy callback: successfulsame-type creation restoreFrom via saveWithoutId/load beforeaddDuringTeleport. Normal ProjectileOwner write/read preserves UUID and clearscachewhenOwnerpresent. Thus normal successfulcopy can retain UUID after ineffectiveclear, futurelookupconditional. Customteleporters/caps/exception/load/admission maydiffer; no migration/clone/entitlement credit."
+    },
+    {
+      "id": 16,
+      "observation": "Discard invokesEntity.remove(DISCARDED), actualtracking/recursive removalnotexpanded. Throwable parenttick hasno earlyreturn afteronHit andcontinueslocalmotion statements evenifcallbackdiscarded. No proof actualcontinuedflight/duplication. No own per-target refusalreason/text orfeedbackthrottle in readchain."
+    }
+  ],
+  "limits": [
+    "Fixed mappedForge1.20.1-47.4.10 cachedarchive/exactmembers only; no newremoteGit/currentloadedDynasty binary/API/config/tags/runtime/mixin activation proof.",
+    "Author wholemax1 only; accepted/formal0 IDnull noappendplan/grant. Main mayHOLD/MERGE0 against10completeowners; files/helpers/branches/packets/names/constants/hashes0.",
+    "Cancellation/continuation assumes normally returning relevant callbacks. Arbitrary mutation/manualcalls/reentry/removal/exceptions alterpaths. No globalrollback/transaction/exactlyonce/immunity guarantee.",
+    "Zero-hurt and selfhurt areattempts withboolignored; no finalHP/loadedsource-tags/reduction/absorption/death result. Reusedown166 constructors/nativehurtcontext0, notfreshsourcecredit.",
+    "Samelevel/connection/not-sleeping playerchecks separatefromtickdeadcheck. Capturedowner/event canmutate independently; no ownersteal/permission-bypass/packet exploit reproduction.",
+    "SetOwnernull mismatch exactsource; retainedUUID conditionalon normalcopy andsuccessfulcreate/load. CustomITeleporter/portal/travelhooks/caps/lookup/chunk/removal notwholeclosed. SavingOwner is support0, notnewmigration/NBTschema credit.",
+    "Cachedowner getter doesnot imply futurecrossworld reattachment/safeclear/despawn/clone identity. FallbackUUIDlookup unexpanded. No guaranteed crossdimension movement.",
+    "NetherPortal/EndGateway alternatives, actualcollision/chunks/tickets, itemdispatcher/paymentcustody/worldfactoryadmission outsidebranch. Whole sourceclass doesnot mean allgameplayfeatures accepted.",
+    "Position/ACK closure not actualnetworkdelivery/order/render/audio/particle/pixel/HP/refusal acceptance. Genericprotocol/32particles/throw sound add0.",
+    "Endermite admission and itemcooldown/shrink independent, not guaranteedreceipt/refund. Raw/event sameowneroperations notArstwoactors noratomicrollback.",
+    "Ten complete savedoldjudgments/fullobjects preserved; nestedoldrawchains notnewlyread exceptboundown166support0. Oldstatuses/countprose historicalunchanged; notall524globalnovelty audit.",
+    "OnlynewimmutableprivateJSON, program524/252/gap476false and Main ecology62/gap938false. All160/Piglin/Fox/otheronce permanentlyconsumed. Noformal/master/session/pending/ownership/prompts/production/UI/background/assets/Jar/Java/game/process/network/Git/task/hours change."
+  ],
+  "application_to_Dynasty": [
+    "Boss feedback must follow actual authoritative control-refusal reason/target. Throw success/zero-hurt/PORTALparticle/positionACK/ignoredselfhurt cannot identify immunity.",
+    "Separate collision suppression from late operationcancel and projectilepayment/termination policy. Verify actualclear API andownerlifetime acrosscopy, not null-call or preservedUUID as completed cleanup.",
+    "Preserve player/nonplayer differences and independentmove/damage results. Researchonly, nonewpearl/teleportmechanic or ordinarytype9graytext/background/UI/asset/Jar/nativechange."
+  ],
+  "complete_owner_comparison": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-167-native-enderpearl-owner-terminal-teleport-complete-owner-comparison-HOLD-20261112.json",
+    "sha256": "77f3ba2ca2fbb3d0bc4a767c7e08bc885b1fc7764172b6a5512bcf62eb242cbe",
+    "bytes": 2934189
+  },
+  "current_applied524_receipt": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program160-Main-actual524-three-file-application-20261112.json",
+    "sha256": "ada9ff45b3b06535a70d0f446454a421b1f4dcae473ed473ed87d7054ecd5fdd",
+    "bytes": 6497
+  },
+  "current_program": {
+    "count": 524,
+    "groups": 252,
+    "gap": 476,
+    "gate": false,
+    "bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "f23a93a8c5201f4e6b89af4fdd83903fd3170cbbb0b61354637a9f5578316ae1",
+        "bytes": 56347366
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "aff7ae82b78794a82dbedb5f5018cadef41cedf217e84478a9585de4575e7dc8",
+        "bytes": 429903
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "dd47f20db628646eef569de8919ebed7dfa59677d1e84f82772b12ece21d6e82",
+        "bytes": 631
+      }
+    ]
+  },
+  "current_ecology": {
+    "Main_count": 62,
+    "gap": 938,
+    "gate": false,
+    "actual_Main_receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-fox-EA0063-Main-actual62-data-application-20261112.json",
+      "sha256": "7f88fd6ed638484b36f9319ab447e19265ddbc6eadfeb6b70184c37f5aa1700d",
+      "bytes": 6578
+    },
+    "bindings5": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "a7e12a9e2300e545c025d0171d4642381ab32a8d6dc0b4ea9e8782f00fcf8082",
+        "bytes": 3651078
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "b1b6513e04dd57a4194b2f49b6841bdd4f4f42df23d3bf2a99576bb6c4b89709",
+        "bytes": 3494525
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "9fb055acd46cb8ec1ed7bcc6b5a079358fce4347ea7014b40e8383165e35a8b4",
+        "bytes": 949426
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "a5cc79d00f355f5e1b14315c990336ed40e9f41fbeee3dcf68466b4d68cc50c1",
+        "bytes": 208133
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "6b93c5e2f5ce5b491a9de81d8008203bf368972d7c501f9ab159716e023fc585",
+        "bytes": 970123
+      }
+    ],
+    "new_source_credit": 0
+  },
+  "protected8": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "reading_recovery": [
+    "Initial combinedWither oldjudgment/migrationinventory clipped; allfourWitherbusiness recoveredseparately. Enderman chain+first2800limitations then2800:end readfully.",
+    "Migrationfull-linescan4unrelatedevidence-levelmatches discoveryonly0. Initialwrongfield nohits notabsence/noveltyproof, nofullmigrationbusinessclaim.",
+    "First167preparation failed currentecology61guard BEFORE any167write. ThenactualMainFox62receipt6578B actuallyreadwhole; freshprivate167 contextusesitsfiveafterimages. No old61/165/166oronce rewritten/refreshed/replayed. Exactnewthrownsourcemethod219..221 readandbound separately."
+  ],
+  "migration_new_credit": 0,
+  "consumed_plans_replayed": false,
+  "production_changes": false,
+  "native_acceptance": false,
+  "original_UI_implemented": false,
+  "tasks_deleted": 0,
+  "all_tasks_complete": false,
+  "active_hours_claimed": null
+}

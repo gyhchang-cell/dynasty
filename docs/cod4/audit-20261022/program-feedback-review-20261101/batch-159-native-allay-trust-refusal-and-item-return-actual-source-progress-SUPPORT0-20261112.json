@@ -1,0 +1,376 @@
+{
+  "created_utc": "2026-11-11T20:27:35.945255+00:00",
+  "batch": 159,
+  "status": "ACTUAL_SOURCE_RESEARCH_COMPLETE_SUPPORT0",
+  "decision": "SUPPORT0",
+  "formal_credit": 0,
+  "formal_candidate_id": null,
+  "semantic_family": "native-allay-stored-trust-damage-refusal-versus-live-delivery-and-item-return-support",
+  "source_identity": {
+    "kind": "fixed local mapped Forge1.20.1-47.4.10 source archive entry exact bytes",
+    "archive": {
+      "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "new_remote_Git_authentication_claimed": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/allay/Allay.java",
+        "sha256": "18318fb5a179ecc7b4823239fbdd6cfcaae2a7a3fd64a6f53f50a05dbaa6de84",
+        "bytes": 23997
+      },
+      "archive_entry": "net/minecraft/world/entity/animal/allay/Allay.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 595,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            595
+          ],
+          "bytes": 23997,
+          "sha256": "18318fb5a179ecc7b4823239fbdd6cfcaae2a7a3fd64a6f53f50a05dbaa6de84",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.animal.allay;\n\nimport com.google.common.collect.ImmutableList;\nimport com.mojang.logging.LogUtils;\nimport com.mojang.serialization.Dynamic;\nimport java.util.Optional;\nimport java.util.UUID;\nimport java.util.function.BiConsumer;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.core.Vec3i;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.NbtOps;\nimport net.minecraft.nbt.Tag;\nimport net.minecraft.network.protocol.game.DebugPackets;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.GameEventTags;\nimport net.minecraft.tags.TagKey;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.MoverType;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.behavior.BehaviorUtils;\nimport net.minecraft.world.entity.ai.control.FlyingMoveControl;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\nimport net.minecraft.world.entity.ai.sensing.SensorType;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.npc.InventoryCarrier;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.crafting.Ingredient;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.DynamicGameEventListener;\nimport net.minecraft.world.level.gameevent.EntityPositionSource;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.level.gameevent.GameEventListener;\nimport net.minecraft.world.level.gameevent.PositionSource;\nimport net.minecraft.world.level.gameevent.vibrations.VibrationSystem;\nimport net.minecraft.world.phys.Vec3;\nimport org.jetbrains.annotations.Nullable;\nimport org.slf4j.Logger;\n\npublic class Allay extends PathfinderMob implements InventoryCarrier, VibrationSystem {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final Vec3i ITEM_PICKUP_REACH = new Vec3i(1, 1, 1);\n   private static final int LIFTING_ITEM_ANIMATION_DURATION = 5;\n   private static final float DANCING_LOOP_DURATION = 55.0F;\n   private static final float SPINNING_ANIMATION_DURATION = 15.0F;\n   private static final Ingredient DUPLICATION_ITEM = Ingredient.of(Items.AMETHYST_SHARD);\n   private static final int DUPLICATION_COOLDOWN_TICKS = 6000;\n   private static final int NUM_OF_DUPLICATION_HEARTS = 3;\n   private static final double RIDING_OFFSET = 0.4D;\n   private static final EntityDataAccessor<Boolean> DATA_DANCING = SynchedEntityData.defineId(Allay.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_CAN_DUPLICATE = SynchedEntityData.defineId(Allay.class, EntityDataSerializers.BOOLEAN);\n   protected static final ImmutableList<SensorType<? extends Sensor<? super Allay>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.HURT_BY, SensorType.NEAREST_ITEMS);\n   protected static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.PATH, MemoryModuleType.LOOK_TARGET, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.HURT_BY, MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM, MemoryModuleType.LIKED_PLAYER, MemoryModuleType.LIKED_NOTEBLOCK_POSITION, MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS, MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS, MemoryModuleType.IS_PANICKING);\n   public static final ImmutableList<Float> THROW_SOUND_PITCHES = ImmutableList.of(0.5625F, 0.625F, 0.75F, 0.9375F, 1.0F, 1.0F, 1.125F, 1.25F, 1.5F, 1.875F, 2.0F, 2.25F, 2.5F, 3.0F, 3.75F, 4.0F);\n   private final DynamicGameEventListener<VibrationSystem.Listener> dynamicVibrationListener;\n   private VibrationSystem.Data vibrationData;\n   private final VibrationSystem.User vibrationUser;\n   private final DynamicGameEventListener<Allay.JukeboxListener> dynamicJukeboxListener;\n   private final SimpleContainer inventory = new SimpleContainer(1);\n   private @Nullable BlockPos jukeboxPos;\n   private long duplicationCooldown;\n   private float holdingItemAnimationTicks;\n   private float holdingItemAnimationTicks0;\n   private float dancingAnimationTicks;\n   private float spinningAnimationTicks;\n   private float spinningAnimationTicks0;\n\n   public Allay(EntityType<? extends Allay> p_218310_, Level p_218311_) {\n      super(p_218310_, p_218311_);\n      this.moveControl = new FlyingMoveControl(this, 20, true);\n      this.setCanPickUpLoot(this.canPickUpLoot());\n      this.vibrationUser = new Allay.VibrationUser();\n      this.vibrationData = new VibrationSystem.Data();\n      this.dynamicVibrationListener = new DynamicGameEventListener<>(new VibrationSystem.Listener(this));\n      this.dynamicJukeboxListener = new DynamicGameEventListener<>(new Allay.JukeboxListener(this.vibrationUser.getPositionSource(), GameEvent.JUKEBOX_PLAY.getNotificationRadius()));\n   }\n\n   protected Brain.Provider<Allay> brainProvider() {\n      return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);\n   }\n\n   protected Brain<?> makeBrain(Dynamic<?> p_218344_) {\n      return AllayAi.makeBrain(this.brainProvider().makeBrain(p_218344_));\n   }\n\n   public Brain<Allay> getBrain() {\n      return (Brain<Allay>)super.getBrain();\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 20.0D).add(Attributes.FLYING_SPEED, (double)0.1F).add(Attributes.MOVEMENT_SPEED, (double)0.1F).add(Attributes.ATTACK_DAMAGE, 2.0D).add(Attributes.FOLLOW_RANGE, 48.0D);\n   }\n\n   protected PathNavigation createNavigation(Level p_218342_) {\n      FlyingPathNavigation flyingpathnavigation = new FlyingPathNavigation(this, p_218342_);\n      flyingpathnavigation.setCanOpenDoors(false);\n      flyingpathnavigation.setCanFloat(true);\n      flyingpathnavigation.setCanPassDoors(true);\n      return flyingpathnavigation;\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_DANCING, false);\n      this.entityData.define(DATA_CAN_DUPLICATE, true);\n   }\n\n   public void travel(Vec3 p_218382_) {\n      if (this.isControlledByLocalInstance()) {\n         if (this.isInWater()) {\n            this.moveRelative(0.02F, p_218382_);\n            this.move(MoverType.SELF, this.getDeltaMovement());\n            this.setDeltaMovement(this.getDeltaMovement().scale((double)0.8F));\n         } else if (this.isInLava()) {\n            this.moveRelative(0.02F, p_218382_);\n            this.move(MoverType.SELF, this.getDeltaMovement());\n            this.setDeltaMovement(this.getDeltaMovement().scale(0.5D));\n         } else {\n            this.moveRelative(this.getSpeed(), p_218382_);\n            this.move(MoverType.SELF, this.getDeltaMovement());\n            this.setDeltaMovement(this.getDeltaMovement().scale((double)0.91F));\n         }\n      }\n\n      this.calculateEntityAnimation(false);\n   }\n\n   protected float getStandingEyeHeight(Pose p_218356_, EntityDimensions p_218357_) {\n      return p_218357_.height * 0.6F;\n   }\n\n   public boolean hurt(DamageSource p_218339_, float p_218340_) {\n      Entity $$3 = p_218339_.getEntity();\n      if ($$3 instanceof Player player) {\n         Optional<UUID> optional = this.getBrain().getMemory(MemoryModuleType.LIKED_PLAYER);\n         if (optional.isPresent() && player.getUUID().equals(optional.get())) {\n            return false;\n         }\n      }\n\n      return super.hurt(p_218339_, p_218340_);\n   }\n\n   protected void playStepSound(BlockPos p_218364_, BlockState p_218365_) {\n   }\n\n   protected void checkFallDamage(double p_218316_, boolean p_218317_, BlockState p_218318_, BlockPos p_218319_) {\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return this.hasItemInSlot(EquipmentSlot.MAINHAND) ? SoundEvents.ALLAY_AMBIENT_WITH_ITEM : SoundEvents.ALLAY_AMBIENT_WITHOUT_ITEM;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_218369_) {\n      return SoundEvents.ALLAY_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.ALLAY_DEATH;\n   }\n\n   protected float getSoundVolume() {\n      return 0.4F;\n   }\n\n   protected void customServerAiStep() {\n      this.level().getProfiler().push(\"allayBrain\");\n      this.getBrain().tick((ServerLevel)this.level(), this);\n      this.level().getProfiler().pop();\n      this.level().getProfiler().push(\"allayActivityUpdate\");\n      AllayAi.updateActivity(this);\n      this.level().getProfiler().pop();\n      super.customServerAiStep();\n   }\n\n   public void aiStep() {\n      super.aiStep();\n      if (!this.level().isClientSide && this.isAlive() && this.tickCount % 10 == 0) {\n         this.heal(1.0F);\n      }\n\n      if (this.isDancing() && this.shouldStopDancing() && this.tickCount % 20 == 0) {\n         this.setDancing(false);\n         this.jukeboxPos = null;\n      }\n\n      this.updateDuplicationCooldown();\n   }\n\n   public void tick() {\n      super.tick();\n      if (this.level().isClientSide) {\n         this.holdingItemAnimationTicks0 = this.holdingItemAnimationTicks;\n         if (this.hasItemInHand()) {\n            this.holdingItemAnimationTicks = Mth.clamp(this.holdingItemAnimationTicks + 1.0F, 0.0F, 5.0F);\n         } else {\n            this.holdingItemAnimationTicks = Mth.clamp(this.holdingItemAnimationTicks - 1.0F, 0.0F, 5.0F);\n         }\n\n         if (this.isDancing()) {\n            ++this.dancingAnimationTicks;\n            this.spinningAnimationTicks0 = this.spinningAnimationTicks;\n            if (this.isSpinning()) {\n               ++this.spinningAnimationTicks;\n            } else {\n               --this.spinningAnimationTicks;\n            }\n\n            this.spinningAnimationTicks = Mth.clamp(this.spinningAnimationTicks, 0.0F, 15.0F);\n         } else {\n            this.dancingAnimationTicks = 0.0F;\n            this.spinningAnimationTicks = 0.0F;\n            this.spinningAnimationTicks0 = 0.0F;\n         }\n      } else {\n         VibrationSystem.Ticker.tick(this.level(), this.vibrationData, this.vibrationUser);\n         if (this.isPanicking()) {\n            this.setDancing(false);\n         }\n      }\n\n   }\n\n   public boolean canPickUpLoot() {\n      return !this.isOnPickupCooldown() && this.hasItemInHand();\n   }\n\n   public boolean hasItemInHand() {\n      return !this.getItemInHand(InteractionHand.MAIN_HAND).isEmpty();\n   }\n\n   public boolean canTakeItem(ItemStack p_218380_) {\n      return false;\n   }\n\n   private boolean isOnPickupCooldown() {\n      return this.getBrain().checkMemory(MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS, MemoryStatus.VALUE_PRESENT);\n   }\n\n   protected InteractionResult mobInteract(Player p_218361_, InteractionHand p_218362_) {\n      ItemStack itemstack = p_218361_.getItemInHand(p_218362_);\n      ItemStack itemstack1 = this.getItemInHand(InteractionHand.MAIN_HAND);\n      if (this.isDancing() && this.isDuplicationItem(itemstack) && this.canDuplicate()) {\n         this.duplicateAllay();\n         this.level().broadcastEntityEvent(this, (byte)18);\n         this.level().playSound(p_218361_, this, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 2.0F, 1.0F);\n         this.removeInteractionItem(p_218361_, itemstack);\n         return InteractionResult.SUCCESS;\n      } else if (itemstack1.isEmpty() && !itemstack.isEmpty()) {\n         ItemStack itemstack3 = itemstack.copyWithCount(1);\n         this.setItemInHand(InteractionHand.MAIN_HAND, itemstack3);\n         this.removeInteractionItem(p_218361_, itemstack);\n         this.level().playSound(p_218361_, this, SoundEvents.ALLAY_ITEM_GIVEN, SoundSource.NEUTRAL, 2.0F, 1.0F);\n         this.getBrain().setMemory(MemoryModuleType.LIKED_PLAYER, p_218361_.getUUID());\n         return InteractionResult.SUCCESS;\n      } else if (!itemstack1.isEmpty() && p_218362_ == InteractionHand.MAIN_HAND && itemstack.isEmpty()) {\n         this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);\n         this.level().playSound(p_218361_, this, SoundEvents.ALLAY_ITEM_TAKEN, SoundSource.NEUTRAL, 2.0F, 1.0F);\n         this.swing(InteractionHand.MAIN_HAND);\n\n         for(ItemStack itemstack2 : this.getInventory().removeAllItems()) {\n            BehaviorUtils.throwItem(this, itemstack2, this.position());\n         }\n\n         this.getBrain().eraseMemory(MemoryModuleType.LIKED_PLAYER);\n         p_218361_.addItem(itemstack1);\n         return InteractionResult.SUCCESS;\n      } else {\n         return super.mobInteract(p_218361_, p_218362_);\n      }\n   }\n\n   public void setJukeboxPlaying(BlockPos p_240102_, boolean p_240103_) {\n      if (p_240103_) {\n         if (!this.isDancing()) {\n            this.jukeboxPos = p_240102_;\n            this.setDancing(true);\n         }\n      } else if (p_240102_.equals(this.jukeboxPos) || this.jukeboxPos == null) {\n         this.jukeboxPos = null;\n         this.setDancing(false);\n      }\n\n   }\n\n   public SimpleContainer getInventory() {\n      return this.inventory;\n   }\n\n   protected Vec3i getPickupReach() {\n      return ITEM_PICKUP_REACH;\n   }\n\n   public boolean wantsToPickUp(ItemStack p_218387_) {\n      ItemStack itemstack = this.getItemInHand(InteractionHand.MAIN_HAND);\n      return !itemstack.isEmpty() && this.inventory.canAddItem(p_218387_) && this.allayConsidersItemEqual(itemstack, p_218387_) && net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), this);\n   }\n\n   private boolean allayConsidersItemEqual(ItemStack p_252278_, ItemStack p_250405_) {\n      return ItemStack.isSameItem(p_252278_, p_250405_) && !this.hasNonMatchingPotion(p_252278_, p_250405_);\n   }\n\n   private boolean hasNonMatchingPotion(ItemStack p_248762_, ItemStack p_250839_) {\n      CompoundTag compoundtag = p_248762_.getTag();\n      boolean flag = compoundtag != null && compoundtag.contains(\"Potion\");\n      if (!flag) {\n         return false;\n      } else {\n         CompoundTag compoundtag1 = p_250839_.getTag();\n         boolean flag1 = compoundtag1 != null && compoundtag1.contains(\"Potion\");\n         if (!flag1) {\n            return true;\n         } else {\n            Tag tag = compoundtag.get(\"Potion\");\n            Tag tag1 = compoundtag1.get(\"Potion\");\n            return tag != null && tag1 != null && !tag.equals(tag1);\n         }\n      }\n   }\n\n   protected void pickUpItem(ItemEntity p_218359_) {\n      InventoryCarrier.pickUpItem(this, this, p_218359_);\n   }\n\n   protected void sendDebugPackets() {\n      super.sendDebugPackets();\n      DebugPackets.sendEntityBrain(this);\n   }\n\n   public boolean isFlapping() {\n      return !this.onGround();\n   }\n\n   public void updateDynamicGameEventListener(BiConsumer<DynamicGameEventListener<?>, ServerLevel> p_218348_) {\n      Level level = this.level();\n      if (level instanceof ServerLevel serverlevel) {\n         p_218348_.accept(this.dynamicVibrationListener, serverlevel);\n         p_218348_.accept(this.dynamicJukeboxListener, serverlevel);\n      }\n\n   }\n\n   public boolean isDancing() {\n      return this.entityData.get(DATA_DANCING);\n   }\n\n   public boolean isPanicking() {\n      return this.brain.getMemory(MemoryModuleType.IS_PANICKING).isPresent();\n   }\n\n   public void setDancing(boolean p_240178_) {\n      if (!this.level().isClientSide && this.isEffectiveAi() && (!p_240178_ || !this.isPanicking())) {\n         this.entityData.set(DATA_DANCING, p_240178_);\n      }\n   }\n\n   private boolean shouldStopDancing() {\n      return this.jukeboxPos == null || !this.jukeboxPos.closerToCenterThan(this.position(), (double)GameEvent.JUKEBOX_PLAY.getNotificationRadius()) || !this.level().getBlockState(this.jukeboxPos).is(Blocks.JUKEBOX);\n   }\n\n   public float getHoldingItemAnimationProgress(float p_218395_) {\n      return Mth.lerp(p_218395_, this.holdingItemAnimationTicks0, this.holdingItemAnimationTicks) / 5.0F;\n   }\n\n   public boolean isSpinning() {\n      float f = this.dancingAnimationTicks % 55.0F;\n      return f < 15.0F;\n   }\n\n   public float getSpinningProgress(float p_240057_) {\n      return Mth.lerp(p_240057_, this.spinningAnimationTicks0, this.spinningAnimationTicks) / 15.0F;\n   }\n\n   public boolean equipmentHasChanged(ItemStack p_249825_, ItemStack p_251595_) {\n      return !this.allayConsidersItemEqual(p_249825_, p_251595_);\n   }\n\n   protected void dropEquipment() {\n      super.dropEquipment();\n      this.inventory.removeAllItems().forEach(this::spawnAtLocation);\n      ItemStack itemstack = this.getItemBySlot(EquipmentSlot.MAINHAND);\n      if (!itemstack.isEmpty() && !EnchantmentHelper.hasVanishingCurse(itemstack)) {\n         this.spawnAtLocation(itemstack);\n         this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);\n      }\n\n   }\n\n   public boolean removeWhenFarAway(double p_218384_) {\n      return false;\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_218367_) {\n      super.addAdditionalSaveData(p_218367_);\n      this.writeInventoryToTag(p_218367_);\n      VibrationSystem.Data.CODEC.encodeStart(NbtOps.INSTANCE, this.vibrationData).resultOrPartial(LOGGER::error).ifPresent((p_218353_) -> {\n         p_218367_.put(\"listener\", p_218353_);\n      });\n      p_218367_.putLong(\"DuplicationCooldown\", this.duplicationCooldown);\n      p_218367_.putBoolean(\"CanDuplicate\", this.canDuplicate());\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_218350_) {\n      super.readAdditionalSaveData(p_218350_);\n      this.readInventoryFromTag(p_218350_);\n      if (p_218350_.contains(\"listener\", 10)) {\n         VibrationSystem.Data.CODEC.parse(new Dynamic<>(NbtOps.INSTANCE, p_218350_.getCompound(\"listener\"))).resultOrPartial(LOGGER::error).ifPresent((p_281082_) -> {\n            this.vibrationData = p_281082_;\n         });\n      }\n\n      this.duplicationCooldown = (long)p_218350_.getInt(\"DuplicationCooldown\");\n      this.entityData.set(DATA_CAN_DUPLICATE, p_218350_.getBoolean(\"CanDuplicate\"));\n   }\n\n   protected boolean shouldStayCloseToLeashHolder() {\n      return false;\n   }\n\n   private void updateDuplicationCooldown() {\n      if (this.duplicationCooldown > 0L) {\n         --this.duplicationCooldown;\n      }\n\n      if (!this.level().isClientSide() && this.duplicationCooldown == 0L && !this.canDuplicate()) {\n         this.entityData.set(DATA_CAN_DUPLICATE, true);\n      }\n\n   }\n\n   private boolean isDuplicationItem(ItemStack p_239736_) {\n      return DUPLICATION_ITEM.test(p_239736_);\n   }\n\n   private void duplicateAllay() {\n      Allay allay = EntityType.ALLAY.create(this.level());\n      if (allay != null) {\n         allay.moveTo(this.position());\n         allay.setPersistenceRequired();\n         allay.resetDuplicationCooldown();\n         this.resetDuplicationCooldown();\n         this.level().addFreshEntity(allay);\n      }\n\n   }\n\n   private void resetDuplicationCooldown() {\n      this.duplicationCooldown = 6000L;\n      this.entityData.set(DATA_CAN_DUPLICATE, false);\n   }\n\n   private boolean canDuplicate() {\n      return this.entityData.get(DATA_CAN_DUPLICATE);\n   }\n\n   private void removeInteractionItem(Player p_239359_, ItemStack p_239360_) {\n      if (!p_239359_.getAbilities().instabuild) {\n         p_239360_.shrink(1);\n      }\n\n   }\n\n   public Vec3 getLeashOffset() {\n      return new Vec3(0.0D, (double)this.getEyeHeight() * 0.6D, (double)this.getBbWidth() * 0.1D);\n   }\n\n   public double getMyRidingOffset() {\n      return 0.4D;\n   }\n\n   public void handleEntityEvent(byte p_239347_) {\n      if (p_239347_ == 18) {\n         for(int i = 0; i < 3; ++i) {\n            this.spawnHeartParticle();\n         }\n      } else {\n         super.handleEntityEvent(p_239347_);\n      }\n\n   }\n\n   private void spawnHeartParticle() {\n      double d0 = this.random.nextGaussian() * 0.02D;\n      double d1 = this.random.nextGaussian() * 0.02D;\n      double d2 = this.random.nextGaussian() * 0.02D;\n      this.level().addParticle(ParticleTypes.HEART, this.getRandomX(1.0D), this.getRandomY() + 0.5D, this.getRandomZ(1.0D), d0, d1, d2);\n   }\n\n   public VibrationSystem.Data getVibrationData() {\n      return this.vibrationData;\n   }\n\n   public VibrationSystem.User getVibrationUser() {\n      return this.vibrationUser;\n   }\n\n   class JukeboxListener implements GameEventListener {\n      private final PositionSource listenerSource;\n      private final int listenerRadius;\n\n      public JukeboxListener(PositionSource p_239448_, int p_239449_) {\n         this.listenerSource = p_239448_;\n         this.listenerRadius = p_239449_;\n      }\n\n      public PositionSource getListenerSource() {\n         return this.listenerSource;\n      }\n\n      public int getListenerRadius() {\n         return this.listenerRadius;\n      }\n\n      public boolean handleGameEvent(ServerLevel p_250009_, GameEvent p_251513_, GameEvent.Context p_249478_, Vec3 p_250852_) {\n         if (p_251513_ == GameEvent.JUKEBOX_PLAY) {\n            Allay.this.setJukeboxPlaying(BlockPos.containing(p_250852_), true);\n            return true;\n         } else if (p_251513_ == GameEvent.JUKEBOX_STOP_PLAY) {\n            Allay.this.setJukeboxPlaying(BlockPos.containing(p_250852_), false);\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n\n   class VibrationUser implements VibrationSystem.User {\n      private static final int VIBRATION_EVENT_LISTENER_RANGE = 16;\n      private final PositionSource positionSource = new EntityPositionSource(Allay.this, Allay.this.getEyeHeight());\n\n      public int getListenerRadius() {\n         return 16;\n      }\n\n      public PositionSource getPositionSource() {\n         return this.positionSource;\n      }\n\n      public boolean canReceiveVibration(ServerLevel p_282038_, BlockPos p_283385_, GameEvent p_283669_, GameEvent.Context p_282208_) {\n         if (Allay.this.isNoAi()) {\n            return false;\n         } else {\n            Optional<GlobalPos> optional = Allay.this.getBrain().getMemory(MemoryModuleType.LIKED_NOTEBLOCK_POSITION);\n            if (optional.isEmpty()) {\n               return true;\n            } else {\n               GlobalPos globalpos = optional.get();\n               return globalpos.dimension().equals(p_282038_.dimension()) && globalpos.pos().equals(p_283385_);\n            }\n         }\n      }\n\n      public void onReceiveVibration(ServerLevel p_281422_, BlockPos p_281449_, GameEvent p_281488_, @Nullable Entity p_281794_, @Nullable Entity p_281864_, float p_281642_) {\n         if (p_281488_ == GameEvent.NOTE_BLOCK_PLAY) {\n            AllayAi.hearNoteblock(Allay.this, new BlockPos(p_281449_));\n         }\n\n      }\n\n      public TagKey<GameEvent> getListenableEvents() {\n         return GameEventTags.ALLAY_CAN_LISTEN;\n      }\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/allay/AllayAi.java",
+        "sha256": "dd8efea7860c8b8137a6e0cc191a9a63689b5a3749e97844eb38794b767750e1",
+        "bytes": 7152
+      },
+      "archive_entry": "net/minecraft/world/entity/animal/allay/AllayAi.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 139,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            139
+          ],
+          "bytes": 7152,
+          "sha256": "dd8efea7860c8b8137a6e0cc191a9a63689b5a3749e97844eb38794b767750e1",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.animal.allay;\n\nimport com.google.common.collect.ImmutableList;\nimport com.google.common.collect.ImmutableSet;\nimport com.mojang.datafixers.util.Pair;\nimport java.util.Optional;\nimport java.util.UUID;\nimport java.util.function.Predicate;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.util.valueproviders.UniformInt;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.behavior.AnimalPanic;\nimport net.minecraft.world.entity.ai.behavior.BlockPosTracker;\nimport net.minecraft.world.entity.ai.behavior.CountDownCooldownTicks;\nimport net.minecraft.world.entity.ai.behavior.DoNothing;\nimport net.minecraft.world.entity.ai.behavior.EntityTracker;\nimport net.minecraft.world.entity.ai.behavior.GoAndGiveItemsToTarget;\nimport net.minecraft.world.entity.ai.behavior.GoToWantedItem;\nimport net.minecraft.world.entity.ai.behavior.LookAtTargetSink;\nimport net.minecraft.world.entity.ai.behavior.MoveToTargetSink;\nimport net.minecraft.world.entity.ai.behavior.PositionTracker;\nimport net.minecraft.world.entity.ai.behavior.RandomStroll;\nimport net.minecraft.world.entity.ai.behavior.RunOne;\nimport net.minecraft.world.entity.ai.behavior.SetEntityLookTargetSometimes;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetFromLookTarget;\nimport net.minecraft.world.entity.ai.behavior.StayCloseToTarget;\nimport net.minecraft.world.entity.ai.behavior.Swim;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.schedule.Activity;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\n\npublic class AllayAi {\n   private static final float SPEED_MULTIPLIER_WHEN_IDLING = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_FOLLOWING_DEPOSIT_TARGET = 2.25F;\n   private static final float SPEED_MULTIPLIER_WHEN_RETRIEVING_ITEM = 1.75F;\n   private static final float SPEED_MULTIPLIER_WHEN_PANICKING = 2.5F;\n   private static final int CLOSE_ENOUGH_TO_TARGET = 4;\n   private static final int TOO_FAR_FROM_TARGET = 16;\n   private static final int MAX_LOOK_DISTANCE = 6;\n   private static final int MIN_WAIT_DURATION = 30;\n   private static final int MAX_WAIT_DURATION = 60;\n   private static final int TIME_TO_FORGET_NOTEBLOCK = 600;\n   private static final int DISTANCE_TO_WANTED_ITEM = 32;\n   private static final int GIVE_ITEM_TIMEOUT_DURATION = 20;\n\n   protected static Brain<?> makeBrain(Brain<Allay> p_218420_) {\n      initCoreActivity(p_218420_);\n      initIdleActivity(p_218420_);\n      p_218420_.setCoreActivities(ImmutableSet.of(Activity.CORE));\n      p_218420_.setDefaultActivity(Activity.IDLE);\n      p_218420_.useDefaultActivity();\n      return p_218420_;\n   }\n\n   private static void initCoreActivity(Brain<Allay> p_218426_) {\n      p_218426_.addActivity(Activity.CORE, 0, ImmutableList.of(new Swim(0.8F), new AnimalPanic(2.5F), new LookAtTargetSink(45, 90), new MoveToTargetSink(), new CountDownCooldownTicks(MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS), new CountDownCooldownTicks(MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS)));\n   }\n\n   private static void initIdleActivity(Brain<Allay> p_218432_) {\n      p_218432_.addActivityWithConditions(Activity.IDLE, ImmutableList.of(Pair.of(0, GoToWantedItem.create((p_218428_) -> {\n         return true;\n      }, 1.75F, true, 32)), Pair.of(1, new GoAndGiveItemsToTarget<>(AllayAi::getItemDepositPosition, 2.25F, 20)), Pair.of(2, StayCloseToTarget.create(AllayAi::getItemDepositPosition, Predicate.not(AllayAi::hasWantedItem), 4, 16, 2.25F)), Pair.of(3, SetEntityLookTargetSometimes.create(6.0F, UniformInt.of(30, 60))), Pair.of(4, new RunOne<>(ImmutableList.of(Pair.of(RandomStroll.fly(1.0F), 2), Pair.of(SetWalkTargetFromLookTarget.create(1.0F, 3), 2), Pair.of(new DoNothing(30, 60), 1))))), ImmutableSet.of());\n   }\n\n   public static void updateActivity(Allay p_218422_) {\n      p_218422_.getBrain().setActiveActivityToFirstValid(ImmutableList.of(Activity.IDLE));\n   }\n\n   public static void hearNoteblock(LivingEntity p_218417_, BlockPos p_218418_) {\n      Brain<?> brain = p_218417_.getBrain();\n      GlobalPos globalpos = GlobalPos.of(p_218417_.level().dimension(), p_218418_);\n      Optional<GlobalPos> optional = brain.getMemory(MemoryModuleType.LIKED_NOTEBLOCK_POSITION);\n      if (optional.isEmpty()) {\n         brain.setMemory(MemoryModuleType.LIKED_NOTEBLOCK_POSITION, globalpos);\n         brain.setMemory(MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS, 600);\n      } else if (optional.get().equals(globalpos)) {\n         brain.setMemory(MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS, 600);\n      }\n\n   }\n\n   private static Optional<PositionTracker> getItemDepositPosition(LivingEntity p_218424_) {\n      Brain<?> brain = p_218424_.getBrain();\n      Optional<GlobalPos> optional = brain.getMemory(MemoryModuleType.LIKED_NOTEBLOCK_POSITION);\n      if (optional.isPresent()) {\n         GlobalPos globalpos = optional.get();\n         if (shouldDepositItemsAtLikedNoteblock(p_218424_, brain, globalpos)) {\n            return Optional.of(new BlockPosTracker(globalpos.pos().above()));\n         }\n\n         brain.eraseMemory(MemoryModuleType.LIKED_NOTEBLOCK_POSITION);\n      }\n\n      return getLikedPlayerPositionTracker(p_218424_);\n   }\n\n   private static boolean hasWantedItem(LivingEntity p_273346_) {\n      Brain<?> brain = p_273346_.getBrain();\n      return brain.hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM);\n   }\n\n   private static boolean shouldDepositItemsAtLikedNoteblock(LivingEntity p_218413_, Brain<?> p_218414_, GlobalPos p_218415_) {\n      Optional<Integer> optional = p_218414_.getMemory(MemoryModuleType.LIKED_NOTEBLOCK_COOLDOWN_TICKS);\n      Level level = p_218413_.level();\n      return level.dimension() == p_218415_.dimension() && level.getBlockState(p_218415_.pos()).is(Blocks.NOTE_BLOCK) && optional.isPresent();\n   }\n\n   private static Optional<PositionTracker> getLikedPlayerPositionTracker(LivingEntity p_218430_) {\n      return getLikedPlayer(p_218430_).map((p_218409_) -> {\n         return new EntityTracker(p_218409_, true);\n      });\n   }\n\n   public static Optional<ServerPlayer> getLikedPlayer(LivingEntity p_218411_) {\n      Level level = p_218411_.level();\n      if (!level.isClientSide() && level instanceof ServerLevel serverlevel) {\n         Optional<UUID> optional = p_218411_.getBrain().getMemory(MemoryModuleType.LIKED_PLAYER);\n         if (optional.isPresent()) {\n            Entity entity = serverlevel.getEntity(optional.get());\n            if (entity instanceof ServerPlayer) {\n               ServerPlayer serverplayer = (ServerPlayer)entity;\n               if ((serverplayer.gameMode.isSurvival() || serverplayer.gameMode.isCreative()) && serverplayer.closerThan(p_218411_, 64.0D)) {\n                  return Optional.of(serverplayer);\n               }\n            }\n\n            return Optional.empty();\n         }\n      }\n\n      return Optional.empty();\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/GoAndGiveItemsToTarget.java",
+        "sha256": "770bda00cf17288f00f76dacfb029c0a12e366b644e5bff445fda37692749e28",
+        "bytes": 4554
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/GoAndGiveItemsToTarget.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 101,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            101
+          ],
+          "bytes": 4554,
+          "sha256": "770bda00cf17288f00f76dacfb029c0a12e366b644e5bff445fda37692749e28",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.behavior;\n\nimport java.util.Map;\nimport java.util.Optional;\nimport java.util.function.Function;\nimport net.minecraft.Util;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.animal.allay.Allay;\nimport net.minecraft.world.entity.animal.allay.AllayAi;\nimport net.minecraft.world.entity.npc.InventoryCarrier;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\n\npublic class GoAndGiveItemsToTarget<E extends LivingEntity & InventoryCarrier> extends Behavior<E> {\n   private static final int CLOSE_ENOUGH_DISTANCE_TO_TARGET = 3;\n   private static final int ITEM_PICKUP_COOLDOWN_AFTER_THROWING = 60;\n   private final Function<LivingEntity, Optional<PositionTracker>> targetPositionGetter;\n   private final float speedModifier;\n\n   public GoAndGiveItemsToTarget(Function<LivingEntity, Optional<PositionTracker>> p_249894_, float p_249937_, int p_249620_) {\n      super(Map.of(MemoryModuleType.LOOK_TARGET, MemoryStatus.REGISTERED, MemoryModuleType.WALK_TARGET, MemoryStatus.REGISTERED, MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS, MemoryStatus.REGISTERED), p_249620_);\n      this.targetPositionGetter = p_249894_;\n      this.speedModifier = p_249937_;\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_217196_, E p_217197_) {\n      return this.canThrowItemToTarget(p_217197_);\n   }\n\n   protected boolean canStillUse(ServerLevel p_217218_, E p_217219_, long p_217220_) {\n      return this.canThrowItemToTarget(p_217219_);\n   }\n\n   protected void start(ServerLevel p_217199_, E p_217200_, long p_217201_) {\n      this.targetPositionGetter.apply(p_217200_).ifPresent((p_217206_) -> {\n         BehaviorUtils.setWalkAndLookTargetMemories(p_217200_, p_217206_, this.speedModifier, 3);\n      });\n   }\n\n   protected void tick(ServerLevel p_217226_, E p_217227_, long p_217228_) {\n      Optional<PositionTracker> optional = this.targetPositionGetter.apply(p_217227_);\n      if (!optional.isEmpty()) {\n         PositionTracker positiontracker = optional.get();\n         double d0 = positiontracker.currentPosition().distanceTo(p_217227_.getEyePosition());\n         if (d0 < 3.0D) {\n            ItemStack itemstack = p_217227_.getInventory().removeItem(0, 1);\n            if (!itemstack.isEmpty()) {\n               throwItem(p_217227_, itemstack, getThrowPosition(positiontracker));\n               if (p_217227_ instanceof Allay) {\n                  Allay allay = (Allay)p_217227_;\n                  AllayAi.getLikedPlayer(allay).ifPresent((p_217224_) -> {\n                     this.triggerDropItemOnBlock(positiontracker, itemstack, p_217224_);\n                  });\n               }\n\n               p_217227_.getBrain().setMemory(MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS, 60);\n            }\n         }\n\n      }\n   }\n\n   private void triggerDropItemOnBlock(PositionTracker p_217214_, ItemStack p_217215_, ServerPlayer p_217216_) {\n      BlockPos blockpos = p_217214_.currentBlockPosition().below();\n      CriteriaTriggers.ALLAY_DROP_ITEM_ON_BLOCK.trigger(p_217216_, blockpos, p_217215_);\n   }\n\n   private boolean canThrowItemToTarget(E p_217203_) {\n      if (p_217203_.getInventory().isEmpty()) {\n         return false;\n      } else {\n         Optional<PositionTracker> optional = this.targetPositionGetter.apply(p_217203_);\n         return optional.isPresent();\n      }\n   }\n\n   private static Vec3 getThrowPosition(PositionTracker p_217212_) {\n      return p_217212_.currentPosition().add(0.0D, 1.0D, 0.0D);\n   }\n\n   public static void throwItem(LivingEntity p_217208_, ItemStack p_217209_, Vec3 p_217210_) {\n      Vec3 vec3 = new Vec3((double)0.2F, (double)0.3F, (double)0.2F);\n      BehaviorUtils.throwItem(p_217208_, p_217209_, p_217210_, vec3, 0.2F);\n      Level level = p_217208_.level();\n      if (level.getGameTime() % 7L == 0L && level.random.nextDouble() < 0.9D) {\n         float f = Util.getRandom(Allay.THROW_SOUND_PITCHES, level.getRandom());\n         level.playSound((Player)null, p_217208_, SoundEvents.ALLAY_THROW, SoundSource.NEUTRAL, 1.0F, f);\n      }\n\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/npc/InventoryCarrier.java",
+        "sha256": "34a7e00aa0d11bd46f264a278b27c59c0fce68f2378b272d109e8412b6991a64",
+        "bytes": 1461
+      },
+      "archive_entry": "net/minecraft/world/entity/npc/InventoryCarrier.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 46,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            46
+          ],
+          "bytes": 1461,
+          "sha256": "34a7e00aa0d11bd46f264a278b27c59c0fce68f2378b272d109e8412b6991a64",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.npc;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.item.ItemStack;\n\npublic interface InventoryCarrier {\n   String TAG_INVENTORY = \"Inventory\";\n\n   SimpleContainer getInventory();\n\n   static void pickUpItem(Mob p_219612_, InventoryCarrier p_219613_, ItemEntity p_219614_) {\n      ItemStack itemstack = p_219614_.getItem();\n      if (p_219612_.wantsToPickUp(itemstack)) {\n         SimpleContainer simplecontainer = p_219613_.getInventory();\n         boolean flag = simplecontainer.canAddItem(itemstack);\n         if (!flag) {\n            return;\n         }\n\n         p_219612_.onItemPickup(p_219614_);\n         int i = itemstack.getCount();\n         ItemStack itemstack1 = simplecontainer.addItem(itemstack);\n         p_219612_.take(p_219614_, i - itemstack1.getCount());\n         if (itemstack1.isEmpty()) {\n            p_219614_.discard();\n         } else {\n            itemstack.setCount(itemstack1.getCount());\n         }\n      }\n\n   }\n\n   default void readInventoryFromTag(CompoundTag p_253699_) {\n      if (p_253699_.contains(\"Inventory\", 9)) {\n         this.getInventory().fromTag(p_253699_.getList(\"Inventory\", 10));\n      }\n\n   }\n\n   default void writeInventoryToTag(CompoundTag p_254428_) {\n      p_254428_.put(\"Inventory\", this.getInventory().createTag());\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/AllayRenderer.java",
+        "sha256": "7c7e2faf73007a6c2f876e13beb29b41d9667b65808f3c72e272085c5feac8ed",
+        "bytes": 1095
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/AllayRenderer.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 28,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            28
+          ],
+          "bytes": 1095,
+          "sha256": "7c7e2faf73007a6c2f876e13beb29b41d9667b65808f3c72e272085c5feac8ed",
+          "raw_utf8_keepends": "package net.minecraft.client.renderer.entity;\n\nimport net.minecraft.client.model.AllayModel;\nimport net.minecraft.client.model.geom.ModelLayers;\nimport net.minecraft.client.renderer.entity.layers.ItemInHandLayer;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.animal.allay.Allay;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class AllayRenderer extends MobRenderer<Allay, AllayModel> {\n   private static final ResourceLocation ALLAY_TEXTURE = new ResourceLocation(\"textures/entity/allay/allay.png\");\n\n   public AllayRenderer(EntityRendererProvider.Context p_234551_) {\n      super(p_234551_, new AllayModel(p_234551_.bakeLayer(ModelLayers.ALLAY)), 0.4F);\n      this.addLayer(new ItemInHandLayer<>(this, p_234551_.getItemInHandRenderer()));\n   }\n\n   public ResourceLocation getTextureLocation(Allay p_234558_) {\n      return ALLAY_TEXTURE;\n   }\n\n   protected int getBlockLightLevel(Allay p_234560_, BlockPos p_234561_) {\n      return 15;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/CountDownCooldownTicks.java",
+        "sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d",
+        "bytes": 1509
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/CountDownCooldownTicks.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 39,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            39
+          ],
+          "bytes": 1509,
+          "sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport java.util.Optional;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\n\npublic class CountDownCooldownTicks extends Behavior<LivingEntity> {\n   private final MemoryModuleType<Integer> cooldownTicks;\n\n   public CountDownCooldownTicks(MemoryModuleType<Integer> p_147462_) {\n      super(ImmutableMap.of(p_147462_, MemoryStatus.VALUE_PRESENT));\n      this.cooldownTicks = p_147462_;\n   }\n\n   private Optional<Integer> getCooldownTickMemory(LivingEntity p_147466_) {\n      return p_147466_.getBrain().getMemory(this.cooldownTicks);\n   }\n\n   protected boolean timedOut(long p_147464_) {\n      return false;\n   }\n\n   protected boolean canStillUse(ServerLevel p_147468_, LivingEntity p_147469_, long p_147470_) {\n      Optional<Integer> optional = this.getCooldownTickMemory(p_147469_);\n      return optional.isPresent() && optional.get() > 0;\n   }\n\n   protected void tick(ServerLevel p_147476_, LivingEntity p_147477_, long p_147478_) {\n      Optional<Integer> optional = this.getCooldownTickMemory(p_147477_);\n      p_147477_.getBrain().setMemory(this.cooldownTicks, optional.get() - 1);\n   }\n\n   protected void stop(ServerLevel p_147472_, LivingEntity p_147473_, long p_147474_) {\n      p_147473_.getBrain().eraseMemory(this.cooldownTicks);\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/BehaviorUtils.java",
+        "sha256": "a73430bb0bd78a47e1e8a3aa7d1265ba3463c119a797a6dedb47195a147e75e9",
+        "bytes": 8191
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 173,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            80,
+            101
+          ],
+          "bytes": 1186,
+          "sha256": "cc3129bf3de516f0003e953ef2838031f433de920afe98eeb223559a490c7876",
+          "raw_utf8_keepends": "      p_217129_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, walktarget);\n   }\n\n   public static void throwItem(LivingEntity p_22614_, ItemStack p_22615_, Vec3 p_22616_) {\n      Vec3 vec3 = new Vec3((double)0.3F, (double)0.3F, (double)0.3F);\n      throwItem(p_22614_, p_22615_, p_22616_, vec3, 0.3F);\n   }\n\n   public static void throwItem(LivingEntity p_217134_, ItemStack p_217135_, Vec3 p_217136_, Vec3 p_217137_, float p_217138_) {\n      double d0 = p_217134_.getEyeY() - (double)p_217138_;\n      ItemEntity itementity = new ItemEntity(p_217134_.level(), p_217134_.getX(), d0, p_217134_.getZ(), p_217135_);\n      itementity.setThrower(p_217134_.getUUID());\n      Vec3 vec3 = p_217136_.subtract(p_217134_.position());\n      vec3 = vec3.normalize().multiply(p_217137_.x, p_217137_.y, p_217137_.z);\n      itementity.setDeltaMovement(vec3);\n      itementity.setDefaultPickUpDelay();\n      p_217134_.level().addFreshEntity(itementity);\n   }\n\n   public static SectionPos findSectionClosestToVillage(ServerLevel p_22582_, SectionPos p_22583_, int p_22584_) {\n      int i = p_22582_.sectionsToVillage(p_22583_);\n      return SectionPos.cube(p_22583_, p_22584_).filter((p_186017_) -> {\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/SimpleContainer.java",
+        "sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+        "bytes": 6675
+      },
+      "archive_entry": "net/minecraft/world/SimpleContainer.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 241,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            45,
+            63
+          ],
+          "bytes": 625,
+          "sha256": "b60ceb0b98d8fc36779c8016b6207129d7639c8b2bc2f4292d1a361b49e59283",
+          "raw_utf8_keepends": "   }\n\n   public ItemStack getItem(int p_19157_) {\n      return p_19157_ >= 0 && p_19157_ < this.items.size() ? this.items.get(p_19157_) : ItemStack.EMPTY;\n   }\n\n   public List<ItemStack> removeAllItems() {\n      List<ItemStack> list = this.items.stream().filter((p_19197_) -> {\n         return !p_19197_.isEmpty();\n      }).collect(Collectors.toList());\n      this.clearContent();\n      return list;\n   }\n\n   public ItemStack removeItem(int p_19159_, int p_19160_) {\n      ItemStack itemstack = ContainerHelper.removeItem(this.items, p_19159_, p_19160_);\n      if (!itemstack.isEmpty()) {\n         this.setChanged();\n      }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/player/Player.java",
+        "sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+        "bytes": 84201
+      },
+      "archive_entry": "net/minecraft/world/entity/player/Player.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 2169,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1766,
+            1773
+          ],
+          "bytes": 151,
+          "sha256": "f72425f88cf5128dbc9dfc19bb1ff62c33780e311e64545e40499e0b4a0ea270",
+          "raw_utf8_keepends": "\n   }\n\n   public boolean addItem(ItemStack p_36357_) {\n      return this.inventory.add(p_36357_);\n   }\n\n   public Iterable<ItemStack> getHandSlots() {\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+        "sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+        "bytes": 12719
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 149,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            119,
+            119
+          ],
+          "bytes": 103,
+          "sha256": "df48d1a807dcd8bb43ce48395ab17982036903ee5e615a5dcce26fa45d01b5af",
+          "raw_utf8_keepends": "   public static final MemoryModuleType<UUID> LIKED_PLAYER = register(\"liked_player\", UUIDUtil.CODEC);\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+        "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "bytes": 52218
+      },
+      "archive_entry": "net/minecraft/world/entity/EntityType.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 775,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            168,
+            168
+          ],
+          "bytes": 185,
+          "sha256": "464a2097e53cfdf673918e2c2963f6f4a34bb949c360d02b4600243133b2ef24",
+          "raw_utf8_keepends": "   public static final EntityType<Allay> ALLAY = register(\"allay\", EntityType.Builder.of(Allay::new, MobCategory.CREATURE).sized(0.35F, 0.6F).clientTrackingRange(8).updateInterval(2));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EntityRenderers.java",
+        "sha256": "ec00e8196afb7d3812419956d39f0f9919543b13ff2929c1aa6dcb01304d5e98",
+        "bytes": 12707
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EntityRenderers.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 244,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            72,
+            72
+          ],
+          "bytes": 54,
+          "sha256": "a44cea1e9081adc70b1a082fba5fe9f6fa98941ec487434b809faeb973b5b7b3",
+          "raw_utf8_keepends": "      register(EntityType.ALLAY, AllayRenderer::new);\n"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "reading_coverage": {
+    "files": 12,
+    "ranges": 12,
+    "whole_files": 6,
+    "unique_selected_lines": 1000,
+    "coverage_is_not_semantic_credit": true
+  },
+  "reading_recovery": {
+    "clipped_combined_renderer_countdown_helper_output_not_counted": true,
+    "recovered_renderer_and_countdown_in_full_then_small_rg_binding_lines_then_bounded_helper_output": true,
+    "source_integrity_scan_not_treated_as_semantic_reading": true
+  },
+  "comparison": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-159-native-allay-trust-refusal-and-item-return-complete-owner-comparison-SUPPORT0-20261112.json",
+    "sha256": "e7cd39f286a890d0112f18a08e1b30575ff09b35e330eb887c89354a01ea12ee",
+    "bytes": 527880
+  },
+  "whole_lifecycle_findings": [
+    {
+      "source": "Allay.java:163-173",
+      "observation": "hurt reads DamageSource.getEntity only. A causing Player matching LIKED_PLAYER UUID returns false before parent; other paths call super. The local rejection checks neither held item, resolver range, player game mode nor nominal damage. No denial reason/visual receipt is emitted in this branch; do not extend it to arbitrary recursive projectile/pet ownership."
+    },
+    {
+      "source": "Allay.java:271-302",
+      "observation": "Interaction branch order is dancing amethyst duplication, then empty own hand plus nonempty offered item, then occupied own hand plus an empty interacting MAIN_HAND. Giving copies one template, consumes unless instabuild, requests sound and stores player UUID. Retrieval clears own hand, requests sound/swing, drains inventory to thrown item entities, erases LIKED_PLAYER, then calls player.addItem(template) and returns SUCCESS. No retriever identity-equality guard in this local branch; outer interaction authorization was not expanded."
+    },
+    {
+      "source": "Allay.java:271-302; Player.java:1769-1771; SimpleContainer.java:51-57; BehaviorUtils.java:83-97",
+      "observation": "removeAllItems snapshots nonempty stack references then clears container. Throw creates ItemEntity, sets thrower/velocity/default pickup delay and ignores addFreshEntity result. Player.addItem returns inventory.add; Allay retrieval ignores its boolean. No guarantee of settled native inventory admission. An empty main hand normally provides an available selected slot, so ignored boolean alone does not demonstrate a naturally full-inventory loss case or a security exploit."
+    },
+    {
+      "source": "AllayAi.java:75-139",
+      "observation": "First heard noteblock stores GlobalPos and cooldown600; same position refreshes. Deposit selection prefers a matching current dimension NOTE_BLOCK with cooldown memory present, else erases note position and falls back to liked player. getLikedPlayer resolves only a current-level ServerPlayer in survival/creative within64 and otherwise returns empty without erasing UUID. Selection validity and stored hurt-rejection identity can diverge; no atomic target/revocation receipt claimed."
+    },
+    {
+      "source": "GoAndGiveItemsToTarget.java:1-101; CountDownCooldownTicks.java:1-39",
+      "observation": "Behavior registers LOOK_TARGET/WALK_TARGET/ITEM_PICKUP_COOLDOWN; start/continue require nonempty inventory and target getter present. Tick recomputes target; eye distance<3 removes one slot0 item before throw, optionally triggers ALLAY_DROP_ITEM_ON_BLOCK when a liked player resolves, then sets pickup cooldown60. Registration is not a value-absent throw gate. CountDown decrements while positive and erases on stop; do not equate requested counts to exact elapsed seconds or sound to receiver success."
+    },
+    {
+      "source": "Allay.java:255-269,325-368; InventoryCarrier.java:1-46",
+      "observation": "Pickup needs held template and absent pickup-cooldown memory, canAddItem, same item and potion-specific comparison plus Forge griefing policy. Template lacking Potion does not enforce general full-NBT equality. InventoryCarrier uses actual add remainder/take count and discards only when remainder empty. This does not establish preservation of every Dynasty NBT variant or a task-native acquisition receipt."
+    },
+    {
+      "source": "Allay.java:207-219,409-445,466-480",
+      "observation": "Periodic server healing is independent of a rejected trusted-player hit. Death drops inventory/eligible held item without proving item-entity admission. Duplication create can fail, and addFreshEntity result is ignored after resetting cooldown; interaction SUCCESS/hearts/chime are not a child-spawn receipt. Existing migration258 wholly retains inventory/cooldown reader precision ownership."
+    },
+    {
+      "source": "Allay.java whole; AllayRenderer.java:1-28; EntityType.java:168; EntityRenderers.java:72; MemoryModuleType.java:119",
+      "observation": "Native Allay constructor binding and client renderer registration are fixed-source entry points. Renderer adds ItemInHandLayer, fixed allay texture and blocklight15. Client holding/dancing timers and event18 hearts are local presentation, not trust denial, HP recovery or item-receipt feedback. UUIDUtil.CODEC on LIKED_PLAYER supports serialization capability only; no new full save/reconnect proof or model/texture production was performed."
+    }
+  ],
+  "application_to_Dynasty": [
+    "Only generate a boss denial reason at the actual qualified refusal branch; passive holding/dance/heart/heal presentation does not establish cause-specific feedback. Ordinary combat must not gain unrelated gray hints.",
+    "Keep stored identity, current receiver eligibility and settled item ownership distinct; preserve native IDs/NBT and explicit admission/payment/reward receipts. These are research observations, not production changes.",
+    "Original UI scope remains: retain background, change main-menu button corners, consider world-options identity and remove useless spawn-egg/basic tutorial prompts. No UI assets or code were changed."
+  ],
+  "limits": [
+    "SUPPORT0 after complete local comparisons; no new candidate, append plan, authority, execution marker or formal ledger write.",
+    "Read bounded helpers and bindings, not full Player/Inventory/Brain/renderer model/vibration system or all522 entries. No natural runtime, client screenshot, damage hook integration, game launch or native acceptance.",
+    "No all-cod completion, protected task deletion or active-hour claim. All prior consumed plans remain consumed."
+  ],
+  "protected_after": {
+    "formal_program": 522,
+    "groups": 250,
+    "gap": 478,
+    "gate": false,
+    "NBT_gate_satisfied": false,
+    "ecology_context_reported_by_Main": {
+      "actual": 58,
+      "gap": 942,
+      "gate": false,
+      "new_author_ecology_source_credit": 0
+    },
+    "production_changes": false,
+    "master_session_active_pending_ownership_changes": false,
+    "task_deletions": 0,
+    "original_UI_implemented": false,
+    "all_tasks_complete": false,
+    "hours_claimed": false
+  }
+}

@@ -1,0 +1,470 @@
+{
+  "recorded_utc": "2026-11-11T20:47:07.469262+00:00",
+  "batch": 161,
+  "status": "ACTUAL_SOURCE_RESEARCH_COMPLETE_SUPPORT0",
+  "decision": "SUPPORT0",
+  "formal_credit": 0,
+  "formal_candidate_id": null,
+  "semantic_family": "native-iron-golem-creation-provenance-outgoing-targeting-versus-anger-damage-repair-support",
+  "source_identity": {
+    "kind": "fixed local mapped Forge1.20.1-47.4.10 source archive entry exact bytes",
+    "archive": {
+      "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "new_remote_Git_authentication_claimed": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/IronGolem.java",
+        "sha256": "ce958e21ebe7bee7776abf2bdbcf01619e64f3599f780623cca9c01c4a36aa45",
+        "bytes": 12648
+      },
+      "archive_entry": "net/minecraft/world/entity/animal/IronGolem.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 341,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            341
+          ],
+          "bytes": 12648,
+          "sha256": "ce958e21ebe7bee7776abf2bdbcf01619e64f3599f780623cca9c01c4a36aa45",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.animal;\n\nimport com.google.common.collect.ImmutableList;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.UUID;\nimport java.util.stream.Stream;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.TimeUtil;\nimport net.minecraft.util.valueproviders.UniformInt;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.NeutralMob;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.GolemRandomStrollInVillageGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.MoveBackToVillageGoal;\nimport net.minecraft.world.entity.ai.goal.MoveTowardsTargetGoal;\nimport net.minecraft.world.entity.ai.goal.OfferFlowerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.target.DefendVillageTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;\nimport net.minecraft.world.entity.monster.Creeper;\nimport net.minecraft.world.entity.monster.Enemy;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.NaturalSpawner;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.material.Fluids;\nimport net.minecraft.world.phys.Vec3;\n\npublic class IronGolem extends AbstractGolem implements NeutralMob {\n   protected static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(IronGolem.class, EntityDataSerializers.BYTE);\n   private static final int IRON_INGOT_HEAL_AMOUNT = 25;\n   private int attackAnimationTick;\n   private int offerFlowerTick;\n   private static final UniformInt PERSISTENT_ANGER_TIME = TimeUtil.rangeOfSeconds(20, 39);\n   private int remainingPersistentAngerTime;\n   @Nullable\n   private UUID persistentAngerTarget;\n\n   public IronGolem(EntityType<? extends IronGolem> p_28834_, Level p_28835_) {\n      super(p_28834_, p_28835_);\n      this.setMaxUpStep(1.0F);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.0D, true));\n      this.goalSelector.addGoal(2, new MoveTowardsTargetGoal(this, 0.9D, 32.0F));\n      this.goalSelector.addGoal(2, new MoveBackToVillageGoal(this, 0.6D, false));\n      this.goalSelector.addGoal(4, new GolemRandomStrollInVillageGoal(this, 0.6D));\n      this.goalSelector.addGoal(5, new OfferFlowerGoal(this));\n      this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0F));\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, new DefendVillageTargetGoal(this));\n      this.targetSelector.addGoal(2, new HurtByTargetGoal(this));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Mob.class, 5, false, false, (p_28879_) -> {\n         return p_28879_ instanceof Enemy && !(p_28879_ instanceof Creeper);\n      }));\n      this.targetSelector.addGoal(4, new ResetUniversalAngerTargetGoal<>(this, false));\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_FLAGS_ID, (byte)0);\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 100.0D).add(Attributes.MOVEMENT_SPEED, 0.25D).add(Attributes.KNOCKBACK_RESISTANCE, 1.0D).add(Attributes.ATTACK_DAMAGE, 15.0D);\n   }\n\n   protected int decreaseAirSupply(int p_28882_) {\n      return p_28882_;\n   }\n\n   protected void doPush(Entity p_28839_) {\n      if (p_28839_ instanceof Enemy && !(p_28839_ instanceof Creeper) && this.getRandom().nextInt(20) == 0) {\n         this.setTarget((LivingEntity)p_28839_);\n      }\n\n      super.doPush(p_28839_);\n   }\n\n   public void aiStep() {\n      super.aiStep();\n      if (this.attackAnimationTick > 0) {\n         --this.attackAnimationTick;\n      }\n\n      if (this.offerFlowerTick > 0) {\n         --this.offerFlowerTick;\n      }\n\n      if (!this.level().isClientSide) {\n         this.updatePersistentAnger((ServerLevel)this.level(), true);\n      }\n\n   }\n\n   public boolean canSpawnSprintParticle() {\n      return this.getDeltaMovement().horizontalDistanceSqr() > (double)2.5000003E-7F && this.random.nextInt(5) == 0;\n   }\n\n   public boolean canAttackType(EntityType<?> p_28851_) {\n      if (this.isPlayerCreated() && p_28851_ == EntityType.PLAYER) {\n         return false;\n      } else {\n         return p_28851_ == EntityType.CREEPER ? false : super.canAttackType(p_28851_);\n      }\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_28867_) {\n      super.addAdditionalSaveData(p_28867_);\n      p_28867_.putBoolean(\"PlayerCreated\", this.isPlayerCreated());\n      this.addPersistentAngerSaveData(p_28867_);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_28857_) {\n      super.readAdditionalSaveData(p_28857_);\n      this.setPlayerCreated(p_28857_.getBoolean(\"PlayerCreated\"));\n      this.readPersistentAngerSaveData(this.level(), p_28857_);\n   }\n\n   public void startPersistentAngerTimer() {\n      this.setRemainingPersistentAngerTime(PERSISTENT_ANGER_TIME.sample(this.random));\n   }\n\n   public void setRemainingPersistentAngerTime(int p_28859_) {\n      this.remainingPersistentAngerTime = p_28859_;\n   }\n\n   public int getRemainingPersistentAngerTime() {\n      return this.remainingPersistentAngerTime;\n   }\n\n   public void setPersistentAngerTarget(@Nullable UUID p_28855_) {\n      this.persistentAngerTarget = p_28855_;\n   }\n\n   @Nullable\n   public UUID getPersistentAngerTarget() {\n      return this.persistentAngerTarget;\n   }\n\n   private float getAttackDamage() {\n      return (float)this.getAttributeValue(Attributes.ATTACK_DAMAGE);\n   }\n\n   public boolean doHurtTarget(Entity p_28837_) {\n      this.attackAnimationTick = 10;\n      this.level().broadcastEntityEvent(this, (byte)4);\n      float f = this.getAttackDamage();\n      float f1 = (int)f > 0 ? f / 2.0F + (float)this.random.nextInt((int)f) : f;\n      boolean flag = p_28837_.hurt(this.damageSources().mobAttack(this), f1);\n      if (flag) {\n         double d2;\n         if (p_28837_ instanceof LivingEntity) {\n            LivingEntity livingentity = (LivingEntity)p_28837_;\n            d2 = livingentity.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);\n         } else {\n            d2 = 0.0D;\n         }\n\n         double d0 = d2;\n         double d1 = Math.max(0.0D, 1.0D - d0);\n         p_28837_.setDeltaMovement(p_28837_.getDeltaMovement().add(0.0D, (double)0.4F * d1, 0.0D));\n         this.doEnchantDamageEffects(this, p_28837_);\n      }\n\n      this.playSound(SoundEvents.IRON_GOLEM_ATTACK, 1.0F, 1.0F);\n      return flag;\n   }\n\n   public boolean hurt(DamageSource p_28848_, float p_28849_) {\n      IronGolem.Crackiness irongolem$crackiness = this.getCrackiness();\n      boolean flag = super.hurt(p_28848_, p_28849_);\n      if (flag && this.getCrackiness() != irongolem$crackiness) {\n         this.playSound(SoundEvents.IRON_GOLEM_DAMAGE, 1.0F, 1.0F);\n      }\n\n      return flag;\n   }\n\n   public IronGolem.Crackiness getCrackiness() {\n      return IronGolem.Crackiness.byFraction(this.getHealth() / this.getMaxHealth());\n   }\n\n   public void handleEntityEvent(byte p_28844_) {\n      if (p_28844_ == 4) {\n         this.attackAnimationTick = 10;\n         this.playSound(SoundEvents.IRON_GOLEM_ATTACK, 1.0F, 1.0F);\n      } else if (p_28844_ == 11) {\n         this.offerFlowerTick = 400;\n      } else if (p_28844_ == 34) {\n         this.offerFlowerTick = 0;\n      } else {\n         super.handleEntityEvent(p_28844_);\n      }\n\n   }\n\n   public int getAttackAnimationTick() {\n      return this.attackAnimationTick;\n   }\n\n   public void offerFlower(boolean p_28886_) {\n      if (p_28886_) {\n         this.offerFlowerTick = 400;\n         this.level().broadcastEntityEvent(this, (byte)11);\n      } else {\n         this.offerFlowerTick = 0;\n         this.level().broadcastEntityEvent(this, (byte)34);\n      }\n\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_28872_) {\n      return SoundEvents.IRON_GOLEM_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.IRON_GOLEM_DEATH;\n   }\n\n   protected InteractionResult mobInteract(Player p_28861_, InteractionHand p_28862_) {\n      ItemStack itemstack = p_28861_.getItemInHand(p_28862_);\n      if (!itemstack.is(Items.IRON_INGOT)) {\n         return InteractionResult.PASS;\n      } else {\n         float f = this.getHealth();\n         this.heal(25.0F);\n         if (this.getHealth() == f) {\n            return InteractionResult.PASS;\n         } else {\n            float f1 = 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.2F;\n            this.playSound(SoundEvents.IRON_GOLEM_REPAIR, 1.0F, f1);\n            if (!p_28861_.getAbilities().instabuild) {\n               itemstack.shrink(1);\n            }\n\n            return InteractionResult.sidedSuccess(this.level().isClientSide);\n         }\n      }\n   }\n\n   protected void playStepSound(BlockPos p_28864_, BlockState p_28865_) {\n      this.playSound(SoundEvents.IRON_GOLEM_STEP, 1.0F, 1.0F);\n   }\n\n   public int getOfferFlowerTick() {\n      return this.offerFlowerTick;\n   }\n\n   public boolean isPlayerCreated() {\n      return (this.entityData.get(DATA_FLAGS_ID) & 1) != 0;\n   }\n\n   public void setPlayerCreated(boolean p_28888_) {\n      byte b0 = this.entityData.get(DATA_FLAGS_ID);\n      if (p_28888_) {\n         this.entityData.set(DATA_FLAGS_ID, (byte)(b0 | 1));\n      } else {\n         this.entityData.set(DATA_FLAGS_ID, (byte)(b0 & -2));\n      }\n\n   }\n\n   public void die(DamageSource p_28846_) {\n      super.die(p_28846_);\n   }\n\n   public boolean checkSpawnObstruction(LevelReader p_28853_) {\n      BlockPos blockpos = this.blockPosition();\n      BlockPos blockpos1 = blockpos.below();\n      BlockState blockstate = p_28853_.getBlockState(blockpos1);\n      if (!blockstate.entityCanStandOn(p_28853_, blockpos1, this)) {\n         return false;\n      } else {\n         for(int i = 1; i < 3; ++i) {\n            BlockPos blockpos2 = blockpos.above(i);\n            BlockState blockstate1 = p_28853_.getBlockState(blockpos2);\n            if (!NaturalSpawner.isValidEmptySpawnBlock(p_28853_, blockpos2, blockstate1, blockstate1.getFluidState(), EntityType.IRON_GOLEM)) {\n               return false;\n            }\n         }\n\n         return NaturalSpawner.isValidEmptySpawnBlock(p_28853_, blockpos, p_28853_.getBlockState(blockpos), Fluids.EMPTY.defaultFluidState(), EntityType.IRON_GOLEM) && p_28853_.isUnobstructed(this);\n      }\n   }\n\n   public Vec3 getLeashOffset() {\n      return new Vec3(0.0D, (double)(0.875F * this.getEyeHeight()), (double)(this.getBbWidth() * 0.4F));\n   }\n\n   public static enum Crackiness {\n      NONE(1.0F),\n      LOW(0.75F),\n      MEDIUM(0.5F),\n      HIGH(0.25F);\n\n      private static final List<IronGolem.Crackiness> BY_DAMAGE = Stream.of(values()).sorted(Comparator.comparingDouble((p_28904_) -> {\n         return (double)p_28904_.fraction;\n      })).collect(ImmutableList.toImmutableList());\n      private final float fraction;\n\n      private Crackiness(float p_28900_) {\n         this.fraction = p_28900_;\n      }\n\n      public static IronGolem.Crackiness byFraction(float p_28902_) {\n         for(IronGolem.Crackiness irongolem$crackiness : BY_DAMAGE) {\n            if (p_28902_ < irongolem$crackiness.fraction) {\n               return irongolem$crackiness;\n            }\n         }\n\n         return NONE;\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/NeutralMob.java",
+        "sha256": "2acf2588b2e4d475c1e56457225a426aa0b43cf63720c37a3d59e377f7964284",
+        "bytes": 4315
+      },
+      "archive_entry": "net/minecraft/world/entity/NeutralMob.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 128,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            128
+          ],
+          "bytes": 4315,
+          "sha256": "2acf2588b2e4d475c1e56457225a426aa0b43cf63720c37a3d59e377f7964284",
+          "raw_utf8_keepends": "package net.minecraft.world.entity;\n\nimport java.util.Objects;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\n\npublic interface NeutralMob {\n   String TAG_ANGER_TIME = \"AngerTime\";\n   String TAG_ANGRY_AT = \"AngryAt\";\n\n   int getRemainingPersistentAngerTime();\n\n   void setRemainingPersistentAngerTime(int p_21673_);\n\n   @Nullable\n   UUID getPersistentAngerTarget();\n\n   void setPersistentAngerTarget(@Nullable UUID p_21672_);\n\n   void startPersistentAngerTimer();\n\n   default void addPersistentAngerSaveData(CompoundTag p_21679_) {\n      p_21679_.putInt(\"AngerTime\", this.getRemainingPersistentAngerTime());\n      if (this.getPersistentAngerTarget() != null) {\n         p_21679_.putUUID(\"AngryAt\", this.getPersistentAngerTarget());\n      }\n\n   }\n\n   default void readPersistentAngerSaveData(Level p_147286_, CompoundTag p_147287_) {\n      this.setRemainingPersistentAngerTime(p_147287_.getInt(\"AngerTime\"));\n      if (p_147286_ instanceof ServerLevel) {\n         if (!p_147287_.hasUUID(\"AngryAt\")) {\n            this.setPersistentAngerTarget((UUID)null);\n         } else {\n            UUID uuid = p_147287_.getUUID(\"AngryAt\");\n            this.setPersistentAngerTarget(uuid);\n            Entity entity = ((ServerLevel)p_147286_).getEntity(uuid);\n            if (entity != null) {\n               if (entity instanceof Mob) {\n                  this.setLastHurtByMob((Mob)entity);\n               }\n\n               if (entity.getType() == EntityType.PLAYER) {\n                  this.setLastHurtByPlayer((Player)entity);\n               }\n\n            }\n         }\n      }\n   }\n\n   default void updatePersistentAnger(ServerLevel p_21667_, boolean p_21668_) {\n      LivingEntity livingentity = this.getTarget();\n      UUID uuid = this.getPersistentAngerTarget();\n      if ((livingentity == null || livingentity.isDeadOrDying()) && uuid != null && p_21667_.getEntity(uuid) instanceof Mob) {\n         this.stopBeingAngry();\n      } else {\n         if (livingentity != null && !Objects.equals(uuid, livingentity.getUUID())) {\n            this.setPersistentAngerTarget(livingentity.getUUID());\n            this.startPersistentAngerTimer();\n         }\n\n         if (this.getRemainingPersistentAngerTime() > 0 && (livingentity == null || livingentity.getType() != EntityType.PLAYER || !p_21668_)) {\n            this.setRemainingPersistentAngerTime(this.getRemainingPersistentAngerTime() - 1);\n            if (this.getRemainingPersistentAngerTime() == 0) {\n               this.stopBeingAngry();\n            }\n         }\n\n      }\n   }\n\n   default boolean isAngryAt(LivingEntity p_21675_) {\n      if (!this.canAttack(p_21675_)) {\n         return false;\n      } else {\n         return p_21675_.getType() == EntityType.PLAYER && this.isAngryAtAllPlayers(p_21675_.level()) ? true : p_21675_.getUUID().equals(this.getPersistentAngerTarget());\n      }\n   }\n\n   default boolean isAngryAtAllPlayers(Level p_21671_) {\n      return p_21671_.getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER) && this.isAngry() && this.getPersistentAngerTarget() == null;\n   }\n\n   default boolean isAngry() {\n      return this.getRemainingPersistentAngerTime() > 0;\n   }\n\n   default void playerDied(Player p_21677_) {\n      if (p_21677_.level().getGameRules().getBoolean(GameRules.RULE_FORGIVE_DEAD_PLAYERS)) {\n         if (p_21677_.getUUID().equals(this.getPersistentAngerTarget())) {\n            this.stopBeingAngry();\n         }\n      }\n   }\n\n   default void forgetCurrentTargetAndRefreshUniversalAnger() {\n      this.stopBeingAngry();\n      this.startPersistentAngerTimer();\n   }\n\n   default void stopBeingAngry() {\n      this.setLastHurtByMob((LivingEntity)null);\n      this.setPersistentAngerTarget((UUID)null);\n      this.setTarget((LivingEntity)null);\n      this.setRemainingPersistentAngerTime(0);\n   }\n\n   @Nullable\n   LivingEntity getLastHurtByMob();\n\n   void setLastHurtByMob(@Nullable LivingEntity p_21669_);\n\n   void setLastHurtByPlayer(@Nullable Player p_21680_);\n\n   void setTarget(@Nullable LivingEntity p_21681_);\n\n   boolean canAttack(LivingEntity p_181126_);\n\n   @Nullable\n   LivingEntity getTarget();\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/DefendVillageTargetGoal.java",
+        "sha256": "324574656362eb474ef28f2d8d0d0ac12e3270fa7474d0d08600ad7d87216295",
+        "bytes": 1905
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/target/DefendVillageTargetGoal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 53,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            53
+          ],
+          "bytes": 1905,
+          "sha256": "324574656362eb474ef28f2d8d0d0ac12e3270fa7474d0d08600ad7d87216295",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport java.util.EnumSet;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.animal.IronGolem;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.phys.AABB;\n\npublic class DefendVillageTargetGoal extends TargetGoal {\n   private final IronGolem golem;\n   @Nullable\n   private LivingEntity potentialTarget;\n   private final TargetingConditions attackTargeting = TargetingConditions.forCombat().range(64.0D);\n\n   public DefendVillageTargetGoal(IronGolem p_26029_) {\n      super(p_26029_, false, true);\n      this.golem = p_26029_;\n      this.setFlags(EnumSet.of(Goal.Flag.TARGET));\n   }\n\n   public boolean canUse() {\n      AABB aabb = this.golem.getBoundingBox().inflate(10.0D, 8.0D, 10.0D);\n      List<? extends LivingEntity> list = this.golem.level().getNearbyEntities(Villager.class, this.attackTargeting, this.golem, aabb);\n      List<Player> list1 = this.golem.level().getNearbyPlayers(this.attackTargeting, this.golem, aabb);\n\n      for(LivingEntity livingentity : list) {\n         Villager villager = (Villager)livingentity;\n\n         for(Player player : list1) {\n            int i = villager.getPlayerReputation(player);\n            if (i <= -100) {\n               this.potentialTarget = player;\n            }\n         }\n      }\n\n      if (this.potentialTarget == null) {\n         return false;\n      } else {\n         return !(this.potentialTarget instanceof Player) || !this.potentialTarget.isSpectator() && !((Player)this.potentialTarget).isCreative();\n      }\n   }\n\n   public void start() {\n      this.golem.setTarget(this.potentialTarget);\n      super.start();\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java",
+        "sha256": "7f85aeb490db487081a482da9043fcdbe72b052341eecafcef7e19d9174db4e1",
+        "bytes": 3791
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/target/HurtByTargetGoal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 112,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            112
+          ],
+          "bytes": 3791,
+          "sha256": "7f85aeb490db487081a482da9043fcdbe72b052341eecafcef7e19d9174db4e1",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport java.util.EnumSet;\nimport java.util.Iterator;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.TamableAnimal;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.phys.AABB;\n\npublic class HurtByTargetGoal extends TargetGoal {\n   private static final TargetingConditions HURT_BY_TARGETING = TargetingConditions.forCombat().ignoreLineOfSight().ignoreInvisibilityTesting();\n   private static final int ALERT_RANGE_Y = 10;\n   private boolean alertSameType;\n   private int timestamp;\n   private final Class<?>[] toIgnoreDamage;\n   @Nullable\n   private Class<?>[] toIgnoreAlert;\n\n   public HurtByTargetGoal(PathfinderMob p_26039_, Class<?>... p_26040_) {\n      super(p_26039_, true);\n      this.toIgnoreDamage = p_26040_;\n      this.setFlags(EnumSet.of(Goal.Flag.TARGET));\n   }\n\n   public boolean canUse() {\n      int i = this.mob.getLastHurtByMobTimestamp();\n      LivingEntity livingentity = this.mob.getLastHurtByMob();\n      if (i != this.timestamp && livingentity != null) {\n         if (livingentity.getType() == EntityType.PLAYER && this.mob.level().getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER)) {\n            return false;\n         } else {\n            for(Class<?> oclass : this.toIgnoreDamage) {\n               if (oclass.isAssignableFrom(livingentity.getClass())) {\n                  return false;\n               }\n            }\n\n            return this.canAttack(livingentity, HURT_BY_TARGETING);\n         }\n      } else {\n         return false;\n      }\n   }\n\n   public HurtByTargetGoal setAlertOthers(Class<?>... p_26045_) {\n      this.alertSameType = true;\n      this.toIgnoreAlert = p_26045_;\n      return this;\n   }\n\n   public void start() {\n      this.mob.setTarget(this.mob.getLastHurtByMob());\n      this.targetMob = this.mob.getTarget();\n      this.timestamp = this.mob.getLastHurtByMobTimestamp();\n      this.unseenMemoryTicks = 300;\n      if (this.alertSameType) {\n         this.alertOthers();\n      }\n\n      super.start();\n   }\n\n   protected void alertOthers() {\n      double d0 = this.getFollowDistance();\n      AABB aabb = AABB.unitCubeFromLowerCorner(this.mob.position()).inflate(d0, 10.0D, d0);\n      List<? extends Mob> list = this.mob.level().getEntitiesOfClass(this.mob.getClass(), aabb, EntitySelector.NO_SPECTATORS);\n      Iterator iterator = list.iterator();\n\n      while(true) {\n         Mob mob;\n         while(true) {\n            if (!iterator.hasNext()) {\n               return;\n            }\n\n            mob = (Mob)iterator.next();\n            if (this.mob != mob && mob.getTarget() == null && (!(this.mob instanceof TamableAnimal) || ((TamableAnimal)this.mob).getOwner() == ((TamableAnimal)mob).getOwner()) && !mob.isAlliedTo(this.mob.getLastHurtByMob())) {\n               if (this.toIgnoreAlert == null) {\n                  break;\n               }\n\n               boolean flag = false;\n\n               for(Class<?> oclass : this.toIgnoreAlert) {\n                  if (mob.getClass() == oclass) {\n                     flag = true;\n                     break;\n                  }\n               }\n\n               if (!flag) {\n                  break;\n               }\n            }\n         }\n\n         this.alertOther(mob, this.mob.getLastHurtByMob());\n      }\n   }\n\n   protected void alertOther(Mob p_26042_, LivingEntity p_26043_) {\n      p_26042_.setTarget(p_26043_);\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/ResetUniversalAngerTargetGoal.java",
+        "sha256": "2bbb2eca7cf04a509ba63b9d9151d64fb0dc19f2dd408f02d4fddda0c9b6a44e",
+        "bytes": 2065
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/target/ResetUniversalAngerTargetGoal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 51,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            51
+          ],
+          "bytes": 2065,
+          "sha256": "2bbb2eca7cf04a509ba63b9d9151d64fb0dc19f2dd408f02d4fddda0c9b6a44e",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport java.util.List;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.NeutralMob;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.phys.AABB;\n\npublic class ResetUniversalAngerTargetGoal<T extends Mob & NeutralMob> extends Goal {\n   private static final int ALERT_RANGE_Y = 10;\n   private final T mob;\n   private final boolean alertOthersOfSameType;\n   private int lastHurtByPlayerTimestamp;\n\n   public ResetUniversalAngerTargetGoal(T p_26121_, boolean p_26122_) {\n      this.mob = p_26121_;\n      this.alertOthersOfSameType = p_26122_;\n   }\n\n   public boolean canUse() {\n      return this.mob.level().getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER) && this.wasHurtByPlayer();\n   }\n\n   private boolean wasHurtByPlayer() {\n      return this.mob.getLastHurtByMob() != null && this.mob.getLastHurtByMob().getType() == EntityType.PLAYER && this.mob.getLastHurtByMobTimestamp() > this.lastHurtByPlayerTimestamp;\n   }\n\n   public void start() {\n      this.lastHurtByPlayerTimestamp = this.mob.getLastHurtByMobTimestamp();\n      this.mob.forgetCurrentTargetAndRefreshUniversalAnger();\n      if (this.alertOthersOfSameType) {\n         this.getNearbyMobsOfSameType().stream().filter((p_26127_) -> {\n            return p_26127_ != this.mob;\n         }).map((p_26125_) -> {\n            return (NeutralMob)p_26125_;\n         }).forEach(NeutralMob::forgetCurrentTargetAndRefreshUniversalAnger);\n      }\n\n      super.start();\n   }\n\n   private List<? extends Mob> getNearbyMobsOfSameType() {\n      double d0 = this.mob.getAttributeValue(Attributes.FOLLOW_RANGE);\n      AABB aabb = AABB.unitCubeFromLowerCorner(this.mob.position()).inflate(d0, 10.0D, d0);\n      return this.mob.level().getEntitiesOfClass(this.mob.getClass(), aabb, EntitySelector.NO_SPECTATORS);\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/TargetGoal.java",
+        "sha256": "02eeb5ab6e85b142cfeab5711f84c5cef7f3b026d0fed8adcd4ffe793f3bc746",
+        "bytes": 4086
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/target/TargetGoal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 134,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            134
+          ],
+          "bytes": 4086,
+          "sha256": "02eeb5ab6e85b142cfeab5711f84c5cef7f3b026d0fed8adcd4ffe793f3bc746",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.level.pathfinder.Node;\nimport net.minecraft.world.level.pathfinder.Path;\nimport net.minecraft.world.scores.Team;\n\npublic abstract class TargetGoal extends Goal {\n   private static final int EMPTY_REACH_CACHE = 0;\n   private static final int CAN_REACH_CACHE = 1;\n   private static final int CANT_REACH_CACHE = 2;\n   protected final Mob mob;\n   protected final boolean mustSee;\n   private final boolean mustReach;\n   private int reachCache;\n   private int reachCacheTime;\n   private int unseenTicks;\n   @Nullable\n   protected LivingEntity targetMob;\n   protected int unseenMemoryTicks = 60;\n\n   public TargetGoal(Mob p_26140_, boolean p_26141_) {\n      this(p_26140_, p_26141_, false);\n   }\n\n   public TargetGoal(Mob p_26143_, boolean p_26144_, boolean p_26145_) {\n      this.mob = p_26143_;\n      this.mustSee = p_26144_;\n      this.mustReach = p_26145_;\n   }\n\n   public boolean canContinueToUse() {\n      LivingEntity livingentity = this.mob.getTarget();\n      if (livingentity == null) {\n         livingentity = this.targetMob;\n      }\n\n      if (livingentity == null) {\n         return false;\n      } else if (!this.mob.canAttack(livingentity)) {\n         return false;\n      } else {\n         Team team = this.mob.getTeam();\n         Team team1 = livingentity.getTeam();\n         if (team != null && team1 == team) {\n            return false;\n         } else {\n            double d0 = this.getFollowDistance();\n            if (this.mob.distanceToSqr(livingentity) > d0 * d0) {\n               return false;\n            } else {\n               if (this.mustSee) {\n                  if (this.mob.getSensing().hasLineOfSight(livingentity)) {\n                     this.unseenTicks = 0;\n                  } else if (++this.unseenTicks > reducedTickDelay(this.unseenMemoryTicks)) {\n                     return false;\n                  }\n               }\n\n               this.mob.setTarget(livingentity);\n               return true;\n            }\n         }\n      }\n   }\n\n   protected double getFollowDistance() {\n      return this.mob.getAttributeValue(Attributes.FOLLOW_RANGE);\n   }\n\n   public void start() {\n      this.reachCache = 0;\n      this.reachCacheTime = 0;\n      this.unseenTicks = 0;\n   }\n\n   public void stop() {\n      this.mob.setTarget((LivingEntity)null);\n      this.targetMob = null;\n   }\n\n   protected boolean canAttack(@Nullable LivingEntity p_26151_, TargetingConditions p_26152_) {\n      if (p_26151_ == null) {\n         return false;\n      } else if (!p_26152_.test(this.mob, p_26151_)) {\n         return false;\n      } else if (!this.mob.isWithinRestriction(p_26151_.blockPosition())) {\n         return false;\n      } else {\n         if (this.mustReach) {\n            if (--this.reachCacheTime <= 0) {\n               this.reachCache = 0;\n            }\n\n            if (this.reachCache == 0) {\n               this.reachCache = this.canReach(p_26151_) ? 1 : 2;\n            }\n\n            if (this.reachCache == 2) {\n               return false;\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private boolean canReach(LivingEntity p_26149_) {\n      this.reachCacheTime = reducedTickDelay(10 + this.mob.getRandom().nextInt(5));\n      Path path = this.mob.getNavigation().createPath(p_26149_, 0);\n      if (path == null) {\n         return false;\n      } else {\n         Node node = path.getEndNode();\n         if (node == null) {\n            return false;\n         } else {\n            int i = node.x - p_26149_.getBlockX();\n            int j = node.z - p_26149_.getBlockZ();\n            return (double)(i * i + j * j) <= 2.25D;\n         }\n      }\n   }\n\n   public TargetGoal setUnseenMemoryTicks(int p_26147_) {\n      this.unseenMemoryTicks = p_26147_;\n      return this;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/target/NearestAttackableTargetGoal.java",
+        "sha256": "1a785d31c0efb2a2f3c564940c83f75a6b919db064ac224cd8fdc652a2a82183",
+        "bytes": 3030
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/target/NearestAttackableTargetGoal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 74,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            74
+          ],
+          "bytes": 3030,
+          "sha256": "1a785d31c0efb2a2f3c564940c83f75a6b919db064ac224cd8fdc652a2a82183",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal.target;\n\nimport java.util.EnumSet;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.phys.AABB;\n\npublic class NearestAttackableTargetGoal<T extends LivingEntity> extends TargetGoal {\n   private static final int DEFAULT_RANDOM_INTERVAL = 10;\n   protected final Class<T> targetType;\n   protected final int randomInterval;\n   @Nullable\n   protected LivingEntity target;\n   protected TargetingConditions targetConditions;\n\n   public NearestAttackableTargetGoal(Mob p_26060_, Class<T> p_26061_, boolean p_26062_) {\n      this(p_26060_, p_26061_, 10, p_26062_, false, (Predicate<LivingEntity>)null);\n   }\n\n   public NearestAttackableTargetGoal(Mob p_199891_, Class<T> p_199892_, boolean p_199893_, Predicate<LivingEntity> p_199894_) {\n      this(p_199891_, p_199892_, 10, p_199893_, false, p_199894_);\n   }\n\n   public NearestAttackableTargetGoal(Mob p_26064_, Class<T> p_26065_, boolean p_26066_, boolean p_26067_) {\n      this(p_26064_, p_26065_, 10, p_26066_, p_26067_, (Predicate<LivingEntity>)null);\n   }\n\n   public NearestAttackableTargetGoal(Mob p_26053_, Class<T> p_26054_, int p_26055_, boolean p_26056_, boolean p_26057_, @Nullable Predicate<LivingEntity> p_26058_) {\n      super(p_26053_, p_26056_, p_26057_);\n      this.targetType = p_26054_;\n      this.randomInterval = reducedTickDelay(p_26055_);\n      this.setFlags(EnumSet.of(Goal.Flag.TARGET));\n      this.targetConditions = TargetingConditions.forCombat().range(this.getFollowDistance()).selector(p_26058_);\n   }\n\n   public boolean canUse() {\n      if (this.randomInterval > 0 && this.mob.getRandom().nextInt(this.randomInterval) != 0) {\n         return false;\n      } else {\n         this.findTarget();\n         return this.target != null;\n      }\n   }\n\n   protected AABB getTargetSearchArea(double p_26069_) {\n      return this.mob.getBoundingBox().inflate(p_26069_, 4.0D, p_26069_);\n   }\n\n   protected void findTarget() {\n      if (this.targetType != Player.class && this.targetType != ServerPlayer.class) {\n         this.target = this.mob.level().getNearestEntity(this.mob.level().getEntitiesOfClass(this.targetType, this.getTargetSearchArea(this.getFollowDistance()), (p_148152_) -> {\n            return true;\n         }), this.targetConditions, this.mob, this.mob.getX(), this.mob.getEyeY(), this.mob.getZ());\n      } else {\n         this.target = this.mob.level().getNearestPlayer(this.targetConditions, this.mob, this.mob.getX(), this.mob.getEyeY(), this.mob.getZ());\n      }\n\n   }\n\n   public void start() {\n      this.mob.setTarget(this.target);\n      super.start();\n   }\n\n   public void setTarget(@Nullable LivingEntity p_26071_) {\n      this.target = p_26071_;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+        "sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+        "bytes": 3241
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 97,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            97
+          ],
+          "bytes": 3241,
+          "sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.targeting;\n\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\n\npublic class TargetingConditions {\n   public static final TargetingConditions DEFAULT = forCombat();\n   private static final double MIN_VISIBILITY_DISTANCE_FOR_INVISIBLE_TARGET = 2.0D;\n   private final boolean isCombat;\n   private double range = -1.0D;\n   private boolean checkLineOfSight = true;\n   private boolean testInvisible = true;\n   @Nullable\n   private Predicate<LivingEntity> selector;\n\n   private TargetingConditions(boolean p_148351_) {\n      this.isCombat = p_148351_;\n   }\n\n   public static TargetingConditions forCombat() {\n      return new TargetingConditions(true);\n   }\n\n   public static TargetingConditions forNonCombat() {\n      return new TargetingConditions(false);\n   }\n\n   public TargetingConditions copy() {\n      TargetingConditions targetingconditions = this.isCombat ? forCombat() : forNonCombat();\n      targetingconditions.range = this.range;\n      targetingconditions.checkLineOfSight = this.checkLineOfSight;\n      targetingconditions.testInvisible = this.testInvisible;\n      targetingconditions.selector = this.selector;\n      return targetingconditions;\n   }\n\n   public TargetingConditions range(double p_26884_) {\n      this.range = p_26884_;\n      return this;\n   }\n\n   public TargetingConditions ignoreLineOfSight() {\n      this.checkLineOfSight = false;\n      return this;\n   }\n\n   public TargetingConditions ignoreInvisibilityTesting() {\n      this.testInvisible = false;\n      return this;\n   }\n\n   public TargetingConditions selector(@Nullable Predicate<LivingEntity> p_26889_) {\n      this.selector = p_26889_;\n      return this;\n   }\n\n   public boolean test(@Nullable LivingEntity p_26886_, LivingEntity p_26887_) {\n      if (p_26886_ == p_26887_) {\n         return false;\n      } else if (!p_26887_.canBeSeenByAnyone()) {\n         return false;\n      } else if (this.selector != null && !this.selector.test(p_26887_)) {\n         return false;\n      } else {\n         if (p_26886_ == null) {\n            if (this.isCombat && (!p_26887_.canBeSeenAsEnemy() || p_26887_.level().getDifficulty() == Difficulty.PEACEFUL)) {\n               return false;\n            }\n         } else {\n            if (this.isCombat && (!p_26886_.canAttack(p_26887_) || !p_26886_.canAttackType(p_26887_.getType()) || p_26886_.isAlliedTo(p_26887_))) {\n               return false;\n            }\n\n            if (this.range > 0.0D) {\n               double d0 = this.testInvisible ? p_26887_.getVisibilityPercent(p_26886_) : 1.0D;\n               double d1 = Math.max(this.range * d0, 2.0D);\n               double d2 = p_26886_.distanceToSqr(p_26887_.getX(), p_26887_.getY(), p_26887_.getZ());\n               if (d2 > d1 * d1) {\n                  return false;\n               }\n            }\n\n            if (this.checkLineOfSight && p_26886_ instanceof Mob) {\n               Mob mob = (Mob)p_26886_;\n               if (!mob.getSensing().hasLineOfSight(p_26887_)) {\n                  return false;\n               }\n            }\n         }\n\n         return true;\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/IronGolemRenderer.java",
+        "sha256": "6ca8d79b63707d362ef89d805b1d908f965a6bf4dae290584818d3cd7fe6dbef",
+        "bytes": 1753
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/IronGolemRenderer.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 37,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            37
+          ],
+          "bytes": 1753,
+          "sha256": "6ca8d79b63707d362ef89d805b1d908f965a6bf4dae290584818d3cd7fe6dbef",
+          "raw_utf8_keepends": "package net.minecraft.client.renderer.entity;\n\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.math.Axis;\nimport net.minecraft.client.model.IronGolemModel;\nimport net.minecraft.client.model.geom.ModelLayers;\nimport net.minecraft.client.renderer.entity.layers.IronGolemCrackinessLayer;\nimport net.minecraft.client.renderer.entity.layers.IronGolemFlowerLayer;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.animal.IronGolem;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class IronGolemRenderer extends MobRenderer<IronGolem, IronGolemModel<IronGolem>> {\n   private static final ResourceLocation GOLEM_LOCATION = new ResourceLocation(\"textures/entity/iron_golem/iron_golem.png\");\n\n   public IronGolemRenderer(EntityRendererProvider.Context p_174188_) {\n      super(p_174188_, new IronGolemModel<>(p_174188_.bakeLayer(ModelLayers.IRON_GOLEM)), 0.7F);\n      this.addLayer(new IronGolemCrackinessLayer(this));\n      this.addLayer(new IronGolemFlowerLayer(this, p_174188_.getBlockRenderDispatcher()));\n   }\n\n   public ResourceLocation getTextureLocation(IronGolem p_115012_) {\n      return GOLEM_LOCATION;\n   }\n\n   protected void setupRotations(IronGolem p_115014_, PoseStack p_115015_, float p_115016_, float p_115017_, float p_115018_) {\n      super.setupRotations(p_115014_, p_115015_, p_115016_, p_115017_, p_115018_);\n      if (!((double)p_115014_.walkAnimation.speed() < 0.01D)) {\n         float f = 13.0F;\n         float f1 = p_115014_.walkAnimation.position(p_115018_) + 6.0F;\n         float f2 = (Math.abs(f1 % 13.0F - 6.5F) - 3.25F) / 3.25F;\n         p_115015_.mulPose(Axis.ZP.rotationDegrees(6.5F * f2));\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/layers/IronGolemCrackinessLayer.java",
+        "sha256": "5056bbbdaeea49773ede56c869207029e6e7b222b545177a875c621ec54761cb",
+        "bytes": 1880
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/layers/IronGolemCrackinessLayer.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 31,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            31
+          ],
+          "bytes": 1880,
+          "sha256": "5056bbbdaeea49773ede56c869207029e6e7b222b545177a875c621ec54761cb",
+          "raw_utf8_keepends": "package net.minecraft.client.renderer.entity.layers;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport java.util.Map;\nimport net.minecraft.client.model.IronGolemModel;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.entity.RenderLayerParent;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.animal.IronGolem;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class IronGolemCrackinessLayer extends RenderLayer<IronGolem, IronGolemModel<IronGolem>> {\n   private static final Map<IronGolem.Crackiness, ResourceLocation> resourceLocations = ImmutableMap.of(IronGolem.Crackiness.LOW, new ResourceLocation(\"textures/entity/iron_golem/iron_golem_crackiness_low.png\"), IronGolem.Crackiness.MEDIUM, new ResourceLocation(\"textures/entity/iron_golem/iron_golem_crackiness_medium.png\"), IronGolem.Crackiness.HIGH, new ResourceLocation(\"textures/entity/iron_golem/iron_golem_crackiness_high.png\"));\n\n   public IronGolemCrackinessLayer(RenderLayerParent<IronGolem, IronGolemModel<IronGolem>> p_117135_) {\n      super(p_117135_);\n   }\n\n   public void render(PoseStack p_117148_, MultiBufferSource p_117149_, int p_117150_, IronGolem p_117151_, float p_117152_, float p_117153_, float p_117154_, float p_117155_, float p_117156_, float p_117157_) {\n      if (!p_117151_.isInvisible()) {\n         IronGolem.Crackiness irongolem$crackiness = p_117151_.getCrackiness();\n         if (irongolem$crackiness != IronGolem.Crackiness.NONE) {\n            ResourceLocation resourcelocation = resourceLocations.get(irongolem$crackiness);\n            renderColoredCutoutModel(this.getParentModel(), resourcelocation, p_117148_, p_117149_, p_117150_, p_117151_, 1.0F, 1.0F, 1.0F);\n         }\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+        "sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+        "bytes": 54074
+      },
+      "archive_entry": "net/minecraft/world/entity/Mob.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 1534,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            227,
+            247
+          ],
+          "bytes": 727,
+          "sha256": "ba22a9900715153805aca9c341c2b8e06b2170088ca3cdbdb8381090e6a1068d",
+          "raw_utf8_keepends": "   }\n\n   @Nullable\n   public LivingEntity getTarget() {\n      return this.target;\n   }\n\n   public void setTarget(@Nullable LivingEntity p_21544_) {\n      net.minecraftforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.minecraftforge.common.ForgeHooks.onLivingChangeTarget(this, p_21544_, net.minecraftforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);\n      if(!changeTargetEvent.isCanceled()) {\n          this.target = changeTargetEvent.getNewTarget();\n      }\n   }\n\n   public boolean canAttackType(EntityType<?> p_21399_) {\n      return p_21399_ != EntityType.GHAST;\n   }\n\n   public boolean canFireProjectileWeapon(ProjectileWeaponItem p_21430_) {\n      return false;\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+        "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "bytes": 131153
+      },
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 3473,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            260,
+            268
+          ],
+          "bytes": 223,
+          "sha256": "cbbcced8d77db299be229e5aabfa82bf5d68898b71f918b3f39974fb6cb63d6d",
+          "raw_utf8_keepends": "   public void kill() {\n      this.hurt(this.damageSources().genericKill(), Float.MAX_VALUE);\n   }\n\n   public boolean canAttackType(EntityType<?> p_21032_) {\n      return true;\n   }\n\n   protected void defineSynchedData() {\n"
+        },
+        {
+          "lines": [
+            850,
+            869
+          ],
+          "bytes": 656,
+          "sha256": "7a3525e8acb2ab48542a352574a417741867306dfd595c98bd6676a9a5e70393",
+          "raw_utf8_keepends": "      d0 = net.minecraftforge.common.ForgeHooks.getEntityVisibilityMultiplier(this, p_20969_, d0);\n      return d0;\n   }\n\n   public boolean canAttack(LivingEntity p_21171_) {\n      return p_21171_ instanceof Player && this.level().getDifficulty() == Difficulty.PEACEFUL ? false : p_21171_.canBeSeenAsEnemy();\n   }\n\n   public boolean canAttack(LivingEntity p_21041_, TargetingConditions p_21042_) {\n      return p_21042_.test(this, p_21041_);\n   }\n\n   public boolean canBeSeenAsEnemy() {\n      return !this.isInvulnerable() && this.canBeSeenByAnyone();\n   }\n\n   public boolean canBeSeenByAnyone() {\n      return !this.isSpectator() && this.isAlive();\n   }\n\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/CarvedPumpkinBlock.java",
+        "sha256": "194d23f07ded7f4e62218953f527fed92e12a10e57d206ac43c9a4c725a4fe93",
+        "bytes": 6814
+      },
+      "archive_entry": "net/minecraft/world/level/block/CarvedPumpkinBlock.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 150,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            39,
+            105
+          ],
+          "bytes": 3226,
+          "sha256": "e4e351cdbff26424b140db6eebc96a6786ce9dacb211379d22e53fe0f27ede0a",
+          "raw_utf8_keepends": "   public CarvedPumpkinBlock(BlockBehaviour.Properties p_51375_) {\n      super(p_51375_);\n      this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));\n   }\n\n   public void onPlace(BlockState p_51387_, Level p_51388_, BlockPos p_51389_, BlockState p_51390_, boolean p_51391_) {\n      if (!p_51390_.is(p_51387_.getBlock())) {\n         this.trySpawnGolem(p_51388_, p_51389_);\n      }\n   }\n\n   public boolean canSpawnGolem(LevelReader p_51382_, BlockPos p_51383_) {\n      return this.getOrCreateSnowGolemBase().find(p_51382_, p_51383_) != null || this.getOrCreateIronGolemBase().find(p_51382_, p_51383_) != null;\n   }\n\n   private void trySpawnGolem(Level p_51379_, BlockPos p_51380_) {\n      BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch = this.getOrCreateSnowGolemFull().find(p_51379_, p_51380_);\n      if (blockpattern$blockpatternmatch != null) {\n         SnowGolem snowgolem = EntityType.SNOW_GOLEM.create(p_51379_);\n         if (snowgolem != null) {\n            spawnGolemInWorld(p_51379_, blockpattern$blockpatternmatch, snowgolem, blockpattern$blockpatternmatch.getBlock(0, 2, 0).getPos());\n         }\n      } else {\n         BlockPattern.BlockPatternMatch blockpattern$blockpatternmatch1 = this.getOrCreateIronGolemFull().find(p_51379_, p_51380_);\n         if (blockpattern$blockpatternmatch1 != null) {\n            IronGolem irongolem = EntityType.IRON_GOLEM.create(p_51379_);\n            if (irongolem != null) {\n               irongolem.setPlayerCreated(true);\n               spawnGolemInWorld(p_51379_, blockpattern$blockpatternmatch1, irongolem, blockpattern$blockpatternmatch1.getBlock(1, 2, 0).getPos());\n            }\n         }\n      }\n\n   }\n\n   private static void spawnGolemInWorld(Level p_249110_, BlockPattern.BlockPatternMatch p_251293_, Entity p_251251_, BlockPos p_251189_) {\n      clearPatternBlocks(p_249110_, p_251293_);\n      p_251251_.moveTo((double)p_251189_.getX() + 0.5D, (double)p_251189_.getY() + 0.05D, (double)p_251189_.getZ() + 0.5D, 0.0F, 0.0F);\n      p_249110_.addFreshEntity(p_251251_);\n\n      for(ServerPlayer serverplayer : p_249110_.getEntitiesOfClass(ServerPlayer.class, p_251251_.getBoundingBox().inflate(5.0D))) {\n         CriteriaTriggers.SUMMONED_ENTITY.trigger(serverplayer, p_251251_);\n      }\n\n      updatePatternBlocks(p_249110_, p_251293_);\n   }\n\n   public static void clearPatternBlocks(Level p_249604_, BlockPattern.BlockPatternMatch p_251190_) {\n      for(int i = 0; i < p_251190_.getWidth(); ++i) {\n         for(int j = 0; j < p_251190_.getHeight(); ++j) {\n            BlockInWorld blockinworld = p_251190_.getBlock(i, j, 0);\n            p_249604_.setBlock(blockinworld.getPos(), Blocks.AIR.defaultBlockState(), 2);\n            p_249604_.levelEvent(2001, blockinworld.getPos(), Block.getId(blockinworld.getState()));\n         }\n      }\n\n   }\n\n   public static void updatePatternBlocks(Level p_248711_, BlockPattern.BlockPatternMatch p_251935_) {\n      for(int i = 0; i < p_251935_.getWidth(); ++i) {\n         for(int j = 0; j < p_251935_.getHeight(); ++j) {\n            BlockInWorld blockinworld = p_251935_.getBlock(i, j, 0);\n            p_248711_.blockUpdated(blockinworld.getPos(), Blocks.AIR);\n         }\n      }\n\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/EntityGetter.java",
+        "sha256": "96d40415e5fbe59f9d4d902ed8dbabb66b3dee2e75577eb0b1e5ba1e141ad068",
+        "bytes": 7441
+      },
+      "archive_entry": "net/minecraft/world/level/EntityGetter.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 193,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            114,
+            193
+          ],
+          "bytes": 2834,
+          "sha256": "7cf36d5c6e94ccb0ae5f3626e59b33dfc2b0e360038bf4e86e6b1bae857a9b86",
+          "raw_utf8_keepends": "\n   @Nullable\n   default Player getNearestPlayer(TargetingConditions p_45947_, LivingEntity p_45948_) {\n      return this.getNearestEntity(this.players(), p_45947_, p_45948_, p_45948_.getX(), p_45948_.getY(), p_45948_.getZ());\n   }\n\n   @Nullable\n   default Player getNearestPlayer(TargetingConditions p_45950_, LivingEntity p_45951_, double p_45952_, double p_45953_, double p_45954_) {\n      return this.getNearestEntity(this.players(), p_45950_, p_45951_, p_45952_, p_45953_, p_45954_);\n   }\n\n   @Nullable\n   default Player getNearestPlayer(TargetingConditions p_45942_, double p_45943_, double p_45944_, double p_45945_) {\n      return this.getNearestEntity(this.players(), p_45942_, (LivingEntity)null, p_45943_, p_45944_, p_45945_);\n   }\n\n   @Nullable\n   default <T extends LivingEntity> T getNearestEntity(Class<? extends T> p_45964_, TargetingConditions p_45965_, @Nullable LivingEntity p_45966_, double p_45967_, double p_45968_, double p_45969_, AABB p_45970_) {\n      return this.getNearestEntity(this.getEntitiesOfClass(p_45964_, p_45970_, (p_186454_) -> {\n         return true;\n      }), p_45965_, p_45966_, p_45967_, p_45968_, p_45969_);\n   }\n\n   @Nullable\n   default <T extends LivingEntity> T getNearestEntity(List<? extends T> p_45983_, TargetingConditions p_45984_, @Nullable LivingEntity p_45985_, double p_45986_, double p_45987_, double p_45988_) {\n      double d0 = -1.0D;\n      T t = null;\n\n      for(T t1 : p_45983_) {\n         if (p_45984_.test(p_45985_, t1)) {\n            double d1 = t1.distanceToSqr(p_45986_, p_45987_, p_45988_);\n            if (d0 == -1.0D || d1 < d0) {\n               d0 = d1;\n               t = t1;\n            }\n         }\n      }\n\n      return t;\n   }\n\n   default List<Player> getNearbyPlayers(TargetingConditions p_45956_, LivingEntity p_45957_, AABB p_45958_) {\n      List<Player> list = Lists.newArrayList();\n\n      for(Player player : this.players()) {\n         if (p_45958_.contains(player.getX(), player.getY(), player.getZ()) && p_45956_.test(p_45957_, player)) {\n            list.add(player);\n         }\n      }\n\n      return list;\n   }\n\n   default <T extends LivingEntity> List<T> getNearbyEntities(Class<T> p_45972_, TargetingConditions p_45973_, LivingEntity p_45974_, AABB p_45975_) {\n      List<T> list = this.getEntitiesOfClass(p_45972_, p_45975_, (p_186450_) -> {\n         return true;\n      });\n      List<T> list1 = Lists.newArrayList();\n\n      for(T t : list) {\n         if (p_45973_.test(p_45974_, t)) {\n            list1.add(t);\n         }\n      }\n\n      return list1;\n   }\n\n   @Nullable\n   default Player getPlayerByUUID(UUID p_46004_) {\n      for(int i = 0; i < this.players().size(); ++i) {\n         Player player = this.players().get(i);\n         if (p_46004_.equals(player.getUUID())) {\n            return player;\n         }\n      }\n\n      return null;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+        "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "bytes": 52218
+      },
+      "archive_entry": "net/minecraft/world/entity/EntityType.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 775,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            221,
+            221
+          ],
+          "bytes": 181,
+          "sha256": "3146d27fb72d3ba9d6178316b7c553aa4f40d02706cfd0b6eb90a3a9f71ce060",
+          "raw_utf8_keepends": "   public static final EntityType<IronGolem> IRON_GOLEM = register(\"iron_golem\", EntityType.Builder.of(IronGolem::new, MobCategory.MISC).sized(1.4F, 2.7F).clientTrackingRange(10));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EntityRenderers.java",
+        "sha256": "ec00e8196afb7d3812419956d39f0f9919543b13ff2929c1aa6dcb01304d5e98",
+        "bytes": 12707
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EntityRenderers.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 244,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            151,
+            151
+          ],
+          "bytes": 63,
+          "sha256": "924fa20aa62ce690545968d84f1f7c4c70791fb992bfbcd1fc8c8b713705451d",
+          "raw_utf8_keepends": "      register(EntityType.IRON_GOLEM, IronGolemRenderer::new);\n"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "reading_coverage": {
+    "files": 16,
+    "ranges": 17,
+    "whole_files": 10,
+    "unique_selected_lines": 1257,
+    "coverage_is_not_semantic_credit": true
+  },
+  "comparison": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-161-native-iron-golem-provenance-targeting-and-repair-complete-owner-comparison-SUPPORT0-20261112.json",
+    "sha256": "5f7ddc1ae3307c67c606b977dd88599ccc3fe193d8fa7d0cc9183f4bb2d8d3a2",
+    "bytes": 49656
+  },
+  "whole_lifecycle_findings": [
+    {
+      "source": "CarvedPumpkinBlock.java:39-105; IronGolem.java whole; EntityType.java:221",
+      "observation": "Actual factory creates IronGolem, sets PlayerCreated=true before spawn helper. Helper clears pattern blocks before unchecked addFreshEntity and criterion request. Iron own sync bit0 stores creation role, save/read persists PlayerCreated plus delegated anger. This is not a creator-player UUID whitelist or paid/atomic admission receipt. Pattern implementation read only; no building creation or architectural reference credit."
+    },
+    {
+      "source": "IronGolem.java:125-143; TargetingConditions.java whole; EntityGetter.java:114-193",
+      "observation": "PlayerCreated rejects PLAYER in canAttackType; all golems reject CREEPER there and parent Mob rejects GHAST. Combat TargetingConditions checks actor canAttack, actor canAttackType and alliance; nearby/nearest helpers actually invoke condition.test. Thus ordinary fresh combat selection filters player type for player-created actors. This is outgoing AI eligibility, not source-qualified incoming player damage immunity."
+    },
+    {
+      "source": "IronGolem.java:67-82,195-203; HurtByTargetGoal.java whole; ResetUniversalAngerTargetGoal.java whole",
+      "observation": "Registered village-defense, retaliation, angry-player, enemy and universal-reset goals differ. HurtBy canUse requires changed hurt timestamp/current attacker, skips player when universal anger rule, else uses combat conditions/restriction. Own IronGolem hurt calls super and only requests crack-damage sound if true plus crack band changed; no local PlayerCreated/player-source refusal. Outer parent damage/listeners not newly expanded here."
+    },
+    {
+      "source": "DefendVillageTargetGoal.java whole; TargetGoal.java whole; Mob.java:227-243; LivingEntity.java:850-869",
+      "observation": "Village goal queries villager/player combat lists then stores a player when any sampled villager reputation<=-100; local potentialTarget is not reset at start of canUse or in an override stop. Final local check only spectator/creative, start invokes setTarget then base cache reset. Base continuation uses canAttack/team/range/LOS, not canAttackType; Mob.setTarget posts mutable/cancelable Forge hook and does not itself re-run these targeting predicates. These are static cache/entry boundaries, not a natural stale-target exploit, target assignment guarantee or global no-player-attack proof."
+    },
+    {
+      "source": "NeutralMob.java whole; IronGolem.java:105-163",
+      "observation": "Server aiStep calls updatePersistentAnger(true). A changed nonnull current target stores UUID and resamples20..39sec nominal timer; active PLAYER target with true flag pauses decrement, unlike absent/nonplayer. Null/dead target plus resolved Mob angry UUID stops anger. isAngryAt first canAttack then universal-player rule or UUID equality; the UUID-equality branch has no separate remaining-time>0 test. Normal expiration calls stopBeingAngry; arbitrary restored zero+UUID and current mutable hooks are untested, not a demonstrated exploit or wall deadline."
+    },
+    {
+      "source": "NeutralMob.java:27-56,79-113; ResetUniversalAngerTargetGoal.java whole",
+      "observation": "Anger save stores int and optional UUID; server read can restore last-hurt mob/player if entity resolves, not directly target. No UUID clears server angry target. Universal reset requires a newer player hurt timestamp and rule; IronGolem registers alertOthers=false. Reset calls stopBeingAngry then new timer, leaving no angry UUID so universal matching can qualify; stop also requests target null but Forge hook may veto/mutate. Death forgiveness depends on rule and matching UUID; caller/death event chain unexpanded."
+    },
+    {
+      "source": "IronGolem.java:170-221,246-287,316-341",
+      "observation": "doHurtTarget sets attack timer and broadcasts4 BEFORE victim hurt; vertical velocity/enchant only on true, attack sound unconditional. Client4 independently sets timer and requests sound. Repair with IRON_INGOT snapshots HP, calls heal25, returns PASS when equal, else requests repair sound and consumes1 unless instabuild, then sidedSuccess. Crack bands use strict< thresholds .25/.5/.75 and current HP/max. Do not treat animation/sound as damage success or repair amount as always25 accepted HP; outer interaction/effect/creative handling untested."
+    },
+    {
+      "source": "IronGolemRenderer.java whole; IronGolemCrackinessLayer.java whole; EntityRenderers.java:151",
+      "observation": "Actual registered renderer installs crack and flower layers. Crack layer requires !invisible and non-NONE current band then chooses a fixed texture; it does not know incoming source/refusal reason, created-role or repair payment. Model body/flower layer/texture pixels/render helper/network/audio not expanded or accepted; no professional asset edit or new gray hint."
+    }
+  ],
+  "application_to_Dynasty": [
+    "Outgoing target/type eligibility, mutable target assignment, incoming damage outcome and actual healing/payment must remain separate; no Boss immune text from mere refusal to select a player.",
+    "Only direct authoritative action rejection can produce its reasoned feedback. Attack timer/crack texture/repair sound are state/result consumers with different semantics; ordinary players gain no gray hint.",
+    "Original menu background remains untouched; requested buttons/world screen/basic spawn-egg hints still not implemented. No copied behavior or new gameplay."
+  ],
+  "limits": [
+    "SUPPORT0: old migration660 entire provenance/material/player-exclusion lifecycle retained. No new program/global/migration/NBT/ecology credit or ID/append authority.",
+    "Read ten whole entity/interface/goal/renderer consumers and selected four other helper files plus bindings; not full engine/scheduler/event listeners/parent hurt/repair heal/Villager reputation or all522 records.",
+    "Source cache and canAttackType continuation differences do not establish a naturally reachable bug, immunity bypass or currentpack repair authorization.",
+    "One independent rg requested nonexistent legacy-migration-acceptance/progress.json and returned missing; no such file was inferred or invented, discovery has0 credit. Actual reviewed.jsonl sources used for owner checks.",
+    "No production/build/UI/art/model/UV/texture generation/building/instance/save/Java/Gradle/network/process/display/sound/brightness/wake/Git/checklist or task deletion. No hours/alltasks claim."
+  ],
+  "protected_after": {
+    "formal_program": 522,
+    "groups": 250,
+    "gap": 478,
+    "gate": false,
+    "ecology_Main_reported": 58,
+    "ecology_gap": 942,
+    "new_author_ecology_source_credit": 0,
+    "production_changes": false,
+    "original_UI_implemented": false,
+    "master_session_active_pending_ownership_changes": false,
+    "task_deletions": 0,
+    "all_tasks_complete": false,
+    "hours_claimed": false
+  }
+}

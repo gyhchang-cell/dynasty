@@ -1,0 +1,398 @@
+{
+  "recorded_utc": "2026-11-11T19:26:19.780440+00:00",
+  "status": "ACTUAL_SOURCE_RESEARCH_COMPLETE_AUTHOR_HOLD_PENDING_INDEPENDENT_REVIEW",
+  "batch": 155,
+  "whole_policy": "Current-target LOS/range multiplexed melee and retained three-shot burst sharing residual timer, charge presentation and ordinary selector release",
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Blaze.java",
+        "sha256": "1ef4030c6a9c7c74d814fbe2e10145e0e023db503c365e0ca6671345d40b6398",
+        "bytes": 8948
+      },
+      "archive_entry": "net/minecraft/world/entity/monster/Blaze.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 231,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            231
+          ],
+          "bytes": 8948,
+          "sha256": "1ef4030c6a9c7c74d814fbe2e10145e0e023db503c365e0ca6671345d40b6398",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.monster;\n\nimport java.util.EnumSet;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.SmallFireball;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.phys.Vec3;\n\npublic class Blaze extends Monster {\n   private float allowedHeightOffset = 0.5F;\n   private int nextHeightOffsetChangeTick;\n   private static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(Blaze.class, EntityDataSerializers.BYTE);\n\n   public Blaze(EntityType<? extends Blaze> p_32219_, Level p_32220_) {\n      super(p_32219_, p_32220_);\n      this.setPathfindingMalus(BlockPathTypes.WATER, -1.0F);\n      this.setPathfindingMalus(BlockPathTypes.LAVA, 8.0F);\n      this.setPathfindingMalus(BlockPathTypes.DANGER_FIRE, 0.0F);\n      this.setPathfindingMalus(BlockPathTypes.DAMAGE_FIRE, 0.0F);\n      this.xpReward = 10;\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(4, new Blaze.BlazeAttackGoal(this));\n      this.goalSelector.addGoal(5, new MoveTowardsRestrictionGoal(this, 1.0D));\n      this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0D, 0.0F));\n      this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this)).setAlertOthers());\n      this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.ATTACK_DAMAGE, 6.0D).add(Attributes.MOVEMENT_SPEED, (double)0.23F).add(Attributes.FOLLOW_RANGE, 48.0D);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_FLAGS_ID, (byte)0);\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return SoundEvents.BLAZE_AMBIENT;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_32235_) {\n      return SoundEvents.BLAZE_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.BLAZE_DEATH;\n   }\n\n   public float getLightLevelDependentMagicValue() {\n      return 1.0F;\n   }\n\n   public void aiStep() {\n      if (!this.onGround() && this.getDeltaMovement().y < 0.0D) {\n         this.setDeltaMovement(this.getDeltaMovement().multiply(1.0D, 0.6D, 1.0D));\n      }\n\n      if (this.level().isClientSide) {\n         if (this.random.nextInt(24) == 0 && !this.isSilent()) {\n            this.level().playLocalSound(this.getX() + 0.5D, this.getY() + 0.5D, this.getZ() + 0.5D, SoundEvents.BLAZE_BURN, this.getSoundSource(), 1.0F + this.random.nextFloat(), this.random.nextFloat() * 0.7F + 0.3F, false);\n         }\n\n         for(int i = 0; i < 2; ++i) {\n            this.level().addParticle(ParticleTypes.LARGE_SMOKE, this.getRandomX(0.5D), this.getRandomY(), this.getRandomZ(0.5D), 0.0D, 0.0D, 0.0D);\n         }\n      }\n\n      super.aiStep();\n   }\n\n   public boolean isSensitiveToWater() {\n      return true;\n   }\n\n   protected void customServerAiStep() {\n      --this.nextHeightOffsetChangeTick;\n      if (this.nextHeightOffsetChangeTick <= 0) {\n         this.nextHeightOffsetChangeTick = 100;\n         this.allowedHeightOffset = (float)this.random.triangle(0.5D, 6.891D);\n      }\n\n      LivingEntity livingentity = this.getTarget();\n      if (livingentity != null && livingentity.getEyeY() > this.getEyeY() + (double)this.allowedHeightOffset && this.canAttack(livingentity)) {\n         Vec3 vec3 = this.getDeltaMovement();\n         this.setDeltaMovement(this.getDeltaMovement().add(0.0D, ((double)0.3F - vec3.y) * (double)0.3F, 0.0D));\n         this.hasImpulse = true;\n      }\n\n      super.customServerAiStep();\n   }\n\n   public boolean isOnFire() {\n      return this.isCharged();\n   }\n\n   private boolean isCharged() {\n      return (this.entityData.get(DATA_FLAGS_ID) & 1) != 0;\n   }\n\n   void setCharged(boolean p_32241_) {\n      byte b0 = this.entityData.get(DATA_FLAGS_ID);\n      if (p_32241_) {\n         b0 = (byte)(b0 | 1);\n      } else {\n         b0 = (byte)(b0 & -2);\n      }\n\n      this.entityData.set(DATA_FLAGS_ID, b0);\n   }\n\n   static class BlazeAttackGoal extends Goal {\n      private final Blaze blaze;\n      private int attackStep;\n      private int attackTime;\n      private int lastSeen;\n\n      public BlazeAttackGoal(Blaze p_32247_) {\n         this.blaze = p_32247_;\n         this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));\n      }\n\n      public boolean canUse() {\n         LivingEntity livingentity = this.blaze.getTarget();\n         return livingentity != null && livingentity.isAlive() && this.blaze.canAttack(livingentity);\n      }\n\n      public void start() {\n         this.attackStep = 0;\n      }\n\n      public void stop() {\n         this.blaze.setCharged(false);\n         this.lastSeen = 0;\n      }\n\n      public boolean requiresUpdateEveryTick() {\n         return true;\n      }\n\n      public void tick() {\n         --this.attackTime;\n         LivingEntity livingentity = this.blaze.getTarget();\n         if (livingentity != null) {\n            boolean flag = this.blaze.getSensing().hasLineOfSight(livingentity);\n            if (flag) {\n               this.lastSeen = 0;\n            } else {\n               ++this.lastSeen;\n            }\n\n            double d0 = this.blaze.distanceToSqr(livingentity);\n            if (d0 < 4.0D) {\n               if (!flag) {\n                  return;\n               }\n\n               if (this.attackTime <= 0) {\n                  this.attackTime = 20;\n                  this.blaze.doHurtTarget(livingentity);\n               }\n\n               this.blaze.getMoveControl().setWantedPosition(livingentity.getX(), livingentity.getY(), livingentity.getZ(), 1.0D);\n            } else if (d0 < this.getFollowDistance() * this.getFollowDistance() && flag) {\n               double d1 = livingentity.getX() - this.blaze.getX();\n               double d2 = livingentity.getY(0.5D) - this.blaze.getY(0.5D);\n               double d3 = livingentity.getZ() - this.blaze.getZ();\n               if (this.attackTime <= 0) {\n                  ++this.attackStep;\n                  if (this.attackStep == 1) {\n                     this.attackTime = 60;\n                     this.blaze.setCharged(true);\n                  } else if (this.attackStep <= 4) {\n                     this.attackTime = 6;\n                  } else {\n                     this.attackTime = 100;\n                     this.attackStep = 0;\n                     this.blaze.setCharged(false);\n                  }\n\n                  if (this.attackStep > 1) {\n                     double d4 = Math.sqrt(Math.sqrt(d0)) * 0.5D;\n                     if (!this.blaze.isSilent()) {\n                        this.blaze.level().levelEvent((Player)null, 1018, this.blaze.blockPosition(), 0);\n                     }\n\n                     for(int i = 0; i < 1; ++i) {\n                        SmallFireball smallfireball = new SmallFireball(this.blaze.level(), this.blaze, this.blaze.getRandom().triangle(d1, 2.297D * d4), d2, this.blaze.getRandom().triangle(d3, 2.297D * d4));\n                        smallfireball.setPos(smallfireball.getX(), this.blaze.getY(0.5D) + 0.5D, smallfireball.getZ());\n                        this.blaze.level().addFreshEntity(smallfireball);\n                     }\n                  }\n               }\n\n               this.blaze.getLookControl().setLookAt(livingentity, 10.0F, 10.0F);\n            } else if (this.lastSeen < 5) {\n               this.blaze.getMoveControl().setWantedPosition(livingentity.getX(), livingentity.getY(), livingentity.getZ(), 1.0D);\n            }\n\n            super.tick();\n         }\n      }\n\n      private double getFollowDistance() {\n         return this.blaze.getAttributeValue(Attributes.FOLLOW_RANGE);\n      }\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/SmallFireball.java",
+        "sha256": "f02b571659379d70e1dd25744a41d53c5a126f572661d2ff347d4f8b5a0c71d5",
+        "bytes": 2721
+      },
+      "archive_entry": "net/minecraft/world/entity/projectile/SmallFireball.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 74,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            74
+          ],
+          "bytes": 2721,
+          "sha256": "f02b571659379d70e1dd25744a41d53c5a126f572661d2ff347d4f8b5a0c71d5",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.projectile;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.BaseFireBlock;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\n\npublic class SmallFireball extends Fireball {\n   public SmallFireball(EntityType<? extends SmallFireball> p_37364_, Level p_37365_) {\n      super(p_37364_, p_37365_);\n   }\n\n   public SmallFireball(Level p_37375_, LivingEntity p_37376_, double p_37377_, double p_37378_, double p_37379_) {\n      super(EntityType.SMALL_FIREBALL, p_37376_, p_37377_, p_37378_, p_37379_, p_37375_);\n   }\n\n   public SmallFireball(Level p_37367_, double p_37368_, double p_37369_, double p_37370_, double p_37371_, double p_37372_, double p_37373_) {\n      super(EntityType.SMALL_FIREBALL, p_37368_, p_37369_, p_37370_, p_37371_, p_37372_, p_37373_, p_37367_);\n   }\n\n   protected void onHitEntity(EntityHitResult p_37386_) {\n      super.onHitEntity(p_37386_);\n      if (!this.level().isClientSide) {\n         Entity entity = p_37386_.getEntity();\n         Entity entity1 = this.getOwner();\n         int i = entity.getRemainingFireTicks();\n         entity.setSecondsOnFire(5);\n         if (!entity.hurt(this.damageSources().fireball(this, entity1), 5.0F)) {\n            entity.setRemainingFireTicks(i);\n         } else if (entity1 instanceof LivingEntity) {\n            this.doEnchantDamageEffects((LivingEntity)entity1, entity);\n         }\n\n      }\n   }\n\n   protected void onHitBlock(BlockHitResult p_37384_) {\n      super.onHitBlock(p_37384_);\n      if (!this.level().isClientSide) {\n         Entity entity = this.getOwner();\n         if (!(entity instanceof Mob) || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), entity)) {\n            BlockPos blockpos = p_37384_.getBlockPos().relative(p_37384_.getDirection());\n            if (this.level().isEmptyBlock(blockpos)) {\n               this.level().setBlockAndUpdate(blockpos, BaseFireBlock.getState(this.level(), blockpos));\n            }\n         }\n\n      }\n   }\n\n   protected void onHit(HitResult p_37388_) {\n      super.onHit(p_37388_);\n      if (!this.level().isClientSide) {\n         this.discard();\n      }\n\n   }\n\n   public boolean isPickable() {\n      return false;\n   }\n\n   public boolean hurt(DamageSource p_37381_, float p_37382_) {\n      return false;\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/Goal.java",
+        "sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+        "bytes": 1166
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/Goal.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 59,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            59
+          ],
+          "bytes": 1166,
+          "sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport net.minecraft.util.Mth;\n\npublic abstract class Goal {\n   private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);\n\n   public abstract boolean canUse();\n\n   public boolean canContinueToUse() {\n      return this.canUse();\n   }\n\n   public boolean isInterruptable() {\n      return true;\n   }\n\n   public void start() {\n   }\n\n   public void stop() {\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return false;\n   }\n\n   public void tick() {\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_25328_) {\n      this.flags.clear();\n      this.flags.addAll(p_25328_);\n   }\n\n   public String toString() {\n      return this.getClass().getSimpleName();\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.flags;\n   }\n\n   protected int adjustedTickDelay(int p_186072_) {\n      return this.requiresUpdateEveryTick() ? p_186072_ : reducedTickDelay(p_186072_);\n   }\n\n   protected static int reducedTickDelay(int p_186074_) {\n      return Mth.positiveCeilDiv(p_186074_, 2);\n   }\n\n   public static enum Flag {\n      MOVE,\n      LOOK,\n      JUMP,\n      TARGET;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+        "sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+        "bytes": 1970
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 89,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            89
+          ],
+          "bytes": 1970,
+          "sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\n\npublic class WrappedGoal extends Goal {\n   private final Goal goal;\n   private final int priority;\n   private boolean isRunning;\n\n   public WrappedGoal(int p_25998_, Goal p_25999_) {\n      this.priority = p_25998_;\n      this.goal = p_25999_;\n   }\n\n   public boolean canBeReplacedBy(WrappedGoal p_26003_) {\n      return this.isInterruptable() && p_26003_.getPriority() < this.getPriority();\n   }\n\n   public boolean canUse() {\n      return this.goal.canUse();\n   }\n\n   public boolean canContinueToUse() {\n      return this.goal.canContinueToUse();\n   }\n\n   public boolean isInterruptable() {\n      return this.goal.isInterruptable();\n   }\n\n   public void start() {\n      if (!this.isRunning) {\n         this.isRunning = true;\n         this.goal.start();\n      }\n   }\n\n   public void stop() {\n      if (this.isRunning) {\n         this.isRunning = false;\n         this.goal.stop();\n      }\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return this.goal.requiresUpdateEveryTick();\n   }\n\n   protected int adjustedTickDelay(int p_186092_) {\n      return this.goal.adjustedTickDelay(p_186092_);\n   }\n\n   public void tick() {\n      this.goal.tick();\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_26005_) {\n      this.goal.setFlags(p_26005_);\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.goal.getFlags();\n   }\n\n   public boolean isRunning() {\n      return this.isRunning;\n   }\n\n   public int getPriority() {\n      return this.priority;\n   }\n\n   public Goal getGoal() {\n      return this.goal;\n   }\n\n   public boolean equals(@Nullable Object p_26011_) {\n      if (this == p_26011_) {\n         return true;\n      } else {\n         return p_26011_ != null && this.getClass() == p_26011_.getClass() ? this.goal.equals(((WrappedGoal)p_26011_).goal) : false;\n      }\n   }\n\n   public int hashCode() {\n      return this.goal.hashCode();\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/BlazeRenderer.java",
+        "sha256": "3b3c8e50eeb3e48292f4ce11c896c6a7e0095cab656fdb746dd794ac9c5c5aa2",
+        "bytes": 942
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/BlazeRenderer.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 26,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            26
+          ],
+          "bytes": 942,
+          "sha256": "3b3c8e50eeb3e48292f4ce11c896c6a7e0095cab656fdb746dd794ac9c5c5aa2",
+          "raw_utf8_keepends": "package net.minecraft.client.renderer.entity;\n\nimport net.minecraft.client.model.BlazeModel;\nimport net.minecraft.client.model.geom.ModelLayers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.monster.Blaze;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class BlazeRenderer extends MobRenderer<Blaze, BlazeModel<Blaze>> {\n   private static final ResourceLocation BLAZE_LOCATION = new ResourceLocation(\"textures/entity/blaze.png\");\n\n   public BlazeRenderer(EntityRendererProvider.Context p_173933_) {\n      super(p_173933_, new BlazeModel<>(p_173933_.bakeLayer(ModelLayers.BLAZE)), 0.5F);\n   }\n\n   protected int getBlockLightLevel(Blaze p_113910_, BlockPos p_113911_) {\n      return 15;\n   }\n\n   public ResourceLocation getTextureLocation(Blaze p_113908_) {\n      return BLAZE_LOCATION;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/model/BlazeModel.java",
+        "sha256": "177fea05c4a5252b21b5dbd5ebe9bb76d3e48bd2c5da0176c43c4b27eb19c193",
+        "bytes": 3965
+      },
+      "archive_entry": "net/minecraft/client/model/BlazeModel.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 107,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            107
+          ],
+          "bytes": 3965,
+          "sha256": "177fea05c4a5252b21b5dbd5ebe9bb76d3e48bd2c5da0176c43c4b27eb19c193",
+          "raw_utf8_keepends": "package net.minecraft.client.model;\n\nimport java.util.Arrays;\nimport net.minecraft.client.model.geom.ModelPart;\nimport net.minecraft.client.model.geom.PartPose;\nimport net.minecraft.client.model.geom.builders.CubeListBuilder;\nimport net.minecraft.client.model.geom.builders.LayerDefinition;\nimport net.minecraft.client.model.geom.builders.MeshDefinition;\nimport net.minecraft.client.model.geom.builders.PartDefinition;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class BlazeModel<T extends Entity> extends HierarchicalModel<T> {\n   private final ModelPart root;\n   private final ModelPart[] upperBodyParts;\n   private final ModelPart head;\n\n   public BlazeModel(ModelPart p_170443_) {\n      this.root = p_170443_;\n      this.head = p_170443_.getChild(\"head\");\n      this.upperBodyParts = new ModelPart[12];\n      Arrays.setAll(this.upperBodyParts, (p_170449_) -> {\n         return p_170443_.getChild(getPartName(p_170449_));\n      });\n   }\n\n   private static String getPartName(int p_170446_) {\n      return \"part\" + p_170446_;\n   }\n\n   public static LayerDefinition createBodyLayer() {\n      MeshDefinition meshdefinition = new MeshDefinition();\n      PartDefinition partdefinition = meshdefinition.getRoot();\n      partdefinition.addOrReplaceChild(\"head\", CubeListBuilder.create().texOffs(0, 0).addBox(-4.0F, -4.0F, -4.0F, 8.0F, 8.0F, 8.0F), PartPose.ZERO);\n      float f = 0.0F;\n      CubeListBuilder cubelistbuilder = CubeListBuilder.create().texOffs(0, 16).addBox(0.0F, 0.0F, 0.0F, 2.0F, 8.0F, 2.0F);\n\n      for(int i = 0; i < 4; ++i) {\n         float f1 = Mth.cos(f) * 9.0F;\n         float f2 = -2.0F + Mth.cos((float)(i * 2) * 0.25F);\n         float f3 = Mth.sin(f) * 9.0F;\n         partdefinition.addOrReplaceChild(getPartName(i), cubelistbuilder, PartPose.offset(f1, f2, f3));\n         ++f;\n      }\n\n      f = ((float)Math.PI / 4F);\n\n      for(int j = 4; j < 8; ++j) {\n         float f4 = Mth.cos(f) * 7.0F;\n         float f6 = 2.0F + Mth.cos((float)(j * 2) * 0.25F);\n         float f8 = Mth.sin(f) * 7.0F;\n         partdefinition.addOrReplaceChild(getPartName(j), cubelistbuilder, PartPose.offset(f4, f6, f8));\n         ++f;\n      }\n\n      f = 0.47123894F;\n\n      for(int k = 8; k < 12; ++k) {\n         float f5 = Mth.cos(f) * 5.0F;\n         float f7 = 11.0F + Mth.cos((float)k * 1.5F * 0.5F);\n         float f9 = Mth.sin(f) * 5.0F;\n         partdefinition.addOrReplaceChild(getPartName(k), cubelistbuilder, PartPose.offset(f5, f7, f9));\n         ++f;\n      }\n\n      return LayerDefinition.create(meshdefinition, 64, 32);\n   }\n\n   public ModelPart root() {\n      return this.root;\n   }\n\n   public void setupAnim(T p_102250_, float p_102251_, float p_102252_, float p_102253_, float p_102254_, float p_102255_) {\n      float f = p_102253_ * (float)Math.PI * -0.1F;\n\n      for(int i = 0; i < 4; ++i) {\n         this.upperBodyParts[i].y = -2.0F + Mth.cos(((float)(i * 2) + p_102253_) * 0.25F);\n         this.upperBodyParts[i].x = Mth.cos(f) * 9.0F;\n         this.upperBodyParts[i].z = Mth.sin(f) * 9.0F;\n         ++f;\n      }\n\n      f = ((float)Math.PI / 4F) + p_102253_ * (float)Math.PI * 0.03F;\n\n      for(int j = 4; j < 8; ++j) {\n         this.upperBodyParts[j].y = 2.0F + Mth.cos(((float)(j * 2) + p_102253_) * 0.25F);\n         this.upperBodyParts[j].x = Mth.cos(f) * 7.0F;\n         this.upperBodyParts[j].z = Mth.sin(f) * 7.0F;\n         ++f;\n      }\n\n      f = 0.47123894F + p_102253_ * (float)Math.PI * -0.05F;\n\n      for(int k = 8; k < 12; ++k) {\n         this.upperBodyParts[k].y = 11.0F + Mth.cos(((float)k * 1.5F + p_102253_) * 0.5F);\n         this.upperBodyParts[k].x = Mth.cos(f) * 5.0F;\n         this.upperBodyParts[k].z = Mth.sin(f) * 5.0F;\n         ++f;\n      }\n\n      this.head.yRot = p_102254_ * ((float)Math.PI / 180F);\n      this.head.xRot = p_102255_ * ((float)Math.PI / 180F);\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/GoalSelector.java",
+        "sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+        "bytes": 5042
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/GoalSelector.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 158,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            79,
+            128
+          ],
+          "bytes": 1778,
+          "sha256": "7d3fa314b27b7d6d11ea19ac58612a62dd0bed09e41c58ab341e7eb4248c674e",
+          "raw_utf8_keepends": "   public void tick() {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalCleanup\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.disabledFlags) || !wrappedgoal.canContinueToUse())) {\n            wrappedgoal.stop();\n         }\n      }\n\n      Iterator<Map.Entry<Goal.Flag, WrappedGoal>> iterator = this.lockedFlags.entrySet().iterator();\n\n      while(iterator.hasNext()) {\n         Map.Entry<Goal.Flag, WrappedGoal> entry = iterator.next();\n         if (!entry.getValue().isRunning()) {\n            iterator.remove();\n         }\n      }\n\n      profilerfiller.pop();\n      profilerfiller.push(\"goalUpdate\");\n\n      for(WrappedGoal wrappedgoal2 : this.availableGoals) {\n         if (!wrappedgoal2.isRunning() && !goalContainsAnyFlags(wrappedgoal2, this.disabledFlags) && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags) && wrappedgoal2.canUse()) {\n            for(Goal.Flag goal$flag : wrappedgoal2.getFlags()) {\n               WrappedGoal wrappedgoal1 = this.lockedFlags.getOrDefault(goal$flag, NO_GOAL);\n               wrappedgoal1.stop();\n               this.lockedFlags.put(goal$flag, wrappedgoal2);\n            }\n\n            wrappedgoal2.start();\n         }\n      }\n\n      profilerfiller.pop();\n      this.tickRunningGoals(true);\n   }\n\n   public void tickRunningGoals(boolean p_186082_) {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalTick\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (p_186082_ || wrappedgoal.requiresUpdateEveryTick())) {\n            wrappedgoal.tick();\n         }\n      }\n\n      profilerfiller.pop();\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+        "sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+        "bytes": 54074
+      },
+      "archive_entry": "net/minecraft/world/entity/Mob.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 1534,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            742,
+            780
+          ],
+          "bytes": 1565,
+          "sha256": "e5bf7bca7b89798495f21b8e2018fc21bd8d7a7dd43d62a833c2294e84fe9b95",
+          "raw_utf8_keepends": "   protected final void serverAiStep() {\n      ++this.noActionTime;\n      this.level().getProfiler().push(\"sensing\");\n      this.sensing.tick();\n      this.level().getProfiler().pop();\n      int i = this.level().getServer().getTickCount() + this.getId();\n      if (i % 2 != 0 && this.tickCount > 1) {\n         this.level().getProfiler().push(\"targetSelector\");\n         this.targetSelector.tickRunningGoals(false);\n         this.level().getProfiler().pop();\n         this.level().getProfiler().push(\"goalSelector\");\n         this.goalSelector.tickRunningGoals(false);\n         this.level().getProfiler().pop();\n      } else {\n         this.level().getProfiler().push(\"targetSelector\");\n         this.targetSelector.tick();\n         this.level().getProfiler().pop();\n         this.level().getProfiler().push(\"goalSelector\");\n         this.goalSelector.tick();\n         this.level().getProfiler().pop();\n      }\n\n      this.level().getProfiler().push(\"navigation\");\n      this.navigation.tick();\n      this.level().getProfiler().pop();\n      this.level().getProfiler().push(\"mob tick\");\n      this.customServerAiStep();\n      this.level().getProfiler().pop();\n      this.level().getProfiler().push(\"controls\");\n      this.level().getProfiler().push(\"move\");\n      this.moveControl.tick();\n      this.level().getProfiler().popPush(\"look\");\n      this.lookControl.tick();\n      this.level().getProfiler().popPush(\"jump\");\n      this.jumpControl.tick();\n      this.level().getProfiler().pop();\n      this.level().getProfiler().pop();\n      this.sendDebugPackets();\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+        "sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+        "bytes": 128890
+      },
+      "archive_entry": "net/minecraft/world/entity/Entity.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 3566,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            2586,
+            2588
+          ],
+          "bytes": 101,
+          "sha256": "f0b4e57f64b5a697db23901621a25a237b959769b3fcb1b3a423da5e11ca4f9b",
+          "raw_utf8_keepends": "   public boolean displayFireAnimation() {\n      return this.isOnFire() && !this.isSpectator();\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EntityRenderDispatcher.java",
+        "sha256": "9972b0401d344ec051fbe023d1f4d926a1ba2764c92d9cbf8f03c3d02ea1952f",
+        "bytes": 18359
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EntityRenderDispatcher.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 364,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            132,
+            146
+          ],
+          "bytes": 719,
+          "sha256": "0073ec92118100d9bdb20ff2f6be75015ef22412b154e5d5cfc03cb5fc98f114",
+          "raw_utf8_keepends": "\n      try {\n         Vec3 vec3 = entityrenderer.getRenderOffset(p_114385_, p_114390_);\n         double d2 = p_114386_ + vec3.x();\n         double d3 = p_114387_ + vec3.y();\n         double d0 = p_114388_ + vec3.z();\n         p_114391_.pushPose();\n         p_114391_.translate(d2, d3, d0);\n         entityrenderer.render(p_114385_, p_114389_, p_114390_, p_114391_, p_114392_, p_114393_);\n         if (p_114385_.displayFireAnimation()) {\n            this.renderFlame(p_114391_, p_114392_, p_114385_);\n         }\n\n         p_114391_.translate(-vec3.x(), -vec3.y(), -vec3.z());\n         if (this.options.entityShadows().get() && this.shouldRenderShadow && entityrenderer.shadowRadius > 0.0F && !p_114385_.isInvisible()) {\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/LevelRenderer.java",
+        "sha256": "b2d06dd45e08913310f8568413d91c32cf8ee2d3480dbcf4d2840ef85d80ef9a",
+        "bytes": 171619
+      },
+      "archive_entry": "net/minecraft/client/renderer/LevelRenderer.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 3112,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            2607,
+            2614
+          ],
+          "bytes": 653,
+          "sha256": "fe0ecd8d57e0706a059c04a9f19ab681d22e04aef0b9066d45844699f4a7a274",
+          "raw_utf8_keepends": "            this.level.playLocalSound(p_234306_, SoundEvents.ENDER_DRAGON_SHOOT, SoundSource.HOSTILE, 10.0F, (randomsource.nextFloat() - randomsource.nextFloat()) * 0.2F + 1.0F, false);\n            break;\n         case 1018:\n            this.level.playLocalSound(p_234306_, SoundEvents.BLAZE_SHOOT, SoundSource.HOSTILE, 2.0F, (randomsource.nextFloat() - randomsource.nextFloat()) * 0.2F + 1.0F, false);\n            break;\n         case 1019:\n            this.level.playLocalSound(p_234306_, SoundEvents.ZOMBIE_ATTACK_WOODEN_DOOR, SoundSource.HOSTILE, 2.0F, (randomsource.nextFloat() - randomsource.nextFloat()) * 0.2F + 1.0F, false);\n            break;\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+        "sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "bytes": 52218
+      },
+      "archive_entry": "net/minecraft/world/entity/EntityType.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 775,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            175,
+            175
+          ],
+          "bytes": 178,
+          "sha256": "6bb3a203491be3b3e4b614303d76628e5c0437a57c44e657999298f8bda84d8c",
+          "raw_utf8_keepends": "   public static final EntityType<Blaze> BLAZE = register(\"blaze\", EntityType.Builder.of(Blaze::new, MobCategory.MONSTER).fireImmune().sized(0.6F, 1.8F).clientTrackingRange(8));\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/entity/EntityRenderers.java",
+        "sha256": "ec00e8196afb7d3812419956d39f0f9919543b13ff2929c1aa6dcb01304d5e98",
+        "bytes": 12707
+      },
+      "archive_entry": "net/minecraft/client/renderer/entity/EntityRenderers.java",
+      "archive_entry_equal": true,
+      "source_total_lines": 244,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            79,
+            79
+          ],
+          "bytes": 54,
+          "sha256": "b64c31c1a1fc3021e5f9c6ed2a222e6dd023bc7287cd42034b8e1c1919c17b4f",
+          "raw_utf8_keepends": "      register(EntityType.BLAZE, BlazeRenderer::new);\n"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "selected_actual_reading": {
+    "files": 13,
+    "ranges": 13,
+    "unique_selected_lines": 703,
+    "whole_files": 6,
+    "coverage_is_not_credit": true
+  },
+  "comparison": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-155-native-blaze-complete-owner-comparison-HOLD-20261112.json",
+    "sha256": "c969d1bfde59cd1eb0e74f30536b06abf6670cccbe4bf2fc9c02c117a3cdd94a",
+    "bytes": 6980180
+  },
+  "complete_prior_indices_actually_read": [
+    129,
+    135,
+    338,
+    458,
+    496,
+    499,
+    512,
+    518,
+    519
+  ],
+  "whole_lifecycle_findings": [
+    "Actual native BLAZE factory, full231-line Blaze and concrete goal registration were read; factory declares fireImmune and type/category/size, not a new generic fire-immunity mechanism. createAttributes declares attack6/speed.23/follow48 but current getFollowDistance reads live attribute. Huge DefaultAttributes map not fully read, no exact runtime attribute-value claim.",
+    "Complete BlazeAttackGoal owns MOVE/LOOK and canUse current nonnull/alive/canAttack target; inherited Goal.canContinueToUse delegates canUse. Normal selector cleanup stops an invalid current target, running wrapper gates start/stop, and everytick request selects goal tick on both shown Mob selector scheduling arms. This is normal native scheduling source, not full outer NoAI/immobile/engine guarantee.",
+    "Goal.start sets only attackStep0; it does not reset attackTime. stop clears charged bit and lastSeen0 but does not set attackTime/step/target. Same goal object reentry therefore can retain remaining attackTime while resetting step; fresh object starts Java defaults. Source boundary, not reproduced restart/save behavior or persistent NBT proof.",
+    "Every delivered tick decrements attackTime BEFORE checking whether target exists or LOS. It snapshots CURRENT target each time, without immutable original-target lease or explicit phase reset on valid target replacement. LOS sets lastSeen0, missing LOS increments. Unlike Guardian, no own tick request setTarget(null) on LOS loss and no wait-for-LOS condition around timer decrement.",
+    "At distanceSqr<4 (strict), noLOS early returns after decrement/lastSeen increment. With LOS and timer<=0 it sets timer20 then calls doHurtTarget, ignoring result, then requests move toward target. This branch neither resets attackStep nor clears charged bit, so interleaved melee changes the SAME timer while ranged phase can remain latched. It is not two independent cooldowns or an actual movement/hit guarantee.",
+    "Ranged branch requires distanceSqr>=4, strict less than liveFOLLOW_RANGE squared, and LOS. With timer<=0 increments step: step1 sets60/chargedtrue, steps2..4 set6 and request one fireball each, step5 sets100/step0/chargedfalse and makes no shot. Ordinary clean ranged cycle has three shot REQUESTS, not guaranteed births/hits. Numeric constants and three stages are one whole, not credits each.",
+    "When outside ranged/near qualifications, else-if lastSeen<5 may request chase; after enough noLOS ticks that local request stops, not necessarily movement/path/phase. It never clears charged or phase for range/LOS loss alone. Timer continues toward negative; regaining qualifications can immediately advance the retained phase if<=0. No extreme overflow/load/timing exploit claim.",
+    "At each qualified shot it uses this tick current target dx/dy/dz, distance-derived spread, nonsilent levelEvent1018 BEFORE constructing/positioning SmallFireball then ignores addFreshEntity bool. Only one loop iteration in shown body, with step2..4 total3 under clean cycle. Unchecked birth/sound-before-result generic supports0 under old512, not new projectile admission credit.",
+    "Charged bit is synced DATA_FLAGS_ID bit1 and own isOnFire returns that bit, not ordinary remainingFireTicks. Entity.displayFireAnimation calls virtual isOnFire and excludes spectator; dispatcher invokes renderFlame from that predicate. Charge appearance can persist across lost LOS/melee and is cleared by own normal stop/cycle end, not proof a current target is damaged or refused control.",
+    "Complete BlazeRenderer/model read only as consumers: renderer declares full block light15, body model orbiting rods depends on age/head angles and does not inspect charge. Client smoke2 and random burn-sound branch do not require charge or shot success. LevelRenderer1018 requests Blaze shooting sound. None is a target-specific reason/ACK, pixels/audio acceptance or new art/UV design.",
+    "Full SmallFireball74 support: server onHitEntity captures current target fire ticks then requests5sec fire, hurt fireball5, restores snapshot on false or enchant-effects on true with living owner. Only own ignition state is restored; no global rollback/actualHP guarantee. Old338 pre-callback snapshot distinction preserved and generic rollback adds0.",
+    "SmallFireball onHitBlock requires nonMob owner OR allowed mobGriefing, adjacent empty cell then setBlockAndUpdate(BaseFireBlock state); result ignored. onHit normal server return discards after inherited dispatch regardless targethurt bool. Own isPickablefalse/hurtfalse do not prove universal unreflectability or world admission. Inherited Projectile/AbstractHurtingProjectile/Fireball geometry/collision/event paths reused old512 context, not new full raw-chain reading.",
+    "Whole candidate is a current-target LOS/range multiplexed melee-and-three-shot burst sharing residual timer, with retained phase/charge until ordinary stop/end and concrete fire-presentation consumer. It is adjacent action/feedback consistency research, NOT incoming Boss control immunity or a separate immunity predicate. Original nine owners preserved whole; generic timer/charge bit/fireball/type/frame/helper differences do not force novelty. Main may MERGE0.",
+    "Actual current Main151/152 receipt bindings read only; formal now520/groups248/gap480/false. Their plans/applications and all older once/marker grants are permanently consumed; no replay/rebase/refresh. 153 remains independent-review pending0. BloodMagicHOLD0/154SUPPORT0 remain not Main independently accepted, root authentication gap remains. All historical518/519/55 contexts retained unchanged."
+  ],
+  "limitations": [
+    "Fixed local mapped Forge1.20.1-47.4.10 ZIP equality only, no Git/tree/newremote/currentpack deployment identity.",
+    "13files13ranges703lines6whole are bounded coverage only; same-family loop stages, bits, sounds, body/firemodel, helpers and suspected edges add0.",
+    "Full outer scheduler/target setters/listeners/LOS/physics, metadata transport/initial snapshots/renderFlame backend/audio engine and SmallFireball inherited impacts not newly expanded. No wallclock, exact targeting, reliable sync, actual displacement or shotbirth guarantee.",
+    "Nine current formal whole four-field judgments actually read and complete original objects preserved, not their nested old raw-source chains. Metadata-wide/no-migrationmatch screen is discovery only, not all520/57/global semantic novelty proof.",
+    "SmallFireball initial localfire snapshot rollback and sound-before-birth already supporting old338/512 families0; no new projectile/worldStart/control-denial credit.",
+    "Goal phase/current-target/timer/missing-side/outsideLOS observations are conditional static code implications, not runtime stuckstate/exploit/loss/duplication/performance reproductions.",
+    "No production code/UI/background/professional model/UV/texture/building/Jar/save/instance/master/session/active/pending/ownership change, task deletion, Java/Gradle/game/network/display/audio/brightness/wake/focus/process query/action, automation/newchat/push/publish.",
+    "No source/author/Main/proposal/validator/install scripts imported/run/help; no once/marker/executor/grant/append plan used or created. Pure immutable private JSON only."
+  ],
+  "applications": [
+    "Keep live target selection, burst progression, attempted shot, admitted projectile, actual HP/control and charged body presentation separate. Boss refusal feedback needs authoritative exact control reason/target.",
+    "If a later authorized design uses channels or bursts, define target replacement, LOS/range gap, melee interleaving, stop/restart and residual clock cleanup as one lifecycle; do not assume visual charge means uninterrupted attack. Production remains gated."
+  ],
+  "author_maximum_credit": 1,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "Main_MERGE0_allowed": true,
+  "program_context": {
+    "formal_binding": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "324113e0bdc4abfdfb0522662a62e3b593e461270ff29616a45753cf0efc8670",
+      "bytes": 36254487
+    },
+    "formal_count": 520,
+    "groups": 248,
+    "gap": 480,
+    "gate": false,
+    "actual_Main_520_application_read_only": {
+      "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program152-Main-actual520-three-file-application-20261112.json",
+      "sha256": "5ac373f366d18f412f191fa63b6cff1fb545f364677cb0b1baa8a6898d0946d8",
+      "bytes": 3720
+    },
+    "all_past_applications_permanently_consumed": true
+  },
+  "ecology_context": {
+    "Main_reported_current": 57,
+    "new_ecology_source_review_claimed": false,
+    "author_old55_preserved_historical": true
+  },
+  "production_changes": false,
+  "original_UI_implemented": false,
+  "tasks_deleted": 0,
+  "all_tasks_complete": false,
+  "hours_claimed": false
+}

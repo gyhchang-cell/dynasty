@@ -1,0 +1,407 @@
+{
+  "created_utc": "2026-11-11T19:48:46.431031+00:00",
+  "batch": 157,
+  "status": "ACTUAL_SOURCE_RESEARCH_COMPLETE_SUPPORT0",
+  "decision": "SUPPORT0",
+  "formal_credit": 0,
+  "formal_candidate_id": null,
+  "semantic_family": "native-silverfish-preparent-coalesced-wakeup-current-world-scan-and-infestation-settlement-support",
+  "source_identity": {
+    "kind": "fixed local mapped Forge1.20.1-47.4.10 source archive entry exact bytes",
+    "archive": {
+      "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "new_remote_Git_authentication_claimed": false
+  },
+  "source_refs": [
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Silverfish.java",
+        "sha256": "abaaca137b096f398a12d1d502d5f010bee681d22eeef072419ae873a32a00c2",
+        "bytes": 8871
+      },
+      "archive_entry": "net/minecraft/world/entity/monster/Silverfish.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 229,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            229
+          ],
+          "bytes": 8871,
+          "sha256": "abaaca137b096f398a12d1d502d5f010bee681d22eeef072419ae873a32a00c2",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.monster;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.DamageTypeTags;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.MobType;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.ClimbOnTopOfPowderSnowGoal;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.RandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.InfestedBlock;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class Silverfish extends Monster {\n   @Nullable\n   private Silverfish.SilverfishWakeUpFriendsGoal friendsGoal;\n\n   public Silverfish(EntityType<? extends Silverfish> p_33523_, Level p_33524_) {\n      super(p_33523_, p_33524_);\n   }\n\n   protected void registerGoals() {\n      this.friendsGoal = new Silverfish.SilverfishWakeUpFriendsGoal(this);\n      this.goalSelector.addGoal(1, new FloatGoal(this));\n      this.goalSelector.addGoal(1, new ClimbOnTopOfPowderSnowGoal(this, this.level()));\n      this.goalSelector.addGoal(3, this.friendsGoal);\n      this.goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(5, new Silverfish.SilverfishMergeWithStoneGoal(this));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this)).setAlertOthers());\n      this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));\n   }\n\n   public double getMyRidingOffset() {\n      return 0.1D;\n   }\n\n   protected float getStandingEyeHeight(Pose p_33540_, EntityDimensions p_33541_) {\n      return 0.13F;\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 8.0D).add(Attributes.MOVEMENT_SPEED, 0.25D).add(Attributes.ATTACK_DAMAGE, 1.0D);\n   }\n\n   protected Entity.MovementEmission getMovementEmission() {\n      return Entity.MovementEmission.EVENTS;\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return SoundEvents.SILVERFISH_AMBIENT;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_33549_) {\n      return SoundEvents.SILVERFISH_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.SILVERFISH_DEATH;\n   }\n\n   protected void playStepSound(BlockPos p_33543_, BlockState p_33544_) {\n      this.playSound(SoundEvents.SILVERFISH_STEP, 0.15F, 1.0F);\n   }\n\n   public boolean hurt(DamageSource p_33527_, float p_33528_) {\n      if (this.isInvulnerableTo(p_33527_)) {\n         return false;\n      } else {\n         if ((p_33527_.getEntity() != null || p_33527_.is(DamageTypeTags.ALWAYS_TRIGGERS_SILVERFISH)) && this.friendsGoal != null) {\n            this.friendsGoal.notifyHurt();\n         }\n\n         return super.hurt(p_33527_, p_33528_);\n      }\n   }\n\n   public void tick() {\n      this.yBodyRot = this.getYRot();\n      super.tick();\n   }\n\n   public void setYBodyRot(float p_33553_) {\n      this.setYRot(p_33553_);\n      super.setYBodyRot(p_33553_);\n   }\n\n   public float getWalkTargetValue(BlockPos p_33530_, LevelReader p_33531_) {\n      return InfestedBlock.isCompatibleHostBlock(p_33531_.getBlockState(p_33530_.below())) ? 10.0F : super.getWalkTargetValue(p_33530_, p_33531_);\n   }\n\n   public static boolean checkSilverfishSpawnRules(EntityType<Silverfish> p_219077_, LevelAccessor p_219078_, MobSpawnType p_219079_, BlockPos p_219080_, RandomSource p_219081_) {\n      if (checkAnyLightMonsterSpawnRules(p_219077_, p_219078_, p_219079_, p_219080_, p_219081_)) {\n         Player player = p_219078_.getNearestPlayer((double)p_219080_.getX() + 0.5D, (double)p_219080_.getY() + 0.5D, (double)p_219080_.getZ() + 0.5D, 5.0D, true);\n         return player == null;\n      } else {\n         return false;\n      }\n   }\n\n   public MobType getMobType() {\n      return MobType.ARTHROPOD;\n   }\n\n   static class SilverfishMergeWithStoneGoal extends RandomStrollGoal {\n      @Nullable\n      private Direction selectedDirection;\n      private boolean doMerge;\n\n      public SilverfishMergeWithStoneGoal(Silverfish p_33558_) {\n         super(p_33558_, 1.0D, 10);\n         this.setFlags(EnumSet.of(Goal.Flag.MOVE));\n      }\n\n      public boolean canUse() {\n         if (this.mob.getTarget() != null) {\n            return false;\n         } else if (!this.mob.getNavigation().isDone()) {\n            return false;\n         } else {\n            RandomSource randomsource = this.mob.getRandom();\n            if (net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.mob.level(), this.mob) && randomsource.nextInt(reducedTickDelay(10)) == 0) {\n               this.selectedDirection = Direction.getRandom(randomsource);\n               BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5D, this.mob.getZ()).relative(this.selectedDirection);\n               BlockState blockstate = this.mob.level().getBlockState(blockpos);\n               if (InfestedBlock.isCompatibleHostBlock(blockstate)) {\n                  this.doMerge = true;\n                  return true;\n               }\n            }\n\n            this.doMerge = false;\n            return super.canUse();\n         }\n      }\n\n      public boolean canContinueToUse() {\n         return this.doMerge ? false : super.canContinueToUse();\n      }\n\n      public void start() {\n         if (!this.doMerge) {\n            super.start();\n         } else {\n            LevelAccessor levelaccessor = this.mob.level();\n            BlockPos blockpos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5D, this.mob.getZ()).relative(this.selectedDirection);\n            BlockState blockstate = levelaccessor.getBlockState(blockpos);\n            if (InfestedBlock.isCompatibleHostBlock(blockstate)) {\n               levelaccessor.setBlock(blockpos, InfestedBlock.infestedStateByHost(blockstate), 3);\n               this.mob.spawnAnim();\n               this.mob.discard();\n            }\n\n         }\n      }\n   }\n\n   static class SilverfishWakeUpFriendsGoal extends Goal {\n      private final Silverfish silverfish;\n      private int lookForFriends;\n\n      public SilverfishWakeUpFriendsGoal(Silverfish p_33565_) {\n         this.silverfish = p_33565_;\n      }\n\n      public void notifyHurt() {\n         if (this.lookForFriends == 0) {\n            this.lookForFriends = this.adjustedTickDelay(20);\n         }\n\n      }\n\n      public boolean canUse() {\n         return this.lookForFriends > 0;\n      }\n\n      public void tick() {\n         --this.lookForFriends;\n         if (this.lookForFriends <= 0) {\n            Level level = this.silverfish.level();\n            RandomSource randomsource = this.silverfish.getRandom();\n            BlockPos blockpos = this.silverfish.blockPosition();\n\n            for(int i = 0; i <= 5 && i >= -5; i = (i <= 0 ? 1 : 0) - i) {\n               for(int j = 0; j <= 10 && j >= -10; j = (j <= 0 ? 1 : 0) - j) {\n                  for(int k = 0; k <= 10 && k >= -10; k = (k <= 0 ? 1 : 0) - k) {\n                     BlockPos blockpos1 = blockpos.offset(j, i, k);\n                     BlockState blockstate = level.getBlockState(blockpos1);\n                     Block block = blockstate.getBlock();\n                     if (block instanceof InfestedBlock) {\n                        if (net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(level, this.silverfish)) {\n                           level.destroyBlock(blockpos1, true, this.silverfish);\n                        } else {\n                           level.setBlock(blockpos1, ((InfestedBlock)block).hostStateByInfested(level.getBlockState(blockpos1)), 3);\n                        }\n\n                        if (randomsource.nextBoolean()) {\n                           return;\n                        }\n                     }\n                  }\n               }\n            }\n         }\n\n      }\n   }\n}\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/InfestedBlock.java",
+        "sha256": "146f756fef5a9ca9459f9e79965bc0fe7c9a91178787d1014edee989c096452d",
+        "bytes": 3420
+      },
+      "archive_entry": "net/minecraft/world/level/block/InfestedBlock.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 79,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            79
+          ],
+          "bytes": 3420,
+          "sha256": "146f756fef5a9ca9459f9e79965bc0fe7c9a91178787d1014edee989c096452d",
+          "raw_utf8_keepends": "package net.minecraft.world.level.block;\n\nimport com.google.common.collect.Maps;\nimport java.util.Map;\nimport java.util.function.Supplier;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.monster.Silverfish;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.item.enchantment.Enchantments;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.block.state.BlockBehaviour;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.properties.Property;\n\npublic class InfestedBlock extends Block {\n   private final Block hostBlock;\n   private static final Map<Block, Block> BLOCK_BY_HOST_BLOCK = Maps.newIdentityHashMap();\n   private static final Map<BlockState, BlockState> HOST_TO_INFESTED_STATES = Maps.newIdentityHashMap();\n   private static final Map<BlockState, BlockState> INFESTED_TO_HOST_STATES = Maps.newIdentityHashMap();\n\n   public InfestedBlock(Block p_54178_, BlockBehaviour.Properties p_54179_) {\n      super(p_54179_.destroyTime(p_54178_.defaultDestroyTime() / 2.0F).explosionResistance(0.75F));\n      this.hostBlock = p_54178_;\n      BLOCK_BY_HOST_BLOCK.put(p_54178_, this);\n   }\n\n   public Block getHostBlock() {\n      return this.hostBlock;\n   }\n\n   public static boolean isCompatibleHostBlock(BlockState p_54196_) {\n      return BLOCK_BY_HOST_BLOCK.containsKey(p_54196_.getBlock());\n   }\n\n   private void spawnInfestation(ServerLevel p_54181_, BlockPos p_54182_) {\n      Silverfish silverfish = EntityType.SILVERFISH.create(p_54181_);\n      if (silverfish != null) {\n         silverfish.moveTo((double)p_54182_.getX() + 0.5D, (double)p_54182_.getY(), (double)p_54182_.getZ() + 0.5D, 0.0F, 0.0F);\n         p_54181_.addFreshEntity(silverfish);\n         silverfish.spawnAnim();\n      }\n\n   }\n\n   public void spawnAfterBreak(BlockState p_221360_, ServerLevel p_221361_, BlockPos p_221362_, ItemStack p_221363_, boolean p_221364_) {\n      super.spawnAfterBreak(p_221360_, p_221361_, p_221362_, p_221363_, p_221364_);\n      if (p_221361_.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, p_221363_) == 0) {\n         this.spawnInfestation(p_221361_, p_221362_);\n      }\n\n   }\n\n   public static BlockState infestedStateByHost(BlockState p_153431_) {\n      return getNewStateWithProperties(HOST_TO_INFESTED_STATES, p_153431_, () -> {\n         return BLOCK_BY_HOST_BLOCK.get(p_153431_.getBlock()).defaultBlockState();\n      });\n   }\n\n   public BlockState hostStateByInfested(BlockState p_153433_) {\n      return getNewStateWithProperties(INFESTED_TO_HOST_STATES, p_153433_, () -> {\n         return this.getHostBlock().defaultBlockState();\n      });\n   }\n\n   private static BlockState getNewStateWithProperties(Map<BlockState, BlockState> p_153424_, BlockState p_153425_, Supplier<BlockState> p_153426_) {\n      return p_153424_.computeIfAbsent(p_153425_, (p_153429_) -> {\n         BlockState blockstate = p_153426_.get();\n\n         for(Property property : p_153429_.getProperties()) {\n            blockstate = blockstate.hasProperty(property) ? blockstate.setValue(property, p_153429_.getValue(property)) : blockstate;\n         }\n\n         return blockstate;\n      });\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/Goal.java",
+        "sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+        "bytes": 1166
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/Goal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 59,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            59
+          ],
+          "bytes": 1166,
+          "sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport net.minecraft.util.Mth;\n\npublic abstract class Goal {\n   private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);\n\n   public abstract boolean canUse();\n\n   public boolean canContinueToUse() {\n      return this.canUse();\n   }\n\n   public boolean isInterruptable() {\n      return true;\n   }\n\n   public void start() {\n   }\n\n   public void stop() {\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return false;\n   }\n\n   public void tick() {\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_25328_) {\n      this.flags.clear();\n      this.flags.addAll(p_25328_);\n   }\n\n   public String toString() {\n      return this.getClass().getSimpleName();\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.flags;\n   }\n\n   protected int adjustedTickDelay(int p_186072_) {\n      return this.requiresUpdateEveryTick() ? p_186072_ : reducedTickDelay(p_186072_);\n   }\n\n   protected static int reducedTickDelay(int p_186074_) {\n      return Mth.positiveCeilDiv(p_186074_, 2);\n   }\n\n   public static enum Flag {\n      MOVE,\n      LOOK,\n      JUMP,\n      TARGET;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+        "sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+        "bytes": 1970
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 89,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            89
+          ],
+          "bytes": 1970,
+          "sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\n\npublic class WrappedGoal extends Goal {\n   private final Goal goal;\n   private final int priority;\n   private boolean isRunning;\n\n   public WrappedGoal(int p_25998_, Goal p_25999_) {\n      this.priority = p_25998_;\n      this.goal = p_25999_;\n   }\n\n   public boolean canBeReplacedBy(WrappedGoal p_26003_) {\n      return this.isInterruptable() && p_26003_.getPriority() < this.getPriority();\n   }\n\n   public boolean canUse() {\n      return this.goal.canUse();\n   }\n\n   public boolean canContinueToUse() {\n      return this.goal.canContinueToUse();\n   }\n\n   public boolean isInterruptable() {\n      return this.goal.isInterruptable();\n   }\n\n   public void start() {\n      if (!this.isRunning) {\n         this.isRunning = true;\n         this.goal.start();\n      }\n   }\n\n   public void stop() {\n      if (this.isRunning) {\n         this.isRunning = false;\n         this.goal.stop();\n      }\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return this.goal.requiresUpdateEveryTick();\n   }\n\n   protected int adjustedTickDelay(int p_186092_) {\n      return this.goal.adjustedTickDelay(p_186092_);\n   }\n\n   public void tick() {\n      this.goal.tick();\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_26005_) {\n      this.goal.setFlags(p_26005_);\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.goal.getFlags();\n   }\n\n   public boolean isRunning() {\n      return this.isRunning;\n   }\n\n   public int getPriority() {\n      return this.priority;\n   }\n\n   public Goal getGoal() {\n      return this.goal;\n   }\n\n   public boolean equals(@Nullable Object p_26011_) {\n      if (this == p_26011_) {\n         return true;\n      } else {\n         return p_26011_ != null && this.getClass() == p_26011_.getClass() ? this.goal.equals(((WrappedGoal)p_26011_).goal) : false;\n      }\n   }\n\n   public int hashCode() {\n      return this.goal.hashCode();\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/goal/GoalSelector.java",
+        "sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+        "bytes": 5042
+      },
+      "archive_entry": "net/minecraft/world/entity/ai/goal/GoalSelector.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 158,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            158
+          ],
+          "bytes": 5042,
+          "sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+          "raw_utf8_keepends": "package net.minecraft.world.entity.ai.goal;\n\nimport com.google.common.annotations.VisibleForTesting;\nimport com.google.common.collect.Sets;\nimport com.mojang.logging.LogUtils;\nimport java.util.EnumMap;\nimport java.util.EnumSet;\nimport java.util.Iterator;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.function.Predicate;\nimport java.util.function.Supplier;\nimport java.util.stream.Stream;\nimport net.minecraft.util.profiling.ProfilerFiller;\nimport org.slf4j.Logger;\n\npublic class GoalSelector {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final WrappedGoal NO_GOAL = new WrappedGoal(Integer.MAX_VALUE, new Goal() {\n      public boolean canUse() {\n         return false;\n      }\n   }) {\n      public boolean isRunning() {\n         return false;\n      }\n   };\n   private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);\n   private final Set<WrappedGoal> availableGoals = Sets.newLinkedHashSet();\n   private final Supplier<ProfilerFiller> profiler;\n   private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);\n   private int tickCount;\n   private int newGoalRate = 3;\n\n   public GoalSelector(Supplier<ProfilerFiller> p_25351_) {\n      this.profiler = p_25351_;\n   }\n\n   public void addGoal(int p_25353_, Goal p_25354_) {\n      this.availableGoals.add(new WrappedGoal(p_25353_, p_25354_));\n   }\n\n   @VisibleForTesting\n   public void removeAllGoals(Predicate<Goal> p_262575_) {\n      this.availableGoals.removeIf((p_262564_) -> {\n         return p_262575_.test(p_262564_.getGoal());\n      });\n   }\n\n   public void removeGoal(Goal p_25364_) {\n      this.availableGoals.stream().filter((p_25378_) -> {\n         return p_25378_.getGoal() == p_25364_;\n      }).filter(WrappedGoal::isRunning).forEach(WrappedGoal::stop);\n      this.availableGoals.removeIf((p_25367_) -> {\n         return p_25367_.getGoal() == p_25364_;\n      });\n   }\n\n   private static boolean goalContainsAnyFlags(WrappedGoal p_186076_, EnumSet<Goal.Flag> p_186077_) {\n      for(Goal.Flag goal$flag : p_186076_.getFlags()) {\n         if (p_186077_.contains(goal$flag)) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n   private static boolean goalCanBeReplacedForAllFlags(WrappedGoal p_186079_, Map<Goal.Flag, WrappedGoal> p_186080_) {\n      for(Goal.Flag goal$flag : p_186079_.getFlags()) {\n         if (!p_186080_.getOrDefault(goal$flag, NO_GOAL).canBeReplacedBy(p_186079_)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public void tick() {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalCleanup\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.disabledFlags) || !wrappedgoal.canContinueToUse())) {\n            wrappedgoal.stop();\n         }\n      }\n\n      Iterator<Map.Entry<Goal.Flag, WrappedGoal>> iterator = this.lockedFlags.entrySet().iterator();\n\n      while(iterator.hasNext()) {\n         Map.Entry<Goal.Flag, WrappedGoal> entry = iterator.next();\n         if (!entry.getValue().isRunning()) {\n            iterator.remove();\n         }\n      }\n\n      profilerfiller.pop();\n      profilerfiller.push(\"goalUpdate\");\n\n      for(WrappedGoal wrappedgoal2 : this.availableGoals) {\n         if (!wrappedgoal2.isRunning() && !goalContainsAnyFlags(wrappedgoal2, this.disabledFlags) && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags) && wrappedgoal2.canUse()) {\n            for(Goal.Flag goal$flag : wrappedgoal2.getFlags()) {\n               WrappedGoal wrappedgoal1 = this.lockedFlags.getOrDefault(goal$flag, NO_GOAL);\n               wrappedgoal1.stop();\n               this.lockedFlags.put(goal$flag, wrappedgoal2);\n            }\n\n            wrappedgoal2.start();\n         }\n      }\n\n      profilerfiller.pop();\n      this.tickRunningGoals(true);\n   }\n\n   public void tickRunningGoals(boolean p_186082_) {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalTick\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (p_186082_ || wrappedgoal.requiresUpdateEveryTick())) {\n            wrappedgoal.tick();\n         }\n      }\n\n      profilerfiller.pop();\n   }\n\n   public Set<WrappedGoal> getAvailableGoals() {\n      return this.availableGoals;\n   }\n\n   public Stream<WrappedGoal> getRunningGoals() {\n      return this.availableGoals.stream().filter(WrappedGoal::isRunning);\n   }\n\n   public void setNewGoalRate(int p_148098_) {\n      this.newGoalRate = p_148098_;\n   }\n\n   public void disableControlFlag(Goal.Flag p_25356_) {\n      this.disabledFlags.add(p_25356_);\n   }\n\n   public void enableControlFlag(Goal.Flag p_25375_) {\n      this.disabledFlags.remove(p_25375_);\n   }\n\n   public void setControlFlag(Goal.Flag p_25361_, boolean p_25362_) {\n      if (p_25362_) {\n         this.enableControlFlag(p_25361_);\n      } else {\n         this.disableControlFlag(p_25361_);\n      }\n\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/LevelWriter.java",
+        "sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+        "bytes": 1039
+      },
+      "archive_entry": "net/minecraft/world/level/LevelWriter.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 30,
+      "whole_file_actually_read": true,
+      "evidence": [
+        {
+          "lines": [
+            1,
+            30
+          ],
+          "bytes": 1039,
+          "sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+          "raw_utf8_keepends": "package net.minecraft.world.level;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic interface LevelWriter {\n   boolean setBlock(BlockPos p_46947_, BlockState p_46948_, int p_46949_, int p_46950_);\n\n   default boolean setBlock(BlockPos p_46944_, BlockState p_46945_, int p_46946_) {\n      return this.setBlock(p_46944_, p_46945_, p_46946_, 512);\n   }\n\n   boolean removeBlock(BlockPos p_46951_, boolean p_46952_);\n\n   default boolean destroyBlock(BlockPos p_46962_, boolean p_46963_) {\n      return this.destroyBlock(p_46962_, p_46963_, (Entity)null);\n   }\n\n   default boolean destroyBlock(BlockPos p_46954_, boolean p_46955_, @Nullable Entity p_46956_) {\n      return this.destroyBlock(p_46954_, p_46955_, p_46956_, 512);\n   }\n\n   boolean destroyBlock(BlockPos p_46957_, boolean p_46958_, @Nullable Entity p_46959_, int p_46960_);\n\n   default boolean addFreshEntity(Entity p_46964_) {\n      return false;\n   }\n}"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+        "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "bytes": 131153
+      },
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 3473,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            1058,
+            1207
+          ],
+          "bytes": 5768,
+          "sha256": "f6a916065112be34fbef5c8515d227c302a1ac0276d25eeb1d5d9769ffd788a6",
+          "raw_utf8_keepends": "   public boolean hurt(DamageSource p_21016_, float p_21017_) {\n      if (!net.minecraftforge.common.ForgeHooks.onLivingAttack(this, p_21016_, p_21017_)) return false;\n      if (this.isInvulnerableTo(p_21016_)) {\n         return false;\n      } else if (this.level().isClientSide) {\n         return false;\n      } else if (this.isDeadOrDying()) {\n         return false;\n      } else if (p_21016_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {\n         return false;\n      } else {\n         if (this.isSleeping() && !this.level().isClientSide) {\n            this.stopSleeping();\n         }\n\n         this.noActionTime = 0;\n         float f = p_21017_;\n         boolean flag = false;\n         float f1 = 0.0F;\n         if (p_21017_ > 0.0F && this.isDamageSourceBlocked(p_21016_)) {\n            net.minecraftforge.event.entity.living.ShieldBlockEvent ev = net.minecraftforge.common.ForgeHooks.onShieldBlock(this, p_21016_, p_21017_);\n            if(!ev.isCanceled()) {\n            if(ev.shieldTakesDamage()) this.hurtCurrentlyUsedShield(p_21017_);\n            f1 = ev.getBlockedDamage();\n            p_21017_ -= ev.getBlockedDamage();\n            if (!p_21016_.is(DamageTypeTags.IS_PROJECTILE)) {\n               Entity entity = p_21016_.getDirectEntity();\n               if (entity instanceof LivingEntity) {\n                  LivingEntity livingentity = (LivingEntity)entity;\n                  this.blockUsingShield(livingentity);\n               }\n            }\n\n            flag = p_21017_ <= 0;\n         }\n         }\n\n         if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {\n            p_21017_ *= 5.0F;\n         }\n\n         this.walkAnimation.setSpeed(1.5F);\n         boolean flag1 = true;\n         if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {\n            if (p_21017_ <= this.lastHurt) {\n               return false;\n            }\n\n            this.actuallyHurt(p_21016_, p_21017_ - this.lastHurt);\n            this.lastHurt = p_21017_;\n            flag1 = false;\n         } else {\n            this.lastHurt = p_21017_;\n            this.invulnerableTime = 20;\n            this.actuallyHurt(p_21016_, p_21017_);\n            this.hurtDuration = 10;\n            this.hurtTime = this.hurtDuration;\n         }\n\n         if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n            this.hurtHelmet(p_21016_, p_21017_);\n            p_21017_ *= 0.75F;\n         }\n\n         Entity entity1 = p_21016_.getEntity();\n         if (entity1 != null) {\n            if (entity1 instanceof LivingEntity) {\n               LivingEntity livingentity1 = (LivingEntity)entity1;\n               if (!p_21016_.is(DamageTypeTags.NO_ANGER)) {\n                  this.setLastHurtByMob(livingentity1);\n               }\n            }\n\n            if (entity1 instanceof Player) {\n               Player player1 = (Player)entity1;\n               this.lastHurtByPlayerTime = 100;\n               this.lastHurtByPlayer = player1;\n            } else if (entity1 instanceof net.minecraft.world.entity.TamableAnimal tamableEntity) {\n               if (tamableEntity.isTame()) {\n                  this.lastHurtByPlayerTime = 100;\n                  LivingEntity livingentity2 = tamableEntity.getOwner();\n                  if (livingentity2 instanceof Player) {\n                     Player player = (Player)livingentity2;\n                     this.lastHurtByPlayer = player;\n                  } else {\n                     this.lastHurtByPlayer = null;\n                  }\n               }\n            }\n         }\n\n         if (flag1) {\n            if (flag) {\n               this.level().broadcastEntityEvent(this, (byte)29);\n            } else {\n               this.level().broadcastDamageEvent(this, p_21016_);\n            }\n\n            if (!p_21016_.is(DamageTypeTags.NO_IMPACT) && (!flag || p_21017_ > 0.0F)) {\n               this.markHurt();\n            }\n\n            if (entity1 != null && !p_21016_.is(DamageTypeTags.IS_EXPLOSION)) {\n               double d0 = entity1.getX() - this.getX();\n\n               double d1;\n               for(d1 = entity1.getZ() - this.getZ(); d0 * d0 + d1 * d1 < 1.0E-4D; d1 = (Math.random() - Math.random()) * 0.01D) {\n                  d0 = (Math.random() - Math.random()) * 0.01D;\n               }\n\n               this.knockback((double)0.4F, d0, d1);\n               if (!flag) {\n                  this.indicateDamage(d0, d1);\n               }\n            }\n         }\n\n         if (this.isDeadOrDying()) {\n            if (!this.checkTotemDeathProtection(p_21016_)) {\n               SoundEvent soundevent = this.getDeathSound();\n               if (flag1 && soundevent != null) {\n                  this.playSound(soundevent, this.getSoundVolume(), this.getVoicePitch());\n               }\n\n               this.die(p_21016_);\n            }\n         } else if (flag1) {\n            this.playHurtSound(p_21016_);\n         }\n\n         boolean flag2 = !flag || p_21017_ > 0.0F;\n         if (flag2) {\n            this.lastDamageSource = p_21016_;\n            this.lastDamageStamp = this.level().getGameTime();\n         }\n\n         if (this instanceof ServerPlayer) {\n            CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer)this, p_21016_, f, p_21017_, flag);\n            if (f1 > 0.0F && f1 < 3.4028235E37F) {\n               ((ServerPlayer)this).awardStat(Stats.CUSTOM.get(Stats.DAMAGE_BLOCKED_BY_SHIELD), Math.round(f1 * 10.0F));\n            }\n         }\n\n         if (entity1 instanceof ServerPlayer) {\n            CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer)entity1, this, p_21016_, f, p_21017_, flag);\n         }\n\n         return flag2;\n      }\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+        "sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+        "bytes": 54074
+      },
+      "archive_entry": "net/minecraft/world/entity/Mob.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 1534,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            742,
+            780
+          ],
+          "bytes": 1565,
+          "sha256": "e5bf7bca7b89798495f21b8e2018fc21bd8d7a7dd43d62a833c2294e84fe9b95",
+          "raw_utf8_keepends": "   protected final void serverAiStep() {\n      ++this.noActionTime;\n      this.level().getProfiler().push(\"sensing\");\n      this.sensing.tick();\n      this.level().getProfiler().pop();\n      int i = this.level().getServer().getTickCount() + this.getId();\n      if (i % 2 != 0 && this.tickCount > 1) {\n         this.level().getProfiler().push(\"targetSelector\");\n         this.targetSelector.tickRunningGoals(false);\n         this.level().getProfiler().pop();\n         this.level().getProfiler().push(\"goalSelector\");\n         this.goalSelector.tickRunningGoals(false);\n         this.level().getProfiler().pop();\n      } else {\n         this.level().getProfiler().push(\"targetSelector\");\n         this.targetSelector.tick();\n         this.level().getProfiler().pop();\n         this.level().getProfiler().push(\"goalSelector\");\n         this.goalSelector.tick();\n         this.level().getProfiler().pop();\n      }\n\n      this.level().getProfiler().push(\"navigation\");\n      this.navigation.tick();\n      this.level().getProfiler().pop();\n      this.level().getProfiler().push(\"mob tick\");\n      this.customServerAiStep();\n      this.level().getProfiler().pop();\n      this.level().getProfiler().push(\"controls\");\n      this.level().getProfiler().push(\"move\");\n      this.moveControl.tick();\n      this.level().getProfiler().popPush(\"look\");\n      this.lookControl.tick();\n      this.level().getProfiler().popPush(\"jump\");\n      this.jumpControl.tick();\n      this.level().getProfiler().pop();\n      this.level().getProfiler().pop();\n      this.sendDebugPackets();\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/Level.java",
+        "sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+        "bytes": 40414
+      },
+      "archive_entry": "net/minecraft/world/level/Level.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 971,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            279,
+            301
+          ],
+          "bytes": 965,
+          "sha256": "5d10d7a29f3e02c491731a5821be250ed6163f897fa6a38503a603f40ee9884f",
+          "raw_utf8_keepends": "   public boolean destroyBlock(BlockPos p_46626_, boolean p_46627_, @Nullable Entity p_46628_, int p_46629_) {\n      BlockState blockstate = this.getBlockState(p_46626_);\n      if (blockstate.isAir()) {\n         return false;\n      } else {\n         FluidState fluidstate = this.getFluidState(p_46626_);\n         if (!(blockstate.getBlock() instanceof BaseFireBlock)) {\n            this.levelEvent(2001, p_46626_, Block.getId(blockstate));\n         }\n\n         if (p_46627_) {\n            BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_46626_) : null;\n            Block.dropResources(blockstate, this, p_46626_, blockentity, p_46628_, ItemStack.EMPTY);\n         }\n\n         boolean flag = this.setBlock(p_46626_, fluidstate.createLegacyBlock(), 3, p_46629_);\n         if (flag) {\n            this.gameEvent(GameEvent.BLOCK_DESTROY, p_46626_, GameEvent.Context.of(p_46628_, blockstate));\n         }\n\n         return flag;\n      }\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/Block.java",
+        "sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+        "bytes": 27752
+      },
+      "archive_entry": "net/minecraft/world/level/block/Block.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 600,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            281,
+            292
+          ],
+          "bytes": 782,
+          "sha256": "d888bc2127c1157370ea8844c2d4ea619c75682c0562c5793105b39f5ed8d255",
+          "raw_utf8_keepends": "   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_) {\n      dropResources(p_49882_, p_49883_, p_49884_, p_49885_, p_49886_, p_49887_, true);\n   }\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_, boolean dropXp) {\n      if (p_49883_ instanceof ServerLevel) {\n         getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach((p_49944_) -> {\n            popResource(p_49883_, p_49884_, p_49944_);\n         });\n         p_49882_.spawnAfterBreak((ServerLevel)p_49883_, p_49884_, p_49887_, dropXp);\n      }\n\n   }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+        "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+        "bytes": 46418
+      },
+      "archive_entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 997,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            748,
+            758
+          ],
+          "bytes": 498,
+          "sha256": "8876fa63e8f1606fb6ead4a4bde40bd51d8e3ee5b53aba5ede30e858c615490a",
+          "raw_utf8_keepends": "    public static boolean getMobGriefingEvent(Level level, @Nullable Entity entity)\n    {\n        if (entity == null)\n            return level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);\n\n        EntityMobGriefingEvent event = new EntityMobGriefingEvent(entity);\n        MinecraftForge.EVENT_BUS.post(event);\n\n        Result result = event.getResult();\n        return result == Result.DEFAULT ? level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) : result == Result.ALLOW;\n    }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/common/ForgeHooks.java",
+        "sha256": "e21acd3d13778b54be47ed9b4f8407bfbad3957206281c085219c166e405102c",
+        "bytes": 71532
+      },
+      "archive_entry": "net/minecraftforge/common/ForgeHooks.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 1641,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            270,
+            273
+          ],
+          "bytes": 225,
+          "sha256": "07735a93791f57398a3bd22e9f23fb0541419390362c15f355ff225e8f009715",
+          "raw_utf8_keepends": "    public static boolean onLivingAttack(LivingEntity entity, DamageSource src, float amount)\n    {\n        return entity instanceof Player || !MinecraftForge.EVENT_BUS.post(new LivingAttackEvent(entity, src, amount));\n    }\n"
+        }
+      ],
+      "semantic_credit": 0
+    },
+    {
+      "binding": {
+        "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/block/state/BlockBehaviour.java",
+        "sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+        "bytes": 51080
+      },
+      "archive_entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "archive_bytes_equal": true,
+      "source_total_lines": 1286,
+      "whole_file_actually_read": false,
+      "evidence": [
+        {
+          "lines": [
+            376,
+            378
+          ],
+          "bytes": 261,
+          "sha256": "5dff66b8962db9630afabb9e7ab3ca4dd5aa8aa79a90937f0cb55c2d54ebdd5c",
+          "raw_utf8_keepends": "   public void spawnAfterBreak(BlockState p_222949_, ServerLevel p_222950_, BlockPos p_222951_, ItemStack p_222952_, boolean p_222953_) {\n      if (p_222953_) net.minecraftforge.common.ForgeHooks.dropXpForBlock(p_222949_, p_222950_, p_222951_, p_222952_);\n   }\n"
+        },
+        {
+          "lines": [
+            769,
+            771
+          ],
+          "bytes": 229,
+          "sha256": "79b81d7f3cf667e81475ba3f1b8867fa1581395bfa9dd41cf7b2220e2b781d83",
+          "raw_utf8_keepends": "      public void spawnAfterBreak(ServerLevel p_222968_, BlockPos p_222969_, ItemStack p_222970_, boolean p_222971_) {\n         this.getBlock().spawnAfterBreak(this.asState(), p_222968_, p_222969_, p_222970_, p_222971_);\n      }\n"
+        }
+      ],
+      "semantic_credit": 0
+    }
+  ],
+  "reading_coverage": {
+    "files": 13,
+    "ranges": 14,
+    "whole_files": 6,
+    "unique_selected_lines": 889,
+    "coverage_is_not_semantic_credit": true
+  },
+  "comparison": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-157-native-silverfish-complete-owner-comparison-SUPPORT0-20261112.json",
+    "sha256": "d894e2447709d9aa140ce91e1862926f9df7ba66ae7776052f0e85e56cd334e7",
+    "bytes": 5495660
+  },
+  "whole_lifecycle_findings": [
+    {
+      "source": "Silverfish.java:36..53,87..97",
+      "finding": "registerGoals constructs a distinct friendsGoal and schedules it priority3. hurt first rejects isInvulnerableTo. Otherwise when causing entity exists OR damage is ALWAYS_TRIGGERS_SILVERFISH and friendsGoal exists, notifyHurt executes before returning super.hurt. No local positive-amount, parent-bool, server or alive test exists in that scheduling branch. It is not a local cancel/refusal gate and no wakeup guarantee follows a rejected parent result."
+    },
+    {
+      "source": "LivingEntity.java:1058..1207;ForgeHooks.java:270..273",
+      "finding": "The native LivingEntity parent begins a cancellable Forge livingAttack hook for a nonPlayer such as silverfish, then rejects source-invulnerability, client, dead/dying and matching fire-resistance; cooldown can later returnfalse for amount<=lastHurt. These later returnfalse paths do not roll back the earlier subclass notification. Parent effects/hurt return do not prove positive HP loss, while notification alone does not prove that a living AI consumer will ever run."
+    },
+    {
+      "source": "Silverfish.java:179..228;Goal.java:1..59;WrappedGoal.java:1..89",
+      "finding": "notifyHurt writes only when lookForFriends==0, using adjustedTickDelay(20). This goal inherits requiresUpdateEveryTick false, so the stored value is ceil(20/2)=10. Further notifications while positive do not refresh the counter. canUse and inherited canContinue require>0. Each actual running goal tick decrements; only at<=0 does the scan run. There is no target/source-specific bucket or original-attacker receipt."
+    },
+    {
+      "source": "GoalSelector.java:1..158;Mob.java:742..780",
+      "finding": "WrappedGoal delegates flags/start/stop/tick. This friends goal supplies no flags, so its empty flag set does not conflict with movement/combat locks. GoalSelector cleans expired running goals, starts usable goals, and full tick runs all running goals. Mob alternates full goalSelector.tick with tickRunningGoals(false) using server tick+entityID except initial tick handling; non-every-tick goal is omitted from the latter branch. Therefore10 goal evaluations is not a measured wall-clock duration or a universal exact20 game-tick receipt."
+    },
+    {
+      "source": "Silverfish.java:198..228",
+      "finding": "When scan becomes eligible it snapshots current level/RNG/blockPosition, then iterates y offsets0,1,-1,...5,-5, x and z offsets0,1,-1,...10,-10. Finite upper bound11*21*21=4851 visited positions before early stops. Only InfestedBlock positions trigger the world modification branch and random nextBoolean early return. No candidate-count success budget, nearest Euclidean sort, original attack position or hostile-target selection is present."
+    },
+    {
+      "source": "Silverfish.java:211..220;ForgeEventFactory.java:748..758",
+      "finding": "At each found infestation Forge mob-griefing result can override the rule: DEFAULT uses rule, ALLOW true, other result false. True requests destroyBlock(pos,true,silverfish). False still requests replacing infestation with hostStateByInfested(currentstate), so denial is not no terrain change. Both result booleans are ignored; nextBoolean may end the whole scan after that request even when the write/removal did not succeed."
+    },
+    {
+      "source": "LevelWriter.java:1..30;Level.java:279..301;Block.java:281..292;BlockBehaviour.java:376..378,769..771",
+      "finding": "The three-arg destroyBlock delegates with recursion512. Level rejects air, produces the break levelEvent, invokes Block.dropResources when requested, and only then calls setBlock with fluid legacy state; return is the final block-write flag, and BLOCK_DESTROY game event is true-gated. In ServerLevel, dropResources gets loot/popResource then invokes state.spawnAfterBreak which dispatches to block. Therefore infestation spawning may be attempted before final block removal succeeds; no crash-atomic block-to-mob transaction or exploit reproduction is claimed."
+    },
+    {
+      "source": "InfestedBlock.java:1..79",
+      "finding": "InfestedBlock.spawnAfterBreak calls super then requires RULE_DOBLOCKDROPS and SilkTouch level0 before spawnInfestation. The wake destroy path passes ItemStack.EMPTY, but actual spawn still depends on rule/create/add. spawnInfestation creates SILVERFISH, null-checks, positions it, ignores addFreshEntity result and invokes spawnAnim afterwards. This call is not a guaranteed entity-add receipt. The false-griefing host replacement path does not invoke this destroy/drop pipeline itself."
+    },
+    {
+      "source": "Silverfish.java:126..177;InfestedBlock.java:56..79",
+      "finding": "Merge-with-stone canUse requires no target and finished navigation, then Forge griefing eligibility, reducedTickDelay(10) random draw and a compatible neighboring host. start rechecks host but not the earlier griefing predicate, requests host-to-infested setBlock, then spawnAnim/discard without checking write success. State conversion copies only shared block properties into host/infested default state. No silverfish health/UUID/target/equipment serialization is stored by this conversion; later new entity creation is not restoration of that actor or earned progress."
+    },
+    {
+      "source": "Silverfish.java:44..53,179..228",
+      "finding": "HurtByTargetGoal.setAlertOthers is a separate registered targeting goal, not the friendsGoal block-release consumer. Its complete implementation was not read in this batch, so no automatic aggro-sharing, swarm targeting the original attacker, spawn finalization or same-type targeting guarantee is inferred from the registration line."
+    }
+  ],
+  "application_to_Dynasty": [
+    "Emit Boss immunity feedback only from an actual authoritative refused-control decision. Damage notification, coalesced delayed scan, block break request, spawn animation and ignored entity-add call are different facts.",
+    "Distinguish gameplay coalescing windows from UI hint throttling. Repeated hit messages must not refresh or consume native combat resources simply to suppress text, and world/spawn results require their own success checks before any completion/reward.",
+    "Original requested background remains unchanged; no main-button corner/world-option/tutorial implementation or visual/native acceptance is delivered by this read-only source study."
+  ],
+  "limits": [
+    "Exactly13 fixed source files14 selected ranges889 unique lines6 whole. Full Silverfish,InfestedBlock,Goal,WrappedGoal,GoalSelector,LevelWriter read; other listed files are bounded containing-method contexts only, not full classes.",
+    "Nine old complete semantic owners preserved; eight sets of four business fields read in this157 study,512 complete four-field read reused unchanged from152/155. Hashes/object identity are not semantic reading of all nested old raw source refs or all521 entries.",
+    "Actual damage-type tag values, all Forge event listeners, complete parent class hierarchy/invulnerability/AI-disable/death scheduling, getDrops/popResource internals, create/finalize/add tracking, spawnAnim transport and HurtByTargetGoal implementation are unexpanded. No runtime swarm/quantity/HP/material acquisition/loot or NBT safety proof.",
+    "No new program/ecology/migration/NBT credit. No production/UI/texture/model/UV/building/sharedJar/game/save/master/session/active/pending/ownership changes, task deletion, Java/Gradle/test/script/help/import/network/display/sound/wake/focus/process actions, grants/markers/append plan/executor. All historical once and151/152/153 authorities remain consumed."
+  ],
+  "protected_after": {
+    "formal_program": 521,
+    "groups": 249,
+    "gap": 479,
+    "gate": false,
+    "NBT_gate_satisfied": false,
+    "ecology_context_reported_by_Main": 57,
+    "production_changes": false,
+    "master_session_active_pending_ownership_changes": false,
+    "task_deletions": 0,
+    "original_UI_implemented": false,
+    "all_tasks_complete": false,
+    "hours_claimed": false
+  }
+}
