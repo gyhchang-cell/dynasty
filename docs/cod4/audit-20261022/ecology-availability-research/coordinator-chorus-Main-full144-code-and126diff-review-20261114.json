@@ -1,0 +1,2508 @@
+{
+  "schema": "Main-Chorus-full144-code-and126diff-independent-review-v1",
+  "recorded_at": "2026-11-14T06:26:18.881102+00:00",
+  "decision": "APPROVE_EXACT_CHORUS_NORMALIZED_EXECUTOR_AND_DIFF",
+  "reviewed_by_thread_id": "01a16364-cac0-7ca2-a042-a5312781ca34",
+  "plan": {
+    "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/exact-five-normalization-proposal.json",
+    "sha256": "7a37145a68b2806a1aa73fe4995d47dd18291fe04efacb6d061331d22a677f08",
+    "bytes": 88901
+  },
+  "executor": {
+    "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/apply_exact_five.py",
+    "sha256": "4d064c7626d893ef91d6fbb29f0a4ffcd54b4362999f8772992701475bf53fd7",
+    "bytes": 9286
+  },
+  "complete_reviewed_executor_source": "#!/usr/bin/env python3\n\"\"\"Review-only proposal: NEVER run without new independent Main code review/once approval.\nNo authority, marker, grant, receipt, task, production or native-world writer is included.\nOnly the five fixed research JSON may be installed after exact current16 validation.\nA fresh Main-consumed single-attempt receipt must bind THIS plan and THIS code SHA.\nThe immutable beforeimages remain recoverable. Partial failure stops; never auto-retry.\n\"\"\"\nimport fcntl\nimport hashlib\nimport json\nimport os\nfrom pathlib import Path\nimport stat\nimport sys\nimport tempfile\n\nROOT = Path('/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114')\nPLAN_PATH = ROOT / 'exact-five-normalization-proposal.json'\nPLAN_SHA256 = '7a37145a68b2806a1aa73fe4995d47dd18291fe04efacb6d061331d22a677f08'\nAPPROVAL_PATH = ROOT / 'Main-authorization-after-code-review.json'\nMAIN_THREAD = '01a16364-cac0-7ca2-a042-a5312781ca34'\nFORMAL_DIR = Path('/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research')\nTARGETS = tuple(str(FORMAL_DIR / n) for n in ('master-acceptance-ledger.json', 'receipt-validation.json', 'source-index-001.json', 'continuation.json', 'delivery-inspection.json'))\n\n\ndef require(ok, message):\n    if not ok:\n        raise ValueError(message)\n\n\ndef descriptor(path):\n    path = Path(path)\n    require(not path.is_symlink() and path.is_file(), 'regular nonsymlink file required: ' + str(path))\n    h = hashlib.sha256()\n    size = 0\n    with path.open('rb') as stream:\n        for chunk in iter(lambda: stream.read(1048576), b''):\n            h.update(chunk)\n            size += len(chunk)\n    return {'path': str(path.resolve()), 'sha256': h.hexdigest(), 'bytes': size}\n\n\ndef checked_json(binding):\n    require(descriptor(binding['path']) == binding, 'bound document changed: ' + binding['path'])\n    return json.loads(Path(binding['path']).read_text(encoding='utf-8'))\n\n\ndef unique_map(items):\n    require(len({v['path'] for v in items}) == len(items), 'duplicate input paths')\n    return {v['path']: v for v in items}\n\n\ndef verify_inputs(expected):\n    for path, bound in expected.items():\n        require(descriptor(path) == bound, 'input drift; refuse without overwrite: ' + path)\n\n\ndef main():\n    applied = []\n    stage_dir = None\n    try:\n        # Refusal happens before any directory creation, file write, lock or installer action.\n        require(len(sys.argv) == 3 and sys.argv[1] == '--approval-sha256', 'NO AUTHORITY: require new independently reviewed Main approval SHA; no action')\n        approval_sha = sys.argv[2]\n        require(len(approval_sha) == 64 and all(c in '0123456789abcdef' for c in approval_sha), 'invalid approval SHA')\n        require(Path(__file__).resolve().parent == ROOT, 'executor location changed')\n        require(descriptor(PLAN_PATH)['sha256'] == PLAN_SHA256, 'immutable normalization plan changed')\n        plan = json.loads(PLAN_PATH.read_text(encoding='utf-8'))\n        code_binding = descriptor(Path(__file__).resolve())\n        approval_binding = descriptor(APPROVAL_PATH)\n        require(approval_binding['sha256'] == approval_sha, 'fresh approval bytes mismatch')\n        approval = json.loads(APPROVAL_PATH.read_text(encoding='utf-8'))\n        require(approval.get('schema') == 'Main-Chorus-exact-five-after-code-review-authorization-v1', 'wrong fresh approval schema')\n        require(approval.get('decision') == 'AUTHORIZE_EXACT_FIVE_ONCE_DATA_ONLY', 'no exact once decision')\n        require(approval.get('authorized_by_thread_id') == MAIN_THREAD, 'not bound Main approval')\n        require(approval.get('plan') == descriptor(PLAN_PATH), 'approval not bound to this plan')\n        require(approval.get('executor') == code_binding, 'approval not bound to this full code')\n        require(approval.get('allowed_formal_targets') == list(TARGETS), 'approval targets mismatch')\n        require(approval.get('production_allowed') is False and approval.get('runtime_allowed') is False, 'scope not data-only')\n        expected16 = unique_map(plan['current16'])\n        require(len(expected16) == 16 and unique_map(approval.get('current16', [])) == expected16, 'fresh current16 approval mismatch')\n        code_review = checked_json(approval['Main_code_review'])\n        require(code_review.get('decision') == 'APPROVE_EXACT_CHORUS_NORMALIZED_EXECUTOR_AND_DIFF', 'independent complete-code review missing')\n        require(code_review.get('reviewed_by_thread_id') == MAIN_THREAD, 'wrong independent code reviewer')\n        require(code_review.get('plan') == descriptor(PLAN_PATH) and code_review.get('executor') == code_binding, 'code review exact code/plan mismatch')\n        # This program does NOT create or consume any token/control file.\n        # Main must independently supply the fresh consumed single-attempt proof after review.\n        once = checked_json(approval['fresh_Main_consumed_once_control'])\n        require(once.get('state') == 'CONSUMED_FOR_THIS_SINGLE_ATTEMPT', 'fresh once control not consumed by Main')\n        require(once.get('consumed_by_thread_id') == MAIN_THREAD, 'wrong once controller')\n        require(once.get('attempt_id') == approval.get('attempt_id') and isinstance(once.get('attempt_id'), str) and len(once['attempt_id']) >= 32, 'single-attempt identity mismatch')\n        require(once.get('plan') == descriptor(PLAN_PATH) and once.get('executor') == code_binding, 'old once authority forbidden')\n        rows = plan['five_exact_inputs_and_normalized_afterimages']\n        require(tuple(r['target'] for r in rows) == TARGETS and len(rows) == 5, 'only fixed five targets allowed')\n        require(approval.get('normalized_afterimages') == [r['normalized_afterimage'] for r in rows], 'approval normalized outputs mismatch')\n        require(plan['execution_authorized'] is False and plan['formal_write_authorized'] is False, 'immutable proposal permission history changed')\n        for key in ('proposed_reference_record', 'exact_normalized_forward_inverse_delta', 'every_normalized_field_diff'):\n            checked_json(plan[key])\n        for bound in plan['original_bindings'].values():\n            checked_json(bound)\n        for row in rows:\n            require(row['before'] == expected16[row['target']], 'target preimage mismatch')\n            require(Path(row['private_beforeimage']['path']).parent == ROOT / 'beforeimages', 'private beforeimage scope')\n            require(Path(row['normalized_afterimage']['path']).parent == ROOT / 'normalized-afterimages', 'normalized image scope')\n            checked_json(row['private_beforeimage'])\n            checked_json(row['normalized_afterimage'])\n            require(row['private_beforeimage']['sha256'] == row['before']['sha256'], 'beforeimage does not restore target')\n        # Advisory serialization plus repeated SHA checks prevent overwriting concurrent edits.\n        with Path(TARGETS[0]).open('rb') as lock_stream:\n            fcntl.flock(lock_stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)\n            verify_inputs(expected16)\n            stage_dir = Path(tempfile.mkdtemp(prefix='private-install-stage-', dir=ROOT))\n            staged = {}\n            for row in rows:\n                target = Path(row['target'])\n                data = Path(row['normalized_afterimage']['path']).read_bytes()\n                require(hashlib.sha256(data).hexdigest() == row['normalized_afterimage']['sha256'], 'normalized stage data changed')\n                staged_path = stage_dir / target.name\n                with staged_path.open('xb') as stream:\n                    os.fchmod(stream.fileno(), stat.S_IMODE(target.stat().st_mode))\n                    stream.write(data)\n                    stream.flush()\n                    os.fsync(stream.fileno())\n                staged[target.name] = staged_path\n            mixed = dict(expected16)\n            for row in rows:\n                verify_inputs(mixed)\n                target = Path(row['target'])\n                require(str(target) in TARGETS and not target.is_symlink(), 'formal write target outside exact five')\n                os.replace(staged[target.name], target)\n                applied.append(str(target))\n                mixed[str(target)] = {**row['normalized_afterimage'], 'path': str(target)}\n                require(descriptor(target) == mixed[str(target)], 'installed exact bytes mismatch')\n            verify_inputs(mixed)\n        print(json.dumps({'status': 'APPLIED_EXACT_FIVE_JSON', 'applied': applied, 'aggregation_id': plan['aggregation_id'], 'new_related_reference': 1, 'native_credit': 0, 'production_changes': 0, 'game_starts': 0, 'task_deletions': 0}))\n        return 0\n    except Exception as exc:\n        # No automatic rollback over possible concurrent work, no retry, no authority creation.\n        print(json.dumps({'status': 'REFUSED_OR_STOPPED_NO_RETRY', 'error': type(exc).__name__ + ': ' + str(exc), 'applied_before_failure': applied, 'private_stage': str(stage_dir) if stage_dir else None, 'immutable_beforeimages': str(ROOT / 'beforeimages'), 'recovery': 'Main must inspect exact current SHA and create a separately reviewed recovery plan; do not rerun or discard any work.'}), file=sys.stderr)\n        return 2\n\n\nif __name__ == '__main__':\n    raise SystemExit(main())\n",
+  "current16": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "6a40a26cd9b36e44f38d7f1f4ef0e46a8c771441317bd742808215b5be9c21c2",
+      "bytes": 82238870
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "sha256": "217115dc3c49cee005e13790c6d19f946c9a66a11f68f556c9cbc5a9e99defde",
+      "bytes": 79737589
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "sha256": "b203a2655cb79b7ec6863f7d62595fabd3725b4a9b620741b27264a823a2a605",
+      "bytes": 2962588
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "sha256": "f80e370cb3be9c95237376fc7a2080cda12d5693afa94d6053fd9e5d6097402d",
+      "bytes": 385841
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "sha256": "f853d7186d7302da7a93fa31d95d101f63da675f93abdca0c96d7b33eac9c662",
+      "bytes": 1257113
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "958c6393c8aeaeac9c2e740762c3864dbfdd812195df40a0b8fbad4a8340ff0c",
+      "bytes": 72208594
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "sha256": "d6eaefa706d708bfcfd5d39446244cda91f6f932cb73d71df5175b51b9f9bb88",
+      "bytes": 3170357
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "f9f86c858b1b150815d5e5590cdbb6e2c7183a667a2c2eec19a4a4ab74d5b539",
+      "bytes": 631
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "exact_five_independent_memory_review": [
+    {
+      "target": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "before": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+        "sha256": "6a40a26cd9b36e44f38d7f1f4ef0e46a8c771441317bd742808215b5be9c21c2",
+        "bytes": 82238870
+      },
+      "normalized_afterimage": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/master-acceptance-ledger.json",
+        "sha256": "fa27a216dec8c07542b6c2134e0059ce66d215b0fc6620d41cf3feb0091553fe",
+        "bytes": 83226287
+      },
+      "changed_top_fields": [
+        "accepted",
+        "aggregation_id",
+        "by_reviewer_validated_receipts",
+        "chorus_forked_network_material_private_proposed_delta",
+        "independently_accepted",
+        "reviewed_mechanisms_including_accepted",
+        "shortfall"
+      ],
+      "field_diff_count": 39,
+      "forward": 7,
+      "inverse": 7
+    },
+    {
+      "target": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+      "before": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+        "sha256": "217115dc3c49cee005e13790c6d19f946c9a66a11f68f556c9cbc5a9e99defde",
+        "bytes": 79737589
+      },
+      "normalized_afterimage": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/receipt-validation.json",
+        "sha256": "05f3530fae90b6d22f1cdb7a7f327432cd61e7ef857f187d65fe14291d8371be",
+        "bytes": 80676776
+      },
+      "changed_top_fields": [
+        "aggregation_id",
+        "chorus_distinct_Main_original_author_scope",
+        "chorus_forked_network_material_private_proposed_delta",
+        "counts",
+        "receipt_inputs"
+      ],
+      "field_diff_count": 36,
+      "forward": 7,
+      "inverse": 7
+    },
+    {
+      "target": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+      "before": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+        "sha256": "b203a2655cb79b7ec6863f7d62595fabd3725b4a9b620741b27264a823a2a605",
+        "bytes": 2962588
+      },
+      "normalized_afterimage": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/source-index-001.json",
+        "sha256": "19762687b70b38dfe4f9d791b005ecb4efecb8d81af86efbed70ef010bc4e567",
+        "bytes": 3085638
+      },
+      "changed_top_fields": [
+        "aggregation_id",
+        "chorus_forked_network_archive_member_supports",
+        "chorus_forked_network_archive_support_policy",
+        "chorus_forked_network_base_resource_supports",
+        "chorus_forked_network_material_private_proposed_delta",
+        "chorus_forked_network_prior_helpers_reused0"
+      ],
+      "field_diff_count": 14,
+      "forward": 6,
+      "inverse": 6
+    },
+    {
+      "target": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+      "before": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+        "sha256": "f80e370cb3be9c95237376fc7a2080cda12d5693afa94d6053fd9e5d6097402d",
+        "bytes": 385841
+      },
+      "normalized_afterimage": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/continuation.json",
+        "sha256": "e4b55e27763a46c0e0f93a8de450c1df288ee33ea662ea7110ba5d1d3112def5",
+        "bytes": 402488
+      },
+      "changed_top_fields": [
+        "aggregation_id",
+        "chorus_forked_network_material_private_proposed_delta",
+        "chorus_reference_identifier_scope",
+        "independent_gate_shortfall",
+        "independently_accepted",
+        "last_completed_batch",
+        "next_identifier",
+        "reviewed_proposed",
+        "reviewed_proposed_shortfall"
+      ],
+      "field_diff_count": 16,
+      "forward": 9,
+      "inverse": 9
+    },
+    {
+      "target": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+      "before": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+        "sha256": "f853d7186d7302da7a93fa31d95d101f63da675f93abdca0c96d7b33eac9c662",
+        "bytes": 1257113
+      },
+      "normalized_afterimage": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/delivery-inspection.json",
+        "sha256": "54114ff24f7f6766112367b308b64051681979bbc714f84e84f74489d01f73d7",
+        "bytes": 1289561
+      },
+      "changed_top_fields": [
+        "accepted",
+        "aggregation_id",
+        "batches",
+        "chorus_forked_network_material_private_proposed_delta",
+        "chorus_private_evidence",
+        "reviewed_proposed"
+      ],
+      "field_diff_count": 21,
+      "forward": 6,
+      "inverse": 6
+    }
+  ],
+  "complete_126_field_diff": {
+    "schema": "chorus-every-preview-to-normalized-field-diff-v1",
+    "recorded_at": "2026-11-14T14:17:37.527256+08:00",
+    "policy": {
+      "schema": "chorus-prospective-normalization-policy-v1",
+      "current_scope": "exact current program535 ecology79; proposed one RELATED only",
+      "actual_current_credit": 0,
+      "hypothetical_normalized_count": 80,
+      "old79_mutations_allowed": 0,
+      "old_all_payload_mutations_allowed": 0,
+      "original_private_outputs_mutations_allowed": 0,
+      "new_outer_row_only": {
+        "formal_id": [
+          null,
+          "EA-0081"
+        ],
+        "accepted_credit": [
+          0,
+          1
+        ],
+        "formal_credit_added_now": [
+          0,
+          1
+        ],
+        "status": [
+          "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        ],
+        "state": [
+          "private_proposed_not_validated",
+          "accepted"
+        ],
+        "decision": [
+          "PRIVATE_POTENTIAL_ONE_RELATED_NOT_FORMAL_ACCEPTANCE",
+          "ACCEPT_ONE_RELATED_ECOLOGY_IMPLEMENTATION_AFTER_MAIN_SOURCE_AND_EXACT_DATA_REVIEW"
+        ],
+        "Main_independent_application_required": [
+          true,
+          false
+        ],
+        "future_Main_static_acceptance_required": [
+          true,
+          false
+        ],
+        "role": "coordinator; actual source reviewer Main local01a16364, General prepares only",
+        "reviewer": "Main independently read source27/original-author27 and exact private35 data; future code authorization still required",
+        "receipt": "prospective record binds actual Main source/data receipts, does not claim validator ran"
+      },
+      "new_permission_fields_unchanged": {
+        "append_authorized": false,
+        "execution_authorized": false,
+        "actual_validator_execution_count": 0,
+        "formal_validation_already_executed": false
+      },
+      "new_qualifications_only_reading_order": {
+        "incorrect_prose_preserved_in_immutable_private": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+        "normalized_new_outer_qualification": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+        "complete_real_failure_and_erratum_mandatory": true
+      },
+      "other_fields": "All old79 full ordered rows/root metadata and all original new nested complete_payload_bundle objects remain byte-bound/data-equal; only exact listed new outer metadata/record/counters normalize. No native/global/migration/NBT/sourcequantity/production credit."
+    },
+    "changed_fields_by_file": {
+      "master-acceptance-ledger.json": [
+        {
+          "path": "/accepted/79/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/accepted/79/Main_prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        },
+        {
+          "path": "/accepted/79/accepted_credit",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/accepted/79/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/accepted/79/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/accepted/79/reviews/0/Main_actual_source_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-Main-author27-source-closure-20261114.json",
+            "sha256": "3dc13c31fd85a73d85ff6c9962ea81e136b41d19a674cdd1671584f0e96b8c12",
+            "bytes": 23771
+          }
+        },
+        {
+          "path": "/accepted/79/reviews/0/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/accepted/79/reviews/0/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/accepted/79/reviews/0/accepted_credit",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/accepted/79/reviews/0/actual_reviewer_thread_id",
+          "op": "add",
+          "after": "01a16364-cac0-7ca2-a042-a5312781ca34"
+        },
+        {
+          "path": "/accepted/79/reviews/0/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/accepted/79/reviews/0/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/accepted/79/reviews/0/decision",
+          "before": "PRIVATE_POTENTIAL_ONE_RELATED_NOT_FORMAL_ACCEPTANCE",
+          "after": "ACCEPT_ONE_RELATED_ECOLOGY_IMPLEMENTATION_AFTER_MAIN_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/accepted/79/reviews/0/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/accepted/79/reviews/0/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/accepted/79/reviews/0/future_Main_static_acceptance_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/accepted/79/reviews/0/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/accepted/79/reviews/0/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/accepted/79/reviews/0/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/accepted/79/reviews/0/receipt",
+          "before": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-bound-Main-receipt-proposed-EA0081.json",
+          "after": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json"
+        },
+        {
+          "path": "/accepted/79/reviews/0/receipt_sha256",
+          "before": "fcb3bfabba8e514ed35521bcfa2e5907ae2871b2f66f5e8154abd3ec6df93dd4",
+          "after": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1"
+        },
+        {
+          "path": "/accepted/79/reviews/0/reviewer",
+          "before": "Distinct Main27 source review and original-author27 closure, subject to separate exact private review/normalization.",
+          "after": "Main local01a16364 independently actual source27, author27 closure and exact-private35 data364 review; prepared by General, no validator/native execution claim."
+        },
+        {
+          "path": "/accepted/79/reviews/0/state",
+          "before": "private_proposed_not_validated",
+          "after": "accepted"
+        },
+        {
+          "path": "/accepted/79/reviews/0/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/accepted/79/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+          "op": "add",
+          "after": true
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        }
+      ],
+      "receipt-validation.json": [
+        {
+          "path": "/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_distinct_Main_original_author_scope/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_distinct_Main_original_author_scope/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_distinct_Main_original_author_scope/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+          "op": "add",
+          "after": true
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/receipt_inputs/79/Main_actual_source_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-Main-author27-source-closure-20261114.json",
+            "sha256": "3dc13c31fd85a73d85ff6c9962ea81e136b41d19a674cdd1671584f0e96b8c12",
+            "bytes": 23771
+          }
+        },
+        {
+          "path": "/receipt_inputs/79/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/receipt_inputs/79/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/receipt_inputs/79/accepted_credit",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/receipt_inputs/79/actual_reviewer_thread_id",
+          "op": "add",
+          "after": "01a16364-cac0-7ca2-a042-a5312781ca34"
+        },
+        {
+          "path": "/receipt_inputs/79/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/receipt_inputs/79/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/receipt_inputs/79/decision",
+          "before": "PRIVATE_POTENTIAL_ONE_RELATED_NOT_FORMAL_ACCEPTANCE",
+          "after": "ACCEPT_ONE_RELATED_ECOLOGY_IMPLEMENTATION_AFTER_MAIN_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/receipt_inputs/79/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/receipt_inputs/79/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/receipt_inputs/79/future_Main_static_acceptance_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/receipt_inputs/79/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/receipt_inputs/79/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/receipt_inputs/79/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/receipt_inputs/79/receipt",
+          "before": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-bound-Main-receipt-proposed-EA0081.json",
+          "after": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json"
+        },
+        {
+          "path": "/receipt_inputs/79/receipt_sha256",
+          "before": "fcb3bfabba8e514ed35521bcfa2e5907ae2871b2f66f5e8154abd3ec6df93dd4",
+          "after": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1"
+        },
+        {
+          "path": "/receipt_inputs/79/reviewer",
+          "before": "Distinct Main27 source review and original-author27 closure, subject to separate exact private review/normalization.",
+          "after": "Main local01a16364 independently actual source27, author27 closure and exact-private35 data364 review; prepared by General, no validator/native execution claim."
+        },
+        {
+          "path": "/receipt_inputs/79/state",
+          "before": "private_proposed_not_validated",
+          "after": "accepted"
+        },
+        {
+          "path": "/receipt_inputs/79/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        }
+      ],
+      "source-index-001.json": [
+        {
+          "path": "/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+          "op": "add",
+          "after": true
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        }
+      ],
+      "continuation.json": [
+        {
+          "path": "/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+          "op": "add",
+          "after": true
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/chorus_private_identifier_scope",
+          "op": "remove",
+          "before": "EA-0081/nextEA-0082 hypothetical unreserved private labels only; actual nextEA-0081 unchanged."
+        },
+        {
+          "path": "/chorus_reference_identifier_scope",
+          "op": "add",
+          "after": "EA-0081/nextEA-0082 prospective normalized labels; not applied until independently reviewed fresh Main authorization. Old names and once history unchanged."
+        }
+      ],
+      "delivery-inspection.json": [
+        {
+          "path": "/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+          "before": true,
+          "after": false
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+          "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c",
+          "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+          "before": 0,
+          "after": 1
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/formal_id",
+          "before": null,
+          "after": "EA-0081"
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+          "op": "add",
+          "after": true
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        },
+        {
+          "path": "/chorus_forked_network_material_private_proposed_delta/status",
+          "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE",
+          "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW"
+        },
+        {
+          "path": "/chorus_private_evidence/Main_exact_private_data_review",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+            "bytes": 51561
+          }
+        },
+        {
+          "path": "/chorus_private_evidence/complete_mandatory_erratum_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+            "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+            "original_immutable_plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "complete_real_failure_unchanged": {
+              "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+              "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+              "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+              "failed_before_independent_A_success_file": true,
+              "plan": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+                "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+                "bytes": 31555
+              },
+              "source_comparison": {
+                "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+                "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+                "bytes": 76199
+              },
+              "actual_complete_comparator_names": [
+                "Cactus",
+                "SugarCane",
+                "Cocoa"
+              ],
+              "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+              "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+              "source_fault": false,
+              "formal_changes": 0,
+              "semantic_credit": 0,
+              "original_payloads_changed": false
+            },
+            "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+            "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+            "original_payloads_changed": false,
+            "source_fault": false,
+            "formal_changes": 0,
+            "formal_id": null,
+            "formal_credit_applied": 0,
+            "production_changes": 0,
+            "game_starts": 0,
+            "task_deletions": 0
+          }
+        },
+        {
+          "path": "/chorus_private_evidence/complete_real_failure_unchanged",
+          "op": "add",
+          "after": {
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "failed_before_independent_A_success_file": true,
+            "plan": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+              "bytes": 31555
+            },
+            "source_comparison": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+              "bytes": 76199
+            },
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "source_fault": false,
+            "formal_changes": 0,
+            "semantic_credit": 0,
+            "original_payloads_changed": false
+          }
+        },
+        {
+          "path": "/chorus_private_evidence/mandatory_count_domain_qualifications/new_row",
+          "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays.",
+          "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged."
+        },
+        {
+          "path": "/chorus_private_evidence/mandatory_count_domain_qualifications/normalization_basis",
+          "op": "add",
+          "after": {
+            "Main_data_review": {
+              "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+              "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe",
+              "bytes": 51561
+            },
+            "real_failure": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+              "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+              "bytes": 1687
+            },
+            "mandatory_erratum": {
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+              "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2",
+              "bytes": 3805
+            },
+            "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+          }
+        },
+        {
+          "path": "/chorus_private_evidence/mandatory_count_domain_qualifications/reading_order",
+          "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+        },
+        {
+          "path": "/chorus_private_evidence/prospective_normalization_record",
+          "op": "add",
+          "after": {
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+            "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+            "bytes": 64245
+          }
+        }
+      ]
+    },
+    "changed_field_count": 126,
+    "old79_object_changes": 0,
+    "original_private_payload_changes": 0,
+    "current_formal_changes": 0
+  },
+  "grouped_literal_equal_diffs": [
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/Main_independent_application_required",
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/Main_independent_application_required",
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/future_Main_static_acceptance_required",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+        "receipt-validation.json:/receipt_inputs/79/Main_independent_application_required",
+        "receipt-validation.json:/receipt_inputs/79/future_Main_static_acceptance_required",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/Main_independent_application_required"
+      ],
+      "change": {
+        "after": false,
+        "before": true
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/Main_prospective_normalization_record",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/prospective_normalization_record",
+        "delivery-inspection.json:/chorus_private_evidence/prospective_normalization_record"
+      ],
+      "change": {
+        "after": {
+          "bytes": 64245,
+          "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+          "sha256": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1"
+        },
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/accepted_credit",
+        "master-acceptance-ledger.json:/accepted/79/formal_credit_added_now",
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/accepted_credit",
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/formal_credit_added_now",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+        "receipt-validation.json:/receipt_inputs/79/accepted_credit",
+        "receipt-validation.json:/receipt_inputs/79/formal_credit_added_now",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/formal_credit_added_now"
+      ],
+      "change": {
+        "after": 1,
+        "before": 0
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/formal_id",
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/formal_id",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/formal_id",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/formal_id",
+        "receipt-validation.json:/receipt_inputs/79/formal_id",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/formal_id",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/formal_id",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/formal_id"
+      ],
+      "change": {
+        "after": "EA-0081",
+        "before": null
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/Main_actual_source_review",
+        "receipt-validation.json:/receipt_inputs/79/Main_actual_source_review"
+      ],
+      "change": {
+        "after": {
+          "bytes": 23771,
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-Main-author27-source-closure-20261114.json",
+          "sha256": "3dc13c31fd85a73d85ff6c9962ea81e136b41d19a674cdd1671584f0e96b8c12"
+        },
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/Main_exact_private_data_review",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+        "receipt-validation.json:/receipt_inputs/79/Main_exact_private_data_review",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/Main_exact_private_data_review",
+        "delivery-inspection.json:/chorus_private_evidence/Main_exact_private_data_review"
+      ],
+      "change": {
+        "after": {
+          "bytes": 51561,
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+          "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe"
+        },
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/actual_reviewer_thread_id",
+        "receipt-validation.json:/receipt_inputs/79/actual_reviewer_thread_id"
+      ],
+      "change": {
+        "after": "01a16364-cac0-7ca2-a042-a5312781ca34",
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/complete_mandatory_erratum_unchanged",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+        "receipt-validation.json:/receipt_inputs/79/complete_mandatory_erratum_unchanged",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/complete_mandatory_erratum_unchanged",
+        "delivery-inspection.json:/chorus_private_evidence/complete_mandatory_erratum_unchanged"
+      ],
+      "change": {
+        "after": {
+          "complete_real_failure_unchanged": {
+            "actual_complete_comparator_names": [
+              "Cactus",
+              "SugarCane",
+              "Cocoa"
+            ],
+            "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+            "failed_before_independent_A_success_file": true,
+            "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+            "formal_changes": 0,
+            "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+            "original_payloads_changed": false,
+            "plan": {
+              "bytes": 31555,
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+              "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379"
+            },
+            "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+            "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+            "semantic_credit": 0,
+            "source_comparison": {
+              "bytes": 76199,
+              "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+              "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783"
+            },
+            "source_fault": false
+          },
+          "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+          "formal_changes": 0,
+          "formal_credit_applied": 0,
+          "formal_id": null,
+          "game_starts": 0,
+          "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+          "original_immutable_plan": {
+            "bytes": 31555,
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+            "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379"
+          },
+          "original_payloads_changed": false,
+          "production_changes": 0,
+          "real_failure": {
+            "bytes": 1687,
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+            "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5"
+          },
+          "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+          "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+          "source_fault": false,
+          "task_deletions": 0
+        },
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/complete_real_qualification_failure_unchanged",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+        "receipt-validation.json:/receipt_inputs/79/complete_real_qualification_failure_unchanged",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/complete_real_qualification_failure_unchanged",
+        "delivery-inspection.json:/chorus_private_evidence/complete_real_failure_unchanged"
+      ],
+      "change": {
+        "after": {
+          "actual_complete_comparator_names": [
+            "Cactus",
+            "SugarCane",
+            "Cocoa"
+          ],
+          "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+          "failed_before_independent_A_success_file": true,
+          "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+          "formal_changes": 0,
+          "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "original_payloads_changed": false,
+          "plan": {
+            "bytes": 31555,
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+            "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379"
+          },
+          "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+          "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+          "semantic_credit": 0,
+          "source_comparison": {
+            "bytes": 76199,
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+            "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783"
+          },
+          "source_fault": false
+        },
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/decision",
+        "receipt-validation.json:/receipt_inputs/79/decision"
+      ],
+      "change": {
+        "after": "ACCEPT_ONE_RELATED_ECOLOGY_IMPLEMENTATION_AFTER_MAIN_SOURCE_AND_EXACT_DATA_REVIEW",
+        "before": "PRIVATE_POTENTIAL_ONE_RELATED_NOT_FORMAL_ACCEPTANCE"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/mandatory_count_domain_qualifications/new_row",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+        "receipt-validation.json:/chorus_distinct_Main_original_author_scope/new_row",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+        "receipt-validation.json:/receipt_inputs/79/mandatory_count_domain_qualifications/new_row",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/new_row",
+        "delivery-inspection.json:/chorus_private_evidence/mandatory_count_domain_qualifications/new_row"
+      ],
+      "change": {
+        "after": "Prospective normalized EA-0081 reference1, nextEA-0082, ecology80/gap920/coordinator31/logical65 ONLY after independent Main complete-code review and fresh once authorization/application. Original private0/null/false and all old79 metadata remain unchanged.",
+        "before": "EA-0081 and next EA-0082 are unreserved hypothetical labels; accepted_credit0/formal_idnull/permissionsfalse in every new payload. 80/gap920/coordinator31/logical65 are only preview, actual79 stays."
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/mandatory_count_domain_qualifications/normalization_basis",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+        "receipt-validation.json:/chorus_distinct_Main_original_author_scope/normalization_basis",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+        "receipt-validation.json:/receipt_inputs/79/mandatory_count_domain_qualifications/normalization_basis",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/normalization_basis",
+        "delivery-inspection.json:/chorus_private_evidence/mandatory_count_domain_qualifications/normalization_basis"
+      ],
+      "change": {
+        "after": {
+          "Main_data_review": {
+            "bytes": 51561,
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+            "sha256": "ef562a0a3a9f3d1cbe9453cd7f22bc930fee3da7478ab8faf56cd17944636cbe"
+          },
+          "mandatory_erratum": {
+            "bytes": 3805,
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+            "sha256": "f31db3328f3f0cb78421aadcb3f16ef731abe2de4d349113ba8573af4a9912c2"
+          },
+          "original_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+          "real_failure": {
+            "bytes": 1687,
+            "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+            "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5"
+          }
+        },
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/mandatory_count_domain_qualifications/reading_order",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+        "receipt-validation.json:/chorus_distinct_Main_original_author_scope/reading_order",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+        "receipt-validation.json:/receipt_inputs/79/mandatory_count_domain_qualifications/reading_order",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/mandatory_count_domain_qualifications/reading_order",
+        "delivery-inspection.json:/chorus_private_evidence/mandatory_count_domain_qualifications/reading_order"
+      ],
+      "change": {
+        "after": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+        "before": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw."
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/receipt",
+        "receipt-validation.json:/receipt_inputs/79/receipt"
+      ],
+      "change": {
+        "after": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+        "before": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-bound-Main-receipt-proposed-EA0081.json"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/receipt_sha256",
+        "receipt-validation.json:/receipt_inputs/79/receipt_sha256"
+      ],
+      "change": {
+        "after": "a9f919150566120001925501783c4aadd95652bfc72313a1593f7a4b66ca93f1",
+        "before": "fcb3bfabba8e514ed35521bcfa2e5907ae2871b2f66f5e8154abd3ec6df93dd4"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/reviewer",
+        "receipt-validation.json:/receipt_inputs/79/reviewer"
+      ],
+      "change": {
+        "after": "Main local01a16364 independently actual source27, author27 closure and exact-private35 data364 review; prepared by General, no validator/native execution claim.",
+        "before": "Distinct Main27 source review and original-author27 closure, subject to separate exact private review/normalization."
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/state",
+        "receipt-validation.json:/receipt_inputs/79/state"
+      ],
+      "change": {
+        "after": "accepted",
+        "before": "private_proposed_not_validated"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/accepted/79/reviews/0/status",
+        "master-acceptance-ledger.json:/accepted/79/status",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/status",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/status",
+        "receipt-validation.json:/receipt_inputs/79/status",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/status",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/status",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/status"
+      ],
+      "change": {
+        "after": "MAIN_RELATED_ACCEPTANCE_AFTER_SOURCE_AND_EXACT_DATA_REVIEW",
+        "before": "PRIVATE_DATA_ONLY_PREVIEW_NOT_FORMAL_ACCEPTANCE"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/aggregation_id",
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+        "receipt-validation.json:/aggregation_id",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+        "source-index-001.json:/aggregation_id",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+        "continuation.json:/aggregation_id",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/aggregation_id",
+        "delivery-inspection.json:/aggregation_id",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/aggregation_id"
+      ],
+      "change": {
+        "after": "4ddb5bb124198d01bf6ac7373ca67feb45f1e6becd11d641a4e332c4d6356a3e",
+        "before": "32a9de8d29771e8d85662d395480188f0f78d464ceb338a664b4a5fa7e4f7f6c"
+      }
+    },
+    {
+      "locations": [
+        "master-acceptance-ledger.json:/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+        "receipt-validation.json:/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+        "source-index-001.json:/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+        "continuation.json:/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed",
+        "delivery-inspection.json:/chorus_forked_network_material_private_proposed_delta/normalization_not_yet_executed"
+      ],
+      "change": {
+        "after": true,
+        "op": "add"
+      }
+    },
+    {
+      "locations": [
+        "continuation.json:/chorus_private_identifier_scope"
+      ],
+      "change": {
+        "before": "EA-0081/nextEA-0082 hypothetical unreserved private labels only; actual nextEA-0081 unchanged.",
+        "op": "remove"
+      }
+    },
+    {
+      "locations": [
+        "continuation.json:/chorus_reference_identifier_scope"
+      ],
+      "change": {
+        "after": "EA-0081/nextEA-0082 prospective normalized labels; not applied until independently reviewed fresh Main authorization. Old names and once history unchanged.",
+        "op": "add"
+      }
+    }
+  ],
+  "complete_real_failure_unchanged": {
+    "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+    "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+    "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+    "failed_before_independent_A_success_file": true,
+    "plan": {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+      "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+      "bytes": 31555
+    },
+    "source_comparison": {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+      "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+      "bytes": 76199
+    },
+    "actual_complete_comparator_names": [
+      "Cactus",
+      "SugarCane",
+      "Cocoa"
+    ],
+    "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+    "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+    "source_fault": false,
+    "formal_changes": 0,
+    "semantic_credit": 0,
+    "original_payloads_changed": false
+  },
+  "complete_mandatory_erratum_unchanged": {
+    "schema": "chorus-private-reading-order-erratum-mandatory-whole-addendum-v1",
+    "recorded_at": "2026-11-14T14:01:21.313742+08:00",
+    "original_immutable_plan": {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+      "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+      "bytes": 31555
+    },
+    "real_failure": {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+      "sha256": "371cbb49d8b7457f0fa3d94c4a6e2cb8331e5b9c390be06e92db5ca75aab41e5",
+      "bytes": 1687
+    },
+    "complete_real_failure_unchanged": {
+      "schema": "chorus-private-A-real-qualification-guard-failure-v1",
+      "recorded_at": "2026-11-14T14:01:21.313462+08:00",
+      "failure": "AssertionError: new private reading_order comparator names differ from complete original comparison objects",
+      "failed_before_independent_A_success_file": true,
+      "plan": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+        "sha256": "e567397760483f2ef7312595b65ee5a4d870fafba1992a8076ca5bac3044b379",
+        "bytes": 31555
+      },
+      "source_comparison": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+        "sha256": "33e0910ba5b3b2f07ccd0f815ff0a4d5e8bf2970f6076aaf06c8c751d2c08783",
+        "bytes": 76199
+      },
+      "actual_complete_comparator_names": [
+        "Cactus",
+        "SugarCane",
+        "Cocoa"
+      ],
+      "incorrect_new_private_reading_order_unchanged": "Original thirteen ranges and six full raw were actually read, complete original34/22/3 and full Kelp/Sugar/Cocoa comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+      "cause": "My new prose qualification mistakenly wrote Kelp/Sugar/Cocoa while fixed source/comparison and full payloads actually preserve Cactus/SugarCane/Cocoa. No source objects or historical comparisons are wrong.",
+      "source_fault": false,
+      "formal_changes": 0,
+      "semantic_credit": 0,
+      "original_payloads_changed": false
+    },
+    "correction_scope": "Only new private prose /mandatory_count_domain_qualifications/reading_order and its exact nested copies in new payloads. The word Kelp is an author drafting error; corrected full comparator names are Cactus/SugarCane/Cocoa. Original actual comparison objects and all original/old79 inputs are correct and immutable.",
+    "corrected_reading_order": "Original thirteen ranges and six full raw were actually read; complete original34/22/3 and full Cactus26/17/3, SugarCane28/18/3, Cocoa32/20/3 whole comparisons retained. Main27 and original-author27 actual bounded judgments reviewed; nineteen original source objects exact reuse0. Twelve old helpers are exact-pointer reuse0, not newly read ancestor raw.",
+    "mandatory_Main_review_condition": "Any future plan/authority/data receipt must bind this entire addendum and whole real-failure payload. Do not silently accept the incorrect prose, normalize original histories or edit old private payloads. New private preview and typed35 operations remain immutable data under this explicit correction. No execution authorized.",
+    "original_payloads_changed": false,
+    "source_fault": false,
+    "formal_changes": 0,
+    "formal_id": null,
+    "formal_credit_applied": 0,
+    "production_changes": 0,
+    "game_starts": 0,
+    "task_deletions": 0
+  },
+  "Main_actual_findings": [
+    "Main actually read complete144line executor source, all plan operational fields, exact five before/normalized/preview descriptors, prospective record outer fields, all126 field paths and their complete22literal-equal before/after change groups. Repeated identical change payloads were grouped only for bounded output; this verifier independently recomputes every126 full typed recursive delta. A later broad diagnostic accidentally printed source lists/clipped; that output gives0new source reading. First own verification guessed wrong source-closure field and failed before any receipt/authority/formalwrite; bounded exact schema confirmed source_semantic_whole_accepted, corrected verifier only. Prior Main27/raw835 source and author27/data364 reviews reused, not reread or multiplied.",
+    "Memory-only independent35forward and35inverse verify whole typed-canonical postimages/preimages and exact top-field allowlist. Full original79ordered objects including failure/addendum metadata remain unchanged. All new nested original complete_payload_bundle objects retain original0/null/false histories; only reviewed outer acceptance metadata/qualifications normalize.",
+    "EA0081 is one RELATED chorus whole after actual Main source and original-author closure, not19source or12helper credit. Row rolecoordinator actualreviewerMain, General prepares only. stateaccepted/credit1 are source acceptance; validatorcount0/formalvalidationfalse are honest and retained. This does not assert receipt validator/native game ran.",
+    "126diff includes full genuine371c failure andf31d erratum at every new operational scope. Cactus/SugarCane/Cocoa qualification correct only new outer prose; wrong Kelp draft stays immutable in oldprivate and retained normalizationbasis. Prospective/not-yet flags are historical preparation facts. A separate actual result is required after application rather than rewriting proposal or past failures.",
+    "Executor exact-code/plan/approval hashes and Mainthread/fixedtarget/current16 bindings are fail-closed before writes. It checks new complete-code review and independently Main-consumed onceproof; executor itself does not generate or consume control. Singleattempt discipline depends on Main owning that control and NEVER replaying; no general replay-proof service is claimed.",
+    "No-approval path checks argc before stage or lock. Strict16 includes fiveecology,threeprogram,sharedJar,pending,ownership,fiveexternalprompts. Only five fixed researchJSON os.replace targets and own private stage writes occur. Main will create no unrelatedfile authorization and will not use any old grant/marker.",
+    "All five afterimages staged+fsynced, modecopied; each step verifies mixed pre/post SHA and exact installedbytes. Per-file replacement is atomic but NOT a five-file transaction. Failure may leave a partial set and reports appliedlist; no automatic rollback/retry. Main must inspect and review separate recovery if failure occurs.",
+    "flock is advisory on original master inode, which replacement changes. It does not exclude noncooperating writers or close final hash-to-replace/source-double-read races. Main explicitly takes exclusive coordination of these five tables; preparer instructed no formal writes while continuing own grass research. This is bounded local controlled update, not a claim of generic concurrent writer safety.",
+    "No parent-directory fsync guarantee of power-loss durability claimed; beforeimages retain exact old bytes in independent build evidence, not a backup of deleted task prompts. No userworld/production/art/sharedJar write, game,ps/display,wake/focus/sound/brightness, Git push or native acceptance. Research gate1000 remainsfalse at hypothetical80/gap920 and program535 stays.",
+    "Decision approves concrete code/data for separately fresh once data authorization by Main. This review alone is not authorization artifact or consumed proof; no formal writes performed by this verifier, and proposed code was only parsed not imported/run/help/compiled. No task acceptance/deletion or verified active-hour total."
+  ],
+  "checks_count": 223,
+  "checks": [
+    "fixed plan",
+    "fixed full144 code",
+    "AST parse only no supplied execution",
+    "aggregation preimage",
+    "proposal still no permission",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+    "fixed /Users/a15356015027/Desktop/code x提示词/cod1.txt",
+    "fixed /Users/a15356015027/Desktop/code x提示词/cod2.txt",
+    "fixed /Users/a15356015027/Desktop/code x提示词/cod3.txt",
+    "fixed /Users/a15356015027/Desktop/code x提示词/cod4.txt",
+    "fixed /Users/a15356015027/Desktop/code x提示词/cod6.txt",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/five-file-private-data-preview.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/exact-five-JSONpointer-delta.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-private35-current79-Main-data-review-20261114.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-real-qualification-failure.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-reading-order-erratum-mandatory-addendum.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-A-v2-five-data-verification.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/independent-B-byteoffset-history-full-payload-verification.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/proposed-Main-reviewed-EA0081-reference-record.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/exact-five-normalized-JSONpointer-delta.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/every-private-preview-field-normalization-diff.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/private-bound-Main-receipt-proposed-EA0081.json",
+    "full plan history complete_real_failure_unchanged",
+    "full plan history complete_mandatory_erratum_unchanged",
+    "full plan history complete_Main_private_data_review_unchanged",
+    "full record history complete_real_failure_unchanged",
+    "full record history complete_mandatory_erratum_unchanged",
+    "full record history complete_Main_exact_data_review_unchanged",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-Main-author27-source-closure-20261114.json",
+    "actual Main source acceptance",
+    "Main distinct actual role",
+    "prospective record false formal_validation_already_executed",
+    "prospective record false execution_authorized",
+    "prospective record false formal_write_authorized",
+    "prospective validator count0",
+    "35forward35inverse",
+    "same allowlist",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/beforeimages/master-acceptance-ledger.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/master-acceptance-ledger.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/afterimages/master-acceptance-ledger.json",
+    "fixed formal location master-acceptance-ledger.json",
+    "exact full frozen preimage master-acceptance-ledger.json",
+    "exact top allowlist master-acceptance-ledger.json",
+    "typed replace /independently_accepted",
+    "typed replace /shortfall",
+    "typed replace /reviewed_mechanisms_including_accepted",
+    "canonical index /accepted/79",
+    "append only /accepted/79",
+    "typed replace /aggregation_id",
+    "typed replace /by_reviewer_validated_receipts/coordinator",
+    "new key /chorus_forked_network_material_private_proposed_delta",
+    "whole forward typed equality master-acceptance-ledger.json",
+    "existing delete /chorus_forked_network_material_private_proposed_delta",
+    "typed replace /by_reviewer_validated_receipts/coordinator",
+    "typed replace /aggregation_id",
+    "canonical index /accepted/79",
+    "remove last only /accepted/79",
+    "typed replace /reviewed_mechanisms_including_accepted",
+    "typed replace /shortfall",
+    "typed replace /independently_accepted",
+    "whole inverse typed equality master-acceptance-ledger.json",
+    "every field126 exact master-acceptance-ledger.json",
+    "aggregation master-acceptance-ledger.json",
+    "old79 whole order unchanged master-acceptance-ledger.json",
+    "new normalized ONLY1 master-acceptance-ledger.json",
+    "old full private bundle immutable master-acceptance-ledger.json",
+    "review history whole master-acceptance-ledger.json",
+    "no false validator master-acceptance-ledger.json",
+    "proper corrected reading order master-acceptance-ledger.json",
+    "receipt binds prospective record master-acceptance-ledger.json",
+    "80 only oldcredit79+1",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/beforeimages/receipt-validation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/receipt-validation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/afterimages/receipt-validation.json",
+    "fixed formal location receipt-validation.json",
+    "exact full frozen preimage receipt-validation.json",
+    "exact top allowlist receipt-validation.json",
+    "canonical index /receipt_inputs/79",
+    "append only /receipt_inputs/79",
+    "typed replace /counts/inspected_receipts",
+    "typed replace /counts/validated_acceptance_receipts",
+    "typed replace /counts/unique_accepted_ids",
+    "typed replace /aggregation_id",
+    "new key /chorus_distinct_Main_original_author_scope",
+    "new key /chorus_forked_network_material_private_proposed_delta",
+    "whole forward typed equality receipt-validation.json",
+    "existing delete /chorus_forked_network_material_private_proposed_delta",
+    "existing delete /chorus_distinct_Main_original_author_scope",
+    "typed replace /aggregation_id",
+    "typed replace /counts/unique_accepted_ids",
+    "typed replace /counts/validated_acceptance_receipts",
+    "typed replace /counts/inspected_receipts",
+    "canonical index /receipt_inputs/79",
+    "remove last only /receipt_inputs/79",
+    "whole inverse typed equality receipt-validation.json",
+    "every field126 exact receipt-validation.json",
+    "aggregation receipt-validation.json",
+    "old79 whole order unchanged receipt-validation.json",
+    "new normalized ONLY1 receipt-validation.json",
+    "old full private bundle immutable receipt-validation.json",
+    "review history whole receipt-validation.json",
+    "no false validator receipt-validation.json",
+    "proper corrected reading order receipt-validation.json",
+    "receipt binds prospective record receipt-validation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/beforeimages/source-index-001.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/source-index-001.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/afterimages/source-index-001.json",
+    "fixed formal location source-index-001.json",
+    "exact full frozen preimage source-index-001.json",
+    "exact top allowlist source-index-001.json",
+    "typed replace /aggregation_id",
+    "new key /chorus_forked_network_archive_member_supports",
+    "new key /chorus_forked_network_base_resource_supports",
+    "new key /chorus_forked_network_prior_helpers_reused0",
+    "new key /chorus_forked_network_archive_support_policy",
+    "new key /chorus_forked_network_material_private_proposed_delta",
+    "whole forward typed equality source-index-001.json",
+    "existing delete /chorus_forked_network_material_private_proposed_delta",
+    "existing delete /chorus_forked_network_archive_support_policy",
+    "existing delete /chorus_forked_network_prior_helpers_reused0",
+    "existing delete /chorus_forked_network_base_resource_supports",
+    "existing delete /chorus_forked_network_archive_member_supports",
+    "typed replace /aggregation_id",
+    "whole inverse typed equality source-index-001.json",
+    "every field126 exact source-index-001.json",
+    "aggregation source-index-001.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/beforeimages/continuation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/continuation.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/afterimages/continuation.json",
+    "fixed formal location continuation.json",
+    "exact full frozen preimage continuation.json",
+    "exact top allowlist continuation.json",
+    "typed replace /aggregation_id",
+    "typed replace /reviewed_proposed",
+    "typed replace /independently_accepted",
+    "typed replace /reviewed_proposed_shortfall",
+    "typed replace /independent_gate_shortfall",
+    "typed replace /next_identifier",
+    "typed replace /last_completed_batch",
+    "new key /chorus_reference_identifier_scope",
+    "new key /chorus_forked_network_material_private_proposed_delta",
+    "whole forward typed equality continuation.json",
+    "existing delete /chorus_forked_network_material_private_proposed_delta",
+    "existing delete /chorus_reference_identifier_scope",
+    "typed replace /last_completed_batch",
+    "typed replace /next_identifier",
+    "typed replace /independent_gate_shortfall",
+    "typed replace /reviewed_proposed_shortfall",
+    "typed replace /independently_accepted",
+    "typed replace /reviewed_proposed",
+    "typed replace /aggregation_id",
+    "whole inverse typed equality continuation.json",
+    "every field126 exact continuation.json",
+    "aggregation continuation.json",
+    "next identifier and gate",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/beforeimages/delivery-inspection.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-current79-program535-normalization-proposal-v1-20261114/normalized-afterimages/delivery-inspection.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/afterimages/delivery-inspection.json",
+    "fixed formal location delivery-inspection.json",
+    "exact full frozen preimage delivery-inspection.json",
+    "exact top allowlist delivery-inspection.json",
+    "typed replace /aggregation_id",
+    "typed replace /batches",
+    "typed replace /reviewed_proposed",
+    "typed replace /accepted",
+    "new key /chorus_private_evidence",
+    "new key /chorus_forked_network_material_private_proposed_delta",
+    "whole forward typed equality delivery-inspection.json",
+    "existing delete /chorus_forked_network_material_private_proposed_delta",
+    "existing delete /chorus_private_evidence",
+    "typed replace /accepted",
+    "typed replace /reviewed_proposed",
+    "typed replace /batches",
+    "typed replace /aggregation_id",
+    "whole inverse typed equality delivery-inspection.json",
+    "every field126 exact delivery-inspection.json",
+    "aggregation delivery-inspection.json",
+    "65 logical batches not physical inventory",
+    "126 fields22 distinct literal groups",
+    "Main prior data review noexecute",
+    "full policy repeated exact",
+    "source bundle complete unchanged all10",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/candidate.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/whole-source-reading.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/bounded-whole-comparisons.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-Main-actual-whole-preACK-review-20261114.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/original-author-specific-Main27-source-only-ACK.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/original-author-specific-Main27-passive-check.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-chorus-Main-author27-source-closure-20261114.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-ecology-chorus-forked-endstone-network-terminal-flower-material-whole-source-read-v1-20261114/current79-and-Cocoa-MERGE0-status-addendum.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/own-old-plan-filename-discovery-error.json",
+    "fixed /Users/a15356015027/Desktop/dynasty/build/cod4-chorus-private-current79-program535-data-preview-v1-20261114/own-private-metadata-output-clipping-note.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+    "current16 final rehash /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+    "current16 final rehash /Users/a15356015027/Desktop/code x提示词/cod1.txt",
+    "current16 final rehash /Users/a15356015027/Desktop/code x提示词/cod2.txt",
+    "current16 final rehash /Users/a15356015027/Desktop/code x提示词/cod3.txt",
+    "current16 final rehash /Users/a15356015027/Desktop/code x提示词/cod4.txt",
+    "current16 final rehash /Users/a15356015027/Desktop/code x提示词/cod6.txt"
+  ],
+  "formal_writes_performed": 0,
+  "execution_authorized": false,
+  "approval_artifact_created": false,
+  "once_control_created": false,
+  "source_new_credit": 0,
+  "formal_credit_applied": 0,
+  "production_changes": 0,
+  "game_starts": 0,
+  "task_deletions": 0,
+  "actual_active_hours_claimed": null,
+  "ten_hours_verified": false,
+  "all_tasks_complete": false
+}
