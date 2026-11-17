@@ -1,0 +1,31 @@
+"""Bounded fixed-source historical semantic exclusions, explicitly no new complete case."""
+import json,hashlib
+from pathlib import Path
+P=Path(__file__).resolve().parent;R=P.parents[2];PREV=P.parent/'research-20261104-smithy-188'
+assert not (P/'RECEIPT.json').exists()
+def get(p):return json.loads(Path(p).read_text())
+def put(n,v):(P/n).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+def bind(p):
+ p=Path(p);b=p.read_bytes();return dict(path=str(p.resolve()),sha256=hashlib.sha256(b).hexdigest(),bytes=len(b))
+screen=get(P/'pre-render-history-screen.json')['rows'];assert len(screen)==3 and all(not s['eligible_for_new_source_study'] for s in screen)
+p105=P.parent/'research-20261104-smithy-105/manual-review.json';p003=P.parent/'research-20261101-dungeons-003/manual-review.json';p064=P.parent/'research-20261104-smithy-064/manual-review.json';old105=[c for c in get(p105)['cases'] if c['id'] in ('F01','F02')];old003=next(c for c in get(p003)['entries'] if c['id']=='F08');old064=get(p064)['cases'][0]
+put('complete-saved-semantic-boundaries.json',{'bindings':[bind(p105),bind(p003),bind(p064)],'105_two_complete_saved_cases_preserved':old105,'003F08_complete_saved_case_preserved':old003,'064F01_complete_saved_case_preserved':old064,'actual_reading':'本轮实际读064F01完整7观察，105两例purpose/observed/boundary各3条，003F08完整7观察/independent_design_basis/target/status/credit及图绑定；没有重开它们旧原图/NBT/上下文。','source_record_diagnostic_boundary':'曾尝试打印003 sources quarry大对象导致截断，未计作完整源阅读；随后只读取003 manual F08完整可控判词。','new_semantic_credit':0})
+notes={'F01':'旧105F01开放工棚功能块在y0，y-1承托未含，另upward tower_pieces接口没完成；不把单棚/角色插槽或模板21高当完整建筑。','F02':'旧105F02单长开敞工棚、smith/grind/water在y0，未建立完整地板及工住关系；wooded_badlands同源bytealias，不另开重读。','F03':'旧003F08完整判词为露天阶梯采石坑+提升架，四侧stoneworks工区未拼成整体；含11候选的池不算11栋，旧HOLD_COMPLETENESS_OR_ROUTE保留，不重开或静默补地形。'}
+excluded=[]
+for s in screen:excluded.append({'id':s['id'],'source_archive':s['source_archive'],'member':s['member'],'current_source_fingerprints':s['current_source_fingerprints'],'known_history':s['known_history'],'historical_exact_matches':s['historical_exact_matches'],'same_bytes_aliases':s['same_bytes_aliases'],'semantic_boundary':notes[s['id']],'original_source_semantically_reread':False,'new_images_generated_or_viewed':0,'formal_credit_added':0})
+put('sources.json',{'candidates':[],'machine_only_historical_exclusions':excluded,'not_semantic_credit':True});put('manual-review.json',{'cases':[],'historical_semantic_boundary_observations':excluded,'new_whole_source_study_complete':False,'new_complete_independently_reviewable_case_achieved':False,'new_whole_reference_studies':0,'new_PNG':0,'formal_credit_added':0,'gap':'本批三候选均既有完整性保留，尚未找到一例新的完整相关个体；不把已有缺口改写成新增完整研究，不声称固定本地全源已穷尽。'})
+put('actual-reading-boundary.json',{'old_complete_saved_observation_reading':{'064F01':7,'105F01':3,'105F02':3,'003F08':7},'old_images_original_NBT_context_reopened':0,'new_original_NBT_semantic_reading':0,'machine_fingerprint_selected_current_NBT_decoding':3,'new_candidate_original_semantic_studies':0,'current_PNG_generated_or_viewed':0,'full_source_context_reading':False,'clipped003_source_diagnostic_not_counted':True,'unsealed_recording_schema_correction':'旧105使用screening_observations，初按observations索引KeyError后修正原字段兼容；未封存，无原源变化','formal_credit_added':0})
+checks=[]
+def ck(n,v):assert v,n;checks.append(n)
+ck('three_known_exact_original_source_matches',all(any('nbt_sha256'in m['exact_keys'] for m in s['historical_exact_matches']) for s in screen))
+ck('F02alias_preserved',any('wooded_badlands' in n for n in screen[1]['same_bytes_aliases']))
+ck('105two_scope_boundaries_preserved',len(old105)==2 and all(len(c.get('observations',c.get('screening_observations',{})))==3 for c in old105))
+ck('003F08HOLD0preserved',old003['status']=='HELD_COMPLETENESS_OR_ROUTE' and old003['formal_credit_added']==0 and len(old003['observations'])==7)
+ck('064full7preserved',len(old064['observations'])==7)
+ck('no_new_original_semantic_rows',get(P/'preassessment-original-sources.json')['rows']==[])
+ck('no_PNG',not list(P.glob('*.png')))
+for s in screen:ck(s['id']+'_fixed_archive_unchanged',bind(s['source_archive'])==s['fixed_archive'])
+for g in get(P/'protected-inputs.json')['files']:ck('protected_unchanged_'+g['path'],bind(g['path'])==g)
+carry=get(PREV/'carried-forward-pending.json');ck('only157pending',[(x['batch'],x['id']) for x in carry['carried_unresolved_whole_reference_proposals']]==[(157,'W01')]);carry['previous_batch_receipt']=bind(PREV/'RECEIPT.json');carry['current_batch_new_pending']=0;carry['current_batch_pending_cases']=[];put('carried-forward-pending.json',carry);put('latest-independent-admissions.json',get(PREV/'latest-independent-admissions.json'));put('task-scope-boundary.json',get(PREV/'task-scope-boundary.json'));put('verification.json',{'status':'PASS_HISTORICAL_BOUNDARIES_RECORDED_NO_NEW_COMPLETE_CASE','checks':checks,'check_count':len(checks),'machine_assertions_not_credit':True})
+s={'batch':189,'status':'THREE_KNOWN_WORKSHOP_QUARRY_BOUNDARIES_NO_NEW_COMPLETE_CASE','formal_credit_added':0,'prior_admissions_current_increment':0,'186first187_later_carry_increment':0,'actual_new_original_semantic_source_studies':0,'complete_new_whole_reference_studies':0,'current_PNG':0,'COD4_accepted_baseline':153,'COD4_gap':847,'COD4_increment':0,'NPC05_increment':0,'NPC01_cumulative_not_inferred':True,'java_run':False,'game_run':False,'product_files_written':False,'masterlists_edited':False,'all_tasks_complete':False,'actual_active_work_hours':None,'next':'190先选尚未读且独立完整的相近工作/生活建筑；避免重复这3源及已知单室/亭，固定本地全面穷尽尚未证实；所有旧pending/HOLD保留。'}
+put('session.json',s);put('active-checkpoint.json',{**s,'verification':bind(P/'verification.json')});(P/'HANDOFF.md').write_text('189有界去重/旧判词语义核查批：固定索引显名workshop/forge/quarry候选中T&T两workshop与ATi quarry均既有原源（非新增完整案例），旧105两棚y0地面/塔段及003F08四stoneworks未整体装配边界保留。064/105/003完整书面观察本轮实际读并完整记录；0新原源语义/0PNG/0完整个案/0信用，clipped003source巨对象未算阅读。不声称固定全部源已穷尽。186首次187后carry0，157pending/182HOLD/174/186已接受不变。未Java/游戏/产品/共享Jar/主清单。\n');put('RECEIPT.json',{**s,'files':[bind(p) for p in sorted(P.iterdir()) if p.is_file() and p.name!='RECEIPT.json']});print(json.dumps({'receipt':bind(P/'RECEIPT.json'),'files':len(get(P/'RECEIPT.json')['files']),'checks':len(checks)},ensure_ascii=False))

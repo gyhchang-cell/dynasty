@@ -1,0 +1,1 @@
+194Trek mushroom stonecutter完整原源研究：17×21×17/DV3465，6012存1267非air4745air、57省略。21层357行6069原索引RLE/164pal/68BE/9展示框、1完整housepool3metadata及7图全部实际读/看。北室外切石带+东单门床箱主室，对Main186完整7观察6限制wholecomparison复用后保守family0；高位书架/箱/砧和高蘑菇盖不证新可达工作楼层。保留无namespace smooth_quartz、外居民pool缺失、vanilla loot未追读/原生未验等限制。0新pending/0正式信用；190首次193+1本批0，157W01待审、182HOLD/旧接纳原样。仅194研究无Java/游戏/网络/共享Jar/主清单修改。

@@ -1,0 +1,1 @@
+189有界去重/旧判词语义核查批：固定索引显名workshop/forge/quarry候选中T&T两workshop与ATi quarry均既有原源（非新增完整案例），旧105两棚y0地面/塔段及003F08四stoneworks未整体装配边界保留。064/105/003完整书面观察本轮实际读并完整记录；0新原源语义/0PNG/0完整个案/0信用，clipped003source巨对象未算阅读。不声称固定全部源已穷尽。186首次187后carry0，157pending/182HOLD/174/186已接受不变。未Java/游戏/产品/共享Jar/主清单。
