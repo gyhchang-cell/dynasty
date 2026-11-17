@@ -1,0 +1,47 @@
+from pathlib import Path
+from datetime import datetime,timezone
+import json,hashlib,math,html
+ROOT=Path(__file__).resolve().parents[4];HERE=Path(__file__).resolve().parent
+BASE=ROOT/'build/bestiary-v43/references/native-damage-1.20.1'
+def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+scopes={
+'net/minecraft/world/entity/LivingEntity.java':'394-416,540-556,1058-1175,1295-1340,1544-1562,1698-1788 only',
+'net/minecraft/client/renderer/entity/LivingEntityRenderer.java':'51-156,170-230 only',
+'net/minecraft/client/renderer/entity/MobRenderer.java':'25-61 only; remainder not studied',
+'net/minecraft/client/renderer/texture/OverlayTexture.java':'entire file',
+'net/minecraft/client/multiplayer/ClientPacketListener.java':'896-914,999-1013 only',
+'net/minecraft/network/protocol/game/ClientboundDamageEventPacket.java':'entire file',
+'net/minecraft/network/protocol/game/ClientboundHurtAnimationPacket.java':'entire file',
+'net/minecraft/server/level/ServerLevel.java':'991-1006 only',
+'net/minecraft/client/model/EntityModel.java':'entire file',
+'assets/minecraft/shaders/core/rendertype_entity_cutout_no_cull.vsh':'entire file',
+'assets/minecraft/shaders/core/rendertype_entity_cutout_no_cull.fsh':'entire file'}
+sources=[{'path':str((BASE/p).relative_to(ROOT)),'sha256':sha(BASE/p),'read_scope':scope} for p,scope in scopes.items()]
+for p,scope in [(ROOT/'build/bestiary-v43/references/native-human-1.20.1/net/minecraft/client/model/HumanoidModel.java','85-412; includes complete setupAnim and attack pose consumers'),(ROOT/'build/bestiary-v43/references/justinwon777__HumanCompanions/forge 1.20.1/src/main/java/com/github/justinwon777/humancompanions/client/renderer/CompanionRenderer.java','entire file; revisited to check no hurt/death transform override')]:
+ sources.append({'path':str(p.relative_to(ROOT)),'sha256':sha(p),'read_scope':scope})
+record={'recorded_utc':datetime.now(timezone.utc).isoformat(),'status':'ONE_BOUNDED_NATIVE_DAMAGE_TO_BODY_RENDERER_CONSUMER_CHAIN_REVIEWED','scope':'Minecraft 1.20.1 Forge 47.4.10 mapped source; applicability to wide PlayerModel mob renderer. Not all mod renderers or PlayerRenderer.',
+'archive_provenance':[{'path':str((BASE/n).relative_to(ROOT)),'sha256':sha(BASE/n)} for n in ['source.json','shader-source.json']], 'sources':sources,
+'chain':[
+{'stage':'server hurt','finding':'LivingEntity.hurt initializes hurtDuration/hurtTime to10 in ordinary accepted-hit path. Cooldown branch can reject or apply only extra damage without restarting this timer; do not say every hit restarts it.'},
+{'stage':'server event to client','finding':'Unblocked ordinary-hit branch calls broadcastDamageEvent. ServerLevel sends ClientboundDamageEventPacket. ClientPacketListener resolves entity and calls handleDamageEvent. Base LivingEntity sets walkAnimation speed1.5, invulnerableTime20 and hurtTime10; it does not rotate model bones.'},
+{'stage':'separate hurt-animation packet','finding':'ClientboundHurtAnimationPacket -> ClientPacketListener -> animateHurt(yaw). Base LivingEntity method sets timers only and ignores yaw. This does not establish behavior of subclass overrides such as players.'},
+{'stage':'timer decay','finding':'base tick decrements positive hurtTime; a presentation timer distinct from invulnerability/collision and custom synced AI state.'},
+{'stage':'rendering overlay','finding':'LivingEntityRenderer.getOverlayCoords uses hurtTime>0 OR deathTime>0 to select overlay row3; otherwise row10. Default white overlay progress=0. Model rendered with RGBA multiplier1 except invisibility alpha.'},
+{'stage':'shader consumption','finding':'Default EntityModel uses entityCutoutNoCull. Vertex shader fetches packed overlay UV; fragment shader mixes overlay.rgb with textured vertex color using overlay.a before lightmap/fog. Overlay row3 is ABGR0xb20000ff (redRGB255,0,0 alpha178). Thus standard hurt tint keeps178/255 of pre-lightmap base RGB and mixes77/255 red. It is not a changed PNG or bone animation.'},
+{'stage':'body animation','finding':'Complete HumanoidModel.setupAnim uses locomotion/head/swim/riding/arm-use/attack/crouch/bob. No hurtTime/deathTime branch authors an injury pose. setupAttackAnimation consumes attacker attackTime; cannot label it defender hurt recoil. Hurt handling can change locomotion speed and entity knockback, so do not claim the visible body is absolutely motionless.'},
+{'stage':'death synchronization','finding':'Server die sends entity event3; client base handleEntityEvent for non-player sets health0 and dies. tickDeath increments deathTime and removes server entity at>=20 absent overrides/hooks.'},
+{'stage':'death transform','finding':'LivingEntityRenderer.setupRotations uses sqrt((deathTime+partialTick-1)/20*1.6), capped1, multiplied by default getFlipDegrees90 around Z on PoseStack before model scale/translation. It rotates whole rendered model, not individual leg/torso bones. Dead entities get zero locomotion inputs but setupAnim still executes; not a promise all pose channels reset.'},
+{'stage':'reference applicability','finding':'Human Companions CompanionRenderer inherits wide PlayerModel chain without overriding setupRotations/hurt overlay. Its custom armor/item layers are not claimed to use identical overlay handling; custom Forge events, shaders and subclass overrides may change this.'}],
+'body_side_application':['Keep custom swindler deception/retreat state separate from native hurt tint and death roll. Neither red overlay nor ordinary attack swing supplies a fake-injury body clip.','Existing Dynasty resource/native binding must be checked before applying any death pose to avoid combining an authored root fall with an inherited whole-model roll. This is a future integration check, not an observed current defect.','No held object, accessory UV, gameplay timer or collision change required by this study.'],
+'analytic_samples_not_game_frames':[{'deathTime':t,'partialTick':0,'whole_model_roll_degrees':round(min(1,math.sqrt((t-1)/20*1.6))*90,6)} for t in [1,2,5,10,13,14,19]],
+'counting':{'bounded_mechanism_studies':1,'new_distinct_creature_reference_families':0,'new_accepted_reference_credit':0,'accepted_total':None,'gap_to_1000':None,'dedup':'Native renderer mechanism shared by many creatures; files, packets, shader stages and sampled ticks are not independent creatures.'},
+'limits':['No game, Java or GPU renderer executed.','Sound calls were read as source only; no sound enabled or played.','No simulated fall pictures, gameplay screenshots or real runtime acceptance claimed.','No Dynasty model/texture/UV/bones/animation/timeline/collision/skill/sharedJar changed.','Only listed ranges studied; downloaded files are not counted as entirely read.','Unreviewed class overrides and external shaders remain outside this bounded base-chain finding.']}
+(HERE/'receipt.json').write_text(json.dumps(record,ensure_ascii=False,indent=2)+'\n')
+rows=''.join('<tr><td>'+str(s['deathTime'])+'</td><td>'+str(s['whole_model_roll_degrees'])+'</td></tr>' for s in record['analytic_samples_not_game_frames'])
+page='''<!doctype html><meta charset="utf-8"><title>原版受击与身体显示链路</title><style>body{max-width:1040px;margin:42px auto;background:#eeede8;color:#252b2d;font:18px/1.7 sans-serif}article{margin:20px 0;padding:14px 22px;background:#fff}table{border-collapse:collapse}td,th{padding:6px 24px;border-bottom:1px solid #bbb}small{color:#575e60}</style><h1>受击染红 ≠ 受伤骨骼动作 ≠ 死亡倒伏</h1><p>固定本地 Minecraft 1.20.1 / Forge 47.4.10 源码研究。一个完整基础机制，不新增生物参考信用。</p>'''+''.join('<article><b>'+html.escape(s['stage'])+'</b><p>'+html.escape(s['finding'])+'</p></article>' for s in record['chain'])+'<h2>默认死亡整模旋转：源码公式数值</h2><p>partialTick=0；不是动作截帧或游戏验证。</p><table><tr><th>deathTime</th><th>Z旋转度数</th></tr>'+rows+'</table><h2>限制</h2><ul>'+''.join('<li>'+html.escape(x)+'</li>' for x in record['limits'])+'</ul><p><a href="receipt.json">完整来源、阅读范围与哈希</a> · <a href="../humanoid-recovery-research-20261110/index.html">上一条史蒂夫持弓研究</a></p>'
+(HERE/'index.html').write_text(page)
+verification={'source_count':len(sources),'source_hashes_match':all(sha(ROOT/s['path'])==s['sha256'] for s in sources),'provenance_hashes_match':all(sha(ROOT/s['path'])==s['sha256'] for s in record['archive_provenance']),'java_or_game_started':False,'production_changes':False}
+(HERE/'verification.json').write_text(json.dumps(verification,ensure_ascii=False,indent=2)+'\n')
+progress={'recorded_utc':record['recorded_utc'],'previous_checkpoint':'docs/art/bestiary-v43/humanoid-recovery-research-20261110/checkpoint.json','receipt':{'path':str((HERE/'receipt.json').relative_to(ROOT)),'sha256':sha(HERE/'receipt.json')},'index':{'path':str((HERE/'index.html').relative_to(ROOT)),'sha256':sha(HERE/'index.html')},'verification':{'path':str((HERE/'verification.json').relative_to(ROOT)),'sha256':sha(HERE/'verification.json')},'accepted_total':None,'applicable_gap':None,'new_accepted':0,'all_tasks_complete':False,'production_modified':False,'next':'Study one applicable dedicated authored injury/recovery body mechanism with actual producer, state and model consumer; native tint/death transform are not substitutes.'}
+(HERE/'progress.json').write_text(json.dumps(progress,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'receipt':progress['receipt'],'index':progress['index'],'progress':{'path':str((HERE/'progress.json').relative_to(ROOT)),'sha256':sha(HERE/'progress.json')},'verification':verification},ensure_ascii=False))

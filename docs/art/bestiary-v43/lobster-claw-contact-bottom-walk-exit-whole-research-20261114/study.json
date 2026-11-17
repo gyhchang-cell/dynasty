@@ -1,0 +1,37 @@
+{
+  "family": "AlexsMobs:Lobster",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "现存水生/节肢身体的钳臂连接、攻击进度、底栖移动与恢复参考；不新增Dynasty物种/物品。",
+  "prior_full_comparison": [
+    "完整比较Triops study：Triops单盾体/两节尾滞后与离水翻身，本例独立臂→钳端、底栖行走，无翻身/水陆姿态进度。",
+    "完整比较Terrapin whole-study：Terrapin退壳阻断移动与独立脚端补偿；Lobster shouldStopMoving恒false，腿群平面没有独立脚端，不能当重装落脚/IK依据。",
+    "v43 study/dedup Lobster精确名未见具名整链；只说明有界检索，不保证全局新颖。"
+  ],
+  "body_and_actual_motion": [
+    "64×64，12节点root→body4×2×7→两触须平面、两arm各接hand、tail3×2×8→扇尾平面8×0×4、左右腿群平面3×0×5。不是逐条独立六足骨架；纹理透明轮廓未看。",
+    "setup default reset后插值attackProgress0..5，armY±45、handY∓30。父子反向旋转共同形成钳端动作，不是只摆一个盒子，但无独立可开合的钳指骨。",
+    "触须idle交替walk、两尾小摆；左右腿群walk/swing及bodybob、arm swing均按limbSwing叠加。无水/陆专属分支、无netHeadYaw/headPitch消费，也无hurt/death clip。攻击时仍叠步态，不保证钳端物理固定或左右同步接触。"
+  ],
+  "entry_contact_and_recovery": [
+    "tick目标距离<=1且cooldown0时lookAt并doHurtTarget，cooldown20。没有注册专用MeleeGoal追逐；HurtByTarget负责设置目标，目标选取继承生命周期不全。",
+    "doHurtTarget先设ATTACK_TICK5，再调用super.doHurtTarget；自身倒计时到2另对当前目标且距<1.3 hurt2。两调用点均存在，不可当成单一延迟伤害；父类返回值、无敌帧和网络权限未运行，不能宣称已经复现两次有效伤害。",
+    "prevAttackProgress更新前缓存；counter>0加1至5，结束减1至0。没有目标也继续退钟/恢复姿态，伤害分支仅跳过；没有本类结束回调清target/nav/delta、没有hurt取消攻击。姿态复原不等于物理停车。"
+  ],
+  "bottom_motion_and_qualification": [
+    "SemiAquaticPathNavigator用两栖节点；匿名isStableDestination要求当前位置流体为空。shouldEnterWater恒true、leave恒false、stop恒false、搜索5；FindWater/LeaveWater复用完整研究，不按两Goal算两个机制。",
+    "BottomFeederAIWander完整核读：水中interval10、陆地50，canUse/continue检查shouldStopMoving后委托原生RandomStroll。水中15次采样向下穿过空/水到基底，上方水且下方无流体且canOcclude才接受，返回基底中心而非上方水中心。不是完整体积通行/足接触证明。",
+    "travel水中先按当前delta移动，再jumping时delta*1.4并Y+.72；非jumping delta*.4并Y−.08。本类没有专用回弹骨骼或jumping置位/停止链，原生控制/碰撞仍缺口。陆地super.travel，不是水陆同物理。",
+    "没有自定义MoveController、路径结束速度清零或动作结束清jumping。BottomFeeder的start/stop继承原生未整读，不能补造退出。"
+  ],
+  "binding_persistence_and_limits": [
+    "Renderer ModelLobster、shadow.25，scale空，6种PNG按variant选择；换色不计6个参考。无手持/挂件层、无server钳端采样。",
+    "NBT仅显式Variant/FromBucket，桶保存默认数据和BucketVariantTag，不保存攻击counter/progress/cooldown。加载重新初始化局部状态，不是精确接触帧续接。handleAirSupply空并不意味着有陆地专用姿态。",
+    "此参考适用于复核钳臂层级和实体/视觉接触分离，不复制几何/PNG，不为认可怪物增加新爪或玩法。",
+    "原生RandomStroll/HurtByTarget/Mob伤害/MoveControl与Citadel辅助未全读，未看PNG/视频/预览，未Java/游戏。新增独立验收0，适用1000累计及缺口未知。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

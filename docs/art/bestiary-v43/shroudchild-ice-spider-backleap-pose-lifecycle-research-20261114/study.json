@@ -1,0 +1,47 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "scope": "Body/bones/animation/attachment interface research only. No helditem/attachment object/PNG/UV/art production.",
+  "whole_source_read": [
+    "IceSpiderEntity830lines, LeapBackGoal, AnimatedActionGoal, own competing attack/pounce goals, AbstractSpellCastingMob567lines, animation interface/packet, model/renderer/TransformStack/navigation/part interface implementations. All7 actual animation clips read. Geometry only hierarchy/pivots/cube-count scope, not full surface review."
+  ],
+  "entry_hurt_and_backleap": [
+    "IceSpiderEntity extends AbstractSpellCastingMob→nativePathfinderMob. Server actuallyHurt firstreducesdamagegrappleprey*.2andIronGolem*.5; ifaggressive&&!crouch&&!grapple&&!wantsLeap&&direct,probabilitylerp(clamp(damage/12,0,1),.02,.7) setswantsToCastSpells/wantsToLeapBacktrue, then super.actuallyHurt. This queuesreactionbeforetheparentcall, notproofacceptedpostdamage,notguaranteedallhits. Emerginginvulnerabilityhandledseparately.",
+    "Priority1LeapBack/Pounce ongoalSelector; priority2ownAttackGoal. AnimatedActionGoal flagsTARGETonly, notMOVE/LOOK. canUsefinal delay--<=0&&canStartAction; LeapcanStart onlywantsToLeapBack, no targetalive/onGround check. ContinueisUsing only; starttimer0,usingtrue,delay0,serverTriggerAnimation(leap_back).",
+    "Firstgoal tickcallsLookControlifnonnulltarget, thenatabilityTimer0 doAction pushesrotateWithBody(0,.5,-2.2) andclearswantsLeapBack. No goalexclusiveMOVE/LOOK/no navstop beforepush,so lower attackgoal canissueownmovement dependingnativescheduler. Leapinstantpushaddsvelocity ratherthancontinuouswantedposition orsetDeltaoverwrite.",
+    "rotateWithBody writesfloat y=-yBodyRot+Mth.HALF_PI thenyRot(y*DEG_TO_RAD). Source mixes HALF_PIconstant withdegreevaluedbodyyaw; preserveexactcode,donotsilentlycorrectorclaimperfectstraightreverse. Nativepush/physics/climbingmayalteractualtrajectory; no gameverification."
+  ],
+  "loss_exit_gravity_and_actions": [
+    "AnimatedActionGoal.tick hasnoalive/range/LOS/targetnullcancel: nulltargetskiplookonly, actionstillfiresifqueued. AtabilityTimer>=10callsstopthenincrements. stoponlyisUsingfalse; no cancelAnimation/resetvelocity/navstop/clearlook/gravityrestore. Scheduler may callstopagain; noexactnativeelapsedcountclaim. ExternalstopbeforedoActiondoesnotclearwantsLeapBack, allowinglaterreentry.",
+    "NoownsetNoGravity/isNoGravity orflightmodes inwholeIceSpiderandAbstractSpellCastingMob. Nativegravityretained; checkFallDamageempty. isClimbingoverridesgetDeltaMovement toXZ+Y.275, canreplacevisibleYbehavior; climbing/crouchingserverhandlersrunseparately. Thereforebackleapisgroundimpulse,notcontinuoushoverandnotchilddropin.",
+    "AttackGoaltickwantsMelee=!wantsCast; pauseattackswhilegrappleUUID. castComplete clearwantsCast. No fullGenericAnimatedWarlockAttackGoalancestorchainfreshread,so concurrenttargetloss/cancel melee orcastingrecoveryunclosed. OwnAbstractSpellCastingMobcancelCast togglessyncedcancelbitserver,clientmarksbasecastcancel,castComplete clearscastingSpell; IceSpiderregistersonlyownmeleecontroller,whichdoesnotreadbasecancelCastAnimation. Cannotassumeparentcastcancelstopsleapclip.",
+    "CompetingPounceusesTARGETflag,noninterruptablefalse? ActualisInterruptable() returnsfalse. Starts transient-.2speedmodifier; removesmodifieronlyindoAction20,aftertargetnonnullguard. If targetlostbefore20,doActionreturns beforemodifierremoval; stopinheritedonlyusingfalse. This isactualsource cleanup gap,notreproducednativebug andnotdesign tocopy.",
+    "Pounce tickcallsparentthenusesincrementedabilityTimer fordamage30..35,requiresrangeandLOS,accepteddoHurtTarget; onblockplayershielddisable elsegrapple,thenstopafteroneinrangeattempt. startGrapple resetswantsCast/wantsLeap,holdsaspassenger,freeze/periodicheal;missing/removedprey clearsUUID/cache,41+timethresholdreleasesandentombs. Grapplepositionfixedbodyoffset,notanimatedjawbone. No newobjectproduction."
+  ],
+  "actual_clip_and_visual_recovery": [
+    "Actualleap_back=.75s=15nominalticks,10bonechannels: torsoX0→-7.5at.3333→0at.75,torsoXYZposition0throughout. Fourfore/back legsat.25rotate/splay/raiseviaoffsets: LForeZ15 pos(4,-4,0),LBackrot(-4.98196,4.83821,15.86414)pos(-6,-4,0),RForeZ-17.5pos(-4,-4,0),RBackZ-15pos(4,-4,0). Allreturn0offsetat.75easeInOutQuad. Middlelegsnotinthisclip; noheadchannel,headtrackingindependent.",
+    "Javaactionduration10nominalticks vsclip15: goalcanfinishbeforeauthoredposefullyreturns. Packetdoesnotcarryserverclock/end/cancel,onlyentityID+animationID. IAnimatedAttackersendstotrackingplayers; clienthandlerenqueuefindsentityandplayAnimation. No replayforlateobserverimplementedintheseclasses. Sourcepresenceisnotanimationruntimeacceptance.",
+    "IceSpiderplayAnimation storesonependingRawAnimation.thenPlay; ownpredicateforceAnimationReset,setpending,clearpending,alwaysCONTINUE. Newrequestcanreplacependingold; noexplicitonGoalStopcontrollerstop. getBoneResetTime inherited5. NativeGeckoLibengine stop/reset/easinginterpretation remainsunread; authoredzeroendpointsnotproofphysicalstop.",
+    "All7clipsread: fangbasic1s,swipe.7083,pounce2.125,leap.75,bite1.2083,longcast1.625,emerge3. No ownhurt/deathclip. Mostreturnkeychanneloffsets,swipeforeShoulderrotationandposendnonzero soenginebone-resetmatters. Pounceclip42.5nominalticks vsgoal40; emergeclip60vsEMERGE_TIME45 (standing/invulnends45). Basicmeleeconfigured22bite/20fang/14swipe contact14/12/10 respectively,clips24.166/20/14.166; nochange toDynastytimelines.",
+    "TransformStackwhole collectsadditivelocalrot/pos perbone; resetDirtyrestoresinitialsnapshotpos/rotandresetStateChanges forpriorproceduralbones,clearsdirty; superhandleAnimations evaluateskeyframes; popStackaddsproceduraloffsets/wrapsradiansandmarksdirty. Scaleisnotresetbythishelper. handleAnimationsavoidsduplicateframeforlastinstance. This isexplicitvisualcleanup,notactorvelocity/gravityreset.",
+    "Model adds torsoY18*crouchMultiplier, inverse-slope transformedheadlookrelativebodyyaw,8legproceduralgait. LegZcubedsineclampedpositive andoppositephasegroups; crouchZbias fades10deg→0. No direction-sign-specificbackwardgait orleapmaskaroundprocedurallegs. Babyphase*3. Alivegaitonly; headtrackingstillcode. Modelworldterrainnormalandactorcollisionsarespecificinterfaces,notparticlecover."
+  ],
+  "body_attachment_and_navigation_consumers": [
+    "Geometryparsed22bones: torso→head(fangs),abdomen(icicles),8shoulder→legpairs. Actualatlasdecl256,bounds8x4offsetY1. Nochildreplacement/textureinspection. Model/rendererbindactualPNG/geo/animationpaths. RendererpreRender appliesinterpolatedterrainnormalquaternion; deathMaxRotation180 isrendererflip,notauthoreddeathrecovery.",
+    "Entitysamples4groundcornerpinswithscale*4+climbadjustment,averages4crossproductnormals,lerps.2thenpositions3multiparthead/torso/abdomen usingbase16offsets→scaleandterrainquat. Partpositionfixedbodytransformedoffset, notsampledGeckoanimatedbone; headbonekeyframeandpartcollidernotidentical. Partshurtforwardparent,isPickabletrue,collisionfalsebydefault,notsaved; noserverentitiesaddedforchild.",
+    "Part.hardSetPos setspositionANDdeltaMovement(newworldposition),thenoldcoords=current. Preserve sourceaswritten,do notreinterpretasvelocitydelta. No proofnativepartphysicsconsumesit. RidergrappleusesbodyoffsetZscale*2,nohand/itemattachment. No helditemorobjectscope.",
+    "Navigationtrimspathforhigherendnodesifdirectiondot>.8andisTraversablepointchecks danger/blocksupport; nofullboundingboxsweepforbackleap. MoveControlrotlerp suppressesveryclosewantedXZ²<.5elsequarterturnlimit. BodyControlonheadtowardfrontdetectsbodyyawchangeandforceswalkAnimation1. This canproducegaitwhileturning; rawbehaviornotguaranteedhover-facing."
+  ],
+  "hurt_death_reload_boundaries": [
+    "WholeIceSpider/AbstractSpellCastingMob noownhurt/deathanimationcanceloverride beyondactuallyHurtreactionandinheritednativebase. Hitqueuesleapbutdoesnotexplicitlycancelcurrentclip; ownsinglecontrollerpendingrequestoverridesonclientwhenreceived. Nativefataldamage/schedulergates/packetregistration/hurtknockbacknotfreshread. No runtimehurt/deathclaim.",
+    "OwnNBTpersistsgrappleUUID/time,crouching,satiation/hunger; noleapflag/wantsCast/abilitytimer/currentclientanimation/crouchTick/climbflag/terrainnormals ownpersistence. ParentspellstateNBTcanrecreatecastserverside; notleapactionphase. Reloadcannotbeclaimedcontinuouslysynchronizedfromtheseclasses.",
+    "ComparedwithBluffmissingclip, actualbackleapcurveandresetconsumerarenowread. Stillnotcontinuouschildhoverorcompletehurt/targetloss/physicsreset. ExistingFlutter/Farseer/Cindaria/Licowitch/BluffevidenceMERGE0whereoverlapping. NoJava/game/network/audio/display, no production/mainlists/session/sharedJar/promptedits. Applicable1000unverified;localcacheexhaustionnotclaimed."
+  ],
+  "conclusion": "One bounded backleap-action lifecycle with actual authored animation and transform-reset consumers now documented. Useful distinction between physical impulse, target gaze and pose return; loss/cancel/velocity cleanup gaps remain and must not be copied. No independent credit or production authorization.",
+  "actual_animation_source_read": true,
+  "animation_playback_verified": false,
+  "complete": false,
+  "production_modified": false,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null
+}

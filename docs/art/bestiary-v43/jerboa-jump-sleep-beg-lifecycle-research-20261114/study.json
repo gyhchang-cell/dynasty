@@ -1,0 +1,38 @@
+{
+  "date": "2026-11-14",
+  "production_modified": false,
+  "complete": false,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "global_semantic_dedup_complete": false,
+  "new_visual_or_game_view": false,
+  "scope": "Original reference only: body/bones/animation/attachment interfaces. No held/accessory object asset work; no Dynasty asset selected for production. Applicable1000 not claimed.",
+  "family": "AlexsMobs:Jerboa",
+  "applicability": "Small nonhuman body leg/foot hierarchy, movement-driven jump phase, sleep/beg interruptions and renderer scale/reset. Not a new Dynasty species/skill proposal.",
+  "creation": "Entity constructor installs nested MoveHelperController and JumpHelperController; synced JUMP_ACTIVE,BEGGING,SLEEPING,BEFRIENDED false. Model64x64 root→body→ears,arms,tail,legs→feet. One combined legs/feet hierarchy, not two IK legs; body5x4x8 plus separate tail and plane ears/arms/feet.",
+  "motion_producer": [
+    "customServerAiStep on new grounded contact clears jumping and checks landing delay: movement duration1 or2 depending speed>=2.2; disables jump control. With wanted destination/path and delay0 turns and startJumping; target<16square can direct jump. Sleeping clears jumping and applies delay.",
+    "startJumping sets jumpingtrue,duration10,ticks0. aiStep increments jumpTicks then clearsduration/ticks/jumping when duration elapsed. jumpFromGround broadcasts event1 server; client event sets same10tick timer and sprintparticle.",
+    "Model DOES NOT call getJumpCompletion. Its input is synced JUMP_ACTIVE set server to !onGround each tick. jumpProgress grows0..5; when reaches5 reboundProgress starts increasing0..5 EVEN WHILE AIRBORNE. Grounded branch decays both by1. Hence named rebound is time-in-air compression, not measured landing contact.",
+    "Move helper stops movement speed while grounded with no jump request; MOVE_TO adds acceleration toward destination then super.tick. d0=directionlength divides without explicit zero guard in this local branch; no stability guarantee or production copy."
+  ],
+  "sleep_beg_producer": [
+    "Sleep random daytime tick%10/750 when no lastHurtByMob and notbegging; otherwise sleepingcleared. hurt clears sleep. shouldMove=!sleeping gates jump scheduling, not a replacement collision solver.",
+    "Beg goal finds nearby food-holding player (seeds/breedfoods); close distanceSquared<12 stopsnavigation and setsBEGGINGtrue, fartherchases. Farther branch does not explicitly clear priorBEGGING, so pose may remain until goalstop.",
+    "Beg stop clears player,stopsnavigation,sets100delay,BEGGINGfalse,isRunningfalse. Continuation reuses canUse and own-mainhand-empty/notlove guards. No object modeling work."
+  ],
+  "model_consumer": [
+    "resetToDefaultPose then partial interpolate sleep,rebound,beg; jumpPose=max(0,interpolatedJump-interpolatedRebound). Jump rotates legs65deg,body-5,tail-20 and raisesbody2; rebound rotates legs-30,body20,tail35 and ears opposing35,raisesbody1.",
+    "Sleep lowersbody5,changeslegsposition/rotation,tail50X90Z and folds ears. Beg arms-15 plusprocedural sway; compensates body pitch difference in legs and tail, and legY. Those are authored/procedural compensation, not ground IK.",
+    "Look motion only when max(sleep,beg)==0: body yaw35%input,legs counteryaw60%; body pitch65%input,legs counterpitch,tailcounter1.2; extra leg/body translation by headpitch. No head bone: body is head-body unit.",
+    "Juvenile render global0.65 and translated; adult nojuveniletransform. PoseStack push/pop bothbranches. Local unused f=1.75 doesnotapply extraheadscale. Renderer global0.8,shadow0.1 and sleepingtexture selection."
+  ],
+  "stop_reload_invalid": [
+    "Touching ground decays pose progress but rebound was not contact-triggered. Sleep can interruptjump scheduling; no dedicated death recovery path in reviewed entity. Native jumping/groundcollision inherited and not re-read.",
+    "NBT explicitly saves Sleeping+Befriended plus super; transient JUMP_ACTIVE,BEGGING,jumpduration/ticks,progress and movecontrolclock not saved. Fresh object resets them; saved sleeping ramps from default progress toward5. Midair/reload/lateobserver phase continuity not established.",
+    "Event1 timer exists but is not model phase consumer. Do not call it exact network-synchronized leg animation. Rendering gap doesnot require integratewhileculled for these tickprogress values, but paused/teleport transitions not verified.",
+    "Actual PNGs, Citadel helpers, vanilla JumpControl/scheduler and rendering recursion not read this batch. No perfoot collision queries or foot planting demonstrated."
+  ],
+  "counting": "At most one family candidate; jumping, sleeping, begging, renderer, bone parts and event1 are not separate creature references. Independent acceptance/newcredit0."
+}

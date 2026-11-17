@@ -1,0 +1,42 @@
+{
+  "family": "minecraft:vex",
+  "target": "dynasty:yinbing_guizu",
+  "mechanism": "冲锋/常态分离、逐draw复位与灵体身体消费；对照现有虚化起止、死亡和重载",
+  "native_producer": [
+    "Vex同步DATA_FLAGS bit1 isCharging，ChargeGoal优先4/RandomMove8，owner target另由优先2 CopyOwnerTarget提供。start锁目标眼位置给MoveControl并置charging；续用要求wanted+charging+活目标；每tick近3格重瞄，AABB相交即doHurtTarget并清charging。不是武器骨骼接触服务器伤害。",
+    "ChargeGoal.stop只清charging，没有清MoveControl wanted或速度；wanted到近boundingBox.getSize时MoveControl才WAIT并速度*.5，否则沿目标向量加speed*.05加速度。结束冲锋姿态与停止空间位移是不同状态，不以flag=false宣称物理瞬停。",
+    "Vex.tick在super.tick前noPhysics=true，之后false并setNoGravity(true)；这是其穿墙飞行策略，不是只靠透明材质。当前阴兵明确不得穿实心墙，所以不能为了参考灵体直接迁移该机制。",
+    "limitedLife到期每次重置20tick并starve1伤害，非立即销毁；NBT保存BoundOrigin/LifeTicks但未保存owner、charging、wanted、goal阶段。owner只存运行时Mob字段，不声称owner UUID跨档恢复。",
+    "ChargeGoal requiresUpdateEveryTick=true；RandomMove默认非每tick、canContinue=false，最多3次在boundOrigin附近找emptyBlock；两个goal不拆两只参考。限定寿命、运动和冲锋状态分别计时。"
+  ],
+  "native_body_hook_consumer": [
+    "VexModel.setupAnim首先root.getAllParts递归resetPose，再写head朝向/双臂zRoll、charging body角/持物侧抬臂、双翅连续摆动。ModelPart55..70证实resetPose恢复initialPose的位置旋转并scale=1，197..200证实递归全树；退出charging不沿用上次攻击角。",
+    "有主/副手物品时按对应槽位设置right/leftArm，双空手则双臂同时抬；不是直接按mainArm映射本地手。ItemInHandLayer还按dominantArm分配物品，左右手例外需单独核查，不声称所有持物组合完美对齐。",
+    "translateToHand顺序root→body→arm矩阵，scale.55及左右±.046875/- .15625/.078125偏移；是显示接口，不影响AABB冲锋命中。仅研究持握矩阵，不制作剑对象。",
+    "VexRenderer按charging切vex_charging.png，否则vex.png；block light强制15，模型用entityTranslucent。纹理状态切换、照明和骨骼姿态是三种消费者，未看PNG不能称纹理内容如何变化。",
+    "没有Vex专用die/stop-death骨骼clip；复用已读LivingEntity死亡/renderer基础链，但noGravity和noPhysics在死期是否参与每个调用阶段尚未实机闭合。不能把原生死亡视为铠甲散落的现成方案。"
+  ],
+  "current_body_and_state_consumer": [
+    "真实yinbing骨架无普通双腿，root下3段smoke_tail父链与ghost_pelvis→ghost_waist→chest；helmet挂chest，ghost_eyes挂helmet，两团flame挂ghost_eyes；right_hand上ghost_ge与right_grip。保留已认可空心甲/拖尾，不能照Vex换短身翅膀。",
+    "GHOST_THRUST14+1+19=34tick，attack1.7秒；右肩肘与chest在.7秒接触前伸，恢复末归零。伤害为实体origin/锁方向STRIP3.8/.4，魔法伤害与60tick寒冷；不取战戈骨尖当服务器判定。",
+    "Ghost.evade在TemplateMob.hurt最前、super伤害前触发：绕无敌不闪；已phased直接避；其余仅直接Living近战、非投射物、活敌/16格/LOS、冷却ready且非STUN、随机35%。phaseLanding成功才cancel/startPhase，start失败不吞伤害。",
+    "GHOST_PHASE0+6+10=16tick，contact0但impact忽略非THRUST，所以无伤害。start成功先给起点SOUL粒子，再teleport合法侧方3格、清速度/设目标。phaseLanding只2侧×3高度，已加载/边界/站立/无液体/不重叠Boss/路径不撞实墙；不是Vex noPhysics。",
+    "isPhased由kind+SKILL+actionAge<6+存活派生，控制不可pick/弹丸目标、hurt避让与canInterrupt；Renderer色乘(.55,.85,1) alpha .18/常态.65，entityTranslucent。6tick虚化门结束后仍有10tick动作恢复，不把16tick全当不可选中。",
+    "phase.8秒胸zRoll在.15秒12/.3秒-10/末0，tail0 yaw -18/15/末0；仅身体摆姿，不自身做空间闪现。浮动locomotion走FLOATING profile，不随移动速度调整步频；SecondaryMotion GHOST没有额外gear/IK分支。",
+    "PHASE未在1.3兵煞加速排除表中，actionAge已乘speed，因此6动作tick并非所有情况下6墙钟；既有effective接触与controller seek共同作用，不擅改服务端机制。",
+    "Ghost没有独立save/load，临时evadeReady不保存；主要skill/epoch/speed/fired/cooldown由BlueprintAttack保存，过期取消、遗漏帧不补打。读回后isPhased按剩余age派生，不应直接保存一个长期透明布尔。",
+    "结束/取消清skill/start/speed，death取消攻击并改death epoch，44tick移除，death2.2秒一致。死时isPhased强制false；GHOST不在死时setNoGravity(false)列表，常规死亡落地消费者是否受当前物理状态影响需核实，不能据此伪称已落地。"
+  ],
+  "concrete_remaining_body_gaps": [
+    "外部cod1要求铠甲分别散落堆叠、鬼火消散升空。当前death只有ghost_pelvis整体35度/下沉5、helmet20度、ghost_eyes缩小到.05，root少量Y补偿。独立肩甲/手臂/胸甲没有死亡散落通道，两团flame随eyes缩小，没有升空位置通道。此为明确未完成身体子范围，不能删除任务。",
+    "是否需新增骨架不在本批下结论；先保留当前骨架和approved形体，未来达到门槛后应优先用已有独立部位补散落/分层复位。战戈物件的独立落地属于贴图专岗协作，本岗只提供手部/挂点动作契约。",
+    "相位取消、phase结束alpha回常态、先后渲染两个同类实体、读档6tick边界、死亡遮挡和残余drag尾需完整回放。Vex逐draw reset是可用方法，不能未读GeckoLib父类就断言当前有/无串姿态bug。",
+    "没有看参考PNG/视频或启动游戏，没有制作身体/贴图/物件；本批最多一个完整家族候选，未独立验收、不计1000完成额、不改主清单。"
+  ],
+  "whole_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

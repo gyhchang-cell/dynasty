@@ -1,0 +1,42 @@
+{
+  "family": "minecraft:warden",
+  "target": "dynasty:mingsha_shixie",
+  "native_state_production": [
+    "Warden.finalizeSpawn给DIG_COOLDOWN=1200；仅TRIGGERED出生设置EMERGING及IS_EMERGING约134tick。EMERGE活动优先于DIG/ROAR/FIGHT等，Emerging start设置pose，stop仍在EMERGING则回STANDING。",
+    "Digging需地面/水/岩浆条件；地面进入DIGGING并持续100tick，stop移除DISCARDED，不是死亡。水/岩浆分支立即stop。不要把离场消失称尸体死亡。",
+    "EMERGING/DIGGING会影响Warden受击、爆炸、推挤、振动和高度；这些是原生状态规则，不是可直接移植的视觉需求。",
+    "POSE同步在本地tickCount启动对应AnimationState；event4停止roar启动attack，62启动sonic。addEntity packet对EMERGING带标记，但未携带统一已流逝动画epoch。",
+    "SonicBoom时长60tick，开始sound delay34并发62；delay结束且未置声波冷却时只触发一轮，重新验证目标及15水平/20竖直距离，伤害与粒子起点为entity.position+1.6Y，不取胸骨变换。所读方法没有LOS检验，不假装已有。"
+  ],
+  "model_renderer_consumption": [
+    "WardenModel每次reset所有部件，再叠头向、walk、idle、tendrils，随后attack/sonic/dig/emerge/roar/sniff命名动画。EMERGE不等于另建实体或全身静态缩放。",
+    "AnimationState积累本地elapsed毫秒；KeyframeAnimations按秒采样，loop才取模，非loop末帧钳制而不自动stop。AnimationChannel targets为offsetPos/offsetRotation/offsetScale，named child未命中则Optional不执行；posVec翻Y，degreeVec转弧度。",
+    "仅实际投影阅读WardenAnimation行12/13/17中body/head/left_ribcage/right_ribcage的字面关键帧。没有完整阅读该文件所有超长行，不能把快照等同全动画验收。EMERGE长6.68秒、DIG5秒、SONIC3秒。",
+    "EMERGE以躯干位移和倾斜分阶段恢复；DIG以位置和旋转离场。SONIC两侧肋骨Y旋转在1.7917秒前0，1.875秒至2.5秒达到±125度，2.6667秒收回；与服务器34tick时点并非严格同一帧，不美化成绝对精准对齐。",
+    "EmissiveLayer复用父模型，选择部件skipDraw并用alpha绘制，结束恢复；心脏/触须/脉冲各自alpha，不是新增服务器实体。未查看原始PNG或实机。"
+  ],
+  "current_body_consumer_comparison": [
+    "石蝎已有carapace→六足IK包装、七节尾链和stinger。burrow在carapace.scaleY=.45/positionY=-3.3并给各尾节-6度，尾链继承carapace。静态采样不证明最终只露尾尖，需逐帧地平面检查。",
+    "现有emerge1.6秒=32tick；carapace到.9秒恢复scale1/position0，tail_0在1.1秒=22tick达5度并在1.6归零。服务器EMERGE22+1+9=32tick，22接触无伤害；started立即清burrowed，才能由visualAnimation选择emerge，不是漏掉潜沙动画。",
+    "沙地条件每10tick检查，离沙可self-target无伤害破土；地面露出期100tick。六足IK仅在非burrow且非EMERGE启用，避免同一破土阶段抢 authored动作。",
+    "CLAW原12tick夹击、20tick尾刺；attack2秒正好40tick，pincer于.6秒合、尾链于1秒抬8度。保留已有技能判定和骨架。",
+    "SONG48tick/2.4秒，四块背板于.8秒抬1.5、1秒回零后逐次衰减。服务器20tick为混乱/挖掘减速/共振效果，并非声波直伤；当前SONG无尾骨通道，但cod1尾部摩擦是文字目标，不据单个通道差异宣布全资产失败。",
+    "石蝎未被BINGSHA加速排除；上述为名义时间，actionAge乘skillSpeed，实际加速需与effective SkillDefinition共同检查。不硬改为固定墙钟。"
+  ],
+  "unknowns": [
+    "没有读取Brain所有底层调度、模型所有渲染父调用、完整WardenAnimation各肢体曲线；不声明整个运行栈读完。",
+    "没有图像、逐帧回放、真实沙面遮挡或游戏验收；不能据位移数字证明尾尖露出是否合格。",
+    "Warden胸腔开合不能直接充当石蝎尾壳摩擦的成品动作参考，只提供阶段组织与状态隔离。"
+  ],
+  "forbidden_transfer": [
+    "不移植Warden人形外形、无敌、缩碰撞、移除实体、声波伤害或光效。",
+    "不改已认可模型、技能/碰撞/服务器判定；本批无生产授权。"
+  ],
+  "whole_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "whole_asset_failed": false,
+  "production_authorized_by_this_study": false,
+  "task_complete": false
+}

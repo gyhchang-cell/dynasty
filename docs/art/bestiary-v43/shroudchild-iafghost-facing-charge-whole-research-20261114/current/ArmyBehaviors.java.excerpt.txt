@@ -1,0 +1,64 @@
+74:         void navigate(Vec3 point,double speed){
+75:             var path=mob.getNavigation().createPath(point.x,point.y,point.z,0);
+76:             if(path!=null&&path.canReach())mob.getNavigation().moveTo(path,speed);
+77:         }
+91:     }
+92:     /** Player look direction is sampled only on the server; a single turn cancels this cast. */
+93:     static boolean observing(LivingEntity observer,LivingEntity subject){
+94:         Vec3 toward=subject.getEyePosition().subtract(observer.getEyePosition());
+95:         return toward.lengthSqr()<.01||observer.getLookAngle().dot(toward.normalize())>.6&&observer.hasLineOfSight(subject);
+96:     }
+97:     private static final class SandScorpion extends Base {
+413:     private static final class ShroudChild extends Base {
+414:         ShroudChild(TemplateMob mob){super(mob);}
+415:         public boolean allows(int id){return id==ArmySkills.CHILD_LAUGH||id==ArmySkills.CHILD_CURSE;}
+416:         private boolean behindPlayer(LivingEntity target){
+417:             return target instanceof net.minecraft.server.level.ServerPlayer&&target.getLookAngle()
+418:                 .dot(mob.getEyePosition().subtract(target.getEyePosition()).normalize())<-.35;
+419:         }
+420:         public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.CHILD_CURSE||behindPlayer(target);}
+421:         public int choose(LivingEntity target,long now){
+422:             if(mob.tombSignal.target(mob)==target&&!behindPlayer(target))return 0;
+423:             return behindPlayer(target)&&mob.attack().ready(ArmySkills.CHILD_CURSE,now)?ArmySkills.CHILD_CURSE:ArmySkills.CHILD_LAUGH;
+424:         }
+425:         public void started(int id,LivingEntity target){mob.playSound(SoundEvents.VEX_CHARGE,.45F,1.7F);}
+426:         public void tick(long now){
+427:             if(mob.skillId()!=ArmySkills.CHILD_CURSE)return;
+428:             var target=victim();
+429:             if(!mob.validEnemy(target)||mob.distanceToSqr(target)>100||!mob.hasLineOfSight(target)||observing(target,mob)){
+430:                 mob.cancelAction();return;
+431:             }
+432:             if(now%5==0)level().sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD,
+433:                 target.getX(),target.getY()+.15,target.getZ(),3,.4,.08,.4,.005);
+434:         }
+435:         public void impact(SkillDefinition skill,int frame){
+436:             if(skill.id()==ArmySkills.CHILD_CURSE){
+437:                 var target=victim();
+438:                 if(target instanceof net.minecraft.server.level.ServerPlayer player&&mob.validEnemy(player)
+439:                         &&mob.distanceToSqr(player)<=100&&mob.hasLineOfSight(player)&&!observing(player,mob)){
+440:                     player.addEffect(new MobEffectInstance(BlueprintEntities.SOUL_BIND.get(),30,0),mob);
+441:                     int food=player.getFoodData().getFoodLevel();player.getFoodData().setFoodLevel(Math.max(0,food-(int)Math.ceil(food*.1)));
+442:                 }
+443:                 return;
+444:             }
+445:             for(var target:CombatGeometry.query(level(),mob.position(),mob.attack().direction(),CombatGeometry.Shape.CIRCLE,
+446:                     6,1,360,2,e->mob.validEnemy(e)&&mob.hasLineOfSight(e))){
+447:                 target.hurt(mob.damageSources().indirectMagic(mob,mob),2);
+448:                 if(target instanceof net.minecraft.server.level.ServerPlayer&&observing(target,mob))
+449:                     target.addEffect(new MobEffectInstance(BlueprintEntities.LANTERN_GLARE.get(),16,0),mob);
+450:             }
+451:             for(int i=0;i<16;i++){double a=i*Math.PI/8;level().sendParticles(net.minecraft.core.particles.ParticleTypes.END_ROD,
+452:                 mob.getX()+Math.cos(a)*2,mob.getY()+.8,mob.getZ()+Math.sin(a)*2,1,0,0,0,0);}
+453:         }
+454:         public void move(LivingEntity target,long now){
+455:             mob.setSprinting(false);
+456:             if(mob.tombSignal.target(mob)==target||!behindPlayer(target)&&TombEncounterCoordinator.waterAmbushNear(mob,target)){
+457:                 var rear=TombEncounterCoordinator.rearRoute(mob,target);
+458:                 if(rear!=null){mob.getNavigation().moveTo(rear,1.1);return;}
+459:             }
+460:             Vec3 away=mob.position().subtract(target.position()).multiply(1,0,1).normalize();
+461:             Vec3 point=mob.distanceToSqr(target)<16?mob.position().add(away.scale(3))
+462:                 :target.position().subtract(target.getLookAngle().multiply(1,0,1).normalize().scale(4));
+463:             navigate(point,.85);
+464:         }
+465:     }

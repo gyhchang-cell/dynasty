@@ -1,0 +1,128 @@
+1: package com.github.alexthe666.alexsmobs;
+2: 
+3: import com.github.alexthe666.alexsmobs.block.AMBlockRegistry;
+4: import com.github.alexthe666.alexsmobs.client.ClientLayerRegistry;
+5: import com.github.alexthe666.alexsmobs.client.event.ClientEvents;
+6: import com.github.alexthe666.alexsmobs.client.gui.GUIAnimalDictionary;
+7: import com.github.alexthe666.alexsmobs.client.gui.GUITransmutationTable;
+8: import com.github.alexthe666.alexsmobs.client.particle.*;
+9: import com.github.alexthe666.alexsmobs.client.render.*;
+10: import com.github.alexthe666.alexsmobs.client.render.item.AMItemRenderProperties;
+11: import com.github.alexthe666.alexsmobs.client.render.item.CustomArmorRenderProperties;
+12: import com.github.alexthe666.alexsmobs.client.render.item.GhostlyPickaxeBakedModel;
+13: import com.github.alexthe666.alexsmobs.client.render.tile.RenderCapsid;
+14: import com.github.alexthe666.alexsmobs.client.render.tile.RenderTransmutationTable;
+15: import com.github.alexthe666.alexsmobs.client.render.tile.RenderVoidWormBeak;
+16: import com.github.alexthe666.alexsmobs.client.sound.SoundBearMusicBox;
+17: import com.github.alexthe666.alexsmobs.client.sound.SoundLaCucaracha;
+18: import com.github.alexthe666.alexsmobs.client.sound.SoundWormBoss;
+19: import com.github.alexthe666.alexsmobs.entity.*;
+20: import com.github.alexthe666.alexsmobs.entity.util.RainbowUtil;
+21: import com.github.alexthe666.alexsmobs.inventory.AMMenuRegistry;
+22: import com.github.alexthe666.alexsmobs.item.*;
+23: import com.github.alexthe666.alexsmobs.tileentity.AMTileEntityRegistry;
+24: import com.mojang.blaze3d.vertex.BufferBuilder;
+25: import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+26: import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+27: import net.minecraft.client.CameraType;
+28: import net.minecraft.client.Minecraft;
+29: import net.minecraft.client.gui.screens.MenuScreens;
+30: import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+31: import net.minecraft.client.renderer.entity.EntityRenderers;
+32: import net.minecraft.client.renderer.entity.ItemRenderer;
+33: import net.minecraft.client.renderer.entity.ThrownItemRenderer;
+34: import net.minecraft.client.renderer.item.ItemProperties;
+35: import net.minecraft.resources.ResourceLocation;
+36: import net.minecraft.sounds.SoundSource;
+37: import net.minecraft.util.Mth;
+38: import net.minecraft.world.entity.Entity;
+39: import net.minecraft.world.entity.LivingEntity;
+40: import net.minecraft.world.entity.player.Player;
+41: import net.minecraft.world.item.DyeableLeatherItem;
+42: import net.minecraft.world.item.ItemStack;
+43: import net.minecraftforge.api.distmarker.Dist;
+44: import net.minecraftforge.api.distmarker.OnlyIn;
+45: import net.minecraftforge.client.event.EntityRenderersEvent;
+46: import net.minecraftforge.client.event.ModelEvent;
+47: import net.minecraftforge.client.event.RegisterColorHandlersEvent;
+48: import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
+49: import net.minecraftforge.common.MinecraftForge;
+50: import net.minecraftforge.eventbus.api.IEventBus;
+51: import net.minecraftforge.eventbus.api.SubscribeEvent;
+52: import net.minecraftforge.fml.common.Mod;
+53: import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+54: 
+55: import java.util.ArrayList;
+56: import java.util.List;
+57: import java.util.UUID;
+58: 
+59: @OnlyIn(Dist.CLIENT)
+60: @Mod.EventBusSubscriber(modid = AlexsMobs.MODID, value = Dist.CLIENT)
+61: public class ClientProxy extends CommonProxy {
+62: 
+63:     public static final Int2ObjectMap<SoundBearMusicBox> BEAR_MUSIC_BOX_SOUND_MAP = new Int2ObjectOpenHashMap<>();
+64:     public static final Int2ObjectMap<SoundLaCucaracha> COCKROACH_SOUND_MAP = new Int2ObjectOpenHashMap<>();
+65:     public static final Int2ObjectMap<SoundWormBoss> WORMBOSS_SOUND_MAP = new Int2ObjectOpenHashMap<>();
+66:     public static final List<UUID> currentUnrenderedEntities = new ArrayList<>();
+67:     public static int voidPortalCreationTime = 0;
+68:     public CameraType prevPOV = CameraType.FIRST_PERSON;
+69:     public boolean initializedRainbowBuffers = false;
+70:     private int pupfishChunkX = 0;
+71:     private int pupfishChunkZ = 0;
+72:     private int singingBlueJayId = -1;
+73:     private final ItemStack[] transmuteStacks = new ItemStack[3];
+74: 
+75:     @SubscribeEvent
+76:     @OnlyIn(Dist.CLIENT)
+77:     public static void onItemColors(RegisterColorHandlersEvent.Item event) {
+78: 
+79:         AlexsMobs.LOGGER.info("loaded in item colorizer");
+80:         if(AMItemRegistry.STRADDLEBOARD.isPresent()){
+81:             event.register((stack, colorIn) -> colorIn < 1 ? -1 : ((DyeableLeatherItem) stack.getItem()).getColor(stack), AMItemRegistry.STRADDLEBOARD.get());
+82:         }else{
+83:             AlexsMobs.LOGGER.warn("Could not add straddleboard item to colorizer...");
+84:         }
+85:     }
+86: 
+87:     @SubscribeEvent
+88:     @OnlyIn(Dist.CLIENT)
+89:     public static void onBlockColors(RegisterColorHandlersEvent.Block event) {
+90:         AlexsMobs.LOGGER.info("loaded in block colorizer");
+91:         event.register((state, tintGetter, pos, tint) -> {
+92:             return tintGetter != null && pos != null ? RainbowUtil.calculateGlassColor(pos) : -1;
+93:         }, AMBlockRegistry.RAINBOW_GLASS.get());
+94:     }
+95: 
+96:     public void init() {
+97:         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+98:         bus.addListener(ClientProxy::onBakingCompleted);
+99:         bus.addListener(ClientProxy::onItemColors);
+100:         bus.addListener(ClientProxy::onBlockColors);
+101:         bus.addListener(ClientLayerRegistry::onAddLayers);
+102:         bus.addListener(ClientProxy::setupParticles);
+103:     }
+104: 
+105:     public void clientInit() {
+106:         MinecraftForge.EVENT_BUS.register(new ClientEvents());
+107:         initRainbowBuffers();
+108:         ItemRenderer itemRendererIn = Minecraft.getInstance().getItemRenderer();
+109:         EntityRenderers.register(AMEntityRegistry.GRIZZLY_BEAR.get(), RenderGrizzlyBear::new);
+110:         EntityRenderers.register(AMEntityRegistry.ROADRUNNER.get(), RenderRoadrunner::new);
+111:         EntityRenderers.register(AMEntityRegistry.BONE_SERPENT.get(), RenderBoneSerpent::new);
+112:         EntityRenderers.register(AMEntityRegistry.BONE_SERPENT_PART.get(), RenderBoneSerpentPart::new);
+113:         EntityRenderers.register(AMEntityRegistry.GAZELLE.get(), RenderGazelle::new);
+114:         EntityRenderers.register(AMEntityRegistry.CROCODILE.get(), RenderCrocodile::new);
+115:         EntityRenderers.register(AMEntityRegistry.FLY.get(), RenderFly::new);
+116:         EntityRenderers.register(AMEntityRegistry.HUMMINGBIRD.get(), RenderHummingbird::new);
+206:         EntityRenderers.register(AMEntityRegistry.GIANT_SQUID.get(), RenderGiantSquid::new);
+207:         EntityRenderers.register(AMEntityRegistry.SQUID_GRAPPLE.get(), RenderSquidGrapple::new);
+208:         EntityRenderers.register(AMEntityRegistry.SEA_BEAR.get(), RenderSeaBear::new);
+209:         EntityRenderers.register(AMEntityRegistry.DEVILS_HOLE_PUPFISH.get(), RenderDevilsHolePupfish::new);
+210:         EntityRenderers.register(AMEntityRegistry.CATFISH.get(), RenderCatfish::new);
+211:         EntityRenderers.register(AMEntityRegistry.FLYING_FISH.get(), RenderFlyingFish::new);
+212:         EntityRenderers.register(AMEntityRegistry.SKELEWAG.get(), RenderSkelewag::new);
+213:         EntityRenderers.register(AMEntityRegistry.RAIN_FROG.get(), RenderRainFrog::new);
+214:         EntityRenderers.register(AMEntityRegistry.POTOO.get(), RenderPotoo::new);
+215:         EntityRenderers.register(AMEntityRegistry.MUDSKIPPER.get(), RenderMudskipper::new);
+216:         EntityRenderers.register(AMEntityRegistry.MUD_BALL.get(), RenderMudBall::new);
+217:         EntityRenderers.register(AMEntityRegistry.RHINOCEROS.get(), RenderRhinoceros::new);

@@ -1,0 +1,42 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "scope": "Body/bones/animation/attachment interface research only; no objects, held items, UV/PNG or production work.",
+  "entry_retreat_and_target_gaze": [
+    "WholeEntityBluff: groundcontroller retained, FlyingMoveControl(this,10,true) created; ground/flyingnav retained. registerGoal priority1deathability;2attackability;2hurtability(interruptsAIfalse);3NoPath;4AttackGoal; lowerstroll/look. WholeUseAbilityAI setsMOVE+LOOKonlyinterruptsAItrue,soHURTcontrollergoalhasnoexclusiveflags.",
+    "AttackGoalcanUse livingtarget&&canAttack, startaggressive; noowncontinue. TickrequiresUpdateEveryTicktrue; LOSsignedseeTime resetonsignchange. Dist²<=144andvisible20stopnav/strafeTime++;elsepursue+strafeTime-1. Every20strafeticks randomtogglesisStrafing/clockwise/backwardeach30%; dist²<36forcesbackward,>144forwardbranchnormallyunreachableoncequalifyingstrafe. isStrafingfalseemitsstrafe(0,0),true±.3forward/side. CallsentitylookAtandLookControltarget, nativecontrolbodylimitsunread.",
+    "AttackGoalstop onlyaggressivefalse/seeTime0; doesnotexplicitlyresetattackTime,stratebooleans/time,nav,moveinputorvelocity. --attackTime<=0withseeTime>=-60anddist²<144sendattackabilitythenclock50..89evenifabilitycanUserefuses. Thisisnotcontinuousguaranteedbackwardhover."
+  ],
+  "flight_physics_and_exit": [
+    "NoPathcanUse targetnonnull,onGround,groundpathnull/endnull/orendcenter-to-targetcenter²>4; continuerechecksroutebutnotonGroundorisliving. StartsetFlyingtrue swapsflyingnav/controller andnoGravitytrue. Tickpursuestarget1.2andLookControl. Stopcurrentnavstop, setFlyingfalse restoresgroundnav/controller/gravityfalse. Oldcontrollerwantedposition/retainedgroundnav pathandvelocitynotexplicitlycleared.",
+    "EntityaiStep reducesnegativeYvelocity*.6whenoffground,then super. FallDamagecheckempty andhurtrejectsreference-equal damageSources().fall(); exactsourceidentity/effectivefallimmunitynotnativeverified. Attributesknockbackresistance1andflying/groundspeed.23 arenotcleanupmechanisms.",
+    "AttackAbility.start setFlyingfalse thenrecordsnonnulltargetmidpos,playsattack_startHOLD. STARTUP11declaredduration; MISCinfinite;ACTIVEinstant;RECOVERY34. STARTUPeach tickvelocityZERO. MISC/ACTIVEsetXZ0,Y=max(oldY-2,-7),hasImpulse; MISCgroundcontact jumpsACTIVE. TracksLookControlandsetsentityyaw=headyawwhennonnulltarget. Targetnullhasnoabortbranch; groundimpactstilloccursandusesforwardfallback iftargetlost.",
+    "ACTIVEserver spawnsfissure andinflatedAABB.4damage; clientimpactparticles; playsattack_endHOLD. Contactisgroundevent, notfixedcliptickorbonecollider. prevTargetPos initializedonlynonnulltargetstart; projectilepolicyirrelevanttochildandnotcopied. Noattackabilityend/interrupt/completeoverride toclearvelocity/navigation/restorepriorflyingstate."
+  ],
+  "hurt_interrupt_and_recovery_consumers": [
+    "MowzieGeckoEntitywholehurt firstsuper.hurt; onacceptedhitlivinghealth: sendsHURTwhenactiveabilitynullOR(active.damageInterrupts&&damage>=threshold) andplaysHurtAnimation. Health<=0 sendsDIE. BluffAttack inheritsdamageInterruptsfalse;ordinaryhitdoesnotown-cancelattack. HurtAbilityoverride true/canCancelSelftrue,thresholdinherited3,cooldown0,duration7. Initialfreehurtcanstartbelow3;repeatedhurtrequiresactivegate.",
+    "AbilityHandlerwhole serveronlycanUse thenactivate+trackingpacket. Ability.canUse requiresnotFrozen,notusingORselfcancel, cooldown0, noactiveORcancelsactiveORactiveallowscancel. DieAbilitycanCancelActiveAbilitytrue. AbilityData.setActiveAbility interruptsoldusingability; oldendsetsisUsingfalsebeforesetActiveAbilitynullavoidingunboundedrecursiveinterrupt. Othernativeevent/packetconsumersnotnewlyclosed.",
+    "Ability.start resetscounters/section0/isUsingtrue,beginsfirstsection. Ability.tick ifeffectiveAI&&!canContinue sendsinterruptbutdoesnotreturn beforetickUsingandcounteradvance inthatcall. DefaultcontinueonlynotFrozen,notlivingtarget. Durationadvanceson ticksInSection>duration (not>=); instantnextsameupdate, MISCneedsownjump. Nominal11/34/7/50arenotnativeexactframealignmentclaims.",
+    "Ability.end clearsisUsing,counters,index;setsCooldown;clearsactivepointer. interrupt/completecallend. NeitheritnorBluffattackoverridesclearactorvelocity/nav/noGravity. activeAnimationretainedbutpredicateonlyuseswhileactive; controllerfallsbackidle. This isanimationstatecleanup,notcompletephysicalcleanup.",
+    "UseAbilityAI.stop sendsinterruptonlyifcurrentactiveabilitytypeequalsowntype; defaultinterruptOnEndtrue. HURTgoalnoflagsmeansAttackGoalmaycontinueownstrafe/lookduringhurt. DIE/ATTACKgoalMOVE+LOOKexclusivitymaystoplowergoals,butnativeGoalSchedulerorderunread. NoPathstopdoesexplicitrestoregravity; do notassumeallotherabilityexitshaveequivalentrecovery.",
+    "MowzieEntitywholeextendsPathfinderMob, noownhurtoverride; diecaptureslootattributionthen super, tickDeathincrementsremoveswhen>=getDeathDuration,delayedloot,event60. GeckoDeathDurationusesactiveSimpleAnimationAbilitydurationelse20; DIEduration50, first14Bluffticklocksbody=head=yRotO. Lethalhurtselectsdeathafterparenthurt; nativeorder/nexttickabilitycompletionboundaryunverified. Noactualdeathclipso nofallposepromise."
+  ],
+  "body_and_render_pose_consumers": [
+    "WholeBluffgeo32x32: root→headandpivot; pivot→core/rotation1/2/3→pairedrods.10bones,10cubes (head3/core1/rods6),nolegs. HeadpivotY20; coreY16; rodsrotatedaroundpivot. It isalreadyknownexternalnonhumanstructure,notchildrigtemplateornewpartscredit.",
+    "ModelBluffwhole: whilealive three rotations addY(frame%360/4),coreinverse/coreYsin(frame/5)*.8/coreXsin(frame/9). TheseareAPIrotationvalues,notautomaticallydegrees; MowzieGeoBoneimplementationunread. ReadgeometrynotPNG. Headaddswrappedpitchradians, ROOT addswrappednetHeadYawradians. Thusyawturnswholemodel,notjusthead; cannotcallthispurehead/bodydecoupling.",
+    "MowzieGeoModelwhole applyMolangQueries restoresregisteredbonesinitialsnapshotrot/pos/scaleeachcallthen super. Proceduraladdsdonotintentionallyaccumulateacrossframes, butthisispose-resetonly. ActualbluffanimationJSONabsentlocallydespitetreeentry; cannotreadkeyframes/bonevisibility/collision/footclearance orclaimplayedbackward/hurt/death.",
+    "MowzieGeckoEntitypredicate stopsifabilitydataabsentorFrozen;activeability transition0 delegatesactiveanimation; otherwiseidleloop. Bluffloopingsuperidlewithtransition5. doDirectionalWalkdefaultfalse,noBluffoverride; directionalvarsnotusedforbackwardclip. Existinggenericdirectioncalculationretainslastweightswhenvelocitytinybutinactivehere.",
+    "RenderBluffusesModelBluffshadow.5. WholebaseRendererentityCutoutNoCull,deathMaxRotation0,normalpackedlight; dynamicchainhandlingconditionalbutBluffdoesnotsetdynamicChainsinwholeentity. Rootyawandheadpitchappliedinmodelnotphysicalcollision. Noimage/game/animationplayback andnoordinarylightartqualityassessment."
+  ],
+  "persistence_and_limits": [
+    "AbilitywriteNBTserializesusingcounters/sectionorcooldown;readNBT restoresisUsing/timersbutnotactiveAnimationorstartsideeffects. AbilityDatainstanceAbilitiesfirstclearsactivepointerthenmakesinstances+readNBT; noexplicitreselectactivefromisUsinginwholemethod. Capabilityattach/eventtick/packetrestoreoutsidebatch; do notclaimreloadcomplete.",
+    "EntityBluffhasnoownNBTsavesforflightmode,retreatbooleans,counters,prevTargetPos; baseMowzieonlycustomcooldownslist,preservingnativesuperunknown. TargetlossmaystopNoPathandrestoregravitybutdoesnotownabortactivegroundslam. HURTanimationisnotuniversalinterruptandHURTmovementnotexclusive.",
+    "GorgonAIStareAttackwholepreliminaryprobe wasgenericbowlikepolicy; excluded0,notanotherwholefamilyread. LocalBluffanimationmissingdoesnotprovealllocalfixedsourcesexhausted. Nativeflightcontrol/pathing,GeckoLibanimationprocessor,bonehelper,eventhandlersandactualclipsremainunclosed.",
+    "Applicable1000unverified. No productionbody/animation/hooks/assets/objects/mainlists/session/sharedJar modifications, noJava/game/network/audio/display. Thissourceextensionhasboundedmissingconsumer; nofullmechanismcompletionclaim."
+  ],
+  "conclusion": "Bluff provides explicit flight-goal gravity restore and ability-vs-movement separation, but target loss does not abortslam andhurtcanoverlayretreat. Actualanimationmissing means still incomplete forchildcontinuousbackwardfloat/recovery. Preserve sourceevidence andnegativeboundaries, newaccepted0.",
+  "complete": false,
+  "production_modified": false,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null
+}

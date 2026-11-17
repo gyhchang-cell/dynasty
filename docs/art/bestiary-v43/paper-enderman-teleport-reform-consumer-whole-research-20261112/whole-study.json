@@ -1,0 +1,42 @@
+{
+  "family": "minecraft:enderman",
+  "target": "dynasty:zhiren_jianke",
+  "mechanism": "受击位移与本体姿态独立；状态清理、重聚epoch、死亡和重载后的消费者边界",
+  "native_producer": [
+    "EnderMan用DATA_CREEPY/DATA_STARED_AT与carriedBlock同步。setTarget(null)清creepy/stared、移除攻击加速；非空置creepy并加瞬态速度，再调用super允许Forge事件改写。没有teleport authored clip ID或重聚计时器。",
+    "随机teleport仅服务器存活可调用，候选±32水平/±32高，向下找阻挡地面并排水，Forge EnderTeleport可取消/改点；再由LivingEntity.randomTeleport检查已加载、落地、noCollision/无液体，失败退原点，成功event46并停导航。成功/失败不得共用一个无条件reform动作。",
+    "hurt投射物/药水分支最多尝试64次teleport；纯水药水先super.hurt。普通非投射物先super.hurt，非Living来源90%概率再teleport。它不是纸人的一次致死保命，不复制伤害免疫、64次候选或随机范围。",
+    "FreezeWhenLookedAt优先1锁MOVE/JUMP并停导航，tick看向玩家；LookForPlayerGoal pending阶段经adjustedTickDelay(5)再生效，近距离被注视瞬移、远距未被注视累计teleportTime后靠近。默认goal调度非每世界tick，不能把5/30直接当精确墙钟；本批只复用既有调度研究。",
+    "LookForPlayer.stop清pending并调用TargetGoal.stop，后者清mob.target与targetMob，经过setTarget派生清姿态；但是Native TargetGoal其他续用父逻辑未全读，不宣称所有目标移除路径统一。"
+  ],
+  "native_body_and_lifecycle": [
+    "Renderer每次draw显式写model.carrying/creepy，再super.render；creepy抖动是renderer XZ高斯偏移.02，未更改实体碰撞/服务器位置。EndermanModel先super.setupAnim，再把四肢摆幅减半/夹±.4，carrying覆写双臂-0.5、zRoll±.05；head.y先回-13再creepy减5，避免此项逐draw累积。",
+    "head/hat复制位置旋转发生在creepy抬头之前；不据此声称头饰穿插，实际画面未看。HumanoidModel父类完整setupAnim、CarriedBlockLayer/EnderEyesLayer未读，不声称整个模型消费者已闭合。",
+    "LivingEntity event46沿xo→当前位置生成128个portal点，是空间路径反馈，不是身体散架。原生常驻两点portal与瞬移成功事件也应分开，不能把粒子数量当独立动作或参考实例。",
+    "EnderMan保存carriedBlock与persistent anger，而非creepy/stared/pendingTarget/aggroTime/teleportTime。NeutralMob34..84恢复AngerTime/UUID并尝试恢复lastHurt来源，不直接恢复Enderman body.currentPose；目标重新成立再派生姿态。卸载网络/新实体构造及Humanoid残留没有完整回放。",
+    "EnderMan无自定义死亡身体clip；复用已读LivingEntity death20tick及renderer90度侧倒基础消费者。与纸人0.5秒销毁不同，不移植死亡长度或细长身体几何。"
+  ],
+  "current_body_consumer": [
+    "真实绑定为geo/animations blueprint/cod2_voxel/zhiren_jianke而非旧blueprint同名资源；保持已认可薄纸身体和Steve基础正面识别。paper_sword挂right_hand，right_grip也挂hand；不制作剑对象。",
+    "PaperSubstitution在LOWEST LivingDamageEvent取护甲后最终伤害，preventPaperFatal仅PAPER/服务器/存活调用。成功把本次伤害上限设health-1，保留至少1HP；不是取消全部hurt反馈或无敌一段时间。",
+    "preventFatal要求本次伤害致死、1200tick冷却已过、不绕无敌、有效敌人16格内及paperLanding成功。landing为目标后5格优先，±45度侧后与Y0/+1/-1共9列；已加载/边界/无液体/站立空间/无活物重叠/眼到落点LOS均通过才落点，不新加载区块。",
+    "成功先记录cooldown、cancelAction、保留health，teleport到安全点/速度清零/锁target，endStun后临时substituting允许startSkill(PAPER_SHED)，finally复位；起点纸屑由独立服务器粒子发出。startSkill返回值未检查，失败入口是否可能发生需运行验证，不能当已复现失败或本批改AI。",
+    "PAPER_SHED6+1+9=16tick，impact6但Paper.impact仅SLASH有逻辑，重聚本身无伤害；shed.8秒chest Yscale1→.4@.1→.75@.3→1@.6，双肩外张复位。scale不含pelvis/腿，不能把它当完整身体散落。",
+    "SLASH6+1+13=20tick接触6；attack1秒腰扭和右肩.3秒主挥，左肩平衡。既有服务器SECTOR伤害来自实体与锁方向，不由剑骨顶点生成。PAPER未排除兵煞1.3加速，effective时钟/动画seek需一起看，不改固有判定。",
+    "substitutionUntil绝对时间保存并load夹到now+1200，substituting临时门不保存；当前动作由TimedAttack保存epoch/fired，过期取消、遗漏接触不补发。单独冷却与身体重聚16tick不能混作同一持续状态。",
+    "视觉事件以dimension/UUID/epoch去重，cancel仅清同caster且旧epoch，logout/换维清；StartTracking补剩余skill或death事件。客户端缺实体时暂跳过，age过期才移除，不把粒子临时cache当身体NBT。",
+    "死亡common die取消attack并发death事件，PAPER10tick移除；death.5秒现有身体为pelvis沉、腰折70度、腿外展，Renderer去掉默认死亡翻转与PAPER死伤overlay。deathParticles纸人0..5tick END_ROD、6..9tick SQUID_INK，另有粒子预算与每3tick采样；没有在本批运行确认可见白火化灰。"
+  ],
+  "remaining_body_gaps_and_boundaries": [
+    "现有reform只压缩chest分支，整体腿部没有收散/重聚通道；是否满足原地纸屑替身+真身重聚，需完整同场回放，不因已有一个shed名字就判完整通过。后续身体修复也应保留已认可模型形体与16tick逻辑。",
+    "外部原要求零帧补间抽搐；已读attack/shed以普通数值键呈现，未见这些焦点通道显式step/hold。GeckoLib缺省插值与程序消费父链未全读，不将其宣称已复现平滑或已完成零帧跳变。",
+    "死亡身体是折倒，粒子是白光/墨点；0.5秒长度符合不等于燃尽效果已验。留作身体/视觉协作验收项，黑墨持续地面表现未完整查证，不虚构已有贴花。",
+    "未查看参考PNG/截图、未新建身体/UV/贴图或物件、未开Java/游戏。此为一种完整家族机制候选研究，父类/视觉实测未闭合处明示，不计独立验收参考，不删cod1。"
+  ],
+  "whole_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

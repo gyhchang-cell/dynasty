@@ -1,0 +1,46 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "whole_source_count": 7,
+  "whole_source_lines": 1211,
+  "actual_animation_kind": "Complete procedural setupAnim, no external keyframe asset required; unused ModelAnimator constructed but never updated. Not missing-animation HOLD; independent applicability remains HOLD0.",
+  "body": {
+    "hierarchy": "17 named parts; root -> body -> wings/left-right leg groups/tail/head; head -> paired antennae/mouth. Wings/legs/antennae are planes, not cuboid solid rectangles. Tail and mouth cuboids. Body 6x6x6, head4x4x4, abdomen4x4x16; declared128x128.",
+    "attachment": "Natural mouth child of head; mount attachment is actor rideTick radius1 using host yBodyRot and quarter-eye height, not animated mouth-bone transform. No lamp/helditem objects designed or edited."
+  },
+  "actual_facing_retreat_consumer": [
+    "FlyAwayFromTarget MOVE canUse flying, not passenger, target nonnull, blood>0 OR drinkTime<0, no fleeing ID. canContinue target nonnull and blood/cooldown and flying and no horizontalCollision; it omits fleeing ID/passenger/alive checks present or implied elsewhere.",
+    "shootPos picked radius4..8 around target with target.yHeadRot+90+random0..179, targetY+1; require actor distance squared>30 and unobstructed point, else own block position. This is an orbit/reposition sample, not guaranteed monotonic increasing target distance.",
+    "tick sets MoveControl wanted position to shootPos at1.0 and lookAt target30. Controller MOVE_TO adds normalized displacement*speed*.05 to velocity. WITH target it sets actor YRot and yBodyRot directly from targetXZ, WITHOUT target from velocity. Actual displacement-vs-facing separation exists while moving toward retreat point; not dependent on skeletal head animation.",
+    "At point closer than2.5 squared, sets shooting state if cooldown0 and blood>0, then clears shootPos to choose another. stop only spitCooldown=20, leaves shootPos/wanted operation/velocity/flying/SHOOTING. FlyTowardsTarget.stop empty, RandomFlyGoal.stop targetnull only.",
+    "Arrival below AABB size switches WAIT and halves full velocity. WAIT while flying does not explicitly zero old velocity or movement input. Flyingfalse branch explicitly WAIT/speed0/Zza0/Xxa0 but does not explicitly clear deltaMovement.",
+    "Flying STRAFE branch computes vertical desired acceleration with unguarded length division, forces forwards1/right0 regardless requested strafe input, then WAIT. Therefore native strafe(-1,...) cannot be assumed supported by this custom flight controller.",
+    "Server tick toggles noGravity from isFlying BEFORE later repellent/lure/takeoff flying flag writes; flag transition can lag gravity update one tick. Passenger first sets flyingfalse. No custom hurt/death cancellation of all flight state shown.",
+    "After flightTicks>200 and no valid living target, landing branch calls getDeltaMovement().add(0,-.2,0) WITHOUT assigning returned vector; do not describe this as successful descent force. Only onGround sets flyingfalse and negative flightTicks.",
+    "Repellent flee is different: sets target/lastHurtBy null, unmounts, samples away point, then drives MOVE_TO. Target-null controller faces velocity, not original threat. Do not treat repellent flee as continuous target-facing retreat.",
+    "RandomFlyGoal continue omits target/lure/repellent checks from canUse; tick-level direct controller writes from repellent/lure and goals may overlap. Native scheduler not read, so final arbitration remains unproven."
+  ],
+  "actual_animation_and_recovery": [
+    "flyProgress and shootProgress rise/fall one per tick0..5 from synchronized flags; model resets pose each setupAnim, reads partial interpolation. Entity assigns prevFlyProgress=flyProgress and prevShootProgress=shootProgress at END of tick, unlike true previous-before-update capture; no smooth interpolation promise.",
+    "Flight: bodyY -10 scaled progress/5, six planar legs yaw spread and Z±60, bodybob speed.25 degree2.5, wingsflap1.65/.5, leg flaps.5/.25, tailwalk.5/.075. Antenna walk always. Ground wings X30/Y±70 if neither flight progress nor randomwingflaptimer.",
+    "Shooting: setupShooting sets synchronizedSHOOTINGtrue and shootingTicks5. Model headX-10 and mouthX-20 scaled progress/5; mouthscale(1+.1p,1-.1p,1+.1p), so firing organ pulses rather than whole body waving.",
+    "Server countdown on5th update attempts spit only targetnonnull/blood>0, then SHOOTINGfalse; spit rejects sick. No alive/LOS recheck in own countdown. Server timer and client visual flag progression not an exact same-epoch contact receipt; target loss skips emission but does not cancel visual until countdown completes.",
+    "Passenger: bodyX-90/Y180, headX+40, mouthX+10, legZ±50 and mouthY pulsing .85+.15sin(age). Nonpassenger explicitly resets mouthscale1; later shooting overrides scale whenprogress>0. Tail explicitly sets scale1+.1blood each frame and subtracts blood*.05 from X. Pose and scale exits exist in this model, distinct from actor-motion cleanup.",
+    "No head faceTarget/netHeadYaw/headPitch use in model. Attention comes from controller actor facing and native look/render pipeline, not independent animated eye/head gaze. No own authored hurt/death clip. No model-view playback performed."
+  ],
+  "riding_lifecycle": "rideTick zeros velocity before tick, copies host yaw/body/head and repositions. Every20 drinkTime ticks server damageattempt and acceptedhurt increases blood; full blood>3 or drinkTime>81 removes vehicle, flyingfalse/flightTicks-15. Else nonpassenger entitytick always resets drinkTime0, so negative drink cooldown not guaranteed persistent while unmounted. Packets/native riding internals not reviewed, no networking correctness claim.",
+  "renderer": "1.2*interpolatedMosquitoScale; sick/flee renderer shake; normal/sick and fromfly select four PNGs, blood>0 uses eyes layer. PNG contents not viewed in this batch; historical atlas study not current visual QA.",
+  "negative_controls": {
+    "hover_backward_monotonic": "NOT PROVEN: sampled orbital point can change distance; no required zero-speed hover.",
+    "actor_faces_target_during_MOVE_TO": "FOUND explicit XZ target yaw consumer, bounded to MOVE_TO not WAIT and not repellent-null branch.",
+    "complete_exit": "NOT FOUND own stops do not clear motion/path/flying/shooting and no inherited proof.",
+    "animated_head_gaze": "ABSENT model ignores yaw/pitch arguments.",
+    "landing_acceleration": "UNASSIGNED add result, cannot claim downward force from that expression.",
+    "all_reference_gate": "UNVERIFIED, no production."
+  },
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "gap_to_1000": null,
+  "production_modified": false,
+  "pending": "Independent relevance and whole-family acceptance; inherited engine motion, gravity sync, scheduler and Citadel helpers not proven. No approved geometry/animation/runtime assets changed."
+}

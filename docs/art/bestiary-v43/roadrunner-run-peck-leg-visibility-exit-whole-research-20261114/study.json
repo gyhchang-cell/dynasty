@@ -1,0 +1,39 @@
+{
+  "family": "AlexsMobs:Roadrunner",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "非人双足陆行身体、啄击时钟、脚部方向补偿与可见性退出；不制作靴子或物品，也不为 Dynasty 新增喜剧状态。",
+  "prior_full_comparison": [
+    "完整阅读 Jerboa study：Jerboa 同步离地标志驱动共用腿/脚与rebound阶段；Roadrunner 左右独立腿膝脚、run权重直接来自limbSwingAmount，并有明确足部角补偿。二者不同，但通用walk helper不加信用。",
+    "比较已完整研究 Mimicube 的ATTACK_TICK延迟伤害：相同5tick倒计时不能当新机制身份；本例啄击作用于neck，无手持接口。",
+    "v43 study/dedup Roadrunner精确名有界检索未见已有整链；不保证全局首次。"
+  ],
+  "body_and_final_pose": [
+    "64×64，15个唯一节点：root→body4×4×7→平面左右翼、8×0×13尾、3×8×3neck及头顶平面、beak、两侧spin替代块、两套leg→knee→foot。无独立下颚。getAllParts列表重复left_leg及beak，不代表新增节点或参考。",
+    "setup reset；runProgress=5*limbSwingAmount，body−5°、neck+25°、腿−15°、尾−10°并张翼。左右腿/膝反相walk，腿枢轴Y另有相位位移。主体bob和neck/tail也按步态摆动，不能把普通行走等同单根腿转动。",
+    "最终footX=−(legX+kneeX+bodyX)−π/2，在这串X旋转里抵消父级倾角，足片方向可保持−90°；不等于地形接触、脚底固定或IK。前后足端位置仍由父节点运动决定。",
+    "aiStep缓存oFlap/oFlapSpeed，destPos接地−.3/离地+1.2并clamp0..1，wingRotDelta空中至少1后*.9，wingRotation累加；模型插值后wingSwing=(sin(f)+1)*f1，再作为flap时间输入，不是直接把该数当翼角。下降Y*.8，不等于持续飞行或主动跳跃。",
+    "biteProgress0..5使neck+55°，其后叠run、idle、faceTarget和分支neckwalk；最终喙方向应看所有叠加而非只看55°。伤害不采样喙端，没有张嘴/分离上下喙时间轴。"
+  ],
+  "attack_qualification_exit": [
+    "注册PanicGoal和MeleeAttackGoal同priority1，另有Float、Breed、FollowParent、Tempt、Wander与look。target是响尾蛇或HurtByTarget结果。完整原生调度、TargetGoal、MeleeAttackGoal/PanicGoal未在本包读取；不凭优先级或名字保证互斥与清理正确。",
+    "doHurtTarget(entityIn)只把同步ATTACK_TICK设5并返回true，未保存传入entityIn。aiStep在tick==2时伤害当前getTarget且距离<1.3，固定2伤害；不是立刻伤害，也不绑定原传入目标。没有本分支显式LOS/目标存活检查；原生AI资格可能另有限制，不能把缺少局部检查写成实机可穿墙。",
+    "倒计时>0逐tick−1，attackProgress逐tick+1上限5，否则−1回零；prevAttackProgress在更新前缓存。失去目标只跳过伤害，不取消倒计时或已有视觉；中途换目标可能在接触分支消费新目标，需运行验证，不能宣称已复现。",
+    "本类没有攻击结束/受伤的Goal stop、导航停止或delta清零处理，也未自定义hurt或death动画。身体姿态通过progress和default reset恢复；物理/目标恢复仍属原生链路缺口。AnimalAIWanderRanged已复用整读，只覆写资格/选点，不证明其原生stop负责清速度。"
+  ],
+  "alternate_visibility_and_reload": [
+    "isMeep由名称含meep或AlexsMobs.isAprilFools返回值决定；外部AprilFools实现未读。模式进入时一次设MOVEMENT_SPEED基础值1，离开恢复.45，未清当前速度或导航；不是瞬间物理停车。",
+    "只有limbSwingAmount>.5且isMeep时显示两spin块、隐藏正常腿；每帧else明确反向恢复showModel。spin的scale/旋转按age与步态写入，退出时隐藏；没有证据表明游戏碰撞随这些替代块变化。不能把替代腿当第三实体或独立参考。",
+    "正常分支尾/颈walk和bodybob，spin分支旋转替代块并另有强bob。粒子仅客户端模式下接地/非水且速度平方>.03时出现；本次未执行粒子或声音，也不把这套喜剧外观迁入Dynasty。",
+    "NBT只显式保存羽毛倒计时+super；ATTACK_TICK/progress、flap历史、hasMeepSpeed未在本类保存。恢复后按名称重判模式，不保证啄击/转腿相位连续。",
+    "renderer单ModelRoadrunner，普通/Meep PNG二选一，shadow.3，无手持或挂件层。幼体模型整体.5、neck1.75并缩放子节点，画后neckScale恢复1。成年不额外scale；没有源代码证据从此推断包围盒随幼体模型比例完全吻合。"
+  ],
+  "application_and_limits": [
+    "未来审核非人双足怪：检查腿/膝/脚是否连接、足部补偿是方向还是接地、攻击实际消费哪个目标，以及替代外形退出时的显隐恢复。不得复制模型或加入喜剧跑腿/改现存生物主题。",
+    "完整读取这份自定义Entity/Model/Renderer不等于完整原生AI/物理验收。PNG未查看，未回放动作、未运行Java或游戏；适用累计及1000缺口未知，新增独立验收0。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

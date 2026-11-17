@@ -1,0 +1,41 @@
+{
+  "family": "AlexsMobs:Shoebill",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "非人鸟体、独立上下喙、捕鱼关键帧与惊飞落地恢复；只读物品目标接口，不制作掉落/喂食对象。",
+  "prior_full_comparison": [
+    "先完整比较 BaldEagle whole-study：Eagle 用fly/tackle/swoop约束抓取与拍翼，本例捕鱼ModelAnimator与flight进度叠加、逃飞目的地/降落条件不同，不按两种飞姿拆数。",
+    "已完整阅读Hummingbird悬停/局部stop：本例有陆/空控制器切换且捕鱼stop显式停导航，但仍不等价delta清零。共享控制器和导航复用。",
+    "v43 study/dedup Shoebill精确名未见具名整链，非全局新颖性证明。"
+  ],
+  "body_and_final_motion": [
+    "128×128，18节点：root→body8×6×13→tail、两翼各接羽平面、两腿各接足平面、headPivot→长head→backHair/hair_r1、beak→jaw→jaw_r1。主要8×6×13躯干和5×5×11头连接，喙6×8×3具有独立下颚，不是单片嘴线。PNG未看，不评有效像素或最终透明轮廓。",
+    "FISH声明40tick；作者帧15tick抬头，5tickbodyX+40/腿−40补偿、head+80/jaw+20/bodyY+1/headZ−2，3hold、5reset，共28。40声明余段没有本模型另写关键帧，不臆补hold。",
+    "BEAKSHAKE声明20，四次4tick头X40/Y±40后4reset。ATTACK声明20，5tick头−20/jaw30，再5tick头60/jaw5，5reset，共15，剩余尾段依赖Citadel。三个clip是同家族，不独立计数。",
+    "setup animate之后叠run=max(5*min(1,limbAmount*1.6)−fly,0)和fly0..5。runbody+25/腿−25/head−30；flybody+35、腿脚+25、翼X90/Z±80、head−20、尾10并移bodyY+5。飞行>0用全幅拍翼/bob，未线性按剩余进度减拍翼幅；陆地腿脚反向walk。最后headZ += netHeadYaw弧度，不是常规headY yaw输入，headPitch未直接使用。",
+    "作者腿角补偿用于捕鱼与姿态，模型无地形采样/IK；不能宣称足平面贴地。自定义模型未见幼体renderToBuffer覆写，不能套用其它鸟的幼体头scale。"
+  ],
+  "fishing_qualification_contact_exit": [
+    "ShoebillAIFish 占MOVE/LOOK，canUse非飞行、cooldown0且随机1/30；在水中取当前位置，否则搜索32范围15点、要求邻侧两格无流体，targetPos取邻岸。寻找资格未直接验证邻岸实体完整碰撞或solid支撑。",
+    "实际tick仍导航waterPos而不是计算出的targetPos。距水中心平方<=1时停止导航、统一主体/头yaw并idleTime++；>25每ticksetAnimation(FISH)，>45且当前FISH时重设cooldown、产奖励并stop。setter仅赋动画对象，未重置tick，不能把反复调用说成必然从第0帧重播。",
+    "作者捕鱼动作20tick到下探阶段，实际奖励按idleTime>45而非喙端或动画tick接触。完整原生/Citadel调用顺序未运行，不能宣称准确接触帧已验。navigateTime>3600时stop；continue要求targetPos非空、cooldown0、revenge0、非飞行，未检查攻击目标/水块仍有效。",
+    "stop清targetPos/waterPos/idleTime/navigateTime并stop navigation，但不clear animation、delta、MoveControl目的地或攻击目标。中断时捕鱼动画可继续由Animator管理，不能把Goal stop说成动作和运动全停。奖励源码只读，未制作物件资产或改掉落。"
+  ],
+  "flee_modes_and_attack": [
+    "成功hurt且伤害源实体非鱼时给周围同类100..249 revengeCooldown。Flee goal canUse要求revenge>0且onGround；start设Flying，continue flying且(运行<15或未接地)。tick找逃离点/仇恨归零后找地面点，距目标平方<4清目标。",
+    "revenge归零且入水或下方非空时直接stop并Flying=false，不必先onGround；stop清局部目的地/时钟及Flying，但不navstop/delta0/noGravity。server下一tick按Flying切陆/空控制器和导航，设置noGravity；对象替换不证明旧速度清空。",
+    "Entity有revenge>0&&!flying分支，但接地/入水时只再次setFlying(false)，本段并不启动飞行。真正飞行入口在Flee.start。优先级3近战、4Flee；原生调度未读，不能保证所有受伤必立即惊飞。",
+    "FlightMoveController近目标WAIT且delta*.5，否则归一化加速度；Flight使用shouldLookAtTarget=false。DirectNav给MoveControl写目标，不等价全路径避障；未调用的canReach不能当安全证据。",
+    "doHurtTarget仅NO_ANIMATION时启动ATTACK；server动画tick9且target非空/LOS可见时击退并按攻击属性伤害，本分支无距离复核。当前目标而非传入对象/喙骨位置参与判定；原生近战资格与玩家边界未运行。",
+    "WadeSwimming在水高>1或岩浆时0.8概率请求jump，无专用姿态/退出清速度。NearestTarget3D只改搜索AABB三轴膨胀，不证明目标继续和退出行为已全读。拾物接口只读既有回调和治疗/级别，不制作物品。"
+  ],
+  "binding_reload_limits": [
+    "NBT保存Flying/FishingTimer/Luck/Lure/RevengeCooldown；不保存局部水/岸/飞行目标、flyProgress或当前动画/tick。重载后server重新切控制器、flyProgress爬升，不是捕鱼帧与导航原地续接。仇恨归零清lastHurt，但未clear攻击目标。",
+    "Renderer只ModelShoebill+shoebill.png、shadow.3、scale空，无额外物品层。不存在本包可声称的server喙端挂点。",
+    "固定源自定义全链已读，原生Melee/RandomStroll/TargetGoal及Citadel动画结束/网络仍保留缺口。没有PNG视觉研究、回放、Java/游戏，不改认可资产；适用1000累计未知，新增独立验收0。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

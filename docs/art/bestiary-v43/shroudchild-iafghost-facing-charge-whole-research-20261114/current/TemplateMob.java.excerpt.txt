@@ -1,0 +1,35 @@
+149:         else if (kind == Kind.SKULL || kind == Kind.LANTERN_BAT || kind == Kind.BLIND_FISH || kind == Kind.YECHA) {
+150:             this.navigation = new net.minecraft.world.entity.ai.navigation.FlyingPathNavigation(this,level);
+151:             this.moveControl = new net.minecraft.world.entity.ai.control.FlyingMoveControl(this,16,true);
+152:             setNoGravity(true);
+153:             goalSelector.getAvailableGoals().stream().map(net.minecraft.world.entity.ai.goal.WrappedGoal::getGoal)
+154:                 .filter(g->g instanceof WaterAvoidingRandomStrollGoal).toList().forEach(goalSelector::removeGoal);
+155:             goalSelector.addGoal(5,new net.minecraft.world.entity.ai.goal.WaterAvoidingRandomFlyingGoal(this,.65));
+156:         }
+157:         else if (kind == Kind.SHIELD || kind == Kind.CHILD) {
+158:             this.navigation = new CenteredGroundNavigation(this, level);
+159:             this.moveControl = new ShieldCoverMoveControl(this);
+160:         }
+847:         @Override public boolean canContinueToUse() { return canUse(); }
+848:         @Override public boolean requiresUpdateEveryTick() { return true; }
+849:         @Override public void stop() { navigation.stop(); setSprinting(false); }
+850:         @Override public void tick() {
+851:             LivingEntity target = getTarget();
+852:             if (!validEnemy(target)) return;
+853:             long now = level().getGameTime();
+854:             if(kind==Kind.TREE&&!treeAwake()){navigation.stop();return;}
+855:             getLookControl().setLookAt(target, 30, 30);
+856:             if (attack.state(now) != AttackState.IDLE) { navigation.stop(); return; }
+857:             if(followJinwu(now))return;
+858:             // Goal selection precedes customServerAiStep. At a twenty-tick scan boundary
+859:             // the old chase used to overwrite the validated cover path before it could
+860:             // be refreshed; at its endpoint it also chased out of the guarded position.
+861:             // Keep the finite server-owned cover plan higher priority than chase, but
+862:             // a close enemy still has priority for the authored shield counter.
+863:             // Navigation still advances normally; no position, velocity or player lock.
+864:             if(kind==Kind.SHIELD&&now<coverUntil&&distanceToSqr(target)>6.25)return;
+865:             if(army!=null){
+866:                 int id=army.choose(target,now);
+867:                 if(id>0&&attack.ready(id,now)&&startSkill(id,target))return;
+868:                 if(now>=nextMovement){nextMovement=now+10;army.move(target,now);}
+869:                 return;

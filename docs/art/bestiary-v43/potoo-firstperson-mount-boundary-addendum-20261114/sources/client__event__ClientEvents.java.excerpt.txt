@@ -1,0 +1,76 @@
+269:     @SubscribeEvent
+270:     @OnlyIn(Dist.CLIENT)
+271:     public void onRenderHand(RenderHandEvent event) {
+272:         if (Minecraft.getInstance().getCameraEntity() instanceof IFalconry) {
+273:             event.setCanceled(true);
+274:         }
+275:         if (!Minecraft.getInstance().player.getPassengers().isEmpty() && event.getHand() == InteractionHand.MAIN_HAND) {
+276:             Player player = Minecraft.getInstance().player;
+277:             boolean leftHand = false;
+278:             if (player.getItemInHand(InteractionHand.MAIN_HAND).getItem() == AMItemRegistry.FALCONRY_GLOVE.get()) {
+279:                 leftHand = player.getMainArm() == HumanoidArm.LEFT;
+280:             } else if (player.getItemInHand(InteractionHand.OFF_HAND).getItem() == AMItemRegistry.FALCONRY_GLOVE.get()) {
+281:                 leftHand = player.getMainArm() != HumanoidArm.LEFT;
+282:             }
+283:             for (Entity entity : player.getPassengers()) {
+284:                 if (entity instanceof IFalconry falconry) {
+285:                     float yaw = player.yBodyRotO + (player.yBodyRot - player.yBodyRotO) * event.getPartialTick();
+286:                     ClientProxy.currentUnrenderedEntities.remove(entity.getUUID());
+287:                     PoseStack matrixStackIn = event.getPoseStack();
+288:                     matrixStackIn.pushPose();
+289:                     matrixStackIn.scale(0.5F, 0.5F, 0.5F);
+290:                     matrixStackIn.translate(leftHand ? -falconry.getHandOffset() : falconry.getHandOffset(), -0.6F, -1F);
+291:                     matrixStackIn.mulPose(Axis.YP.rotationDegrees(yaw));
+292:                     if (leftHand) {
+293:                         matrixStackIn.mulPose(Axis.YP.rotationDegrees(90));
+294:                     } else {
+295:                         matrixStackIn.mulPose(Axis.YN.rotationDegrees(90));
+296:                     }
+297:                     renderEntity(entity, 0, 0, 0, 0, event.getPartialTick(), matrixStackIn, event.getMultiBufferSource(), event.getPackedLight());
+298:                     matrixStackIn.popPose();
+299:                     ClientProxy.currentUnrenderedEntities.add(entity.getUUID());
+300:                 }
+301:             }
+302:         }
+303:         if (Minecraft.getInstance().player.getUseItem().getItem() instanceof ItemDimensionalCarver && event.getItemStack().getItem() instanceof ItemDimensionalCarver) {
+304:             PoseStack matrixStackIn = event.getPoseStack();
+305:             matrixStackIn.pushPose();
+306:             ItemInHandRenderer renderer = Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer();
+307:             InteractionHand hand = MoreObjects.firstNonNull(Minecraft.getInstance().player.swingingArm, InteractionHand.MAIN_HAND);
+308:             float f = Minecraft.getInstance().player.getAttackAnim(event.getPartialTick());
+309:             //float f1 = Mth.lerp(event.getPartialTick(), Minecraft.getInstance().player.xRotO, Minecraft.getInstance().player.getXRot());
+310:             float f5 = -0.4F * Mth.sin(Mth.sqrt(f) * Mth.PI);
+311:             float f6 = 0.2F * Mth.sin(Mth.sqrt(f) * Mth.TWO_PI);
+312:             float f10 = -0.2F * Mth.sin(f * Mth.PI);
+313:             HumanoidArm handside = hand == InteractionHand.MAIN_HAND ? Minecraft.getInstance().player.getMainArm() : Minecraft.getInstance().player.getMainArm().getOpposite();
+314:             boolean flag3 = handside == HumanoidArm.RIGHT;
+315:             int l = flag3 ? 1 : -1;
+316:             matrixStackIn.translate((float) l * f5, f6, f10);
+317:         }
+318:     }
+319: 
+320:     public <E extends Entity> void renderEntity(E entityIn, double x, double y, double z, float yaw, float partialTicks, PoseStack matrixStack, MultiBufferSource bufferIn, int packedLight) {
+321:         EntityRenderer<? super E> render = null;
+322:         EntityRenderDispatcher manager = Minecraft.getInstance().getEntityRenderDispatcher();
+323:         try {
+324:             render = manager.getRenderer(entityIn);
+325: 
+326:             if (render != null) {
+327:                 try {
+328:                     render.render(entityIn, yaw, partialTicks, matrixStack, bufferIn, packedLight);
+329:                 } catch (Throwable throwable1) {
+330:                     throw new ReportedException(CrashReport.forThrowable(throwable1, "Rendering entity in world"));
+331:                 }
+332:             }
+333:         } catch (Throwable throwable3) {
+334:             CrashReport crashreport = CrashReport.forThrowable(throwable3, "Rendering entity in world");
+335:             CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being rendered");
+336:             entityIn.fillCrashReportCategory(crashreportcategory);
+337:             CrashReportCategory crashreportcategory1 = crashreport.addCategory("Renderer details");
+338:             crashreportcategory1.setDetail("Assigned renderer", render);
+339:             crashreportcategory1.setDetail("Rotation", Float.valueOf(yaw));
+340:             crashreportcategory1.setDetail("Delta", Float.valueOf(partialTicks));
+341:             throw new ReportedException(crashreport);
+342:         }
+343:     }
+344: 

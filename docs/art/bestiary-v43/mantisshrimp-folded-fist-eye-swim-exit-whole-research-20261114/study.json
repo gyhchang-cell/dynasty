@@ -1,0 +1,41 @@
+{
+  "family": "AlexsMobs:MantisShrimp",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "现有蟹兵/虾兵附肢与观察中心、动作入口/接触/恢复的参考；不替换认可身体，不制作物品/帽子/手持模型。",
+  "prior_full_comparison": [
+    "完整比较Lobster全链study：Lobster body→arm→hand对向yaw，两个腿群平面，攻击先super伤害再倒计时；本例head→arm→fist折叠链、四眼角同步量与4tick出拳，doHurtTarget不先调用super。不是同一钳动helper换色。",
+    "已核读Platypus全链，水陆controller/nav切换及speed0不清delta属于共享方法，不重新计信用；本例游泳姿态还乘实际limbSwingAmount，并用punch削弱head旋转。",
+    "v43 study/whole-study具名MantisShrimp有界检索未见完整包；不证明全仓新颖，独立验收仍0。"
+  ],
+  "body_pivots_and_stack": [
+    "128图集，16节点。rootY24→body pivot[0,-14,-5]、box12×10×25；body→tail pivot[0,0,21]、box14×9×9默认X−.2182；body→前腿群10×9×8及后腿群10×6×18，非逐足关节。head pivot[0,4,2]、box12×14×8默认X.3491，与水平躯体不同朝向。",
+    "head接左右独立眼4³ pivot[±3,-14,-4]、两片flapper14×5×0、两触须平面8×0×13，以及arm pivot[±4,-1,-8]box5×10×3。每arm接fist pivot[∓1,-7,-1]box4×10×4。拳端继承head和arm，不能用拳本地角当世界挥击方向。",
+    "resetDefaultPose后，独立eye pitch/yaw插值转弧度，head加netHeadYaw*.5和headPitch*.8；idle触须/口片/臂摆及两腿群walk/bob继续叠加。没有足底IK、刀具碰撞或眼射线攻击。",
+    "swimProgress=min(limbAmount,.25)*4*interpWater0..5。head目标X45乘max(0,swim−punch*2.5)，但headY−6、臂Y−3/X20、须X−45仍按swim叠加。swim>0加body/tail/headbob/walk，无专用重置到另一骨架。",
+    "punch0..2：arm移动左右内收1/Y−7、X70；fistY−2/Z−2、X−240/Z±10；口片Yaw±50。臂/拳反向折叠产生前打，非单刚体摆臂。idle/gait/look仍叠在上面，原生实际拳端轨迹未回放。",
+    "幼体整体.5，眼1.15；adult显式眼scale1。Renderer整体.8/shadow.6，四variantPNG共用一骨架，不算4只。原PNG0及6x已看，其他变体未看。"
+  ],
+  "producer_contact_and_recovery": [
+    "doHurtTarget只punch()写PUNCH_TICK4并returntrue，不调用super；不能将返回true当已造成伤害。aiStep缓存prev，counter>0推进progress至2并counter--；counter==2且当前target距离<2.8才击退、加Y、可能点火并hurt。该块本身无server guard、无新LOS/valid/alive检查，不复制到Dynasty。",
+    "加Y的knockbackResist从施术者自身属性取，不是目标；攻击伤害又是另一hurt调用，不能把物理击退等同有效伤害。水泡在client且punchProgress==2时从actor宽度/yaw推导，不是模型拳骨采样。",
+    "counter结束后progress每tick−.25，通常从2用8tick回落；没有目标仍退钟。无本类统一攻击取消回调清counter/nav/delta。坐姿只停路径并把travel输入置零，水travel*.9也不等于清惯性。受伤方法没有单独清拳。",
+    "水中progress每tick±1到5并切换Sink(1,1)/SemiAquatic与陆MoveControl/GroundWide，无显式旧路径/delta复位。shouldStopMoving只sit；入水需不持水桶且不sit，离水只看持桶。指令/湿度玩法不移植。",
+    "双眼各自target角±30、随机冷却3..17，当前差>.5每tick最多4度趋近。updateEyes/水姿/counter在aiStep没有整体server guard；同步变量和客户端渲染插值的最终一致性待运行。"
+  ],
+  "noncombat_entry_exit_and_interfaces": [
+    "完整读两Goal是追踪同一个punch入口，不设计其物件。FryRice占MOVE，canUse/continue要求可处理手持且不sit，再委托MoveToBlock；到达且progress0才punch，>200tick换物，stop重置计时并按wasLitPrior关炉后super。wasLitPrior在候选验证时赋值，未证跨候选无差异，不移植炉逻辑。",
+    "BreakBlocks占MOVE/LOOK，非幼体、无活目标、command3、有手持时定期找同物方块，接近后两tick重复punch，之后break并直接stop；continue timeout<1200，tick另有>2400分支。stop清search/timeout/destination但不清idleAtFlowerTime、导航、delta或punchcounter，未把退出说成全部恢复。",
+    "FollowOwner canUse排除无主人/旁观/坐/指令非1/近4格/活目标；continue需导航未完且距>2格。stop清owner、停nav、还原watermalus，未清速度。远12格尝试10处传送，水位候选早returntrue未进陆地noCollision分支。只保留实际边界，不引入跟随/传送玩法。",
+    "挂点仅Layer接口：root→body→head→选侧arm→fist，幼体.5，GROUND物件再平移和旋转（非3D图标还Z±40），额外scale1.2。没有读取物品模型/PNG或把它当服务器接触点；对象留贴图专岗。"
+  ],
+  "persistence_application_limits": [
+    "本类NBT仅Sitting/Command/Moisture/Variant，未保存眼角/随机目标、PUNCH_TICK/progress、水进度、喂食和Goal临时状态；父类驯养状态不在本批完整继承核读范围，不能说原帧重载。",
+    "当前蟹兵已是body→arm→claw→pincer、独立eye，保留它；只可用来检查上游父骨朝向、末端折叠、观察中心与游泳/攻击叠加。虾兵已有制作记录，不据此选择重做。",
+    "完整自定义类+PNG对照，不等于原生Melee/Sit/目标选择/网络/物理/Citadel全链验收。共享helper复用旧记录，不算生物。无Java、游戏、声音、生产更改，适用1000累计/缺口未知。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

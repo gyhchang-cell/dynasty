@@ -1,0 +1,73 @@
+{
+  "recorded_utc": "2026-11-09T17:51:25.289163+00:00",
+  "original_task": "cod1.txt §10 搬山甲胄尸狂",
+  "runtime_id": "dynasty:banshan_jiazhou_shikuang",
+  "sources": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/elite/RageCorpse.java",
+      "sha256": "c8f082000556fa703626ff773df06bc06e0d0d3439722f71b4dfb3dd6f5c2702",
+      "read_scope": "entire class: trigger/skill priority/motion/impact/interrupt/death/save-load"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/elite/client/RageCorpseRenderer.java",
+      "sha256": "cd35d9c78fdf4cccf988e9f29f7c27c877939f2ae53cfd7f462eaa56a227aba5",
+      "read_scope": "entire class: bindings/death_mud visibility/death roll/culling"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/geo/blueprint/elite/banshan_jiazhou_shikuang.geo.json",
+      "sha256": "d8cbf9a302a672c8b9efd3ef5f0bacbf0cbe8e0b423692399214770b179fc30b",
+      "read_scope": "all bone parent/pivot/rotation metadata only, no object geometry work"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/animations/blueprint/elite/banshan_jiazhou_shikuang.animation.json",
+      "sha256": "3cbb1d975a60f7ecf625ed8e9eeb1fb95707d0f10fe25a1efb5349d51081434a",
+      "read_scope": "all sparse channels plus extracted sampled-curve ranges/ends and spin/blood phase samples; not complete native playback"
+    }
+  ],
+  "reused_sources": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/elite/BronzeGorilla.java",
+      "sha256": "24adec1f2b247c60be8089ce8a3041f967d17c52407a382231637bf9b1e7f616",
+      "current_hash_matches": true,
+      "scope": "Reuse prior whole selected giant-ape body strategy / unchanged clock. No helper fragments counted anew."
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/TimedAttack.java",
+      "sha256": "8f264c4e4846bae36d273c1c4c32d43b2ad43e807259a0b03d41b244253147f4",
+      "current_hash_matches": true,
+      "scope": "Reuse prior whole selected giant-ape body strategy / unchanged clock. No helper fragments counted anew."
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/SkillDefinition.java",
+      "sha256": "5c061eb3b76333c762127f2ca64f1470e9612b2a8fd3aedaef81463923d79090",
+      "current_hash_matches": true,
+      "scope": "Reuse prior whole selected giant-ape body strategy / unchanged clock. No helper fragments counted anew."
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/AttackState.java",
+      "sha256": "54122f3b9ecd9ff4e2eeb09e30068c1e62622f7c8fcaf830cbfab511c838f108",
+      "current_hash_matches": true,
+      "scope": "Reuse prior whole selected giant-ape body strategy / unchanged clock. No helper fragments counted anew."
+    }
+  ],
+  "findings": {
+    "start_priority": "startSkill server/alive/enemy/sight/vertical delta<=3 and configured horizontal range checks, leap landing safety/home checks, then unchanged TimedAttack idle/cooldown/finite-input gate. AI tries LEAP when squared distance>25, SPIN when<25, otherwise BLOOD; range==25 falls to BLOOD. Actual min/max gates still apply.",
+    "spin_strategy": "Skill40122windup+80active+40recovery=142ticks. Server requests .03 forward/tick for ages22..101 (2.4blocks only if all moves succeed), keeps entity facing original attack direction. Authored ROOT yaw0at22->2160at102, holds to142 (six visual turns). All child body/supports inherit this rendered rotation; server circular damage is not animated root geometry. Hits22,32,42,52,62,72,82,92. Logical facing stays fixed while mesh spins. No claim rotating AABB or skeletal collision.",
+    "spin_body": "coffin_shell windup rocks pitch+3/-3/+3 then returns0at22; recovery rolls+4at112/-4at122/0at142. Foreknuckle roll has sampled windup left+50/right-50at10, returns0at22 and remains baseline. Chain root local yaw reaches-180at22 against authored default180; this interface change is not object asset modification or verified chain collision.",
+    "blood_strategy": "Skill40316windup+25active+40recovery=81ticks, hits16/26/36. Facing locked from attack direction each combat tick. Existing front-knuckle windup rolls reach +/-90 and local Y up to11.03 then return0at16. Blood gates open from +/-8at14 to +/-70at16, hold to36 and close by50; viscera scales1.08at14 and1at16. Gates and viscera are children of coffin_shell, front supports independently root-parented. Server emission origin is bodyposition+direction*1.2+(0,1.5,0), not a bone ticket. Gate/stream alignment requires runtime/world-space validation, no fake completed contact.",
+    "leap_context": "Skill40214windup+20active+50recovery=84ticks, hit33. Physical server clipped parabola age14..33 uses u=(age-13)/20 and vertical8*u*(1-u), maximum2blocks above interpolated baseline. travel suppresses its extra integrator only during this server skill interval, never enables NoGravity. Authored supports lift at14..33 and shell pitches at contact; actual ground contact remains unverified.",
+    "interrupt_exit": "Accepted actual health loss>=12 while server/alive/WINDUP -> stop30stun; movement notloaded/border/obstruction or bad landing -> stop40stun. ACTIVE/RECOVERY ordinary hurt does not use that custom interrupt. stop cancels current action but cooldown remains through reused TimedAttack. At total end current/start clear; missed elapsed frames never dump late damage.",
+    "visual_priority": "death > active401spin/402leap/403blood > hurtTime hurt > horizontal movement walk > idle. Same zero-transition controller/start-reset/world-clock RUNNING adjustment as unchanged giant ape; reusing it adds no reference credit. Gameplay STUN has no dedicated clip; no assumption that hurt is shown throughout recovery/stun.",
+    "death_exit": "die cancels attack/navigation/target, syncs deathStart;80tick removal and4secdeathclip align numerically. Renderer death maxrotation0, death_mud visible flag only while dead; channel keeps mudscale0through16 then1at24, hold60 and0at80. RootY compresses to.45at12, then full-root scale0by78. Blood gates open+/-90by8; back-blade interface transforms depart8..30. No new object/server-entity work. Mud inherits root scale, not an independent floor effect.",
+    "reload": "Custom NBT keeps EliteAttack, landing+finite bounded offsets, LastCombatTick/deathStart/loot/home. Invalid saved leap landing cancels leap. Next combat cancels active on gap>1 or clock reversal; cannot claim seamless unloaded animation. Same consumed-frame/cooldown protections reused; exact client interpolation/network/load ordering not executed.",
+    "complete_comparison": "Closest already fully reviewed local strategy is BronzeGorilla SMASH: both four-support bodies with fixed server clock and strong windup; ape strikes alternate forearm motion with .125step and24/64/42 phases. Corpse401 instead rotates whole root during80active and rocks recovery while moving. Corpse403 instead exposes paired abdominal gates on a fixed direction. These are whole body strategies, not new helpers or new Gorilla species. Do not transplant ape geometry/keyframes or count this comparison as a new external family.",
+    "limits": "This batch completes the selected local static actor policy trace, not native playback, texture acceptance, full continuous curve visual examination or framework internals. No production/model/animation/PNG/UV edits. No Java/game/QA/new instance/sharedJar changes."
+  },
+  "one_whole_selected_static_actor_policy": true,
+  "new_accepted_credit": 0,
+  "applicable_whole_accepted_total": null,
+  "gap": null,
+  "production_modified": false,
+  "java_or_game_started": false,
+  "task_deletion_permitted": false
+}

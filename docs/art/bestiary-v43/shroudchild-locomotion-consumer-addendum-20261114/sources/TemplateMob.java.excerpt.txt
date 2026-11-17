@@ -1,0 +1,51 @@
+789:     public String visualAnimation() {
+790:         if (isDeadOrDying()) return "death";
+791:         if(kind==Kind.SCORPION&&burrowed())return "burrow";
+792:         if(kind==Kind.TREE&&!treeAwake())return "camouflage";
+793:         if (hurtTime > 0 && skillId() == 0) return "hurt";
+794:         if(army!=null&&skillId()!=0)return army.animation(skillId());
+795:         if (skillId() == TemplateSkills.POSSESSION) return "buff";
+796:         if (skillId() == TemplateSkills.ROCK_THROW) return "rock";
+797:         if (skillId() == TemplateSkills.POUNCE) return "skill";
+798:         if (skillId() != 0) return "attack";
+799:         if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return "climb";
+800:         if(kind==Kind.BRONZE_SNAKE&&onClimbable())return "climb";
+801:         if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? "run" : "walk";
+802:         return "idle";
+803:     }
+804:     public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}
+805:     @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }
+806:     @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+807:         controllers.add(new AnimationController<TemplateMob>(this, "body", 0, state -> {
+808:             String animation = visualAnimation();
+809:             state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));
+810:             animationPartial = state.getPartialTick();
+811:             if (lastAnimationStart != skillStartTime()) {
+812:                 lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();
+813:             }
+814:             RawAnimation sequence = RawAnimation.begin();
+815:             String key = "animation." + blueprintId() + "." + animation;
+816:             return state.setAndContinue(animationProfile().loops(animation)
+817:                     ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));
+818:         }) {
+819:             @Override protected double adjustTick(double tick) {
+820:                 boolean resetting = shouldResetTick;
+821:                 double local = super.adjustTick(tick);
+822:                 // GeckoLib polls a new queued clip only at transition tick zero. Replacing that
+823:                 // zero with a nonzero server age leaves the old idle clip installed forever.
+824:                 if (resetting || getAnimationState() != AnimationController.State.RUNNING) return local;
+825:                 if (kind == Kind.BEAST && climbFace() != null && climbStartTime() >= 0 && skillId() == 0 && isAlive())
+826:                     return Math.max(0, level().getGameTime() - climbStartTime() + animationPartial);
+827:                 // Late observers seek to the authoritative contact frame instead of restarting the clip.
+828:                 return skillStartTime() >= 0 && (skillId() != 0 || isDeadOrDying()) ? actionAge(animationPartial) : local;
+829:             }
+830:         });
+831:     }
+832:     @Override protected SoundEvent getAmbientSound() { return kind == Kind.TOAD ? SoundEvents.FROG_AMBIENT : kind == Kind.BEAST ? SoundEvents.FOX_AMBIENT : null; }
+833:     @Override protected SoundEvent getHurtSound(DamageSource source) { return kind==Kind.LANTERN_BAT?SoundEvents.BAT_HURT:kind==Kind.BLIND_FISH?SoundEvents.COD_HURT:kind==Kind.DROWNER?SoundEvents.DROWNED_HURT:kind == Kind.SCORPION ? SoundEvents.STONE_HIT : kind == Kind.TREE ? SoundEvents.WOOD_HIT : kind == Kind.TOAD ? SoundEvents.FROG_HURT : kind == Kind.BEAST ? SoundEvents.FOX_HURT : kind == Kind.CHILD ? SoundEvents.ALLAY_HURT : kind == Kind.PAPER ? SoundEvents.BOOK_PAGE_TURN : kind == Kind.SKULL ? SoundEvents.SKELETON_HURT : SoundEvents.PLAYER_HURT; }
+834:     @Override protected SoundEvent getDeathSound() { return kind==Kind.LANTERN_BAT?SoundEvents.BAT_DEATH:kind==Kind.BLIND_FISH?SoundEvents.COD_DEATH:kind==Kind.DROWNER?SoundEvents.DROWNED_DEATH:kind == Kind.SCORPION ? SoundEvents.STONE_BREAK : kind == Kind.TREE ? SoundEvents.WOOD_BREAK : kind == Kind.TOAD ? SoundEvents.FROG_DEATH : kind == Kind.BEAST ? SoundEvents.FOX_DEATH : kind == Kind.CHILD ? SoundEvents.ALLAY_DEATH : kind == Kind.PAPER ? SoundEvents.FIRE_EXTINGUISH : kind == Kind.SKULL ? SoundEvents.SKELETON_DEATH : SoundEvents.ZOMBIE_DEATH; }
+835:     @Override protected void playStepSound(BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
+836:         if (kind == Kind.GHOST || kind == Kind.CHILD || kind == Kind.SKULL || kind == Kind.LANTERN_BAT || kind == Kind.BLIND_FISH || kind == Kind.YECHA) return;
+837:         if(kind==Kind.SCORPION){playSound(burrowed()?SoundEvents.SAND_STEP:SoundEvents.STONE_STEP,.3F,1.4F);return;}
+838:         if(kind==Kind.TREE){if(treeAwake())playSound(SoundEvents.WOOD_STEP,.45F,.65F);return;}
+839:         if (kind == Kind.PAPER) playSound(SoundEvents.BOOK_PAGE_TURN, .2F, 1.6F);

@@ -1,0 +1,44 @@
+{
+  "reference": "Minecraft1.20.1:Bat",
+  "whole_identity_boundary": "One species rest/flight implementation; body/model/renderer and rest/flight states not separate credits.",
+  "body_connections": [
+    "root has head and body as siblings, head has twoears, body has left/rightwing each with wingtip.9node hierarchy including root andears. Only7parts stored as fields. Body rotation does not carry head, so resting must rotate head independently.",
+    "Head6cube/body6x12x6 pluslowerplane10x6x1; two1-thick innerwing10x16 andtips8x12. No fourfingerchain, nofeet/clawbones/lanternsocket, no jaw; cannot copy to target and claim intendedrig."
+  ],
+  "model_rest": [
+    "Resting sets headX=inputpitch, headY=PI-inputyaw, headZ=PI,headpos(0,-2,0); wingrootpositions(-3,0,3)/(3,0,3). BodyX=PI, wingsX=-.15707964(-9deg),innerY∓1.2566371(72deg),tipsY∓1.7278761(99deg). Fold handled as a discrete branch without interpolated stateprogress."
+  ],
+  "model_flight": [
+    "Flight sets head pitch/yaw,Z0,pos0 andwingrootpos0; bodyX=PI/4+cos(age*.1)*.15;bodyY0. WingY=cos(age*74.48451*PI/180)*PI/4 mirrored; wingtipY=.5inner withmirroredsign. This is phase-locked tip folding, not independent cloth/inertia.",
+    "Flight branch does NOT assignwingX, while resting setswingX=-9deg. setupAnim contains no resetPose traversal. Therefore selected source retains priorwingX after rest→flight on same instance; do not claim allaxesreset or declare target bug. Rest branch also omitsbodyY; constructor/default andexternalwrites matter.",
+    "Visualwingfullperiod360/74.48451≈4.833ticks; isFlapping uses tickCount%ceil(2.4166098)=3 eventcadence. They are not identical frequencies. No sampledposegrid or actualframeplayback."
+  ],
+  "renderer": [
+    "Uniformscale.35, shadow.25; resting translatesY-.1,flight translatesY=cos(age*.3)*.1 before super.setupRotations. This renderer transform is not modelbodylocaloffset or actualentityheight. Complete inherited render matrix order not reread here.",
+    "Texture reference textures/entity/bat.png only; noatlasopened/copied. No own fullbright/eyeslayer or customattack/deathvisual."
+  ],
+  "entity_consumers": [
+    "DATA_ID_FLAGS byte restingbit1 synchronized; serverconstructor startsresting. tick calls super thenrestingzeroesvelocity and snapsrawY=floor(currentY)+1-bboxheight,elseverticalvelocity*.6. Resting attachment is cell/boundingbox alignment, not a footbone or ceilingcontact solver.",
+    "Serverrest checks above redstoneconductor, occasionallyrandomizesyHeadRot1/200; nearestnoncombatplayerwithin4 orlossaboveblock wakes, emits event1025unlesssilent. Readingeventcall doesnotplayaudio.",
+    "Flight targetinvalid when occupied or<=minheight; choosesnewtarget whennull/1in30/within2: x/z random7-random7,y+random6-2. Desiredcomponent signs move toward±.5horizontal,±.7vertical using .1velocityblend, yaw directlywrapsto velocityheading,zza.5. Not an acceleration-limited turnorpathvalidateddive.",
+    "1in100 aboveconductor selectsrestagain. No collisionraypath or complete hitbox guarantee in selectedfile; ordinarybasephysics not fullyread.",
+    "hurt exitsresting onserver before super.hurt unlessinvulnerable. ownNBT storesentireBatFlags byte,not targetPosition. No ownattack/capture/deathclip/animationstate or explicit noGravityoverride. Override ignoresfallcheck andisPushablefalse; doesnotestablish target safety."
+  ],
+  "actual_target_consumer": [
+    "Target body has fourfingerbones under eachwing; head underbody,faceunderhead; lanternunderbody,clawsunderlantern. Structurally unlikevanillabat; names/interfaceonlyinspected andretained.",
+    "Target Behavior circlesradius4at3/4above withfourcandidatepoints,loadedchunks/worldborder/noCollision/reachablepath. CIRCLE→AIM→DIVE→PASS→RECOVER requirements map to existingclock; do not substitute vanilla randomwander.",
+    "started locks normalizedcourse to targetbboxcenter andcircleUntilnow+90. actionAge<18 velocity*.3;18..31speed.65,32..39speed.4;>=40riseY.12. BlockrayCOLLIDERorhorizontal/verticalcollision zeroesvelocity andinterrupts20. Contactbefore32onlyonce usinginflated.25actorbox+LOS,damage5. Notclawbonecollision.",
+    "GLARE behavior checks targetswithin10 +LOS +facing dot>.65 to castereye, effect60; sets up to6idleZombie targets onlyforcurrentvictim. Not a lampworldmatrixlightpoint proof; no objectauthored.",
+    "Death uses groundcontact event once orairborneparticlesevery4; code does not alone prove wingburn/fallinggeometryanimation. Ownsavecourse/contact/coldFlare/circleUntil,loadnormalizescourse/clampscircleuntilnow+90. Fullserverskillrestorationoutsideclassnotaudited."
+  ],
+  "applicable": [
+    "Keep actual motion controller, renderer bob and local wing deformation separate when diagnosing sliding/hover.",
+    "Use connectedwingtip inheritance for coherent silhouette, but preserve targetfourfingers and attachmenthierarchy.",
+    "Explicitlycheck statehistory and axestouched rather than assuming a frame resets alltransforms."
+  ],
+  "not_applicable": [
+    "No lamp-object design, newattachmentasset orproductionchanges.",
+    "VanillaBat neither a divecombat implementation nor a foursegmentwingclothsystem. No targetrecovery/deathacceptance.",
+    "No visuals/game/JVM/Gradle, no whole inherited hierarchy audit or oldscalargrid rerun."
+  ]
+}

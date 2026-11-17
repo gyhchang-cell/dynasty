@@ -1,0 +1,39 @@
+{
+  "family": "twilightforest:hydra",
+  "target": "dynasty:yinbing_guizu",
+  "mechanism": "hierarchical death scheduler, synced head phase, perpart death flags, active gating and rebirth reset",
+  "full_body_state_producer": [
+    "Hydra owns4 body/leg/tail parts and7 head containers; each owns1 head+5neckparts. Parent aiStep explicitly ticks containers and bodyparts, thenpositionsbody. This is gameplay multipart, not one bone per server entity to copy.",
+    "Damage accumulator>120 enters DYING and endsCurrentAction; respawn140ticks starts only while DEAD. Controller enumDYING70→DEAD20 selfloop; BORN20→ROAR_START10→ROAR_RAWR50→IDLE. Seven indexed heads are one family, not7references.",
+    "Whole boss death has separate clock: tick1 disables respawn and ends active attacks intoIDLE, ticks20..140 every20 request one headDYING, tick200 removesparent. Head death, part death and wholeboss death cannot be conflated into one delay. Actual aiStep/death ordering has not been game verified, so no asserted full visual completion timeline."
+  ],
+  "controller_to_parts": [
+    "Controller.tick first head.tick and allneck.tick; server advancesrespawn/state,headposition,facing,attacks,sounds; client mouthparticles; both animateHeadDeath thenneckposition. State mirrors into HydraHead DATA_STATE; mouthcurrent/previous have syncedfloats.",
+    "animateHeadDeath explicitly reads headEntity.getState(), not privatecurrentState, to consume syncedDYING onclient. Its localdeathTime markshead@1,neck0@10,neck1@20,neck2@30,neck3@40,neck4@50; otherstate resets localdeathTime0.",
+    "Each marked HydraPart increments own deathTime; at20 deactivates. Clientmarked+active addsPOOF/EXPLOSION. Parts tick beforenewmark, so marks and partdeactivation do not occur on samecontroller tick; no exact runtime stageclaim. This is progressive removal, not gravity-driven scatter.",
+    "HydraPart uses DATA_SIZEACTIVE andcached dimensions. Onsyncedactive restoration resets markedDead/deathTime; renderingreadsactive separately. Do not assume settingdimensions alone guarantees full hitbox restoration acrossversions; no native runtimecheck."
+  ],
+  "geometry_pose_and_display": [
+    "HeadContainer stores perhead perstate necklength,x/yrotation,mouthopen and interpolates prev/current by ticksProgress/ticksNeeded. Dead/dying suppressesidlehead sway andtargetfacing. No projectile/contact timing changed.",
+    "Five neck transforms interpolate fromhead anchor tobody anchor at0,.25,.5,.75,1 withwrappedangles; lookingdown usesdifferentneckanchor offset. Geometry follows separatepartpositions; not a detachedmeshwith ownmomentum.",
+    "HydraHeadModel roothead→jaw/frill; mouthAngle subtractsheadpitch15degrees andjawopens60degrees atfullopen. Head renderType returnsnull wheninactive; necksubmit is gatedactive andneckflipDegrees0, whilehead inheritsTFPartRenderer deathroll. Differentpart display doesnotrequire samewholebodydeathpose.",
+    "HydraModel creates fake3heads andneckpieces as fallback; setupAnim calls super then resetsall skipDraw basedrenderFakeHeads, reenablesbody,alltailparts,legs andwriteslegangles. Hydra firstaiStep turnsfakeheadsflagfalse. This separates initialfallback visualgeometry fromlivepart renderers and rewritesshowstateeachdraw.",
+    "HydraRenderer no normaldeathflip. Shared512x256 atlaspath isbindingonly; noPNGcontentvieworcopiedtexture."
+  ],
+  "load_tracking_and_end_limits": [
+    "Hydra savesNumHeads bitmask andHeadNames; read mapsactivebits toIDLE/endCurrentAction. Headcontroller current/prevphase,ticksProgress,damageTaken,respawn/death clocks are notsaved inreadHydra methods or emptyHydraPart save methods. Acknowledgedactive restoration isnotexactin-flightdeathrestoration.",
+    "TFPart helper snapshots/interpolates multipartdata; actualpacketproducer/receiver absent fromlocalcache. SyncedDATA_STATE provesintendedclientphaseinterface but notfulltransportdelivery/lateobserver guarantees. LocalclientdeathTime startsfromobservation, which alone doesnotreconstructelapseddeathage.",
+    "Hydra.remove isnotcustomized here; tickDeathevent200removesparent, frameworkmultipartcleanup notfullyread. Do notclaim fullchildlifetime cleanupjustbecauseparentremoveexists."
+  ],
+  "applicable_body_contract": [
+    "Borrow separateparentdeath epoch,substage threshold,perpiecevisualcompletion,perdrawvisibilityreset andexplicitreactivationreset. Yinbing must remain its existing44actiontick death contract, notcopy70/200ticks orregenerationmechanics.",
+    "Forarmor pile, add research requirementreleaseworldmatrix,independentfall/contact/settle andfinitecleanup; Hydra has no pile, gravity, groundcontact. Currentyinbingeyes-scaledflames stillneed independentrise/opacityconsumer; Hydra mouthparticles do notprovideit.",
+    "Bodybone/animation/releaseattachment ownership only. No item/armor/accessory geometry orPNG/UVauthoring."
+  ],
+  "whole_family_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

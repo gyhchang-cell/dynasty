@@ -1,0 +1,46 @@
+{
+  "family": "AlexsMobs:Seal",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "现存身体动作研究：连续躯干、水陆移动、休息及挖掘姿态与目标退出。未选择或新增 Dynasty 生产实体；不制作取物对象或其贴图。",
+  "prior_full_comparison": [
+    "已完整阅读 crocodile-whole-lunge-support-research-20261112/whole-study.json。Crocodile 的休息补偿、游泳、攻击翻滚与 Seal 的侧卧休息、腹部陆行、潜水挖掘语义不同；相同的进度插值或水下控制器不另计信用。",
+    "v43 study/dedup 文件中检索 ModelSeal、EntitySeal、SealAIDive、SealAIBask 未发现已有具名整链研究。只说明该有界检索结果，不证明全仓或全项目首次。共享接口与导航已有完整研究，列作 reused_whole。"
+  ],
+  "body_and_pose": [
+    "128 图集声明；root→body(13×9×18)→tail(8×6×14)→两后鳍；body 另接两前鳍与 head(7×6×10)，head 有鼻口及两须平面。连续水平主躯干与尾根构成动物体量，鳍和须提供方向。未实际查看 PNG，不能评价最终颜色、透明轮廓或有效像素密度。",
+    "setupAnim 每次 resetToDefaultPose；bask/dig/bob 及 swimAngle 从 prev/current 插值。dig 标志且在水或气泡中才累进 digProgress，0..5 每 tick 加减1。完整姿态 bodyX70°、headX10°、tailX−10°、bodyY−12/Z+2，前鳍转向并前移；另加交替划鳍和尾摆。不是单独把整个实体旋转，也不是物理挖掘接触解算。",
+    "休息按实体 ID%5 选择侧卧镜像、仰卧或偏转，属于同一家族的5个姿态，不能算5只参考。侧卧 bodyZ±70°，仰卧160°；同时调头、尾及鳍。名称包含 he was 时禁用这组休息分支并增加陆地摇头。姿态样式未按此实体保存，不能声称重载后保持相同侧卧样式。",
+    "陆行由实际水平位移驱动 walkAnimation，倍率48；水下倍率4。陆地腹部上下/前后位移与头尾反相小摆、前鳍开合一起构成移动；水下 head/body/tail 链波与前后鳍共同动作。没有足底 IK 或地面采样。",
+    "陆/水 gait 在休息/挖掘分支之后执行，未用专门权重完全屏蔽休息/挖掘时的残余 gait；最终 faceTarget 又作用于 head，swimAngle*.5 叠加 bodyZ（陆地也执行）。不能只读休息目标角就当作最终姿态。是否产生可见穿插仍需回放。",
+    "幼体渲染整体0.5，头1.65且缩放子节点，画后显式恢复 headScale=1。未见本模型专用咬击、受伤或死亡时间轴，原生近战 Goal 不等于存在作者制作的咬合动画。"
+  ],
+  "qualification_and_motion": [
+    "构造先建水下 AquaticMoveController(1.5)+SemiAquaticPathNavigator；tick 根据 isInWater 切换陆地 MoveControl+GroundPathNavigatorWide。dig 资格用 inWaterOrBubble，导航切换只用 inWater，两者边界不同。切换替换对象，未显式清旧路径或实体 deltaMovement。",
+    "shouldEnterWater 要求不想离水且 swimTimer<=−1000；shouldLeaveWater 在有乘客时 false，有不在水中的攻击目标时 true，否则水中计时>600。计时陆减水增。共享找水/离水 Goal 用这些资格和导航状态；并非固定模型动画长度。",
+    "水中 travel 先 moveRelative、按当前 delta 移动、乘0.9；无攻击目标再加Y−0.005，digging 时额外Y−0.02。AquaticMoveController 有自己的浮力与导航分支，speed0不能替代 delta=0。Basking 是 shouldStopMoving 唯一条件，不含 digging。",
+    "SealAIBask 占 MOVE/JUMP；资格要求陆地且无攻击/受伤目标，继续只看休息及不在水/气泡。每 tick stop navigation；stop 仅取消 Basking。服务端受伤、恋爱、仇恨、入水、目标或随机超时另外取消休息。",
+    "成功 super.hurt 后才传播100..249 tick revengeCooldown 给附近同类并取消休息；未在 hurt 本身显式清 digging。计时归零清 lastHurt。HerdPanic 使用同种 canPanic 资格传播受伤源，start 发起导航，stop 只 running=false，continue 只看导航结束，不是全面目标或速度清理。"
+  ],
+  "dig_return_and_cleanup": [
+    "投喂累计三次后保存 thrower UUID。Dive canUse 要求 UUID 可解析玩家且 revengeCooldown=0，并找到可挖海底。continue 额外要求无攻击/受伤目标、thrower/feeder/digPos 非空及目标上方水；未显式重新检查玩家存活、距离上限或最大导航时长。",
+    "Dive 构造没有 setFlags。相较其它占 MOVE 的导航 Goal，它没有声明同一互斥标记；因此不能仅按优先级断言不会并行发导航命令。是否实际冲突须运行调度验证，未伪称已观察冲突。",
+    "距 digPos.above 中心平方距离<2：停止导航并 digTime++，每5 tick 源码请求敲击音，未执行声音；<100 tick 设置 digging，达到100获取奖励。奖励列表非空才转 returnToPlayer，否则关闭 digging 并重置 digTime，后续可重新开始，未设置空奖励终止条件。",
+    "返程导航玩家，距离<2时清手中物、生成并抛向玩家，feederUUID=null，再 stop。stop 清 digging/digPos/thrower/digTime/returnToPlayer/fishFeedings，手中剩余物掉落后清空。没有显式 stop navigation、清 delta 或清 feederUUID；后者只在成功交付分支清。中断后保留 feeder 因而可重试，不应概括为全部清空。",
+    "物品框架只研究挂点接口：LayerSealItem 沿 root→body→head，成人位移(−.1,.15,−.6)、Y−45°、X−90°，以 GROUND display context 绘制；幼体另有0.5整体及偏移补偿。没有根据海豹嘴部骨骼生成奖励的服务器坐标，也没有承诺手持物原生第一人称握法。对象资产不属本岗制作。"
+  ],
+  "recovery_and_binding": [
+    "dig/bask 标志取消后对应进度每 tick 回落，default reset 移除失效姿态叠加；这只是视觉恢复，不能证明路径、物理惯性或攻击目标已清。受惊退出需结合 Entity 与 Goal 两端判断。",
+    "NBT 保存 Arctic/Basking/BaskingTimer/SwimTimer/FishFeedings/Variant/FeederUUID；未保存 digging/BOB_TICKS、三个进度、swimAngle、revengeCooldown 或 Dive 临时目标/时钟。重载可以重建行为，但不是原动画帧或旧路径无缝恢复。",
+    "RenderSeal 实例化 ModelSeal，绑定 brown/arctic 各两变体及 arctic baby，附加 LayerSealItem 与同姿态 tears overlay；不是独立动画。白色变体、幼体或名称特殊层不计新家族。未查看这些 PNG 或叠层最终显示。"
+  ],
+  "application_and_limits": [
+    "后续审核现存 Dynasty 水陆身体时，区分连续主躯干的运动、模式权重、挂点继承，以及 Goal stop 清了什么。不得直接移植海豹体型、投喂玩法、奖励或平面鳍到已认可生物。未作生产更改。",
+    "原生 BreathAirGoal/MeleeAttackGoal/RandomSwimmingGoal、MoveControl、调度器及 Citadel 实现不在本包完整核读范围；具体控制/网络/碰撞正确性未验。没有 PNG 视觉研究、软件动画回放、Java、游戏或实机截图。",
+    "本包是固定源码整链阅读，不能冒充1000个相关模型及贴图参考达标；当前适用累计与缺口未知，新增独立验收信用0，等待主协调独立验收。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

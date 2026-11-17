@@ -1,0 +1,45 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "purpose": "Read previously unclosed local evasive flight body/movement/animation chain; do not re-audit local child root cause or produce assets before applicable1000 gate.",
+  "creation_and_triggers": [
+    "EntityFlutter constructor installs flight controller+direct navigator while syncedFLYING defaultfalse; next server tick can replace with ground pair. Flight constructor parameters speedGeneral1, shouldLookAtTargetfalse, needsYSupporttrue. No setNoGravity call in whole EntityFlutter; ordinary inherited travel/gravity not closed.",
+    "FlyAwayFromTarget priority1 hasMOVE+LOOK; canUse notsitting, alive target, notbaby. Own class has tick/getShootFromPos only: no dedicated start/stop/canContinue overrides. Inherited Goal scheduler continuation/defaultstop not read this batch.",
+    "Combat tick decrements spitCooldown, setsFLYINGtrue withnonnull target; picks/replaces shootPos whennull, targetdistance>=10 or target within squared4ofpoint. Destination radius3..7, angle targetHeadYaw+90+random0..179deg,Ytarget+2; raychecks eye→point. Fallback currentblock aboveceil(targetheight+1) lacks equivalent ray recheck. It is not verified behind-gaze/safe-volume routing.",
+    "Combat commands controller toward pointcenter speed1.5. Distance<25 calls entity.lookAt(target,30,30), setsSHOOTING when cooldown0, resets cooldown10..19 and clears shootPos EVERY qualifying tick. Therefore typical in-range combat samples fresh point nexttick, not stable persistent hover station."
+  ],
+  "state_and_actual_motion": [
+    "FLYING,SHOOTING,TENTACLING,SITTING andFLUTTER_PITCH are synced fields; local fly/shoot/sit/tentacle progress0..5 stores previousvalues then increments/decrements onepertick. A changed flag later in tick is not retroactively blended into earlier progress.",
+    "Server switches navigation/control on currentFLYING. Flight velocityXYZ multiplied by randomMotionSpeed; .8nearrotationpulse threshold>=.95 else.01. FlutterRotation increments byconstructor-randomspeed, wraps2PIserver withevent19; class has no own event19 handler. Tentacleprogress and movementpulse share flagproducer but exact client/networkphase is not proved.",
+    "Server flight time increments; (onGround&&timeFlying>20)||sitting clearsFLYING. Else notflying timeFlying0. Mode switch occurs before thisclear, so landcontrol can follow nexttick. FallingvelocityY damped.8 whenoffground; flight horizontalcollision addsY+.2. No whole-body noclip flag in this class; no full sweptcollision proof.",
+    "FlightMoveController MOVE_TO accelerates normalized3Ddisplacement*(speedModifier*speedGeneral*.05); needsYSupport adds speed*speedGeneral*clamp(wantedY-currentY,-1,1)*.6 onY. Arrivaldistance<bbox.getSize setsWAIT and halvesvelocity. No maximumspeed/heightservo proof. STRAFE becomesWAIT. privatecanReach unused inwholecontroller; directnavigator moveTo alwayscommands andreturnstrue, tick onlyincrements.",
+    "Because shouldLookAtTargetfalse, controller yaw follows currentvelocity evenwithtarget. Combat lookAt is separate; entity tick also setsbody/headyaw equalentityyaw nearstart. Native scheduling/renderinterpolation decides final orientation. This is NOT an accepted implementation of target-facing backward flight.",
+    "Flight pitch subtracts (abs(vx)+abs(vz))*30 then relaxestoward0by2.5; shooting further subtracts30. Getterclamps-90..90. Modelinterpolates withrotLerp and appliesrootX -= pitchRadians*flyfraction. Physicalverticalmotion andcosmeticpitch are different outputs."
+  ],
+  "animation_consumers": [
+    "ModelFlutter whole206lines:12namedparts,body7x5x7 withnestedskin,eyesplane,4petals,4smalllimbs. All linked underroot/body; not a Steve child substitute and no anatomical copying. resetToDefaultPose eachsetup.",
+    "partial=ageInTicks-entity.tickCount; interpolatedfly0..5; groundProgress=(5-fly)*.2 multiplieslimb gait/body swing/flap/bob amplitudes. Fullflight suppressesground gait; this is blend of separate motion layers, not playbackrate-only switch.",
+    "localtentacle=(5-limbSwingAmount*5)*fly*.2; noexplicitclampinmodel. Atfullflight andlimbAmount0 it is5, body shiftsY-3 and4limbsrotate105deg weighted; atlimbAmount1 it is0. Valuesoutside0..1 could invert/extrapolate; inheritedlimbamplitudebounds unread.",
+    "Interpolatedtentacleprogress*fly*.2 drivespetalclosing, shootprogresscombinesviaMath.max andbodyYrotationwrappedshootProgress*72deg. Sittingposition+2andlimbs-45deg blend independently, not necessarily mutually exclusive.",
+    "Eye offset uses Minecraft cameraentity/eye/worldvectors, not servercombattarget. Do not import clientcamera as authoritative child observing test. Shakinghead overrideseyeY andbodyyaw; noactualPNG/eyeappearance viewed.",
+    "FourpetalsscaleY1+invertTentacle*.05; juvenile rootY+1.5/body.5andscalechildren true, adultbody1. Potted renderer swaps differentmodel; itsdetails notread. No dedicated authored attack/death timeline innormalmodel; shoot isprogresslayer."
+  ],
+  "exit_reset_persistence": [
+    "FlyAwayFromTarget ownsno explicitstop: shootPos/spitCooldown notcleared onexit here; FLYING/SHOOTING/controller/velocity are notcancelled bythatclass. It cannot serveascompletecastcanceltemplate. No claim inheritedschedulerfails; simplynotclosed.",
+    "Entity server shooting&&shootProgress==5 spitsif targetnonnull, then clearsSHOOTING evenif targetnull. Shotmethod anddefinition read but projectileclass/damage notinscope. Itdoesnot recheckrange/LOS/alive atshotinside thatbranch.",
+    "Idlegoal refusespassenger/vehicle/sitting/following/alivetarget, chooses flight/landpoints. Flightcancontinue checksdistanceSquared>2andnotbaby;ground checksnavnotdone/notvehicle. stop callsnavigation.stop andsuper only, noexplicitFLYINGfalse/velocityclear. Landing branches andlaterentitytick clearflight separately.",
+    "Groundsearch stops atsolid or-63, water/void check canforceflight; raychecks arepointsegments notcompletebodyclearance. getFlutterGround voidfallback raises120..124; getBlockGrounding initialrandomradius is discarded in nonvoidbranch in favor ofunder-current-position search. Do not treat asgeneralheight-safe child solution.",
+    "Followowner helperwhole: savednavigatorreference atconstruction, start setswatermalus0;stop clearsowner, stopssavednavigator,restoresmalus. Dynamic entitynavigatorreplacementdoesnotrebindthatfield. Exactconstruction/schedulerinstanceorder notruntimeverified. Followtrigger7/continue2,combatwithin30gates; every10tick moves/optionalteleportatdistanceSquared>=144. Teleport hascollisiontests butnotapplicable tochild bodyfix.",
+    "OwnNBT savesFlying/Potted/flowers/command/sitting; noexplicitshooting/tentacling/pitch/progress/rotation/timeFlying/shootPos/cooldown persistence. Reloadrestoresflagandrampslocalprogress; exactlateobserver/blendcontinuity unverified.",
+    "Resetdefaultposeeachdraw doesnotcleargoalstateoractorvelocity. Rendernormalmodelglowlayer andpottedmodelselection areseparatefromphysics. No visualplayback/nativegame/PNGview and no passednativecollision/network tests."
+  ],
+  "application_and_limits": [
+    "Useful organization forchild: explicitmovementstate feedsbodyposeblend, groundgait suppressed byflightweight, cosmeticattention separatedfromphysics andallinterruptionboundaries documented. This is a researchprinciple only, not authorizedproductiondesign.",
+    "Keepcurrenttargetfacingremapand40tickservercurse; do notimportfluttercameraeyes,rapidspit,teleport,flowers/potitems,full3Dflightorpetalgeometry. Existingchildapprovedbody/rig remainprotected.",
+    "Wholechaincandidate canbeuseful yetlacktarget-facingbackpedal andcompleteexitcleanup; no claim requirementsfulfilled. Applicable1000unknown, acceptednew0. Helpers/states/progress/frames/speciesnamesdonotmultiplycredit."
+  ],
+  "production_modified": false,
+  "complete": false,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null
+}

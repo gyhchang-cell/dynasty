@@ -1,0 +1,55 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "whole_source_count": 6,
+  "whole_source_lines": 1339,
+  "scope": "Complete Gorgon body hierarchy, both authored ModelAnimator action definitions, procedural movement/head/death pose, entity admission/AI exit, renderer and eyes layer. No PNG visual inspection, gameplay, animation playback, runtime or production changes.",
+  "body": {
+    "root": "Tail_1 -> Body and Tail_2 -> ... -> Tail_9; Body -> Head/Neck/arms; Head -> Head_Details -> fourteen snake base chains; fangs zero-width planes.",
+    "scale": "128x128 declared UV, renderer .85 uniform; no imported geometry/UV/texture.",
+    "attachment_interface": "Hair chains inherit Head_Details/Head; no held-item socket or object designer work. Parts are not independent creatures or reference credits."
+  },
+  "actual_actions": [
+    {
+      "id": "ANIMATION_SCARE",
+      "duration_ticks": 30,
+      "keyframes": "5 ticks HeadY+20 / arms Y±12.5 Z±70; 5 HeadY-20 / arms Y±25 Z±140; 5 HeadY+20 same arms; 5 HeadY-20 same arms; reset10. rotate helper converts degrees to radians.",
+      "consumer": "Mutual gaze and no blindfold/blacklist/blindness plus deathTime0; statue effect only server when animationTick>10 and cooldown0. Target loss/gaze loss prevents effect branch but no explicit setAnimation(NO_ANIMATION)."
+    },
+    {
+      "id": "ANIMATION_HIT",
+      "duration_ticks": 10,
+      "keyframes": "5 ticks BodyX+10 / both armsX-120, reset5.",
+      "consumer": "doHurtTarget blindness/blacklist condition; poison applied before super hurt. No timer-delayed contact at keyframe peak."
+    }
+  ],
+  "pose_order": [
+    "animate resets default pose then animator.update and both authored action evaluations; Citadel engine itself not read, so source reset call is not runtime proof.",
+    "setupAnim then adds tail chainFlap from limb motion, arm idle walk/flap. Next DIRECT assignments Right_Arm/Left_Arm.rotateAngleX = cos(limbSwing...)*limbAmount replace animated X and earlier idle-X. In HIT this overwrites the -120deg authored attack channel; do not assume keyframes alone determine final pose.",
+    "Tail_1.X is assigned clamp(radians(-1.29)+limbAmount,0,radians20), Tail_3 and Head counter-pitch; head faceTarget adds yaw/pitch afterward, so tracking is additive over SCARE head yaw, not isolated clip.",
+    "Tail_4..9 gait and hair idle always evaluated, no attack/death gait mask. SNAKEL4..7 and SNAKER5..7 contain the same base three times; do not silently replace them with intended base/body/head chains.",
+    "Death progress min(40,deathTime)/2 blended last through ModelDragonBase divisor20, root pos(-5,22,-4) and tail/body/arms rotations; Neck hidden when progress>0. Entity removes at200, so pose completes40 then remains. Model head tracking still applied before death blend."
+  ],
+  "movement_and_exit": [
+    "GorgonAIStareAttack MOVE+LOOK, canUse target!=null; canContinue same OR navigation unfinished. Without target tick does nothing; existing path may keep goal alive. No explicit alive check in this goal.",
+    "LOS signed seeTime; inside radius15 and visible20 ticks stop navigation, otherwise pursue. Every20 strafe ticks 30% independent direction toggles. Distance-squared >.75*max disables backwards, <.25*max enables; MoveControl.strafe ±.5 forward/lateral; local ground strafing, no hover/gravity override.",
+    "stop clears seeTime and stopUsingItem only; strafingTime/direction, velocity, navigation and movement input not explicitly cleared. Native inherited move/goal lifecycle not read; absence in this class is not proof velocity persists forever.",
+    "Stone target branch nulls target, calls stop. setTarget(null) skips nonnull-only goal switch. Target loss no own animation cancel, SCARE/HIT duration delegated AnimationHandler.INSTANCE.updateAnimations each aiStep.",
+    "forcePreyToLook only modifies Mob LookControl, not Player camera. attackEntityWithRangedAttack condition excludes Mob yet helper only handles Mob, so that method does not force gaze. Do not copy forced target rotation into Dynasty server observing test.",
+    "isEntityLookingAt uses getViewVector normalized, eye-to-eye vector dot and LOS with distance-scaled degree threshold, not a fixed viewing angle; zero-length special case not present. No new look/curse mechanics proposed."
+  ],
+  "render_state": "SCARE active PNG takes precedence over death PNG; otherwise death>0 decapitated else passive. Eyes layer active for SCARE/HIT without explicit death exclusion. This is actual code ordering, not inspected pixel output.",
+  "negative_controls": {
+    "continuous_retreat_hover": "NOT IMPLEMENTED: native ground strafe, no custom noGravity/navigation in class.",
+    "complete_exit_cleanup": "NOT CLOSED: own stop does not clear motion/path/animation; native/Citadel engine not read.",
+    "actual_attack_pose_preserved": "NOT GUARANTEED: direct arm-X gait overwrites HIT channel.",
+    "always_facing_player": "NOT PROVEN: bounded look control and additive model head tracking, native body yaw internals unread.",
+    "texture_material_quality": "NOT ASSESSED: PNG not opened.",
+    "new_production_fix": "NONE: applicable reference gate unverified."
+  },
+  "applicability": "Useful negative control for pose order, input-vs-velocity cleanup, model look vs actor heading, native observation vs forced target look. Not a verified continuous floating-backstep solution. Existing approved bodies unchanged.",
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "pending": "Independent whole-family relevance/dedup and applicable1000 gate; native movement/body control and Citadel runtime boundaries."
+}

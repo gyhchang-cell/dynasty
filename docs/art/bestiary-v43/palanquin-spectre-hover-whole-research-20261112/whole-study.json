@@ -1,0 +1,46 @@
+{
+  "whole_identity": "AlexModGuy/AlexsMobs:Spectre@09755dade2cfbdf14839e026d3af446f9d3ff843",
+  "skeleton": [
+    "8 nodes: root/body/spine/tail/two wing pivots/two wings. body default Y -45deg, spine +45deg; right wing pivot +90deg.",
+    "Body24x6x24, two wings26x3x23; spine and tail zero-thickness X planes; no head/limb/carrier bones. Renderer uniform scale1.3, not a player or target dimension proof."
+  ],
+  "visual_motion": [
+    "resetDefaultPose each setup; spine swing .2/.03, tail swing inverted .2/.42 with phase3; wings flap mirrored .2/.51 phase7; root walk X inverted .2/.09 phase7.3; all driven by ageInTicks at constant amplitude1, not limb movement speed.",
+    "Citadel walk is X rotation, not root vertical bob. Spectre supplies no explicit model rootY oscillation. Do not label root walk as hover lift.",
+    "root adds interpolated birdPitch*DEG_TO_RAD using Minecraft frameTime rather than age fractional time. prevBirdPitch stored immediately before update in entity tick; birdPitch=-deltaY*.5*RAD_TO_DEG. No local clamp to pitch.",
+    "Spine/tail and wings remain procedural regardless walking, stationary, leashed or goal; setupAnim ignores netHeadYaw/headPitch. No ModelAnimator or own attack/death clips. Inherited death behavior not fully studied."
+  ],
+  "actual_motion_consumer": [
+    "isNoGravity always true, tick sets noPhysics=true after super.tick; does not prove a safe collision implementation for target. isFlying always true. Actor yaw follows deltaX/Z each tick, bodyYaw same.",
+    "Nested MoveHelperController MOVE_TO: distance<.3 sets WAIT and halves existing velocity once; else adds normalized displacement*speedModifier*.05. No hover-height servo or carrier constraints. A private canReach collision sweep exists but has no call in selected whole EntitySpectre.",
+    "FlyGoal no lure: chooses cardinal15block forward point or island orbit. Normal targetY70..71 when heightmap<15, otherwise terrain+10..19. Start direction randomize literal2+nextInt(3), only indices2,3,4; not all four horizontal directions.",
+    "Island check20tick, circlingTime increases until>100 then false and check1200. Orbit radius5..14, angle THREE_STARTING_ANGLE*±circlingTime; selected Maths confirms3degree increment. islandtarget Y min(terrain+10,currentY+nextInt(3)-nextInt(1)); last random term always0.",
+    "FlyGoal stop resets island/checktime/radius/time/direction/target, but not controller operation or velocity. A stop does not itself mean rest or landing. circlingTime>0 decays while nonisland.",
+    "TemptHeartGoal queries nearest player64 ignoring LOS/invisibility, checks held lure ingredient; canContinue calls canUse; start copies lurePos, stop clears it and waits100 ticks. tick within squared6.25 stops navigation, otherwise writes controller target at player eyeheight. Navigation stop alone is not proven to clear custom move controller/inertia. Item artwork is outside this research."
+  ],
+  "tether_not_grasp": [
+    "No startRiding/positionRider/hand-bone passenger relationship in whole class. Leash holder receives directional squared-distance component*.4 impulse when separation>10 (non-fence); descendingY damped*.7, fallDistance0; crouch drops leash. This pulls the holder to Spectre, not a four-person load solver.",
+    "tickLeash: passenger holder or fence delegates vanilla; else distance>30 pulls Spectre back to holder with same component formula. Restore tag and death drop processed. No direct guarantee of total distance, contact or transport safety from selected code.",
+    "No own addAdditionalSaveData/readAdditionalSaveData overrides. Cardinal/pitch/lure/goals have no own explicit persistence here; inherited leash and base lifecycle not audited."
+  ],
+  "render_consumer": [
+    "Base skeleton atlas spectre_bone.png, EyesLayer spectre_glow.png, membrane spectre.png; optional leashed overlay spectre_lead.png. PNGs not opened in this batch, no texture-artwork examination or production claim.",
+    "Block light override15 and membrane packedlight15728640 mean this is not a normal-light comparison. Renderer1.3 retained in reasoning only.",
+    "Membrane alpha=(sin((tick+partial)*.1)+1.5)*.1+.5 => .55..75. getSpectreBones selected method uses eyes shader, no lightmap, no cull, LEQUAL depth and COLOR_DEPTH_WRITE. GHOST transparency uses ONE/ONE_MINUS_SRC_ALPHA separately for RGB and alpha then default restore. This is render-compositing evidence, not a PNG paint recipe."
+  ],
+  "target_comparison": [
+    "Current PALANQUIN registration is one TemplateMob kind1.8x2. Target idle3.2s has bearer X ±1degree opposing pairs0/2 and1/3; walk1.6/run1.2 have±5degree with same pair grouping. Selected rootY channels also present; not inferred world displacement without GeckoLib transform consumption.",
+    "Target hold4.2s has curtains and four arm/hand bones; behavioral source maps hold skill, uses current actor sector/LOS range3 rather than renderedhand. Declares no teleport/mount/camera change. actual impact starts40tick captive state, bites every10, crouch5 or damage>=3 releases; horizontalvelocity pull only beyond1.5distance capped.12. Do not transplant Spectre leash physics.",
+    "PalanquinGameTests1..72 were source read only. Their assertions are not passed tests. Existing geometry, poses, collision, hooks, held items and textures remain untouched."
+  ],
+  "applicable_principles": [
+    "Separate whole-body travel from local low-amplitude deformation; visual channels must be independently named and their transforms checked.",
+    "Transparent cloth or ghost layers cannot be evaluated as base color under normal lighting when renderer forces fullbright.",
+    "Independent carrier phase is target-specific and not supported by Spectre anatomy; require a more relevant composite reference before claiming cooperative support."
+  ],
+  "limits": [
+    "Reference is one floating ray-like species, not a palanquin, not four carriers, not target attack/recovery/death acceptance.",
+    "No visual media, texture view, animation playback, JVM/game, float-native sampling or runtime validation in this batch.",
+    "Existing selected Citadel method research reused; no helper grid rerun."
+  ]
+}

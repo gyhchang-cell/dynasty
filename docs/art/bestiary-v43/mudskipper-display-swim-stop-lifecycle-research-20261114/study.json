@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-14",
+  "production_modified": false,
+  "complete": false,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "global_semantic_dedup_complete": false,
+  "new_visual_or_game_view": false,
+  "scope": "Original reference only: body/bones/animation/attachment interfaces. No held/accessory object asset work; no Dynasty asset selected for production. Applicable1000 not claimed.",
+  "family": "AlexsMobs:Mudskipper",
+  "applicability": "Semiaquatic locomotion blend, coupled social state invalidation, head-root body hierarchy and attack-origin interface. Not a proposal to add social display/projectile combat to Dynasty.",
+  "creation": "Entity constructor installs land MoveControl/GroundPathNavigatorWide; entering/leaving water switches movement controller and navigator. Synced display flag false, angle0,partnerUUIDempty,mouth0,command0,sittingfalse. Model64x64: root→head→eyes,tail; tail→dorsalFin,tailFin,leftFin,rightFin. No jaw bone.",
+  "business_producer": [
+    "Display goal starts only when initiator is not grounded (canUse rejects onGround), adult, not following/sitting/in-love/riding/targeting, cooldown0; finds nearby compatible GROUNDED partner. Do not silently replace actual opposite ground predicates with an idealized both-grounded rule.",
+    "Pairing writes partner UUID to both entities and instantlyTriggerDisplayAI for peer. Start resets self displayTimer and angle, chooses opposite directions. Tick raises display flag; closes distance or circles midpoint, alternates angle +/-180 in10degree steps, navigates and turns entity yaw.",
+    "At distance<0.8 with both grounded it opens mouth10..29ticks and gives partner velocity. Timer>400 or vertical separation>2 in near-distance branch stops both navigation, assigns cooldown200..399 and calls stop. Timer does not progress in distXZ>3 chase branch.",
+    "Continuation requires adult, not follow/sit/in-love/vehicle, no target, partner exists+alive, both cooldown0. Not all initial guards are repeated (e.g. passenger). stop clears center,self/partner flags and UUID,timers,angle; self navigation stops. Partner navigation only explicitly stopped in timeout branch, not generic stop.",
+    "Attack goal line-of-sight+distance<8+cooldown0 constructs MudBall and launches before openMouth10. It strafes back when close, otherwise follows; stop clears shootCooldown/strafe boolean but does not explicitly zero MoveControl strafe. Do not claim full controller reset."
+  ],
+  "entity_consumer": [
+    "Each tick saves previous swim/sit/display/mud progress. display and sit ramp0..5 by1; swim condition !onGround&&inWaterOrBubble ramps0..5; onMud reads actual block below and raises model offset0..1 by0.5.",
+    "Server increments/decrements swimTimer; water entry requested after1000landticks or hurt, suppressed while displaying; leave requested after200waterticks or display. Underlying semiaquatic goals/controllers not read this batch.",
+    "Mouth ticks decremented to0 by tick; same mouth state can be produced by display, attack,hurt,taming,feeding. No timed jaw contact in model.",
+    "Server moves DISPLAY_ANGLE +/-1 toward nextDisplayAngleFromServer. Neither reviewed ModelMudskipper nor RenderMudskipper reads this angle. It cannot be credited as a bone orientation consumer."
+  ],
+  "transform_consumer": [
+    "setupAnim resets default pose then partial-interpolates display/swim/sit/mud. Mud correction headY-2 follows actual below-block flag, not bone collision.",
+    "Display tilts head-10deg,tail20deg,dorsal-10deg,tailfin10deg,fin-10deg plus positions and age-based sway; dorsal lowered2 when not displaying. Sitting adds distinct tail/fin poses.",
+    "Movement amplitude split walk=limbSwingAmount*(1-.2*swimProgress),swim=limbSwingAmount*.2*swimProgress. Head/tail/tailFin phased swings,fin flaps and landhead vertical/foreaft motion. All child transforms inherit head root; no chain point simulation.",
+    "renderToBuffer juvenile head scale1.45 with shouldScaleChildren=true and global0.5, then explicitly restores headscale1; adult also forces1. Flag shouldScaleChildren not explicitly restored but scale reset. No adult/child transition runtime proof."
+  ],
+  "render_and_interface": "Renderer binds actual model and uses spit PNG only while mouthticks>0. MudBall spawn origin = entity.position + yaw-rotated(0,0,0.2*scale), not tracked mouth bone or eye height. MudBall damping0.9 and gravity-0.06; hit delegates unread EntityMobProjectile before slowdown. Producer origin read only; no projectile/handheld asset制作.",
+  "stop_reload_invalid": [
+    "Display progress decays5ticks after flagfalse; mouth independently expires. stop DOES NOT reset synced displayAngle or nextDisplayAngleFromServer, so residual angle data remains; reviewed model does not consume it.",
+    "NBT saves FromBucket,DisplayCooldown,command,sitting and super. Transient displayflag,partnerUUID,displayTimer,displayangle,mouthticks,swimtimer and progress not explicitly saved; fresh object defaults. Bucket roundtrip invokes same save/read methods; mid-display continuity not promised.",
+    "Target arrival/partner death invalidates continuation; local shared pair interactions and goal selector ordering require runtime. No explicit teleport/death chain cleanup in whole entity; no late-observer exact-phase guarantee.",
+    "No jaw animation, per-node terrain collision or actual PNG inspection. Citadel default-pose/progress helpers, native MobRenderer and EntityMobProjectile consumers remain dependency gaps."
+  ],
+  "counting": "At most one family candidate, not six references. Projectile is supplemental origin evidence, not separately counted. Independent acceptance/newcredit0."
+}

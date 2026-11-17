@@ -1,0 +1,58 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "family": "AlexsMobs:Cosmaw",
+  "new_whole_sources": 4,
+  "new_whole_lines": 940,
+  "reused_whole_sources": 5,
+  "relevance": "Actual nonhuman flightpitch/bite/carry progress and connected mouth attachment transforms, contrasted with continuous backward-facing-child requirement. Not a redesign or weapon/heldobject production.",
+  "body_and_hierarchy": [
+    "128x128 declaredUV,18 namedparts. rootY24->body13x14x32, body->tail9x11x20->tailFin0x19x32 andtwo smallrearlegs. Body two smallfrontarms2x4x3 +planar digits andpaired9x0x27fins. Body mass dominates distinctmouthapparatus; no humantemplate.",
+    "Body->mouthArm1 4x4x22 restX1.0908->mouthArm2 4x4x17 restX-1.0472->mouth->upper5x3x8/lower6x3x9jaws. Connectedparentpivots provide opening/reaching, not disconnected decorativeboxes.",
+    "Body->eyesBase23x2x2->two2x6x6eyes. Eyebase receives pitchcompensation andlimitedheadyaw independentlyofmouth linkage. Texturealpha/normal-light aesthetic notviewed; sourcegeometry only."
+  ],
+  "actual_body_actions": [
+    "FullModelCosmaw.setupAnim resetsdefaultpose then uses interpolated open/clutch/biteprogress. openweight=max(open,clutch,bite), so carrying orbiting also opensjaws. No externalanimationJSON requiredbythismodel; complete proceduralconsumerread.",
+    "Flightbodypitch=getClampedCosmawPitch(partial)*radians*(5-clutch)*.2. Eyebase countersbodypitch; mouthArm1/2 andjaws receive .2/1.7/.3 pitchcounterterms, plusmouthArm2 positionalcompensation. Carryweight5 suppressesflightpitch. This decouplesgaze/mouthfrombodypitchwithoutordinaryneck.",
+    "Idlebody/tail/jaw/moutharms/limbs/fin motions at.1Hzinput scaling (codeage*.1, not seconds frequencyclaim), bodybob; movement tail/fins/arms andbodybob use limbSwing*.7. Proceduralage andlimbgait arebothconsumed, not namedanimationplaceholders.",
+    "Openprogress0..5 rotatesupperjaw-30deg/lower+30deg. Biteprogress movesbodyZ+20, mouthArm1X-35deg, mouthArm2X+50deg, armsX+10/Z±30. Clutchprogress movesbody(0,-10,+33), bodyX-30,eyebaseX+30,mouthArm1X-5,mouthArm2X+120 plusmouthArm2(0,-2,+3). All additive; not mutuallyexclusiveclips.",
+    "Actualvisualattention usesclamp(netHeadYaw,-40,40)*.35 => atmost14deg relativeeyeYaw; headPitchargumentnotusedforlook. This isnotfullactorfacingandnotserverobserverlogic. ClientpartialcomesMinecraftframeTime; no clientcameraeyetracking here.",
+    "Juvenilerender scaleswhole.5 withY+1.5,eyesBase1.5withscalechildren thenexplicitly restoreseyesBase1. AdultdoesnotrepeatthatsetScale. Ownedscaleexitpresent afteryoungdraw; scalechildrenflag remainsset, no runtimeleakclaim withunitfactor."
+  ],
+  "timing_and_contact": [
+    "doHurtTarget queuesATTACK_TICK5 onlywhen0 andbiteProgress0, returns truewithoutimmediatedamage. AIAttackqueuesinrange3*(baby?.5:1), elsecommandsnav; goalhasMOVE, canUse alive target, no owncontinue/stopoverride.",
+    "Entitytick cachesprevprogress thenbite rises+2 capped5 whileATTACK_TICK>0; onlyafterreaching5 branchdoes targethurtifdistance<3.3 anddecrementsattacktick. Thus3riseupdatesbeforethe5counterdecrements, thenup to5damageattemptticks (nativehurtinvulnerabilitynotread). Do notcollapse thisintoa5tickclip orsinglehitcontact.",
+    "Afterattackcounter0 biteprogressdecays1/tick; targetlossdoesnotabortcounter, butskipstargethurtwhilecountercontinuestodecrement afterfullprogress. No explicitalive/LOScheckinhurtbranch. Tickownbranchnotserverguarded, no multiplayerpacketorderassumed.",
+    "Clutchprogress rises/decays1/tick basedisVehicle, mouthopenprogress basednonemptyhand. Theyhaveactualdecayconsumerswhenflagscease, unlikeclearingvelocity. Neitherisserverdamageorcurse-windowreplacement.",
+    "Serverpitchassignment algebra is pNew=.6*(pOld - vy*RAD_TO_DEG); exactexpressionread, notstandardlerp(p,target,.6). prevPitchcachedbeforewrite, getterinterpolatesclamps±90. No gameplaypitch port."
+  ],
+  "flight_ai_and_exit": [
+    "isNoGravity overridestrue andisFlyingtrue unconditionally, unlikeFlutter/Phagenogravityunclosedcases. ConstructorFlightMoveController(1,false,true), DirectPathNavigatorYoffset.5; yawfollowsvelocityevenwithtarget, nottarget-facingbackstep.",
+    "Controller MOVE_TO arrivaldistance<AABBgetSize setsWAIT,velocity*.5; otherwiseaddsnormalizeddestination*.05*speedModifier andYsupportgetSpeed*.6*clamp(dY). No generalvelocityclear/speedcap. STRAFEturnsWAIT. canReachdeclaredunused; directnavtickonlyincrementsandmoveToalwayscommandscontroller.",
+    "Randomfly canUse navdone,shouldWander,targetnull,random1/4; setsdestination. Continuewanttargetnonnull+shouldWander+combattargetnull; arrivaldistanceSq<4 orhorizontalCollisionclearspoint. stoponlypointnull, notwantedoperation/velocity. Routecheck iseye-raytoblock, not sweptAABB; groundselectionvoidraises70..73,solidgroundraises2..3.",
+    "Followowner sharedhelper startchangeswatermalus0; stopclearsowner/navstop/restoresmalus, doesnotzerovelocity orrestoregravity(alwaysnoGravity). IFollowerdefault callsnavigation.moveTo(owner,speed). Trigger8/continue4; LOOK+MOVE,10tickrepath; canContinue doesnotrecheckshouldFollow,owneridentity orspectator. Native schedulingunrun.",
+    "AIPickupOwner hasnocustomflags/start/stop/continue; canUse tameownerfallDistance>4,nongrounded,notsitting/notpassenger. Tickmountsdist<3 orY<=-50,teleportdist>100 orY<=-20,elsepursues. Ownerpointer/residualnavcleanupnotexplicit, nativeGoaldefaultsnotread.",
+    "Vehicle rescue usescachedsafe-ground refreshed100ticks; directionorverticaldestinationfeedscontroller, ejectswhen distSq<7 andgroundY>1. MissinglastSafe branch callsgetDeltaMovement().add(Y.75/.1) withoutassigningreturnedVec3, so source DOESNOTapplythatimpulse. No optimisticrescuerecoveryclaim.",
+    "positionRider setsworldpositionwithwalkbob/Yoffset; notmouthboneposition, no playercameraorientation writes. Dismountclutchdecaysbutnoownmomentumreset. EntityNBT savescommand/sit, notattackprogress/pitch/safepoint/heldtimer; genericridingpersistenceoutsideownscope."
+  ],
+  "renderer_and_attachment_interface": [
+    "RenderCosmaw MobRenderer shadow.9,translateY-.5,basecosmaw.png +glowmaskpath. LayerHeldItem consumeshandItem butonlyattachmenttransformstudied; no objectmesh/textureauthoringorassetcopy.",
+    "translateToHand appliesroot->body->mouthArm1->mouthArm2 translateAndRotate thenoffset(0,.1,-1.35), rotationsX-45/Y-180/Z135,scale2 andGROUNDitemcontext. ItdoesNOTapplymouth/jawbones; attacheditemtracksarmchain, notjawopening. Importantinterfaceboundary, no assumedbindtohand.",
+    "LayerBasicGlow wholeread usesRenderType.eyes(texture), parentmodelrenderToBuffer, packedLightpassedthrough andNO_OVERLAY; doesnotrerunsetupAnimorcopybones. Sameposeconsumed, no extraserverentity. Exactnativeeyeslightbehavior/shadermasknotinspected; PNGnotviewed.",
+    "No authoredownhurtdown/deathactionbranchinmodel. NativeMobrendertilt/hurtcolor not equivalentto researchedwholeactualhurt/deathtimeline. No runningplaybackorvisualproof."
+  ],
+  "negative_controls": {
+    "targetfacingretreat": "NOT provided; false controllerlookflag",
+    "gravityrestoration": "Not applicable toalwaysnoGravity; no statefulrestoreproof",
+    "attackcleanup": "Counterandpose decay present; goal/nav/velocitycleanupunclosed",
+    "holdinginterface": "Connectedmoutharmchain verified, actualobjectnotmade",
+    "rescuefallback": "UnassignedVec3.add providesnoimpulse",
+    "nativeanimationplayback": "NOT DONE",
+    "textures": "NOT VIEWED"
+  },
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "pending": "Independentwholefamily/relevance acceptance; nativeGoal/MoveControl scheduling/network timing,Citadelposemathandactualtextures/playback. No1000gatepass."
+}

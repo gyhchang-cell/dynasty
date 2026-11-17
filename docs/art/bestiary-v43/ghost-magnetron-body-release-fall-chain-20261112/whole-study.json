@@ -1,0 +1,44 @@
+{
+  "family": "alexscaves:magnetron",
+  "target": "dynasty:yinbing_guizu",
+  "mechanism": "body geometry provider→part pose/state→death replacement falling blocks→native contact/placement cleanup",
+  "body_producer": [
+    "Entity constructs5jointtypes×2sides=10parts. Synced compoundtagsstoreblockstates+sourcepositions, plusFORMEDandATTACK_POSE. Partposition interpolates storedworldsource toparent+jointtarget using40tick formprogress.",
+    "MagnetronJoint uses side mirroring,bodyyaw,previous/currentattackposeweights; handles shoulder/elbow/hand/knee/foot andwalkoffsets. Part positions are computed independently, not a standard humanoid bone tree.",
+    "tickMultipart preservespreviousworldpositions, computesnewpartpositions; groundhelpermaintainsparentheight whilealive andformed. Helper source absent, so groundalgorithm semantics notcertified.",
+    "Model haswheel+headPivot/head/headExtra, resetsdefaultposeeachsetupAnim and setswheelshowModel truealive/falsedead. Mainlimbs are blockmodelsrendered separately, not texture-painted torso bones."
+  ],
+  "death_handoff": [
+    "AftertickMultipart, !isAlive&&shouldDropBlocks() entersrelease. shouldDropBlocks requireslastDamageSourceand(attackerentity/directentity/lastHurtByPlayer); natural/nonattributeddeathmaynotrelease.",
+    "If formed, forpartwithnon-nullblockstate AND mobGriefing: choosepart.blockPosition, scanupuntilairorworldmax, FallingBlockEntity.fall(level,placeAt,state), thenpart.setBlockState(null). This is explicit transferfrombodyparttofallingrepresentation, notgenericmaterialdropatparent.",
+    "droppedHeart boolean preventsrepeatheartfall withinruntimeinstance; allparts remove(KILLED) each qualifyingdead-tick. Perpartnullpreventsrepeatpartfallsunlessstateisrepopulated.",
+    "The release block has no explicit !level.isClientSide guard inthiscachedmethod. Do not describe it as provenserver-onlyorcopyitintoproduction; clientdamagecontext/actualcallbehavior notruntimeverified.",
+    "FallingBlockEntity.fall snaps toblockgrid andclearsworldblock/fluid. It doesnotpreservepartpreciseworldrotation, handrenderrotation,pivot/scale,noroutwardscattervelocity. upwardairsearchavoidsoccupiedblocks butisnotterrainsettlingoforiginalmesh."
+  ],
+  "native_downstream_reused": [
+    "PinnedForge1.20.1 FallingBlockEntity333lines: state/position entity, gravity-.04, moveSELF,enddamping.98; contacthandlesreplacement/survival/placeblock+discard,failedplaceoptionalitemdrop+discard,timeoutdiscard/drop. Optionaldamagepath mustnotbeimported.",
+    "FallingBlockRenderer51lines drawsblockmodelwhilevalid/nonidenticalworldstate; no originalarmorobjectorUV. Successfulplacements canproduceworldblockdebris, butsource doesnotguaranteeorderedcosmeticpileofarmor."
+  ],
+  "renderer_consumer": [
+    "MagnetronRenderer superrender thenforeachpart usesinterpolatedworldpos-parentinterpolatedpos, blockstatevisualprovider; blockstates getnormalizedFACING, handweapons rotatewithbodyyaw+weightedattackpose. getVisualBlockState returnsSTONEfallbackonlywhileparentalive; deadnullstate thereforedoesnotdrawfallbackduplicate.",
+    "LightningMap keyedbyUUID, connectorsbetweenpartanchors, explicitremoveUUIDwhenentitynotalive afterrender. Notproofallremovedwithoutfinalrenderarepurged; Citadelcachecleanupunread. Glowtextures areseparatelayerswithsin/cosalpha, notflamemeshascension.",
+    "Renderer accessesgetAttackPoseProgress(1)forhandrotationwhilepartpositionwascomputedatfixedtick; actualhandalignmentunderpartialframesunverified. No weaponmodel/textureauthoredhere."
+  ],
+  "reload_and_repeat_limits": [
+    "SaveoverridesstoreFormed/Blockstates/BlockPoses anddo notcallsuperinreadsource. droppedHeart/attacktransitionprogress/partblockstatenullnotstoredthere; parentBLOCKSTATEScompoundisnotclearedbysetBlockState(null). Do notclaimdeathreloadexactlyonce.",
+    "Part.savefalse/shouldBeSavedfalseandspawnpacketunsupported; parentownsreconstruction. Synceddatahandlersdistributestates/positionsandresetattackblend. Nettransportframeworknotfullyread.",
+    "isNoGravity includesalive checkbutORsuperflag; noassertiondeadalwaysgravityenabled. removePartsisnotwholeparentremovallifecycleoverride."
+  ],
+  "concrete_application": [
+    "Thisisarelevantbodypartreleaseexamplebeyondgenericdeath. Reuseexplicitownerhandoffandnulloldvisualtoavoidduplicateattached+fallingrepresentation.",
+    "Forcurrentyinbingcustomarmor, capturecomposedbonematrixratherthanpart.blockPosition; keeporiginalmesh/PNG/UV, useclientvisualfall/contact/settlewithoutworldblockplacement,damage,pickups,newserverparts.",
+    "Keep44tickdeathepochandcleanup. Defineperpiecesource/released/settledvisibilityandlateobserverelapsedagebeforeproduction. Nevercopyheartdrops,blocksearch,mobgriefing,attacknumbersornewphysics.",
+    "Flamemeshcurrentparentghost_eyesstillshrinks; Magnetronlightning/glowdoesnotresolveupwardflamegeometry. Thatgapremainsindependent."
+  ],
+  "whole_family_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

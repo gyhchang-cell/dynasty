@@ -1,0 +1,29 @@
+24:     static Vec3 flank(LivingEntity victim, boolean behind) {
+25:         Vec3 forward = victim.getLookAngle().multiply(1, 0, 1).normalize();
+26:         if (forward.lengthSqr() < .01) forward = new Vec3(0, 0, 1);
+27:         return victim.position().add(forward.scale(behind ? -3 : 1.9));
+28:     }
+29: 
+30:     /** A bound player may stand two blocks below a dry pool rim; route to the actual floor. */
+31:     static boolean waterAmbushNear(TemplateMob member,LivingEntity victim){
+32:         return victim.isInWater()&&!member.encounterSite().isBlank()&&!member.level().getEntitiesOfClass(TemplateMob.class,member.getBoundingBox().inflate(16),
+33:             m->m.kind()==TemplateMob.Kind.DROWNER&&m.isAlive()&&m.encounterSite().equals(member.encounterSite())&&member.distanceToSqr(m)<=256).isEmpty();
+34:     }
+35: 
+36:     static net.minecraft.world.level.pathfinder.Path rearRoute(TemplateMob member,LivingEntity victim) {
+37:         if(!(member.level() instanceof ServerLevel level))return null;
+38:         Vec3 forward=victim.getLookAngle().multiply(1,0,1).normalize();
+39:         if(forward.lengthSqr()<.01)forward=new Vec3(0,0,1);
+40:         Vec3 side=new Vec3(-forward.z,0,forward.x);
+41:         for(int radius:new int[]{3,4})for(int offset:new int[]{0,-1,1,-2,2})for(int dy:new int[]{0,1,2,-1,-2}){
+42:             Vec3 point=victim.position().subtract(forward.scale(radius)).add(side.scale(offset));
+43:             var feet=net.minecraft.core.BlockPos.containing(point).above(dy);
+44:             if(!level.hasChunkAt(feet)||!level.getFluidState(feet).isEmpty()
+45:                     ||!level.getBlockState(feet.below()).isFaceSturdy(level,feet.below(),net.minecraft.core.Direction.UP))continue;
+46:             var box=member.getType().getDimensions().makeBoundingBox(feet.getX()+.5,feet.getY(),feet.getZ()+.5);
+47:             if(!level.noCollision(member,box))continue;
+48:             var path=member.getNavigation().createPath(feet,0);
+49:             if(path!=null&&path.canReach())return path;
+50:         }
+51:         return null;
+52:     }

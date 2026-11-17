@@ -1,0 +1,20 @@
+# 铜臂巨猿：整套砸击身体策略核查
+
+本批只读；保持已认可模型、动作、装备和玩法。不是游戏验收。
+
+- **trigger**：Server startSkill421 requires alive valid enemy, sight, vertical delta<=3, horizontal range0..8, TimedAttack idle/cooldown/finite direction. AI tries at squared range<49; startSkill gate still applies. Navigation stops, facing/start tick/phase synchronize.
+- **clock**：SMASH421 windup24 active64 recovery42 =130ticks/6.5sec; impacts24,32,40,48,56,64,72,80. Server body motion at ages24..87 is .125 forward/tick with loaded/border/collision cancellation. No animation callback causes damage.
+- **selection**：visualAnimation precedence death > nonzero skill smash/throw/leap > hurtTime>0 hurt > moving walk > idle. STUN has no separate visual branch. A canceled action can show jaw-only hurt while hurtTime lasts, then walk/idle while gameplay stun remains.
+- **controller**：body transition0, reset when synced skillStart changes, loop idle/walk; hold-last all other clips. In RUNNING with active skill/death, adjustTick uses world gameTime - skillStart + partial; first reset pass retains base local timing. Not a full framework interpolation proof.
+- **hierarchy**：root->ribcage->{ape_skull->ape_jaw, upperarms->forearms->knuckles}; root->haunch->hindlegs->ankles->feet. Ribcage pitch therefore propagates to skull/arms; compensating local skull/arm tracks do not equal world-space independence.
+- **pose**：SMASH ribs reach-65deg and skull/upperarms+65 at10ticks, hold18, return24. Forearms windup(30,0,+/-70)at10, +/-90at14, +/-70at18; upperarms translate +/-8 by24 and hold88, return104. Alternating forearm lift cycles: left minima pitch-60 at28/44/60/76, right36/52/68/84, each returns by following8tick boundary. Timing table retains every tick and original displacement.
+- **contact_limit**：Server alternating impact side code begins side+1 at24. The lifted forearm phase must be checked against actual knuckle world-space ground contact and side basis; raw channel coincidence is not contact or clipping acceptance. No automatic retiming or bug declaration.
+- **interrupt**：Only accepted damage while alive on server, actual health loss>=12 and WINDUP invokes stun30. ACTIVE/RECOVERY hits do not invoke that custom cancel. SMASH movement failure stuns40. TimedAttack.cancel clears current/start/target/fired but retains cooldown. advance guards against callback changing/killing actor before further frames.
+- **exit**：At age130 advance cancels and sync clears skill. Death cancels action, sets deathStart, selects death, suppresses renderer whole-model death roll and removes at90ticks. Held-rock visibility is only read as attachment boundary; object untouched.
+- **reload**：TimedAttack saves skill/start/cooldowns/stun/origin/direction/target/fired; validates finite/valid-age on load. BronzeGorilla stores LastCombatTick; next combat cancels active if gap>1 or clock reverses. Thus no claimed seamless continuation across unloaded time. Already elapsed impacts become consumed, not dumped late; native exact-once/multiplayer behavior remains untested.
+- **reference**：Alex Gorilla uses non-Steve long-arm chest/haunch hierarchy. doHurtTarget requests20tick attack only when NO_ANIMATION; setAnimation requests standing/maxStandTime10; model arms wind7, strike5, recover6. Entity hit at tick10; stand progress ramps0..10 and overlays keyframes, then locomotion/head overlays. hurt only clears ordered sitting and delegates; it does not directly cancel current attack. Standing/forced sitting persist, current animation/tick do not appear in custom NBT. Chest-pound goal can stop at tick>=10 without clearing the40tick animation; engine end/reset is explicitly unverified here.
+- **transfer**：Learn separate body stance progress from attack clip; couple current authored attack and authoritative shared clock, include context cancellation/reload in assessment. No external model/texture/keyframe copied.
+
+旧1000中的 Gorilla 已是同一结构参考，本次延伸动作研究不新增生物数。旧300卡不自动适用于当前巨猿动作范围；累计与缺口保持 null，详见 applicability.json。
+
+逐 tick 原始通道与服务器阶段见 timeline.json；曲线图只表示原始通道，不代表全局骨骼接触。

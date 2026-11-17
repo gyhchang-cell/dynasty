@@ -1,0 +1,100 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "family": "MowziesMobs:Naga, not TwilightForest:Naga",
+  "reading": {
+    "entity": "whole1298 lines read before compaction in this continued run",
+    "model": "whole1433;1..592 before compaction,593..1433 after continuation",
+    "new_whole_or_extended_sources": 5,
+    "renderer": "whole reused and reread34",
+    "engine": "AdvancedModelRenderer400..454 only, not whole library",
+    "unused_same_name": "llibrary ControlledAnimation also inspected but NOT imported; excluded from consumer chain/count"
+  },
+  "body_and_rig": [
+    "256x256 declaration, body21x13x21 -> neck13x8x15 -> headJoint/head16x6x16 at45degY with jaw9x4x8/teeth/brows; mouthSocket is headJoint child. Real jaw articulation, not mouthline texture.",
+    "Paired shoulderjoint/shoulder/upperarmjoint/arm18x4x5/lowerarm22x4x4/hand11x4x4 -> four wing fingers lengths53/50/43/38, thin3x3. Planar wingwebs are rescaled from relative finger angles, reversed duplicates serve reverse side, not separate appendages/species.",
+    "Tail1..5 reduce15x9x19 to3x2x13; tail6empty andtailEnd. Dynamicchain uses tail1..5+tailEnd (6points); rootbody -> connected tapering tail. Previously read DynamicChain whole reused, not newly reviewed whole again.",
+    "wingFolder/scaler/swooper are nonvisible deformation controllers, not physical server entities. renderToBuffer rendersroot +dynamicchain then hidesoriginal tail; rendering order and firstframe not visually checked."
+  ],
+  "actual_animation_consumers": [
+    {
+      "id": "FLAP",
+      "state": 25,
+      "authored": "25ticks rotatewingFolderX1 thenreset0; wingFolderangle is converted into flap phase then proximal/distal delayed flaps and folding. Physical lift +.1Y eachtick4..9, not uniform25tick flightthrust."
+    },
+    {
+      "id": "SPIT",
+      "state": 50,
+      "authored": "26windup+4hold+6release+0scalecontroller reset+4hold+10reset=50. body/shoulders/neck/head/jaw plus explicit pulsating scales. AI attacks at30 only when targetnonnull; clientmouthparticleat33 is distincttiming. AnimationProjectileAttackAI tickchecks currenttarget, so targetloss suppressesfire at30 even though statecontinues."
+    },
+    {
+      "id": "SWOOP",
+      "state": 54,
+      "authored": "3+1+15+0+5+8+15+7=54. SwooperX drives curved root translation/yaw and progressive wing fold; swooperY spinsbody and multiplies velocity-derivedpitch. Actor motionticks1..15 windup;16..22ZERO;23..43divecurve/contact;44..53 no explicitmotionwrite. Visualroottrajectory and server displacement are distinct."
+    },
+    {
+      "id": "HURT_TO_FALL",
+      "state": 20,
+      "authored": "20ticks multi-axis tumble then0tick landedorientation; server switches FALLING at17. Following FALLING/noanimation uses rootrotationPI and foldedwings, not ordinary flyingidle."
+    },
+    {
+      "id": "LAND",
+      "state": 8,
+      "authored": "0entry+4impact+4settle, rootY-11 ->-34 ->-16; bodyrollPI/4 ->PI/2, asymmetricalarms. Landing setsFALLEN, timer60, velocityXZ0 retainsY and navstop."
+    },
+    {
+      "id": "GET_UP",
+      "state": 33,
+      "authored": "0entry+13compress+2hold+4rise+8hold+6reset=33. PhysicalY+1.6 attick15; switchesHOVERING26. Distinguish visible recovery from physical launch."
+    },
+    {
+      "id": "DIE_AIR",
+      "state": 70,
+      "authored": "20tumble+0orientation+30hold=50. EntitydeathDuration70-20=50 fromreadbase. No authored50..70 continuation; server lifetimebound50, native finalrenderframeunverified."
+    },
+    {
+      "id": "DIE_GROUND",
+      "state": 70,
+      "authored": "0fallenentry+6spasm+18hold+10settle+16hold=50; not70ticksbodyanimation. Jawopen and necksideways, tailcurl; no blanketdefaultreset assumed."
+    },
+    {
+      "id": "TAIL_DEMO",
+      "state": 80,
+      "authored": "7+10+7+10+3+3+10+4+4+4+4+4+10=80; sidewaysroot,verticalbounce,alternatingyaw; diagnostic motion, not independentcreature orcombatpattern."
+    },
+    {
+      "id": "DODGE",
+      "state": 10,
+      "authored": "No dedicated ModelNaga.animate DODGE branch despite declaredstate and activegoals. Server adds lateralvelocity from detectedprojectile direction; sharedhoverflap stillruns. Do not count a namedstate as authored10tickpose."
+    }
+  ],
+  "movement_attention_and_exit": [
+    "Actual registered hoveringmovehelper looks at target via entity.lookAt whenNO_ANIMATION orSPIT, then independently accelerates toward MOVE_TO destination every2..6ticks if fullAABBrouteclear. This is a limited face-vs-travel separationreference, not target-facingretreatpolicy.",
+    "Guard distanceToSqr(this.parentEntity)<1600 compares entity to itself (innerparent is sameNaga). This doesnotprove targetrange gating. AILookAround class isdefined but NOT registered, so itsvelocityfacinglogic isnotactivegoalconsumer.",
+    "Target selector canContinue also requiresNO_ANIMATION. It ceasescontinuation duringattack; nativeNearestAttackableTargetGoal.stop notread here, so whether/when it clearscurrenttarget remainsHOLD ratherthan pretendingguaranteedlooklock.",
+    "SPIT inheritedtick uses targetnonnull,entity.lookAt +LookControl eachtick and tick30emit; owninterrupted guard runs aftersuper. performRangedAttack itself checksinterrupted, so no claim ownpostsupercheck suppresses allinheritedlookwrites.",
+    "SWOOP looks towardtarget onlybefore15; samplesdistancecorrection at23 orfallback1 ifnull. Actualdamage nearby4 eachtick23..43, excludes sameNaga. No explicit stop override clearsmotion. Goalstop sharedbase sendsNO_ANIMATION ifmatchingonly.",
+    "Hovertravel move/friction.91 withoutownvanillagravitysubtract; onlyarrival distance<.1 &&NO_ANIMATION zerosvelocity. Wander/towards/around stopnavigation only. No generic targetloss/stopvelocityguarantee.",
+    "GLIDING ownelytra-likegravity/aerodynamics/friction; FALLING/FALLEN branch gravity. FALLINGtouchground/lava/water ->LAND,FALLENtimer60, XZvelocity0 (Yretained), navstop. State-specific cleanup proves landing, not everyexit.",
+    "Acceptedhurt currentSPITbefore30 orSWOOPbefore25 setsHURT_TO_FALL andinterrupted; getHurtAnimation returnsnull, parentdefault behavior andorder noted ratherthan generalhurtresponseclaim. Death15 forcesFALLINGunlessFALLEN.",
+    "FlyOutOfWater condition precedence allowslava to bypass notfalling/notfallen filters; no localfix orport. Targetloss/reacquisition,noGravity,gravitytransition network/nativeoutercallorder remain unrun."
+  ],
+  "pose_and_attachment": [
+    "Eachframe setDefaultAngle resetspos/rot +corrections then hoveringneck/head faceTarget, followed authoredkeyframes and finalwing/jaw/webbing/dynamicchain. Facingoffsets can combine withauthoredrotation; notexactactorlook proof.",
+    "Project ControlledAnimation duration10 uses sin(pi/2*f)^2 forhover/flapfractions; entity separately cachesprevfractions beforetick and finalmodelinterpolatesthem. No need assume unusedllibrarytimer semantics.",
+    "OutsideSPIT explicitneck/body/head scales1; inside SPIT scales derive scaler andpropagationflags. Thiselse is inside frozen guard: frozenmidspit recovery ofscale isnotproven bypos/rotreset alone; HOLD forvisualstateescape.",
+    "Renderer updatesmouthSocketworldposition aftersuper.render onlyduringSPIT. MowzieRenderUtils now readwhole: recursively followsparent.translateRotate, worldentitytranslation/yaw, mirror(-1,-1,1),offsetY-1.5. Thus priorparenttraversaldependency gap partlyresolved; librarytranslateRotatefullimplementation,mathquaternion/nativeorder stillnotwholereviewed.",
+    "AdvancedModelRenderer.getWorldPos partial400..454 interpolatesentitypos/yaw theninvokesrecursiveMowzieRenderUtils; setWorldPos inversesentityworldmatrix butdoesnotparentinverse. Do notclaim it fullyundoes arbitraryparenttransforms.",
+    "ServerperformRangedAttack usesactorposition/yaw/pitch/headyaw offsets, NOT clientmouthSocket. Mouthsocket clientparticles isnot projectilespawnproof orDynastyhandattachmentimplementation.",
+    "DynamicChain gravity.5 stiffness.5falloff.5damping.97 substeps30 floortrue reusedpriorstudy; flooronlylimitedgroundtorque, no shapeclamp/teleportrecovery. No visual/playback/textureinspection."
+  ],
+  "dedup_and_acceptance": {
+    "prior": "flyingskull-mowzie-constrained-chain-consumers-20261114 + reference-review existingNagaidentity",
+    "credit": "MERGE0 existingwholefamily evidenceextension. States,bones,renderhelpers,reverseplanes andversionportsnotnewreferences.",
+    "new_independently_accepted": 0,
+    "applicable_cumulative": null,
+    "true_gap_to_1000": null
+  },
+  "production_modified": false,
+  "pending": "Independent source/relevance acceptance; targetselector nativeexit, frozen scaler cleanup, texture/view/playback; no1000gatepass or productionpermissioninferred."
+}

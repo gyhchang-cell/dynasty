@@ -1,0 +1,45 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "scope": "Body/rig/animation/attachment interface research only. Existing held staff source was incidentally read as part of whole original model; no object design/UV/texture production and no separate object credit.",
+  "trigger_state_and_retreat": [
+    "Cindaria whole498lines: ground+water navigator instances retained; maxUpStep1.75, water/rail malus0. CindariaMoveGoal priority3 MOVE+LOOK; melee and magic priority2 occupyMOVE/LOOK/JUMP. Target acquiredbyHurtByTarget andNearestPlayer; native goals inherited.",
+    "MoveGoal requireslivingtarget; continuation canUse ORnavigationnotdone, so targetnull cancontinue whilepathactive buttickdoesnothing whennull. startaggressive;stopfalse,navstop,seeTime0 only. It doesnotclearstrafingBackwards/strafingTime/strafeinput/wantedposition/velocity.",
+    "AtdistanceSquared<=64 with20consecutivevisibleupdates, stopnavigation andincrementstrafingTime; otherwise navmove andstrafingTime-1. VisibilitysignswitchresetsseeTime before+/-1. DistanceSquared>48makesforward,<16makesbackward; betweenretainspriorboolean. Actualdistances sqrt48≈6.93 and4, notlinear6/2.",
+    "In strafe mode emitsforward±.8/lateral0, thenlookAt(target,30,30); elseLookControlsetLookAt. This is real backward producer, but not proof swimming or body target alignment underallcontrols. Genericpolicy overlapsoldbow-likewholechains."
+  ],
+  "movement_consumers_and_head_body": [
+    "wantsToSwim=true ifsearchingForLand else targetnonnull&&targetinwater; searchingForLand hasnoassignment outsidefielddeclaration inwholeclass. Server updateSwimming chooseswateronlyeffectiveAI&&inwater&&wants; swapsnav/control andsetsSwimming. It doesnotstopoldnavigationorclearvelocityexplicitly.",
+    "CindariaSwimControl whole nestedclass: withwants/inwater addsY.002iftargethigherORsearching, then ifoperation!=MOVE_TO ORnavdone setsSpeed0andreturns. There isnoSTRAFEbranch andno super.tick inthiswaterbranch. Thusnear-targetgoalnavstop+STRAFE doesnotconsume backward inputhere; preexistingmomentum/buoyancy canremain. This is source boundary, not reproduced nativebug.",
+    "WithactiveMOVE_TO, computeswanteddisplacement, normalizesYby3Ddistance without explicitepsilon,rotlerpsyaw90towardpathandforcesbodyyawentityyaw,speedlerp.125towardspeedModifier*4*movementAttribute,thenaddsXZf2*.005displacement/Yf2*.1normalizedY. Outsidewaterbranch addsY-.008ifoffground thenbasesuper.tick.",
+    "Travel consumer usesmoveRelative.01→moveSELF→velocity*.9onlycontrolledlocal&&inwater&&wants;otherwisesupertravel. No ownnoGravityoverride/setNoGravity. This is semiaquatic suspension and authoredvisualfloat, notconfirmedlandairhover.",
+    "SmartBodyHelper2 whole: movedwhenXZdeltaSquared>2.5e-7 forcesbodyyawentityyaw thenclampsheadrelativebody; stationaryheadchange>15resetscounter/approachesbody,otherwiseafter10tickslimit75decaysuntil20,approachwrappedclamp*.55. It doesnotforceheadtocameraormovecollision. Histarraysshiftbutnocurrentsampleassignment inhelper;hasMoved usesxo/zo.",
+    "WaterNavigation usesAmphibiousNodeEvaluator(true),positionmidheight,point-rayCOLLIDER/FluidNONE,stabledestinationbelow-notair. Groundnavownshortcut sweptcollision loopiscommentedandreturns true; ordinaryCMPathFinder/nativephysics remainunread. Do notpromise obstacle-safe backwardflight from thesehelpers."
+  ],
+  "animation_and_full_body_clips": [
+    "Whole164lineModel+619lineAnimation: root→everything→lowerBody→upperBody→head; head2capand2three-linkheadchains; limbs/skirtunderbody,legsunder everything. Authoredbodyis layeredhumanoid, notachildreplacement; no mesh/PNG copied.",
+    "ModelresetPoseallparts→headpitch/yaw→animateWalk(WALK,limbSwing,limbAmount,1,1.5)→IDLE→MAGIC→MELEE→DEATH. No isSwimming/negative-speed/direction selector andnoactiongatearoundWALK/IDLE inthismodel. Alllayersmaycontribute; nativeHierarchicalModeladditive/posVecsign/catmullovershootnotfreshread.",
+    "Clienttick idleAnimationState.animateWhen(true) always, stopAll onlymagic/melee/death. SyncedATTACK_STATE0stopactions;1startsMAGIC,2MELEE,3DEATHafterstoppingothers. Idlecontinuesduringdeath/action; source-onlycomparison, not judgmentfrom0tick.",
+    "IDLEloop2.25s haswhole everything position authored(0,0,0)→(0,-2,0)at1.1667→0,upperBodyY-.5,headX+5,cap/skirt scale1→1.1→1 andphaselagheadchains/limbs. Thesearemodelspacechannels, notactoraltitudeorfootclearance.",
+    "WALKloop2.2917s maintainsasymmetricbentlegposes: rightLegX50→55→50,left22.5→27.5→22.5 plussecondsegments,bodypitch12.5→15,headdirectionandcapchains. everythingpos0→Y-2→0; notalternatingStevelegwalk. No directionalbackwardclip orflight-stateblend, so visualfloat cannotproveserverhover.",
+    "MAGIC2.5s=50ticks,coordinatedrootyaw/bodywindup/headcountertwist thenreturn; sourceprojectileatattackTick15, notmodelstaff-bone contact. MELEE1.9167s≈38.334ticks versusgoalmax39, torso/headtwist,limbposes returnbyend; entityareaattack14. DEATH2s40ticks matchesownremovalduration40; authored everythingY-17holds from.6667,limbs/skirtfold. No physicalgroundcontactsolver."
+  ],
+  "attack_interrupt_hurt_reset_reload": [
+    "InternalAttackGoalwhole: entrytargetalive/inrange/requiredstate;isInterruptablefalse;startsetstate+navstop. Continue sameattackstate&&attackTicks<=max withoutrecheckingtargetalive/range/LOS. ticktracksuntilseetick thenlocksentityyawyRotO, stopsnavigationeverytick. StopEndState,mayclearnoncreative/spectatortarget,navstop/clearaggressiveifnull; no explicitinput/velocityreset.",
+    "Meleeconfigured0→2→0,max39,look13,range3.75; magic0→1→0,max50,look15,min4.5,max16 andmagiccooldown<=0. magic_cooldown starts0andhasno setter/decrement inwholeCindaria;CHARGE_COOLDOWN100 unused. Do not inventcooldown behavior fromconstant.",
+    "Magic tickcallsparentthenat15spawnsexistingWaterSpearfromentitymidheighttowardcurrenttarget, nothandbone, no freshLOS/range/alivecheckinsidebranch. Projectilephysics/artwork notread/designed. Meleeareaattackserver14 usesbodyyawarc100 andacceptedhurt beforepush;no trackedhandintersection. FullEntityUtil/projectile notclosed.",
+    "Cindaria.hurt reads directentitybutonlyreturns super.hurt; Animation_Monsters+Internal_Animation_Monsterwholeaddnohurtoverridecancel. Nativehurt/knockback isunread; no claim hitcancelscast. Effectguard rejectsSTUN/ABYSSAL_CURSE, notproofuniversalinterruptionimmunity.",
+    "diecallssuper thenattackstate3; baseAnimation_Monsters.die hasForgeLivingDeathcancelreturnandvanillalikedead/loot/pose,event3. Cindariadoesnotrecheckdeadbeforestate3afterparentreturn; cancellationedgeunverified. ParenttickDeath incrementsdeathtime/removesat40; notcorpsedropterrainproof.",
+    "Internalstateproducer resetsattackTicks0,setssyncedinteger,broadcastsnegativebyte. Clientnegativeeventresetsclock; eachtickstate>0increments. No explicitATTACK_STATE/attackTicksownNBTsave intheseclasses; baseentityNBThelpersdelegate. LateobservercouldstartlocalAnimationStateonsyncwithtickCount,notserverepoch; nativepacketorderunverified.",
+    "Idleclockremainsrunningafteractionstop; stopAllhalts3actionstatesbutdoesnotclearphysicalmotionorotherAnimationState. RepeatedgetAnimationState usesstring== withknowninternedliteralcallers; no arbitrarystringAPIguaranteeclaimed."
+  ],
+  "renderer_hurt_and_limits": [
+    "WholeRendererbindsactualmodelarmorPNG,scale.8,shadow.5,flip0. WholeLayerdrawssamemodelbodyPNGalpha.65,incominglight;hurt/deathmax>0tintsRGB(1,.5,.5),elsewhite. Shadercompat choosesordinarytranslucentelsecustomjelly;CMRenderTypesinternalsunread. NoPNG/image/video/nativeplaybackviewed.",
+    "Body/headseparation,clippedbodybob/actionstatescaninformresearch only. Childstillneedsbodybackwardhoverreadabilitywithground-safephysicsandcompletecancel/reset; Cindaria waterSTRAFEgap makesitunsuitableasdrop-incontroller.",
+    "Applicable1000unverified. No productionchanges, no game/java/network, no mainlist/session/Jar/prompt/taskdeletion. LocalcacheNOTclaimedexhausted; remainingcandidatesrequireactualwhole-readandsemanticdedup."
+  ],
+  "production_modified": false,
+  "complete": false,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null
+}

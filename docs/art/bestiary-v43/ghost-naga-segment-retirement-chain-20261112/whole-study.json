@@ -1,0 +1,42 @@
+{
+  "family": "twilightforest:naga",
+  "target": "dynasty:yinbing_guizu",
+  "mechanism": "per-part retirement clock→dimensions/visibility→multipart display cleanup; not armor physical detachment",
+  "producer": [
+    "Naga constructs12 NagaSegment children and assigns multipart IDs after spawn packet. Segments are explicitly ticked by parent moveSegments rather than ordinary world tick entities.",
+    "setSegmentsPerHealth compares health-derived count; reduced tail elements receive (oldCount-index)*12 selfDestruct counters, so higher indices expire first; increases reactivate segments. This countdown is not a new species or independent animation reference per segment.",
+    "moveSegments ticks every part and follows previous leader at distance2; dead/dying zeroes straightenForce, but following positions still compute. Do not claim complete frozen pose or gravity-driven separation."
+  ],
+  "part_consumer": [
+    "NagaSegment.tick decrements local deathCounter; atzero calls parent.makePoofAt(part.position), sound, parent.deathTime=0 then deactivate. deactivate sets dimensions0x0 and invisibletrue; activation restores2x2. Armor pile behavior is absent.",
+    "Active segment hurt forwards2/3 to parent and collision attacks living targets; these are gameplay multiparts. Cosmetic armor must not adopt those hitboxes, attack, drops, or extra server entities.",
+    "Part remove is parent-owned: Naga.remove kills children on server. TFPart writes position/rotation/dimensions/dirty synced data; readData interpolates position/rotation over3 steps and refreshes dimensions. Exact packet producer/receiver missing locally; late tracking synchronization cannot be certified."
+  ],
+  "body_render_chain": [
+    "TFPartRenderer.extractRenderState copies perpart rotation/death/overlay/invisibility-related fields; submit applies transformations and calls model.setupAnim(state), then renderType may suppress invisible output. NagaSegmentRenderer additionally skips submit entirely when state.isInvisible, interpolates shortest yaw, pitches, scales2 and translates.",
+    "NagaModel has one16cube at64x32 atlas; child segment geometry is not a bone detached from head, it is a separate multipart model display. No texture content viewed.",
+    "Head renderer scale2.01; flipDegrees0 prevents normal keel-over; texture selects dazed, charging or death state. This is not a head/neck death keyframe sequence."
+  ],
+  "death_reload_boundaries": [
+    "BaseTFBoss selected tickDeath increments deathTime on both sides, server checks completion/remove and client runs visual tick; Naga completion threshold24+100=124. Segment expiration resets parent deathTime, so nominal124 is not sufficient to assert actual total death duration.",
+    "Naga segment countdown is not separately stored in the read empty add/readAdditionalSaveData; Naga has no own save override. Parent base selected save stores home/deathitems and delegates inherited behavior. Parent startSeen sends UpdateDeathTimePacket, but source absent; do not infer complete countdown persistence, reload or late tracking correctness.",
+    "Naga client death particles trace a path toward boss chest, ground clip from+2 to-3 includes water then emitsCOMPOSTER. This is not an armor pile or rising ghostflame."
+  ],
+  "application": [
+    "Reuse concept of separate perpiece visibility/completion, clear removed pieces atparent removal, and do not confuse independent clock with world-space detach.",
+    "Current yinbing remains ordinary skeletal renderer; helmet/arms/pauldrons/chest have no separate release/settle channels, bothflamesinheritshrinkingeyes. No Naga physical pile can be transplanted. Existing44tick contract remains unchanged.",
+    "Body/bones/attachment interfaces only; accessory/armor-object production and UV not performed."
+  ],
+  "not_completed": [
+    "armor falls, contacts terrain and remains piled",
+    "flame mesh detaches and rises",
+    "full network and reload chain in source cache",
+    "visual or game acceptance"
+  ],
+  "whole_family_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "task_complete": false
+}

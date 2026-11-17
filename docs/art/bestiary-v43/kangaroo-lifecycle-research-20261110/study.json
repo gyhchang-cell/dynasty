@@ -1,0 +1,78 @@
+{
+  "created_utc": "2026-11-10T04:34:39.216014+00:00",
+  "scope": "Body/bones/animation/attachment interfaces only; no held object or armor production",
+  "initial_body": [
+    "19 AdvancedModelBox fields, 18 addBox calls, 18 parent edges; root carries no cuboid. getAllParts enumerates all19; parts renders root.",
+    "root [0,24,0] -> body [0,-15,4]; body10x11x13, chest8x9x9 rotates10deg, neck4x11x5 -> head5x4x6 -> snout3x3x4; ears thin3x6x1.",
+    "Both support chains body -> leg -> knee -> foot, thigh3x7x8, knee2x9x3, foot3x2x12. Tail5x6x15 ->3x4x15 originates rear body; neither hands nor snout are paw contact solvers.",
+    "Body/pouch/chest/neck/head form connected hierarchies; this is nonhuman anatomy despite two rear support limbs. Static shape is already credited, not new reference count."
+  ],
+  "layer_order": [
+    "setupAnim calls animate: resetToDefaultPose then animator.update then four animation definitions. Afterwards interpolates sit/pouch/move/stand counters.",
+    "stillProgress=max(0, interpolatedStand-interpolatedMoving); water AI may directly reset totalMovingProgress=0. VisualFlag1 arm spread applied before sit/still overlays.",
+    "Sitting fold: knee+65deg, foot-65deg; body+7Y, arm shifts[-4.5Y,+2Z], feet[-1Y,+.7Z]. Stand raises/rears body-35deg and counters thighs+35deg, chest-10deg, neck+35deg, tail+25deg each.",
+    "Then perpetual idle arm/chest/neck/tail/ears, then jump sin(pi*completion) body lift/leg/knee/foot offsets/rotations; late foot push uses max(0,jumpRotation-.5)*25deg.",
+    "Then helmet folds ears +/-75deg, occupied dominant hand armX-25deg; head yaw .35/head pitch .65 and neck yaw .15 added. Baby riding Kangaroo adds head-50deg/neck+120deg and headZ-2.",
+    "No explicit death/hurt suppression around these model overlays. This establishes selected code ordering only, not exact Citadel numeric final pose."
+  ],
+  "entry_and_recovery": [
+    "Entity increments/decrements sit/stand/move/pouch progress in unit steps bounded0..5. prev values captured before each tick update. Moving uses full deltaMovement.lengthSqr>.03, not only horizontal speed.",
+    "Natural sit server-only: NO_ANIMATION,command!=1,notstanding/notsitting,random1/1500; timed sit500..849. Target/standing cancels non-forced sit; forced sit/tame/notvehicle reasserts sitting. Random stand branch has no explicit client guard.",
+    "Stand max usually75..124; attack setAnimation sets standing true and maxStandTime30(kick) or15(punch), does not reset standingTime. isVehicle renews standing and max25 each tick.",
+    "Sitting/eating travel clears navigation path when present and sends Vec3.ZERO to super.travel. Does not prove existing velocity is erased or all environmental movement prevented.",
+    "Grass eat entry server:notmoving/NO_ANIMATION/not sitting/not standing, grass below plus random180 or injured40. Keys5+5+5+reset5=20, declared30; heal6/grass->dirt tests tick20. At20 local clip target offsets reset, but live overlays still apply.",
+    "Kick keys5 windup+2hold+5extension+3reset=15; entity hit checktick8 occurs within extension, not fully extended endpoint12. Punch keys3+3+reset5=11 vs entity13; hit6 at attack target endpoint. These are source thresholds, not collision/game timing certification.",
+    "Hit checks require current target, line of sight and distance<target.width+self.width+1; calls knockback and doHurtTarget. Block outside explicit server-only inventory/eat section: do not claim this file proves server-only effects.",
+    "KangarooAIMelee begins only when current animation==NO_ANIMATION; kick random or hand-aware punch. Water-grab VisualFlag1 is a separate posture overlay; stop resets flag0, water malus and water counters, not all model channels.",
+    "Entity.setAnimation assigns currentAnimation and stand flags only; it does not itself reset animationTick. updateAnimations is called last in tick. Exact external Citadel replacement/end behavior remains unclosed; do not reuse Grottol LLibrary zero-tick replacement conclusions.",
+    "Selected subclass hurt handles equipment after super.hurt, no custom hurt/death animation. Save fields sitting/forced/standing/command and equipment indices+inventory; local counters,jump phase,animation tick/clip not explicitly saved here. Ancestor reload semantics not closed."
+  ],
+  "jump_lifecycle": [
+    "startJumping when !sitting OR inwater sets jumping true,duration16,ticks0. jumpFromGround broadcasts event1 server-side; client event1 also sets duration16/ticks0.",
+    "tick advances ticks until duration then clears jumpTicks,duration and setJumping(false); getJumpCompletion=(ticks+partial)/duration else0. Exact frame scheduling not validated.",
+    "customServerAiStep landing transition calls setJumping(false), updateMoveTypeDuration(2 ifspeed<2 else1), disables jumpControl; approach/navigation/target can trigger nextjump. No terrain IK or explicit foot/head ground sampling in selected model."
+  ],
+  "attachments": [
+    "Held object layer consumes MAINHAND and isLeftHanded; follows root->body->chest->chosenArm; translates[0,.75,-.125], rotatesX-110/Y180,scale.8; display context selected left/right but renderItem mirror argument false for both. Object mesh/UV/texture out of scope.",
+    "Helmet anchor follows root/body/chest/neck/head; chestplate follows root/body/chest then copies arm positions/angles and sit-dependent offsets. Armor layer wrapper was historically excluded; no new separate credit.",
+    "Pouch layer follows root->body, not animated pouch node; localtranslate[0,1.12,-.3], Z180, Y(riderRot+180); renders passenger with static ModelKangaroo.renderOnlyHead=true then false. Normal return restores flag; exception is rethrown without finally in this selected path, cleanup on exception not proved.",
+    "RenderKangaroo.shouldRender suppresses baby passenger on Kangaroo in ordinary dispatch. Layer attempts separate passenger render; full dispatcher/ClientProxy suppression path unclosed.",
+    "AnimalAIRideParent locates alive-context adult sameclass empty passenger list, approaches every10 ticks, startsRiding atdistance<2. Entity.canAddPassenger also requires pouchTick0; shift inventory interaction ejects passengers and opens pouch indefinitely(-1), close sets10.",
+    "Young modelrender scaleswhole .5/head1.65 with childscale=true; renderOnlyHead branch neck pos[0,0,0], normalyoung render overwrites neckpos[0,2,-8] after setupAnim. Headscale restored1 after render; shouldScaleChildren remains true. Full reset-scale semantics not proved without exact dependency."
+  ],
+  "actual_visual_evidence": [
+    {
+      "file": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/art/creature-mc-v35/references/AlexsMobs-ModelKangaroo.png",
+        "sha256": "5ed0c7a75c8747a663ed46f2ba07f8e32262885a2fec3a75b56ab246074deba4",
+        "bytes": 10362
+      },
+      "viewed_this_batch": true,
+      "scope": "existing static gray bind reconstruction front-oblique/side; no animation/texture/native proof"
+    },
+    {
+      "file": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/creature-reference-1000/AlexModGuy__AlexsMobs/src/main/resources/assets/alexsmobs/textures/entity/kangaroo.png",
+        "sha256": "40273675b07e4820f168a880ab00e2d1d61025119b82e3312f22a369107fde35",
+        "bytes": 4010
+      },
+      "viewed_this_batch": true,
+      "scope": "original128x128atlas: tan broad areas, darker nose/ear/underside zones; atlas alone is not textured model evidence; not copied into Dynasty"
+    }
+  ],
+  "usable_method_not_copied": [
+    "Use a coherent support-chain hierarchy and body-specific counterposes, rather than disconnected chest/limb boxes or human gait on a nonhuman body.",
+    "Audit real attachment matrices after all state overlays; ordinary idle screenshots cannot establish attack contact or juvenile riding alignment.",
+    "Separate declared clip lifetime from keyframe reset time and actual damage tick; do not cut/re-time Dynasty skills from external examples."
+  ],
+  "limits": [
+    "No new Dynasty production edit",
+    "No Java/game/build launched",
+    "No simulated final pose/ground contact",
+    "No claim of reading1000 new distinct references",
+    "No held/accessory assets made",
+    "No copied upstream texture/model",
+    "No native/playback/animation interpolation/network acceptance",
+    "Applicable quadruped collapse gate remains0/1000; global remaining unknown"
+  ]
+}

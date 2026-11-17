@@ -1,0 +1,40 @@
+{
+  "family": "AlexsMobs:Platypus",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "低伏水陆身体、四肢/扁尾连接、感知与掘取入口退出研究；不是新制作Dynasty实体，不制作帽子、物品或贴图。",
+  "prior_full_comparison": [
+    "完整比较Seal study：Seal用投喂者UUID引导潜水掘取并返程，奖励为空可重试，中断保留feeder。Platypus由SENSING发起，掘取100 tick后结束，无返程交付，stop取消SENSING。相同距离/进度公式和水陆导航不拆成新增语义信用。",
+    "本批已完整比较Terrapin study的水陆导航、繁殖/产卵，Platypus仍有本类Mate/LayEgg与普通Breed并列，原生调度未读不能宣称没有竞争。",
+    "v43 source-pin具名Platypus及AnimalSwimMoveControllerSink有界检索未见此前封装记录；只是检索边界，不证明全项目首次。共享接口/导航为reused_whole，控制器本次完整核读不等于独立生物。"
+  ],
+  "body_model_binding": [
+    "64×64声明，10节点root→body7×6×11→head6×5×4→beak4×2×4及既有fedora；body另接四个3×1×3平足和tail6×3×8。水平连续躯干、头尾与短肢形成主体，没有膝踝链或IK。fedora已在原模型中，记录现有层接口，不计新身体或制作配饰。未看PNG，不能判断透明轮廓/像素密度。",
+    "setup每次reset默认；water/dig用prev/current插值。水姿bodyY−3.5、四肢X−5/Z±75、tailX−10；掘取bodyY−1.5/X35、headX−20、tailX10，前肢向内/下/前移并X−30/Y±10/Z∓65。两组可叠加，不能把单组角度当最终画面。",
+    "优先digProgress>0的body/head摆与反相前肢，其次SENSING或SENSING_VISUAL的头部扫描，最后faceTarget1.2；视觉中心不是始终跟随目标。之后waterProgress>0执行水中步态，否则陆行。姿态插值之外，水中gait振幅并未额外乘waterProgress，dig亦未屏蔽gait。是否穿插需完整回放，未臆断。",
+    "幼体头1.65、整体.5/translateY1.5，画后还原head1。RenderPlatypus实际用此Model，整体.9/shadow.45，名称包含perry切另PNG。FedoraLayer在hasFedora时以fedoraPNG重绘整个parent model，不是单独帽模型；base PNG透明与否未知。无服务端喙骨接触坐标。没有作者专用攻击/受伤/死亡/产卵clip。"
+  ],
+  "qualification_controls_and_recovery": [
+    "构造先水下AnimalSwimMoveControllerSink(1.2,1.6)+SemiAquaticPathNavigator。tick依inWaterOrBubble切陆MoveControl+GroundWide/水控制器，切换未显式停旧导航或清delta，代码本段无server guard。swimTimer服务端水增陆减，进入条件(lastHurt或timer<=−1000或sensing)&&!hasEgg，离开(timer>600&&!sensing)||hasEgg。",
+    "DIGGING且水/气泡才推进digProgress，水姿同水/气泡推进，0..5逐tick±1。标志取消后回落并default reset，只证明视觉恢复。地面dig粒子client-only；SENSING或VISUAL粒子从实体朝向/宽度/速度推导，不是实时喙骨世界点。",
+    "shouldStopMoving仅DIGGING。水travel有效AI时moveRelative→SELF move→delta*.9，否则super；无本类统一清惯性分支。SwimSink stopMoving仅setSpeed0并return，不清输入/delta；常规无目标分支才清speed/xxa/yya/zza。近目标平方距离<2.5e−7只setZza0。三者不同，不可等同完全停止。",
+    "SwimSink MOVE_TO且nav未完成时跟wanted向量，默认yawLimit10，water上方目标且水平碰撞加Y.08，否则用当前speed*dy*.6*ySpeedMod加Y，设置speed=目标速度*.02，pitch限制±85每tick最多5度并给zza/yya；陆地速度倍率.1。无目标的MimicOctopus额外下沉不是Platypus专用行为，不单独计信用。",
+    "水游走canUse排除vehicle、stopMoving、target与陆上不想入水，随机interval30。路径候选最多重试15次，封顶仍可能不合条件，不能声称总有可走点；.3尝试水面且检查双空气与下方非阻挡流体，返回y−1水位中心。本类未override continue/stop，继承原生行为未完整核读。"
+  ],
+  "sense_dig_lifecycle": [
+    "mobInteract充能物仅!sensing时设置SENSING和基于supertag的普通字段superCharged。Tempt充能start设VISUAL，stop清VISUAL；canUse要求!sensing。物品目标canUse/continue要求!sensing，canTargetItem只FOODSTUFFS；onGetItem可识别CHARGEABLES，不假设标签必然重叠。",
+    "Dig Goal构造未setFlags。canUse sensing且cooldown到0生成digpos并选maxDrops2..6，cooldown20..39；continue要求无target/lastHurt、仍sensing、目标非空且仍可挖/上方水。没有明确接近最大时长。不能仅由优先级宣称不与其他导航竞争。",
+    "距digPos.above中心平方<2时加Y−.01、nav.stop、digTime++，每5tick源码音效调用未执行。itemDivis=floor(100/maxDrops)，按其倍数取loot，不能把每个loot列表大小当maxDrops。达到100清SENSING/DIGGING、digTime0；不足则DIGGING=true。远处清DIGGING并导航/转头。",
+    "stop清cooldown、SENSING、DIGGING、digPos、digTime；没有显式nav.stop、delta清零或superCharged=false。成功结束与中断都非Seal返程逻辑；不能用视觉进度回落证明路径停止。super.hurt成功可给直接生物来源POISON100，但本段未统一取消SENSING/DIGGING，战斗效果仅说明原源，不移植。",
+    "本类Mate设置HAS_EGG并重置恋爱/年龄；LayEgg继承MoveToBlock，canUse需hasEgg，continue需hasEgg，抵达陆地立即放1..3蛋、清egg/digging、inLove600，无专用掘产动画；stop仅digTime0不调用super，本地digTime未构成产卵时序。同时还注册普通BreedGoal，实际互斥需原生调度核读/运行，不推定。"
+  ],
+  "persistence_application_limits": [
+    "NBT保存Fedora/Sensing/FromBucket/HasEgg；桶嵌入本类保存数据。未保存普通superCharged、swimTimer、DIGGING/VISUAL、两个progress或Goal临时digpos/计时，重载不等于原动作帧/强化与路径恢复。",
+    "可借鉴连续水平主躯干、短肢和扁尾角色分工，以及扫描/掘取/游走优先级和标志退出。不能复制该生物、服饰、玩法、资源，不能给已认可模型改物种。",
+    "固定本地源全读及blob/快照检查，不是PNG视觉研究或动画验收。原生AI/调度/碰撞、Citadel与网络显示未知，未运行Java/游戏/声音。新增独立验收0，适用累计和1000真实缺口未知；禁止将文件数/节点/模式计生物数。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

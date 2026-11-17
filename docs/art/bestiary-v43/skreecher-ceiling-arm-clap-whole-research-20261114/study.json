@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-14",
+  "family": "AlexsMobs:Skreecher",
+  "scope": "Body/bones/animation and actual consumers only. No hand-held/accessory object work; no Dynasty production target selected.",
+  "creation_and_structure": [
+    "Synced clinging/jumping/clapping false, ceiling distance0. Constructor selects ground navigation; progress and cooldown local. Registry selected line137 gives actor .99x.95; own ground size .99x1.35 times scale. These are two actor states, not bone collision.",
+    "64x64 root→body; body→head→upperJaw→two eyes; body→two leg→foot chains; body→two armPivot→arm→hand chains.16 named parts total. Small tilted6x6x3 trunk, head10x7x5/upperjaw12x7x5; arms2x16x2, broad hands8x3x4; leg planes rather than Steve legs. Body/head rotations are authored locally, not a wholesale upside-down model rotation."
+  ],
+  "ceiling_producer": [
+    "getCeilingOf scans upward from block position until DOWN-sturdy face or maxbuildheight. Technical distance=ceilingY-bbox.maxY. No per-hand reach ray or contact solver. Coordinate helper and inherited block/physics internals not reviewed.",
+    "Server clinging branch first sets noGravity true; may clear clinging for distance>4/dead/cooldown/fluid but continues that branch in same tick. Ceiling display distance approaches min(technical,4) by .15; upward impulse gap*.5, or -.03 gap below1. Leaving branch restores gravity next tick. Outside cling, distance decays .5 and technical<4 plus cooldown<=0 can reenter; this entry test itself has no explicit alive/fluid guard. Do not describe as universally safe death/fluid reset.",
+    "Grounded, no sky, cooldown<=0, no current jump, alive, random<.0085 and ceiling farther4 starts jump. Jump block adds .2Y and sets distance1.5 until sky/death/vertical collision exit; it is not enclosed by the server-only branch. Progress considers clinging OR jumpingUp OR base jumping.",
+    "Cling progress rises1 to5; decay requires no visual cling and distance==0. Clapping progress rises/decays1 to5. Tick records previous values before mutations; data arrival/late observer phase not proven."
+  ],
+  "body_consumer": [
+    "setupAnim resets default then interpolates progress and distance using ageInTicks-tickCount. armScale=.3+distance*cling*.2+.7*(5-cling)*.2. Ground endpoint1.0; fullcling endpoint .3+distance (4distance assigns4.3Y). Each arm explicitly setsShouldScaleChildren(true); exact Citadel child-scale handling not re-proven here. This stretches a hierarchy; no IK or bone-derived collision.",
+    "Cling rotates arm pivots-210deg, body+30deg, head-30deg, moves body+8.5Y/head+3Y/pivots-1Y. Separate ground/cling gait weights and distance-derived arm swing amplitude; eyes/jaw are connected but setup contains no dedicated upperJaw open animation.",
+    "Clap primarily flaps/swings leftLeg/rightLeg at .8 age speed; feetStill falls to0, head shakes at10 age speed. No hand-clap transform in this model. Full .8 angular period≈7.854ticks is age-driven, while event cadence is clapTick%8; no explicit phase lock to contact/reset."
+  ],
+  "navigation_and_dimensions": [
+    "Ground/cling switches MoveControl+GroundPathNavigation versus nested MoveController+FlyingPathNavigation. Mode change replaces objects; no explicit old path stop in switchNavigator itself. Cling travel moveRelative+move then velocity*.75. No held object attachment.",
+    "Nested controller adds normalized displacement*speed*.035 with Y multiplier.15; zero-distance has no explicit division guard. Target-facing yaw/pitch or movement yaw; no position-anchored hands.",
+    "hasGroundSize flag triggers refreshDimensions on clinging mode changes. getDimensions picks superclass .99x.95 registration while clinging vs own .99x1.35 scaled on ground; not distance-dependent arm-sized hitbox.",
+    "Nested Wander stop zeros wanted coordinates after superclass stop; body state not reset here. FollowTargetGoal canUse alive target and cooldown<=0, approaches target ceiling or ground, enables clapping within horizontal2.5. No own stop override to clear clap or stop navigation; inherited goal/selector behavior not reread."
+  ],
+  "clap_and_exit": [
+    "setClapping(false) resets clapTick. Active/alive/cooldown<=0 block every8 ticks emits roar/anger/particle; after100 may attempt one Warden spawn. Attempt flag set before biome/server/nearby eligibility, so attempt does not imply spawn. Final clapping target validation runs server-side in same active block and clears on lost target/LOS/invisibility/blindness or horizontal distance>20.",
+    "hurt clears clinging/clapping and assigns200..399 cooldown BEFORE superclass hurt result. clapProgress fades rather than instant reset. jumpingUp not explicitly cleared by hurt; later jump branch handles its own exit.",
+    "NBT stores Clinging,CeilDist,SummonedWarden,ClingCooldown; not clapTick,clapProgress,clapping,jumpingUp,clingProgress. Restored clinging with default ground navigator is corrected by later tick; no proof of seamless loaded visual phase."
+  ],
+  "render": [
+    "Base PNG skreecher.png, separate glow PNG. Render uses parent model for glow, not a distinct skeleton; alpha=.5+.35*sin((tick+partial)*.1) =>.15..85, passed light240. Not a progressive damage/death alpha or actual mouth light source.",
+    "Selected getEyesAlphaEnabled uses eyes shader,WORM transparency,no cull,lightmap,overlay,equal-depth. WORM transparency/shader internals unreviewed; no claim of final composited appearance or ordinary-light PNG quality."
+  ],
+  "application": "Applicable candidate principle: exceptional long limbs should be connected to actual body-state and ceiling-distance consumers; verify mesh deformation, actor dimension transitions, navigation replacement and effect clock independently. Preserve authored nonhuman hierarchy, do not fake world contacts or copy external assets.",
+  "limits": [
+    "No PNG, animation playback, video or game viewed this batch. Source formulas are not native pose/contact acceptance.",
+    "Full target-acquisition helper, base navigation/physics, Citadel inheritance, particle rendering, Warden implementation and renderer superclass are not closed.",
+    "One complete family candidate only; parts/states/helpers and differing clock phases not separate references; no 1000 claim."
+  ],
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "production_modified": false,
+  "complete": false
+}

@@ -1,0 +1,48 @@
+{
+  "status": "RESEARCH_ONLY_HOLD0",
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "whole_sources": 8,
+  "whole_source_lines": 957,
+  "partial_sources": 1,
+  "actual_animation_kind": "Full procedural setupAnim read; flight/ground/tackle/idle/head tracking and explicit heartscale consumers. No missing external action file required. Not a rendered or runtime animation validation.",
+  "body": {
+    "hierarchy": "11 parts root->body->wings/heart/legs/neck; legs->feet; neck->head. Body6x6x10 plus7x6x7 overlapping chest; neck3x3x8; head5x4x7 plus forward beak cuboids; wings24x0x14 planes with root struts7x2x2.128x128 declared UV.",
+    "interface": "Head belongs under neck, heart under body; wings under body. No independent helditem/pendant object or new attack organ proposed. Model leftLeg has label leftWing in constructor; identity by variable/parent not label alone."
+  },
+  "native_action_chain": [
+    "Server tick valid livingtarget assigns PERCH_POS target.blockPosition.above7; absent target invalidates air perch against real perchblock rules, then searches actual perch. Target and perch are not same lifetime.",
+    "Flying switch installs custom MoveHelper+DirectPathNavigator, ground installs native MoveControl+GroundPathNavigatorWide. Both sides switch based synchronized flying. noGravity set flying later each tick on both sides. Switching controller/navigation does not explicitly clear deltaMovement.",
+    "shouldSwoop checks targetnonnull && tackleCooldown0 (no alivecheck here). AITackleMelee.canUse sets flyingtrue; MOVE+LOOK goal has no canContinue override. Native defaultcontinuation not read, so source cannot alone prove exact tick restart schedule.",
+    "AITackleMelee.tick sets TACKLING from flying then wanted target eyeXYZ speed2 and actor yaw toward target. Controller MOVE_TO separately accelerates normalized destination*.05*speed then sets actor/body yaw from velocity, so writer order matters; no guarantee always target-facing vs lateralvelocity.",
+    "Contact AABB inflate.3 intersects target AND cooldown0; sets cooldown100..299 BEFORE hurt, acceptedhurt optionally heals/increments soul if ownhealth<max-damage and soul<5. Then calls stop: TACKLINGfalse only. No velocity/path/flying clear and no independent delayed attack-contact frame.",
+    "AICirclePerch canUse !shouldSwoop/flying/perchnonnull. start random speed.8..1.2, Ylevel0..2, radius5..10, direction. maxCirclingTime360..439 assigned but tick uses literal360. Orbit angular3degrees*tick, integer block sampling, empty destination only; current target speed multiplier1.55.",
+    "AICirclePerch.stop rerandomizes orbit fields and sets tackleCooldown0, no velocity/controller clear. Thus aborting circle can erase attack cooldown; do not assume cooldown duration always retained. Native scheduling/externalinterrupt unverified.",
+    "After circlingTime>360 drives to perchY+1.1; verticalCollision OR distSquared<1 explicitly sets flyingfalse AND deltaMovementZERO, landingCooldown400..1599, calls stop. This landing transition has physical reset unlike ordinary goalstop. General verticalcollision can count; not proof correct perch contact.",
+    "MoveHelper arrival length<.3 WAIT and halve velocity; otherwise add acceleration and yaw fromvelocity. WAIT noexplicitclear. canReach helper defined but not invoked by tick; direct wanted path not claimed obstacle avoidance.",
+    "DirectPathNavigator.tick increments internaltick only; moveTo forwards straight wanted position, no path creation in these overrides. GroundPathNavigatorWide uses width*.75 and directiondot waypoint advance, native parents not closed.",
+    "AIFlyRandom stops cachedpoint only, omits explicit movementreset. Landing/noGravityfalse own tick is separate from TACKLING flag. No own hurt override to abort flight/pose, no authored death clip; inherited deathcontrol unverified."
+  ],
+  "actual_animation_and_order": [
+    "Tick captures prevFlyProgress/prevTackleProgress BEFORE changes, then +/-1 clamped0..5. Model partial=ageInTicks-tickCount interpolates those. Unlike prior Mosquito endcapture, these hold previous state in own code.",
+    "setupAnim resets default pose each render. Flight adds bodyX+15, neckX-35, headX+25, legsX+55; wingsX-70/Yopposite90, wingposY-2/Z-1; bodyY+2, legsY-3/Z+1, headY+3/Z-2, each weightedprogress/5.",
+    "Tackle overlays bodyX-55,neckX-35,headX+90,legsX-100,legposY+3/Z-2. At fly5+tackle5 these offsets ADD: bodytotal-40,neck-70,head+115 before default/dynamic/headlook. Do not call each isolated value final world angle.",
+    "Flight branch bobbody.2/1.6, head/neckwalk.4, wingflap.4/1, lowleg limbwalk. Ground branch strongerlegwalk.7/.74 and smallbody/winggait. Idle heartbob/walk and neck/headwalkalways, then faceTarget(yaw,pitch,2,neck,head). Citadel divisor implementation not inspected; no exact perbone angle claim.",
+    "TACKLINGfalse ramps poseout over5updates through same blend then default reset; FLYINGfalse similarly blends to ground. Neither blend removes actor velocity. Heartscale explicit1+min(1,soul*.5) eachframe avoids accumulating scale but not proof all engine scales reset.",
+    "Root remains fixed24Y; flight/bodybob visual movement not server hover height. Headtracking over attackpose may change final gaze; no clipmask limits observed in own setupAnim."
+  ],
+  "render": "Renderer shadow.3, scale override contains only commented1.2 and actually no scale. Glow layer alltimes uses AMRenderTypes.getGhost at packedlight240; optional soulheart adds three flame textures changing each3ticks (9tickcycle). getGhost139-142 uses eyes shader/noLightmap/equaldepth/noCull; GHOST_TRANSPARANCY setup not read. No PNG viewed or visualbrightness claim.",
+  "negative_controls": {
+    "continuous_facing_backward_hover": "NOT SUPPLIED: forward airborne charge/orbit with velocity-yaw, not child backstep.",
+    "exit_motion_reset": "ONLY explicit perching branch; attackstop/circlestop do not clear.",
+    "pose_exit": "Owned flags/progress reset in source, runtime playback not verified.",
+    "path_collision_safety": "NOT CLOSED: unused canReach and directnavigator.",
+    "damage_frame_vs_animation": "Spatial contact and cooldown, not exact timedkeyframe contact.",
+    "missing_engine_dependencies": "Native AI scheduler/motion/render/helper math unexpanded, no wholeengine claim."
+  },
+  "applicability": "Bounded negative comparison separating visual recovery and physical landing reset, model tracking vs actor facing. Do not copy soulheart/perch/damage mechanics into Dynasty.",
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "pending": "Independent applicability/global familydedup; native inherited scheduling/death and runtime visual checks. Applicable1000 gate remains unverified."
+}

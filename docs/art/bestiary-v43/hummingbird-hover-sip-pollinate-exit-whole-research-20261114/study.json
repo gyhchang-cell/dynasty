@@ -1,0 +1,41 @@
+{
+  "family": "AlexsMobs:Hummingbird",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "身体骨骼、常飞悬停和饮用/授粉动作与失败退出研究，不制作喂食器、物品或建筑资产。",
+  "prior_full_comparison": [
+    "完整阅读 Potoo study：Potoo 根据飞行/栖息资格切换导航并在栖位明确零速度；Hummingbird 每 tick 强制 flying/noGravity，没有同类落地栖息阶段。共享 FlightMoveController 已整读复用，不新增信用。",
+    "v43 study/dedup 按具名 Model/Entity/Hummingbird 检索未发现已有整链研究；有界检索不作全局新颖性保证。"
+  ],
+  "body_and_animation": [
+    "32×32声明、10节点。root→3×5×3倾斜body，body连接3³head及1×1×3长喙、两个wing父节点各接1×5×2羽片、平面尾3×0×5、两个1³脚。喙属于head同骨几何而非独立啄击骨。未看PNG透明轮廓。",
+    "setup每次reset。flyProgress0..5带动body+30°、head−30°、翼Y±55/Z∓100、尾/脚−45，附带翼和头/脚位移。移动权重zoom叠body+25/head−25与翼+20；只有flyProgress>0时执行zoom分支。不是标准双足摆臂。",
+    "entity.tick 每 tick setFlying(true)、setNoGravity(true)，所以自己的常规逻辑不会完成 flyProgress回落。下降且不接地时Y速度*.4。移动判据XZ速度平方>=.001；movingProgress0..5。不等价真实位置变化或高速冲刺动画。",
+    "fly/zoom/sip的prev值在tick结尾更新到已更新的当前值，本写入点压掉常规prev/current帧内差；不能仅因模型写了lerp就宣布插值平滑有效。",
+    "sip把body移(0,−1,+3)、headX+60。isFlying真时拍翼用age时钟、全幅执行，不按flyProgress衰减，另叠尾/head小摆和bodybob。netHeadYaw/headPitch未在本模型使用，游戏lookAt不自动变成模型的独立头部注视。",
+    "幼体头1.75、整体.35并偏移，画后头scale恢复1；renderer再整体.75。没有専用hurt/death/attack clip或地面步态。"
+  ],
+  "feeding_and_event_consumer": [
+    "AIUseFeeder 占 MOVE/JUMP，与授粉同priority4。canUse 要sipCooldown0，复用有效FEEDER_POS或POI范围64搜索最近满容器；失败runCooldown400..999。continue仅本地目标有效且sipCooldown0，未有显式最大接近时长或玩家相关资格。",
+    "tick向喂食器上方或随机高处写MoveControl目的地；距离<2.5且鸟Y高于目标时lookAt并累积 idleTime，每 tick广播68。>55后更新crop计数和sipCooldown120..1319，降低pollinateCooldown，可能耗空容器，然后stop。stop只清localFeeder和idleTime，未停导航/清控制器operation/速度或清持久FEEDER_POS。",
+    "事件68仅客户端且同步feeder位置非空时 sippy=true，附带概率花蜜粒子。tick推进sipProgress到5后sippy=false，然后回落；连续事件可重新置true。不存在服务器sip时钟同步字段，晚加入观察者不能由此恢复遗漏事件。没有播放声音或运行事件。",
+    "FEEDER_POS保存作书签；是否重新有效由下一次canUse检查。stop不清书签不等于悬空引用被完整清理，也不意味着应该把书签删除。"
+  ],
+  "pollination_wander_and_physical_stop": [
+    "HummingbirdAIPollinate 继承MoveToBlockGoal；canUse非幼体、pollinateCooldown0且super资格。super.tick后按XZ距离<3设局部reached，靠近且垂差<=2累计20后pollinate并直接stop。stop只idleTime=0，不调super.stop、不清reached/导航/控制器/速度。继续资格继承实现未读取，不能判断直接stop后立即移除Goal。",
+    "pollinate加crop计数、cooldown200，计数>3且目标是未成熟Crop时施肥后计数0。模型没有独立授粉姿态；不能把饮用事件68错误归给此goal。crop/block实际实现不属于身体动作本次核读范围。",
+    "Wander canUse要求hummingStill>10、随机1/15、MoveControl无wanted；start选目标、tick持续写wanted，continue距离平方>.85。stop仅moveToPoint=null。rangeY虽存字段未用于选点，选择XZ围绕FEEDER_POS/当前位置，检查空地/视线/下两格支撑；不是三维自由随机飞行。",
+    "FlightMoveController：MOVE_TO距离<包围盒平均size转WAIT并delta*.5，非零速度；否则加归一化加速度，旋转主体朝速度或攻击目标。STRAFE仅转WAIT；WAIT没有主动速度归零。私有canReach扫描碰撞但tick未调用，不冒充避障。FlyingPathNavigation是另外的原生路径系统，其完整更新未读。",
+    "hummingStill依赖速度平方<1e−7，局部Goal stop不保证达到；停止路径、停止控制器、停止身体运动须分别检查。当前资料不足以断言实际卡死或穿模，不把静态风险写成实机错误。"
+  ],
+  "binding_reload_limits": [
+    "Renderer ModelHummingbird，shadow.15，整体.75，三variant选择各PNG，无额外挂物层。三换色不是三只参考。",
+    "NBT保存Variant/CropsPollinated/PollinateCooldown/可选FEEDER_POS坐标；未保存FLYING、sipCooldown、sippy、三个progress、hummingStill、局部目标或clock。重载后tick重置常飞并重新爬升progress，不是中间饮用帧继续。",
+    "没有骨骼采样驱动server喙接触或取物挂点；喂食距离是实体位置而非喙端。没有复制模型/PNG，不改Dynasty已认可鸟类/灵体骨架。",
+    "原生Goal调度、MoveToBlockGoal完整退出、FlyingPathNavigation、Citadel辅助和客户端事件顺序未实测。没有PNG视觉研究/动画回放/Java/游戏。1000适用累计及缺口未知，新增独立验收0。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

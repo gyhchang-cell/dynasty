@@ -1,0 +1,251 @@
+[
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/ArmyBehaviors.java",
+    "sha256": "8330d2b58a49e23c90e085721f481b7c22e703869be18b810c24c5dfd2bc3a25",
+    "read_ranges": [
+      [
+        17,
+        42
+      ],
+      [
+        509,
+        564
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          17,
+          42
+        ],
+        "text": "public final class ArmyBehaviors {\n    public interface Behavior {\n        boolean allows(int id);\n        int choose(LivingEntity target,long now);\n        void impact(SkillDefinition skill,int frame);\n        void move(LivingEntity target,long now);\n        default boolean canStart(int id,LivingEntity target){return true;}\n        default void started(int id,LivingEntity target){}\n        default void tick(long now){}\n        default void died(DamageSource source){}\n        default void tickDead(long now){}\n        default void hookHit(LivingEntity target){}\n        default void hurtAccepted(DamageSource source,boolean frontal){}\n        default void hurtAccepted(DamageSource source,boolean frontal,float healthLost){hurtAccepted(source,frontal);}\n        default boolean evade(DamageSource source){return false;}\n        default boolean canInterrupt(){return true;}\n        default boolean preventFatal(DamageSource source,float damage){return false;}\n        default CompoundTag save(){return new CompoundTag();}\n        default void load(CompoundTag tag){}\n        default String animation(int id){return switch(id){case ArmySkills.BRACE->\"brace\";case ArmySkills.ROLL->\"roll\";\n            case ArmySkills.GRAPPLE->\"grapple\";case ArmySkills.KNEE->\"knee\";case ArmySkills.DETONATE->\"detonate\";\n            case ArmySkills.SCORPION_EMERGE->\"emerge\";case ArmySkills.SCORPION_SONG->\"song\";case ArmySkills.TREE_WAKE->\"wake\";case ArmySkills.TREE_ROOTS->\"roots\";case ArmySkills.TOAD_LEAP->\"leap\";case ArmySkills.TOAD_BURST->\"burst\";case ArmySkills.SKULL_BLOOD->\"blood\";case ArmySkills.PAPER_SHED->\"shed\";case ArmySkills.CHILD_CURSE->\"curse\";case ArmySkills.AXE_COUNTER->\"counter\";case ArmySkills.GHOST_PHASE->\"phase\";default->\"attack\";};}\n    }\n    static Behavior create(TemplateMob mob,TemplateMob.Kind kind){return switch(kind){\n        case PALANQUIN->new PalanquinBehavior(mob);case YECHA->new YechaBehavior(mob);case CENTIPEDE->new CentipedeBehavior(mob);case BIXI->new BixiBehavior(mob);case DROWNER->new DrownerBehavior(mob);case BLIND_FISH->new BlindFishBehavior(mob);case LANTERN_BAT->new LanternBatBehavior(mob);case MINING_SPIDER->new MiningSpiderBehavior(mob);case BRONZE_SNAKE->new BronzeSnakeBehavior(mob);case CLOCKWORK_DOG->new ClockworkDogBehavior(mob);case STONE_GUARD->new StoneGuardBehavior(mob);case SERPENT->new WaterSerpentBehavior(mob);case SPEAR->new Spear(mob);case CROSSBOW->new Crossbow(mob);case SCOUT->new Scout(mob);\n        case POWDER->new Powder(mob);case FLAG->new Flag(mob);case AXE_GUARD->new AxeGuard(mob);case GHOST->new Ghost(mob);case CORPSE->new Corpse(mob);case CHILD->new ShroudChild(mob);case PAPER->new PaperSwordsman(mob);case SKULL->new FlyingSkull(mob);case TOAD->new RedToad(mob);case TREE->new TreeSpirit(mob);case SCORPION->new SandScorpion(mob);default->null;};}"
+      },
+      {
+        "range": [
+          509,
+          564
+        ],
+        "text": "    private static final class Ghost extends Base {\n        boolean evadeReady;\n        Ghost(TemplateMob mob){super(mob);}\n        public boolean allows(int id){return id==ArmySkills.GHOST_THRUST||id==ArmySkills.GHOST_PHASE;}\n        public boolean canStart(int id,LivingEntity target){return id!=ArmySkills.GHOST_PHASE||evadeReady;}\n        public boolean canInterrupt(){return !mob.isPhased();}\n        public int choose(LivingEntity target,long now){return ArmySkills.GHOST_THRUST;}\n        public boolean evade(DamageSource source){\n            if(source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))return false;\n            if(mob.isPhased())return true;\n            long now=level().getGameTime();\n            if(!(source.getDirectEntity() instanceof LivingEntity attacker)||source.getEntity()!=attacker\n                    ||!mob.validEnemy(attacker)||source.is(DamageTypeTags.IS_PROJECTILE)\n                    ||mob.distanceToSqr(attacker)>256||!mob.hasLineOfSight(attacker)\n                    ||!mob.attack().ready(ArmySkills.GHOST_PHASE,now)||mob.attack().state(now)==AttackState.STUN\n                    ||mob.getRandom().nextFloat()>=.35F)return false;\n            Vec3 landing=phaseLanding(mob,attacker);if(landing==null)return false;\n            evadeReady=true;mob.cancelAction();boolean started=mob.startSkill(ArmySkills.GHOST_PHASE,attacker);evadeReady=false;\n            if(!started)return false;\n            level().sendParticles(net.minecraft.core.particles.ParticleTypes.SOUL,mob.getX(),mob.getY()+.9,mob.getZ(),8,.2,.5,.2,.02);\n            mob.teleportTo(landing.x,landing.y,landing.z);mob.setDeltaMovement(Vec3.ZERO);mob.setTarget(attacker);\n            mob.playSound(SoundEvents.SOUL_ESCAPE,.6F,.8F);return true;\n        }\n        public void impact(SkillDefinition skill,int frame){\n            if(skill.id()!=ArmySkills.GHOST_THRUST)return;\n            for(var target:CombatGeometry.query(level(),mob.position(),mob.attack().direction(),CombatGeometry.Shape.STRIP,\n                    3.8,.4,30,1.6,e->mob.validEnemy(e)&&mob.hasLineOfSight(e))){\n                target.invulnerableTime=0;\n                if(target.hurt(mob.damageSources().indirectMagic(mob,mob),(float)mob.getAttributeValue(Attributes.ATTACK_DAMAGE)))\n                    target.addEffect(new MobEffectInstance(BlueprintEntities.SPIRIT_CHILL.get(),60,0),mob);\n                if(!mob.isAlive()||mob.attack().current()!=skill)return;\n            }\n        }\n    }\n    /** Only two side directions and three floor heights; no unloaded chunk access or solid-wall crossing. */\n    static Vec3 phaseLanding(TemplateMob mob,LivingEntity attacker){\n        var level=(ServerLevel)mob.level();\n        Vec3 forward=attacker.getLookAngle().multiply(1,0,1).normalize();\n        if(forward.lengthSqr()<.001)forward=mob.position().subtract(attacker.position()).multiply(1,0,1).normalize();\n        if(forward.lengthSqr()<.001)return null;\n        for(int side:new int[]{1,-1})for(int dy:new int[]{0,1,-1}){\n            Vec3 candidate=attacker.position().add(-forward.z*3*side,dy,forward.x*3*side);\n            var pos=net.minecraft.core.BlockPos.containing(candidate);\n            candidate=new Vec3(candidate.x,pos.getY(),candidate.z);\n            var box=mob.getType().getDimensions().makeBoundingBox(candidate.x,candidate.y,candidate.z);\n            if(!level.hasChunkAt(pos)||!level.hasChunkAt(net.minecraft.core.BlockPos.containing(box.minX,box.minY,box.minZ))\n                    ||!level.hasChunkAt(net.minecraft.core.BlockPos.containing(box.maxX,box.maxY,box.maxZ))\n                    ||!level.getWorldBorder().isWithinBounds(box)||!level.getFluidState(pos).isEmpty()\n                    ||!com.dynasty.entity.DynastySpawnPlacement.hasStandingSpace(level,pos,box))continue;\n            if(!level.getEntitiesOfClass(LivingEntity.class,box,e->e.isAlive()&&e instanceof com.dynasty.DynastyBossCombat.BarHolder).isEmpty())continue;\n            var line=level.clip(new net.minecraft.world.level.ClipContext(mob.getEyePosition(),candidate.add(0,mob.getEyeHeight(),0),\n                net.minecraft.world.level.ClipContext.Block.COLLIDER,net.minecraft.world.level.ClipContext.Fluid.NONE,mob));\n            if(line.getType()==net.minecraft.world.phys.HitResult.Type.MISS)return candidate;\n        }\n        return null;\n    }"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/ArmySkills.java",
+    "sha256": "e5c208854f8aa45b9d26cfdd7a2cc1415e0ab88779d074f50dd48bd7ceab0b7a",
+    "read_ranges": [
+      [
+        68,
+        69
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          68,
+          69
+        ],
+        "text": "        skill(GHOST_THRUST,\"ghost_frost_thrust\",14,1,19,38,0,3.8,30,1,.15,true,14),\n        skill(GHOST_PHASE,\"ghost_phase\",0,6,10,120,0,16,360,0,0,false,0),"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/TemplateMob.java",
+    "sha256": "05c621d3919ac77eccc1c0016a1db0b02b7d7aba987aec0b92c2a99977faeb0c",
+    "read_ranges": [
+      [
+        270,
+        309
+      ],
+      [
+        591,
+        640
+      ],
+      [
+        676,
+        739
+      ],
+      [
+        742,
+        831
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          270,
+          309
+        ],
+        "text": "    /** The same validation gates AI and operator/GameTest starts; no client can request a damage frame. */\n    public boolean startSkill(int id, LivingEntity target) {\n        if (level().isClientSide || !isAlive() || isRemoved() || !allows(id)) return false;\n        SkillDefinition base = TemplateSkills.byId(id);\n        if (base == null || (id == ArmySkills.SCORPION_EMERGE && target == this ? false : id == TemplateSkills.POSSESSION ? !validSupport(target) : !validEnemy(target))) return false;\n        double range = distanceTo(target);\n        if (range < base.minRange() || range > (id == ArmySkills.AXE_COUNTER ? 40 : base.maxRange()) || id != ArmySkills.SCORPION_EMERGE && base.requiresSight() && !hasLineOfSight(target)) return false;\n        if (id == TemplateSkills.ROCK_THROW && !onHighGround(target)) return false;\n        if (army != null && !army.canStart(id,target)) return false;\n        Vec3 direction = target.position().subtract(position()).multiply(1, 0, 1).normalize();\n        if (direction.lengthSqr() < .0001) direction = getLookAngle().multiply(1, 0, 1).normalize();\n        // A fuse uses real elapsed time, not attack speed: three consecutive close seconds.\n        float speed = id != ArmySkills.DETONATE && id != ArmySkills.AXE_COUNTER && id != ArmySkills.CHILD_CURSE && id != ArmySkills.SKULL_DIVE && id != ArmySkills.SKULL_BLOOD && id != ArmySkills.TOAD_LEAP && id != ArmySkills.SERPENT_COIL && id != ArmySkills.SERPENT_BITE && id != ArmySkills.STONE_SLAM && id != ArmySkills.STONE_UPPERCUT && id != ArmySkills.DOG_BITE && id != ArmySkills.DOG_ALARM && kind != Kind.BRONZE_SNAKE && kind != Kind.MINING_SPIDER && kind != Kind.LANTERN_BAT && kind != Kind.BLIND_FISH && kind != Kind.DROWNER && kind != Kind.BIXI && kind != Kind.CENTIPEDE && kind != Kind.YECHA && kind != Kind.PALANQUIN && hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()) ? 1.3F : 1F;\n        SkillDefinition effective = TemplateSkills.accelerated(base, speed);\n        if (!attack.tryStart(effective, level().getGameTime(), position(), direction, target.getUUID())) return false;\n        if(army!=null)army.started(id,target);\n        entityData.set(SPEED, speed);\n        coverUntil = 0;\n        entityData.set(SKILL, id); entityData.set(START, attack.started()); entityData.set(PHASE, AttackState.WINDUP.ordinal());\n        navigation.stop(); face(direction);\n        if (id == TemplateSkills.POSSESSION) entityData.set(BUFF_TARGET, target.getId());\n        if (id == TemplateSkills.POUNCE) {\n            Vec3 towards = target.position().subtract(position()).multiply(1, 0, 1);\n            leapDestination = position().add(towards.normalize().scale(Math.min(5.6, towards.length())));\n        }\n        BlueprintVisualEvent.start(this, effective, attack.origin(), attack.direction(), target.getId());\n        playSound(kind == Kind.BEAST ? SoundEvents.FOX_AGGRO : kind == Kind.PRIEST ? SoundEvents.EVOKER_PREPARE_ATTACK : SoundEvents.PLAYER_ATTACK_SWEEP,\n                .6F, kind == Kind.SHIELD ? .65F : 1F);\n        return true;\n    }\n    private boolean allows(int id) {\n        return switch (kind) {\n            case SWORD -> id == TemplateSkills.SWORD_COMBO;\n            case SHIELD -> id == TemplateSkills.SHIELD_COMBO;\n            case PRIEST -> id == TemplateSkills.TALISMAN_VOLLEY || id == TemplateSkills.POSSESSION;\n            case BEAST -> id == TemplateSkills.POUNCE || id == TemplateSkills.ROCK_THROW;\n            default -> army != null && army.allows(id);\n        };\n    }\n"
+      },
+      {
+        "range": [
+          591,
+          640
+        ],
+        "text": "    public void interruptAttack(int stunTicks) {\n        if (level().isClientSide || !isAlive()) return;\n        if (army != null && !army.canInterrupt()) return;\n        int duration=hasEffect(BlueprintEntities.JUNHUN_AURA.get())?Math.max(1,stunTicks/2):stunTicks;\n        attack.stun(level().getGameTime(), duration); finishAction(); entityData.set(PHASE, AttackState.STUN.ordinal());\n    }\n    /** Cancel both the server clock and its tracked animation, including a failed follow-up start. */\n    void cancelAction() {\n        if (level().isClientSide) return;\n        attack.cancel(); finishAction(); entityData.set(PHASE, attack.state(level().getGameTime()).ordinal());\n    }\n    private void finishAction() {\n        entityData.set(SKILL, 0); entityData.set(START, -1L); entityData.set(SPEED, 1F);\n        syncHook(null,-1);\n        if (linkUntil == 0) entityData.set(BUFF_TARGET, -1);\n        BlueprintVisualEvent.cancel(this);\n    }\n    private void face(Vec3 direction) {\n        if(kind==Kind.BRONZE_SNAKE&&(skillId()==ArmySkills.BRONZE_REAR_STAB||skillId()==ArmySkills.BRONZE_POISON))direction=direction.scale(-1);\n        float yaw = (float)(Math.atan2(direction.z, direction.x) * 180 / Math.PI) - 90;\n        setYRot(yaw); yBodyRot = yaw; yHeadRot = yaw;\n    }\n\n    @Override public boolean hurt(DamageSource source, float amount) {\n        if (level().isClientSide) return false;\n        if (amount > 0 && isAlive() && army != null && army.evade(source)) return false;\n        Entity direct = source.getDirectEntity();\n        boolean projectile = source.is(DamageTypeTags.IS_PROJECTILE) || direct instanceof Projectile;\n        Vec3 sourcePosition = direct == null ? source.getSourcePosition() : direct.position();\n        boolean frontal = sourcePosition != null && CombatGeometry.inFront(position(), getLookAngle(), sourcePosition, 120);\n        if (kind == Kind.SHIELD && frontal) {\n            if (projectile) {\n                if (direct instanceof Projectile) direct.discard();\n                playSound(SoundEvents.SHIELD_BLOCK, .7F, .7F); return false;\n            }\n            if (direct instanceof LivingEntity && source.getEntity() == direct) amount *= .2F;\n        }\n        if (!isAlive()) return false;\n        if (kind == Kind.SWORD && formation && direct instanceof AbstractArrow) amount *= .8F;\n        float before=getHealth();\n        boolean damaged = super.hurt(source, amount);\n        if (damaged && isAlive() && army != null) army.hurtAccepted(source, frontal, Math.max(0,before-getHealth()));\n        if (damaged && isAlive() && attack.current() != null && attack.current().interruptible()\n                && attack.state(level().getGameTime()) == AttackState.WINDUP && amount >= Math.max(3, getMaxHealth() * .08F))\n            interruptAttack(10);\n        return damaged;\n    }\n    public boolean preventPaperFatal(DamageSource source,float damage) {\n        return kind==Kind.PAPER && !level().isClientSide && isAlive() && army.preventFatal(source,damage);\n    }"
+      },
+      {
+        "range": [
+          676,
+          739
+        ],
+        "text": "    @Override public boolean canBeCollidedWith() { return kind == Kind.SHIELD && !isRemoved(); }\n    @Override public net.minecraft.world.entity.MobType getMobType() {\n        return kind == Kind.CORPSE || kind == Kind.SKULL ? net.minecraft.world.entity.MobType.UNDEAD : super.getMobType();\n    }\n    public boolean isPhased() { return kind == Kind.GHOST && skillId() == ArmySkills.GHOST_PHASE && actionAge(0) < 6 && isAlive(); }\n    @Override public boolean canBeHitByProjectile() { return !isPhased() && (kind == Kind.SHIELD && !isRemoved() || super.canBeHitByProjectile()); }\n    @Override public boolean isPickable() { return !isPhased() && super.isPickable(); }\n    @Override public boolean isPushable() { return kind != Kind.GHOST && (kind!=Kind.TREE||treeAwake()) && super.isPushable(); }\n    @Override public void push(Entity other) {\n        if (kind != Kind.GHOST || other instanceof com.dynasty.DynastyBossCombat.BarHolder) super.push(other);\n    }\n    @Override protected void doPush(Entity other) {\n        if (kind != Kind.GHOST || other instanceof com.dynasty.DynastyBossCombat.BarHolder) super.doPush(other);\n    }\n    @Override public boolean canCollideWith(Entity other) {\n        return kind == Kind.GHOST ? other instanceof com.dynasty.DynastyBossCombat.BarHolder && other.isAlive() : super.canCollideWith(other);\n    }\n\n    @Override public void die(DamageSource source) {\n        if (deathStarted >= 0) return;\n        super.die(source);\n        if (!isDeadOrDying()) return;\n        if(kind==Kind.SKULL||kind==Kind.LANTERN_BAT||kind==Kind.BLIND_FISH||kind==Kind.YECHA)setNoGravity(false);\n        deathStarted = level().getGameTime(); attack.cancel(); navigation.stop(); setTarget(null); releaseSupport(); clearPossession();\n        syncHook(null,-1);\n        entityData.set(CLIMBING, false);\n        if(kind==Kind.MINING_SPIDER||kind==Kind.CENTIPEDE)setNoGravity(false);\n        clearClimbContact();\n        entityData.set(SKILL, 0); entityData.set(START, deathStarted); entityData.set(SPEED, 1F);\n        BlueprintVisualEvent.cancel(this);\n        BlueprintVisualEvent.death(this);\n        if(!level().isClientSide&&army!=null)army.died(source);\n    }\n    public int deathDuration() { return kind == Kind.PAPER ? 10 : kind == Kind.SHIELD ? 200 : kind == Kind.SWORD ? 60 : 44; }\n    void onArmyHookHit(LivingEntity target,long epoch) {\n        if(!level().isClientSide&&army!=null&&isAlive()&&skillId()==ArmySkills.GRAPPLE&&skillStartTime()==epoch)\n            army.hookHit(target);\n    }\n    @Override protected void dropAllDeathLoot(DamageSource source) {\n        if (lootDropped) return;\n        lootDropped = true; super.dropAllDeathLoot(source);\n    }\n    @Override protected void tickDeath() {\n        ++deathTime;\n        if(!level().isClientSide&&army!=null)army.tickDead(level().getGameTime());\n        if (!level().isClientSide && deathStarted >= 0)\n            deathTime = (int)Math.min(240, Math.max(deathTime, level().getGameTime() - deathStarted));\n        if (kind == Kind.SHIELD) setDeltaMovement(Vec3.ZERO);\n        else if(!level().isClientSide&&!isNoGravity()){\n            // LivingEntity stops ordinary travel once dead. Gravity alone cannot drop a flying\n            // corpse or a ceiling climber; keep the normal block/world-border collision path.\n            var velocity=getDeltaMovement();\n            if(onGround())setDeltaMovement(Vec3.ZERO);\n            else{\n                setDeltaMovement(velocity.x*.8,Math.max(-.8,velocity.y-.08),velocity.z*.8);\n                move(net.minecraft.world.entity.MoverType.SELF,getDeltaMovement());\n                if(onGround())setDeltaMovement(Vec3.ZERO);\n            }\n        }\n        int duration = deathDuration();\n        if (deathTime >= duration && !level().isClientSide && !isRemoved()) {\n            level().broadcastEntityEvent(this, (byte)60); remove(RemovalReason.KILLED);\n        }\n    }"
+      },
+      {
+        "range": [
+          742,
+          831
+        ],
+        "text": "    @Override public void addAdditionalSaveData(CompoundTag tag) {\n        super.addAdditionalSaveData(tag);\n        tag.putString(\"BlueprintEncounterSite\",encounterSite);\n        tag.put(\"TombTacticalSignal\", tombSignal.save());\n        if(kind==Kind.CLOCKWORK_DOG&&hasRestriction())tag.putLong(\"ClockworkPatrolHome\",getRestrictCenter().asLong());\n        tag.putBoolean(\"Burrowed\",burrowed());\n        tag.putBoolean(\"TreeAwake\",treeAwake());tag.putFloat(\"TongueReach\",tongueReach()); tag.put(\"BlueprintAttack\", attack.save()); tag.putFloat(\"BlueprintSpeed\", skillSpeed());\n        tag.putBoolean(\"BlueprintLootDropped\", lootDropped); tag.putLong(\"BlueprintDeathStart\", deathStarted); tag.putInt(\"BlueprintDeathTicks\", deathTime);\n        tag.putLong(\"PossessedUntil\", possessedUntil); tag.putLong(\"LinkUntil\", linkUntil);\n        if (possessor != null) tag.putUUID(\"Possessor\", possessor);\n        if (possessedAlly != null) tag.putUUID(\"PossessedAlly\", possessedAlly);\n        tag.putDouble(\"LeapX\", leapDestination.x); tag.putDouble(\"LeapY\", leapDestination.y); tag.putDouble(\"LeapZ\", leapDestination.z);\n        if(army!=null)tag.put(\"ArmyActionState\",army.save());\n    }\n    @Override public void readAdditionalSaveData(CompoundTag tag) {\n        super.readAdditionalSaveData(tag);\n        encounterSite=tag.getString(\"BlueprintEncounterSite\");if(encounterSite.length()>256)encounterSite=\"\";\n        tombSignal.load(tag.getCompound(\"TombTacticalSignal\"), level().getGameTime());\n        if(kind==Kind.CLOCKWORK_DOG&&tag.contains(\"ClockworkPatrolHome\"))restrictTo(BlockPos.of(tag.getLong(\"ClockworkPatrolHome\")),12);\n        setBurrowed(tag.getBoolean(\"Burrowed\"));\n        setTreeAwake(tag.getBoolean(\"TreeAwake\"));\n        setTongueReach(tag.contains(\"TongueReach\")?tag.getFloat(\"TongueReach\"):5);\n        float speed = tag.getFloat(\"BlueprintSpeed\") > 1 ? 1.3F : 1F;\n        entityData.set(SPEED, speed);\n        attack.load(tag.getCompound(\"BlueprintAttack\"), id -> {\n            SkillDefinition def = TemplateSkills.byId(id); return def != null && allows(id) ? TemplateSkills.accelerated(def, speed) : null;\n        }, level().getGameTime());\n        entityData.set(SKILL, attack.current() == null ? 0 : attack.current().id()); entityData.set(START, attack.started());\n        entityData.set(PHASE, attack.state(level().getGameTime()).ordinal());\n        lootDropped = tag.getBoolean(\"BlueprintLootDropped\"); deathStarted = tag.contains(\"BlueprintDeathStart\") ? tag.getLong(\"BlueprintDeathStart\") : -1;\n        deathTime = Math.max(0, tag.getInt(\"BlueprintDeathTicks\"));\n        if (isDeadOrDying()) { attack.cancel(); entityData.set(SKILL, 0); entityData.set(START, deathStarted); }\n        possessor = tag.hasUUID(\"Possessor\") ? tag.getUUID(\"Possessor\") : null;\n        possessedAlly = tag.hasUUID(\"PossessedAlly\") ? tag.getUUID(\"PossessedAlly\") : null;\n        possessedUntil = tag.getLong(\"PossessedUntil\"); linkUntil = tag.getLong(\"LinkUntil\");\n        if (possessedUntil > 0 && level().getGameTime() >= possessedUntil) clearPossession();\n        entityData.set(POSSESSED, hasEffect(BlueprintEntities.BINGSHA_POSSESSION.get()));\n        LivingEntity ally = resolve(possessedAlly); if (ally != null) entityData.set(BUFF_TARGET, ally.getId());\n        leapDestination = new Vec3(tag.getDouble(\"LeapX\"), tag.getDouble(\"LeapY\"), tag.getDouble(\"LeapZ\"));\n        if(encounterSite.isBlank()&&level() instanceof ServerLevel server){\n            // Upgrade old structure members once on load, using the existing persisted UUID ledger.\n            for(var marker:BlueprintSpawnState.get(server).markers.values())if(marker.members.contains(getUUID())){bindEncounter(marker.key);break;}\n        }\n        BlueprintSpawns.restoreRaidAllegiance(this); // Upgrade prior saved raid members that had split ecology allegiance.\n        if(army!=null)army.load(tag.getCompound(\"ArmyActionState\"));\n    }\n\n    public String visualAnimation() {\n        if (isDeadOrDying()) return \"death\";\n        if(kind==Kind.SCORPION&&burrowed())return \"burrow\";\n        if(kind==Kind.TREE&&!treeAwake())return \"camouflage\";\n        if (hurtTime > 0 && skillId() == 0) return \"hurt\";\n        if(army!=null&&skillId()!=0)return army.animation(skillId());\n        if (skillId() == TemplateSkills.POSSESSION) return \"buff\";\n        if (skillId() == TemplateSkills.ROCK_THROW) return \"rock\";\n        if (skillId() == TemplateSkills.POUNCE) return \"skill\";\n        if (skillId() != 0) return \"attack\";\n        if (kind == Kind.BEAST && onClimbable() && climbFace() != null) return \"climb\";\n        if(kind==Kind.BRONZE_SNAKE&&onClimbable())return \"climb\";\n        if (getDeltaMovement().horizontalDistanceSqr() > .001) return isSprinting() ? \"run\" : \"walk\";\n        return \"idle\";\n    }\n    public AnimationProfile animationProfile(){return AnimationProfile.forKind(kind);}\n    @Override public AnimatableInstanceCache getAnimatableInstanceCache() { return animationCache; }\n    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {\n        controllers.add(new AnimationController<TemplateMob>(this, \"body\", 0, state -> {\n            String animation = visualAnimation();\n            state.getController().setAnimationSpeed(animationProfile().playbackRate(animation,getDeltaMovement().horizontalDistance(),getAttributeValue(Attributes.MOVEMENT_SPEED),isSprinting()));\n            animationPartial = state.getPartialTick();\n            if (lastAnimationStart != skillStartTime()) {\n                lastAnimationStart = skillStartTime(); state.getController().forceAnimationReset();\n            }\n            RawAnimation sequence = RawAnimation.begin();\n            String key = \"animation.\" + blueprintId() + \".\" + animation;\n            return state.setAndContinue(animationProfile().loops(animation)\n                    ? sequence.thenLoop(key) : sequence.thenPlayAndHold(key));\n        }) {\n            @Override protected double adjustTick(double tick) {\n                boolean resetting = shouldResetTick;\n                double local = super.adjustTick(tick);\n                // GeckoLib polls a new queued clip only at transition tick zero. Replacing that\n                // zero with a nonzero server age leaves the old idle clip installed forever.\n                if (resetting || getAnimationState() != AnimationController.State.RUNNING) return local;\n                if (kind == Kind.BEAST && climbFace() != null && climbStartTime() >= 0 && skillId() == 0 && isAlive())\n                    return Math.max(0, level().getGameTime() - climbStartTime() + animationPartial);\n                // Late observers seek to the authoritative contact frame instead of restarting the clip.\n                return skillStartTime() >= 0 && (skillId() != 0 || isDeadOrDying()) ? actionAge(animationPartial) : local;\n            }\n        });\n    }"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/client/TemplateMobModel.java",
+    "sha256": "7defda78a7d640b2103d8f03832dd8330dd3d321af759789a117088c1321d2e1",
+    "read_ranges": [
+      [
+        1,
+        59
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          1,
+          59
+        ],
+        "text": "package com.dynasty.blueprint.client;\n\nimport com.dynasty.blueprint.TemplateMob;\nimport net.minecraft.resources.ResourceLocation;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.core.animation.AnimationState;\n\n/** Shared loading; each profession owns an independently authored articulated rig. */\npublic final class TemplateMobModel extends GeoModel<TemplateMob> {\n    @Override public void setCustomAnimations(TemplateMob mob, long instanceId, AnimationState<TemplateMob> state) {\n        super.setCustomAnimations(mob, instanceId, state);\n        TemplateSecondaryMotion.apply(this, mob, state.getPartialTick());\n        if(mob.kind()==TemplateMob.Kind.DROWNER&&mob.isAlive()){\n            boolean pool=mob.waterPool();\n            getBone(\"body\").ifPresent(b->{b.setScaleY(pool?.12F:1);b.setScaleX(pool?2.5F:1);b.setScaleZ(pool?2.5F:1);});\n        }\n        if(mob.kind()==TemplateMob.Kind.TOAD)\n            // Independent identity wrapper: never multiply a shared animated bone across draws.\n            getBone(\"tongue_reach\").ifPresent(b->b.setScaleZ(mob.skillId()==com.dynasty.blueprint.ArmySkills.TOAD_TONGUE?mob.tongueReach()/5:1));\n    }\n    @Override public ResourceLocation getModelResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"geo/\" + artDirectory(mob) + mob.blueprintId() + \".geo.json\");\n    }\n\n    @Override public ResourceLocation getAnimationResource(TemplateMob mob) {\n        return new ResourceLocation(\"dynasty\", \"animations/\" + artDirectory(mob) + mob.blueprintId() + \".animation.json\");\n    }\n\n    // Preserve the concurrent legacy UV files; these two rigs have separate authored resources.\n    private static String artDirectory(TemplateMob mob) {\n        return mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER\n            ? \"blueprint/cod2_voxel/\" : \"blueprint/\";\n    }\n\n    @Override public ResourceLocation getTextureResource(TemplateMob mob) {\n        if(mob.kind()==TemplateMob.Kind.CHILD||mob.kind()==TemplateMob.Kind.PAPER)\n            return new ResourceLocation(\"dynasty\", \"textures/entity/\" + artDirectory(mob) + mob.blueprintId() + \".png\");\n        if (switch (mob.kind()) {\n            case STONE_GUARD, BIXI, YECHA, LANTERN_BAT, BLIND_FISH, DROWNER,\n                 BRONZE_SNAKE, CLOCKWORK_DOG, MINING_SPIDER, SCORPION,\n                 CENTIPEDE, SERPENT, TOAD, PRIEST,\n                 SPEAR, POWDER, TREE, CROSSBOW, SHIELD, SKULL, AXE_GUARD, SCOUT,\n                 CORPSE, GHOST, PALANQUIN, FLAG, BEAST, SWORD -> true;\n            default -> false;\n        }) return new ResourceLocation(\"dynasty\", \"textures/entity/blueprint/\" + mob.blueprintId() + \".png\");\n        // Continuous opaque native swatches preserve pixel grain without replacing legacy artwork.\n        String atlas = switch (mob.blueprintId()) {\n            case \"juli_bixi_kuilei\", \"xueju_mangguyu\", \"jubi_shigandang\", \"zuwu_daoshou\", \"ludun_jiashi\", \"zhenwang_zhangqiguan\", \"pijia_panjiang_huwei\", \"yinbing_guizu\" -> \"royal_guard\";\n            case \"juma_changqiangbing\" -> \"archer\";\n            case \"bazu_digongzhu\", \"qingtong_shuangtoushekui\", \"xunshan_mujiaquan\", \"liannu_zhenzu\", \"kuijun_sishi\" -> \"rebel_soldier\";\n            case \"tiesuo_chihou\" -> \"assassin\";\n            case \"fuhun_baibu_tongzi\" -> \"imperial_soldier\";\n            case \"bishui_xuanjiao_youzi\", \"shibian_lishi\", \"chimu_zhuha\", \"kumu_shujing\", \"mingsha_shixie\" -> \"nian_beast\";\n            case \"tongbi_feitian_yecha\", \"baimu_mowu\", \"youdeng_guimianfu\", \"shanjing_shanxiao\" -> \"nian_beast\";\n            default -> \"imperial_soldier\";\n        };\n        return new ResourceLocation(\"dynasty\", \"textures/entity/\" + atlas + \".png\");\n    }\n}"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/client/TemplateMobRenderer.java",
+    "sha256": "c02164b7a9c309a3282e400b63fd823e05b918a4678a8fac8f2161b76fc9f544",
+    "read_ranges": [
+      [
+        76,
+        81
+      ],
+      [
+        112,
+        138
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          76,
+          81
+        ],
+        "text": "    @Override protected float getDeathMaxRotation(TemplateMob mob) {\n        // Authored kneeling/collapse clips own death rotation; vanilla's 90-degree roll would\n        // tip the shield cover onto its side for its remaining server-authoritative lifetime.\n        return 0;\n    }\n"
+      },
+      {
+        "range": [
+          112,
+          138
+        ],
+        "text": "        if(mob.kind()==TemplateMob.Kind.DROWNER)return Color.ofRGBA(.32F,.46F,.49F,.65F);\n        if(mob.kind()==TemplateMob.Kind.BLIND_FISH)return Color.ofRGBA(1F,1F,.95F,mob.isDeadOrDying()?Math.max(0,.72F*(1-mob.actionAge(partialTick)/44F)):.72F);\n        if (mob.kind() == TemplateMob.Kind.GHOST) return Color.ofRGBA(.55F,.85F,1F,mob.isPhased()?.18F:.65F);\n        if (mob.kind() == TemplateMob.Kind.BEAST && mob.isDeadOrDying()) {\n            // The native blue-green fur loses its cool hue toward dry charcoal as it curls.\n            // Use the synchronized death clock, so late observers do not restart the fade.\n            // Vertex tint needs neither a second texture nor an extra render pass/entity.\n            float fade = Mth.clamp((mob.actionAge(partialTick) - 6F) / 26F, 0F, 1F);\n            return Color.ofRGB(1F - .10F * fade, 1F - .26F * fade, 1F - .46F * fade);\n        }\n        if(mob.getPersistentData().getBoolean(\"DynastyEventPhantom\"))return Color.ofRGBA(.35F,.85F,1F,.35F);\n        return super.getRenderColor(mob, partialTick, light);\n    }\n\n    @Override public net.minecraft.client.renderer.RenderType getRenderType(TemplateMob mob,\n            net.minecraft.resources.ResourceLocation texture,MultiBufferSource buffers,float partialTick){\n        return (mob.kind()==TemplateMob.Kind.GHOST||mob.kind()==TemplateMob.Kind.BLIND_FISH||mob.kind()==TemplateMob.Kind.DROWNER)?net.minecraft.client.renderer.RenderType.entityTranslucent(texture)\n            :super.getRenderType(mob,texture,buffers,partialTick);\n    }\n\n    @Override public int getPackedOverlay(TemplateMob mob, float u, float partialTick) {\n        // The shield remnant is usable cover for ten seconds, not a ten-second hurt flash.\n        // Keep the initial vanilla impact flash, then restore its authored metal/wood colours.\n        if (mob.isDeadOrDying() && (mob.hurtTime <= 0 || mob.kind()==TemplateMob.Kind.PAPER)) return OverlayTexture.NO_OVERLAY;\n        return super.getPackedOverlay(mob, u, partialTick);\n    }\n}"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/client/TemplateSecondaryMotion.java",
+    "sha256": "4f5b4586484489905d6ff2f19541c051c5f89d991ebdc75fdb453e51b287a8e5",
+    "read_ranges": [
+      [
+        129,
+        150
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          129,
+          150
+        ],
+        "text": "            if(advance)solveScorpion(mob,s,now);\n            for(int i=0;i<6;i++){set(model,\"leg_ik_hip_\"+i,0,s.scorpionLeg[i*2]);set(model,\"leg_ik_knee_\"+i,0,s.scorpionLeg[i*2+1]);}\n        }\n        String[] gear=gearBones(mob.kind());\n        for(int j=0;j<gear.length;j++)set(model,gear[j],s.angle[j],s.roll[j]);\n        if(mob.kind()==TemplateMob.Kind.CHILD)model.getBone(\"lamp_inertia\").ifPresent(b->b.setRotY(s.roll[0]*.7F));\n    }\n    private static String[] gearBones(TemplateMob.Kind kind){return switch(kind){\n        case SPEAR->SPEAR_GEAR;case CROSSBOW->CROSSBOW_GEAR;case SCOUT->SCOUT_GEAR;case FLAG->FLAG_GEAR;case CHILD->CHILD_GEAR;case SKULL->SKULL_GEAR;case TREE->TREE_GEAR;default->NO_GEAR;};}\n    private static final String[] TREE_GEAR={\"root_spring_0\",\"root_spring_1\",\"root_spring_2\",\"root_spring_3\",\"root_spring_4\",\"root_spring_5\"},SKULL_GEAR={\"viscera_spring_0\",\"viscera_spring_1\",\"viscera_spring_2\",\"viscera_spring_3\"},CHILD_GEAR={\"lamp_inertia\",\"ribbon_spring_0\",\"ribbon_spring_1\",\"ribbon_spring_2\"},NO_GEAR={},SPEAR_GEAR={\"skirt_spring_front\",\"skirt_spring_back\",\"skirt_spring_left\",\"skirt_spring_right\"},\n        CROSSBOW_GEAR={\"gear_pouch_0\",\"gear_pouch_1\",\"gear_pouch_2\"},SCOUT_GEAR={\"right_chain_spring\",\"left_chain_spring\"},\n        FLAG_GEAR={\"flag_spring_0\",\"flag_spring_1\",\"flag_spring_2\",\"flag_spring_3\"};\n    private static void resetProcedural(TemplateMobModel model,TemplateMob.Kind kind){\n        if(kind==TemplateMob.Kind.PRIEST){for(String side:SIDES)for(String n:new String[]{\"sleeve_inner_spring\",\"sleeve_inner_tip\",\"sleeve_outer_spring\",\"sleeve_outer_tip\"})reset(model,side+\"_\"+n);for(int i=0;i<3;i++){reset(model,\"talisman_spring_\"+i);reset(model,\"talisman_tip_\"+i);}}\n        if(kind==TemplateMob.Kind.SHIELD)for(String side:SIDES){reset(model,side+\"_shoulder_rail\");reset(model,side+\"_hip_plate_lower\");}\n        if(kind==TemplateMob.Kind.BEAST)for(String side:SIDES)for(String part:IK_PARTS)reset(model,side+\"_climb_\"+part);\n        if(kind==TemplateMob.Kind.SCORPION)for(int i=0;i<6;i++){reset(model,\"leg_ik_hip_\"+i);reset(model,\"leg_ik_knee_\"+i);}\n        for(String gear:gearBones(kind))reset(model,gear);\n    }\n    private static void reset(TemplateMobModel model,String name){model.getBone(name).ifPresent(b->{b.setRotX(0);b.setRotY(0);b.setRotZ(0);b.setPosX(0);b.setPosY(0);b.setPosZ(0);});}\n    private static void set(TemplateMobModel model,String name,float x,float z){model.getBone(name).ifPresent(b->{b.setRotX(x);b.setRotZ(z);});}\n    private static float rotation(TemplateMobModel model,String name){return model.getBone(name).map(GeoBone::getRotX).orElse(0F);}"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/AnimationProfile.java",
+    "sha256": "880c2a0190bbc6a32a5ac92bab0541a4fecdf36229c33f2f50f4d1b77efd5bc2",
+    "read_ranges": [
+      [
+        1,
+        28
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          1,
+          28
+        ],
+        "text": "package com.dynasty.blueprint;\n\n/** Shared locomotion semantics; every species retains its own authored rig, clips and attack clock. */\npublic enum AnimationProfile {\n    LIGHT_HUMANOID(false,32),HEAVY_HUMANOID(false,24),ARCHER(false,32),BLADE(false,32),SPEAR(false,32),CASTER(false,32),\n    QUADRUPED(false,32),MULTILEG(false,24),SERPENT(false,32),FLOATING(true,24),GIANT_CONSTRUCT(false,24);\n    private final boolean floating;private final int secondaryDistance;\n    AnimationProfile(boolean floating,int secondaryDistance){this.floating=floating;this.secondaryDistance=secondaryDistance;}\n    public boolean floating(){return floating;}\n    public int secondaryDistance(){return secondaryDistance;}\n    public boolean loops(String clip){return switch(clip){case \"idle\",\"walk\",\"run\",\"fly\",\"climb\",\"burrow\",\"camouflage\"->true;default->false;};}\n    /** Rate changes affect only locomotion. Attack/death clips continue to seek the authoritative server epoch. */\n    public double playbackRate(String clip,double horizontalSpeed,double movementAttribute,boolean sprinting){\n        if(!clip.equals(\"walk\")&&!clip.equals(\"run\")&&!clip.equals(\"fly\"))return 1;\n        if(floating)return 1;\n        double nominal=Math.max(.035,movementAttribute*(sprinting?.6:.35));\n        return net.minecraft.util.Mth.clamp(horizontalSpeed/nominal,.65,1.5);\n    }\n    public static AnimationProfile forKind(TemplateMob.Kind kind){\n        return switch(kind){\n            case SWORD->BLADE;case SPEAR->SPEAR;case CROSSBOW->ARCHER;case SHIELD,AXE_GUARD,CORPSE->HEAVY_HUMANOID;\n            case PRIEST,FLAG->CASTER;case SCOUT,POWDER,PAPER->LIGHT_HUMANOID;case BEAST,TOAD->QUADRUPED;\n            case SCORPION,MINING_SPIDER,CENTIPEDE->MULTILEG;case SERPENT,BRONZE_SNAKE->SERPENT;\n            case GHOST,CHILD,SKULL,LANTERN_BAT,BLIND_FISH,YECHA,PALANQUIN->FLOATING;\n            case STONE_GUARD,TREE,BIXI->GIANT_CONSTRUCT;case CLOCKWORK_DOG->QUADRUPED;case DROWNER->LIGHT_HUMANOID;\n        };\n    }\n}"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/blueprint/combat/TimedAttack.java",
+    "sha256": "8f264c4e4846bae36d273c1c4c32d43b2ad43e807259a0b03d41b244253147f4",
+    "read_ranges": [
+      [
+        1,
+        87
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          1,
+          87
+        ],
+        "text": "package com.dynasty.blueprint.combat;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.phys.Vec3;\nimport java.util.HashMap;\nimport java.util.HashSet;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.UUID;\nimport java.util.function.IntConsumer;\nimport java.util.function.IntFunction;\n\n/** Per-entity server clock. Checkpoints include consumed frames, so chunk reload cannot replay damage. */\npublic final class TimedAttack {\n    private SkillDefinition current;\n    private long started = -1, stunnedUntil;\n    private Vec3 origin = Vec3.ZERO, direction = new Vec3(0, 0, 1);\n    private UUID target;\n    private final Map<Integer, Long> cooldowns = new HashMap<>();\n    private final Set<Integer> fired = new HashSet<>();\n\n    public boolean tryStart(SkillDefinition def, long now, Vec3 at, Vec3 forward, UUID victim) {\n        if (def == null || state(now) != AttackState.IDLE || !ready(def.id(), now)\n                || !finite(at) || !finite(forward) || forward.lengthSqr() < 1.0e-8) return false;\n        current = def; started = now; origin = at; direction = forward.normalize(); target = victim; fired.clear();\n        cooldowns.put(def.id(), now + def.totalTicks() + def.cooldownTicks());\n        return true;\n    }\n    public void advance(long now, IntConsumer impact) {\n        if (current == null) return;\n        if (now < stunnedUntil) { cancel(); return; }\n        SkillDefinition active = current;\n        long actionStart = started;\n        long age = now - actionStart;\n        // Never dump delayed damage after an unloaded interval. A missed frame is safely cancelled.\n        for (int frame : active.impactTicks()) {\n            if (frame <= age && fired.add(frame) && frame == age) impact.accept(frame);\n            // Damage callbacks can kill/stun the caster (e.g. thorns). Never touch or advance a new action.\n            if (current != active || started != actionStart) return;\n        }\n        if (age >= active.totalTicks() || age < 0) cancel();\n    }\n    public void cancel() { current = null; started = -1; target = null; fired.clear(); }\n    /** A successful scripted escape ends hit-stun, preserving all attack cooldowns. */\n    public void endStun(long now) { stunnedUntil = Math.min(stunnedUntil, now); }\n    public void stun(long now, int ticks) { cancel(); stunnedUntil = Math.max(stunnedUntil, now + Math.max(1, ticks)); }\n    public AttackState state(long now) {\n        return now < stunnedUntil ? AttackState.STUN : current == null ? AttackState.IDLE\n                : current.phaseAt((int)Math.min(Integer.MAX_VALUE, Math.max(-1, now - started)));\n    }\n    public SkillDefinition current() { return current; }\n    public long started() { return started; }\n    public Vec3 origin() { return origin; }\n    public Vec3 direction() { return direction; }\n    public UUID target() { return target; }\n    public boolean ready(int id, long now) { return now >= cooldowns.getOrDefault(id, 0L); }\n    /** A cancelled proximity fuse is unspent; other attack cooldowns remain authoritative. */\n    public void resetCooldown(int id) { cooldowns.remove(id); }\n    public CompoundTag save() {\n        var t = new CompoundTag(); t.putInt(\"Version\", 1); t.putLong(\"Started\", started); t.putLong(\"StunUntil\", stunnedUntil);\n        t.putInt(\"Skill\", current == null ? 0 : current.id()); if (target != null) t.putUUID(\"Target\", target);\n        t.putDouble(\"X\", origin.x); t.putDouble(\"Y\", origin.y); t.putDouble(\"Z\", origin.z);\n        t.putDouble(\"DX\", direction.x); t.putDouble(\"DY\", direction.y); t.putDouble(\"DZ\", direction.z);\n        t.putIntArray(\"Fired\", fired.stream().mapToInt(Integer::intValue).toArray());\n        var cd = new CompoundTag(); cooldowns.forEach((k, v) -> cd.putLong(Integer.toString(k), v)); t.put(\"Cooldowns\", cd);\n        return t;\n    }\n    public void load(CompoundTag t, IntFunction<SkillDefinition> registry, long now) {\n        cancel(); cooldowns.clear();\n        stunnedUntil = Math.min(now + 1200, Math.max(0, t.getLong(\"StunUntil\")));\n        var cd = t.getCompound(\"Cooldowns\");\n        for (String key : cd.getAllKeys()) {\n            try { int id = Integer.parseInt(key); if (registry.apply(id) != null)\n                cooldowns.put(id, Math.min(now + 24000, Math.max(0, cd.getLong(key)))); }\n            catch (NumberFormatException ignored) { /* Ignore corrupt/obsolete keys, not the whole entity. */ }\n        }\n        current = registry.apply(t.getInt(\"Skill\")); started = t.getLong(\"Started\");\n        origin = new Vec3(t.getDouble(\"X\"), t.getDouble(\"Y\"), t.getDouble(\"Z\"));\n        direction = new Vec3(t.getDouble(\"DX\"), t.getDouble(\"DY\"), t.getDouble(\"DZ\"));\n        target = t.hasUUID(\"Target\") ? t.getUUID(\"Target\") : null;\n        for (int frame : t.getIntArray(\"Fired\")) fired.add(frame);\n        if (current == null || now < started || now - started >= current.totalTicks()\n                || !finite(origin) || !finite(direction) || direction.lengthSqr() < 1.0e-8) cancel();\n        else direction = direction.normalize();\n    }\n    private static boolean finite(Vec3 p) { return Double.isFinite(p.x) && Double.isFinite(p.y) && Double.isFinite(p.z); }\n}"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+    "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "read_ranges": [
+      [
+        69,
+        81
+      ],
+      [
+        374,
+        379
+      ]
+    ],
+    "excerpts": [
+      {
+        "range": [
+          69,
+          81
+        ],
+        "text": "### 10. 阴兵鬼卒（无视物理灵体怪）\n- **类型**：灵体/鬼怪\n- **出现区域**：浓雾古战场、阴气深涧、乱葬坑\n- **外形与体型**：身高1.8米。下半身为虚浮青烟，上身为残破半透明古代铠甲，头盔下方空无一物，仅有两团幽蓝色鬼火闪烁。\n- **纯黑剪影特点**：完全没有双腿支撑，由一条逐渐变细并向后拖曳的烟雾带连接地面，长戈前指。\n- **武器**：虚幻锈蚀战戈。\n- **移动方式**：完全平滑的漂浮滑行，可无阻碍穿过其他非首领实体。\n- **普通攻击**：戈尖虚刺穿透护甲，造成冰霜冷缩魔法伤害并降低玩家攻速。\n- **特殊能力【幽冥遁入】**：被近战攻击命中时有35%几率瞬间虚化并闪现至玩家身侧3格处，虚化期间不可选中。\n- **死亡表现**：铠甲失去灵力托举，“哗啦”一声全部散落堆叠在地面，鬼火消散升空。\n- **掉落物**：聚阴寒玉屑、幽冥残缕、古币锈块。\n- **模型分件与骨骼**：空心铠甲内无头颅骨骼，幽火为双点漂浮光晕骨骼，尾部烟雾为3段渐变弯曲骨链。\n"
+      },
+      {
+        "range": [
+          374,
+          379
+        ],
+        "text": "### 10. 阴兵鬼卒\n- 维度：主世界古战场/阴涧/乱葬岗；`dynasty:underworld` 中可作为结构生态怪。\n- 主世界条件：夜间/低光，结构或古战场影响区优先。\n- 组：2～5；局部上限按阴司/古战场单独配置。\n- 实现：能穿过其他非Boss实体，但不要穿实心方块逃出结构；35%虚化必须有内部冷却；闪现只选合法站立点。\n"
+      }
+    ]
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/geo/blueprint/yinbing_guizu.geo.json",
+    "sha256": "f88c85a536099541d045fde8bb5ab034607493a199d5f79eb123d1ed067fd8e7",
+    "snapshot": "current/yinbing_guizu.geo.json",
+    "read_scope": "parsed hierarchy/cube-count/clip inventory; literal attack/phase/death focal channels, not PNG or rendered game scene"
+  },
+  {
+    "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/animations/blueprint/yinbing_guizu.animation.json",
+    "sha256": "b3d87c9599086dc96ec9f2af581a0949fe48ccc45688c8b7e26c647f190b9163",
+    "snapshot": "current/yinbing_guizu.animation.json",
+    "read_scope": "parsed hierarchy/cube-count/clip inventory; literal attack/phase/death focal channels, not PNG or rendered game scene"
+  }
+]

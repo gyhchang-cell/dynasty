@@ -1,0 +1,45 @@
+{
+  "family": "minecraft:evoker",
+  "target": "dynasty:fufa_jijiu",
+  "mechanism": "施法起手、逻辑效果与手臂姿态独立计时；停止/读档后身体消费边界",
+  "native_producer_and_scheduling": [
+    "Evoker注册Casting优先1，回避2，Summon4，Attack5，Wololo6。UseSpellGoal没有自设MOVE/LOOK flags，CastingGoal才锁MOVE/LOOK、停导航并看目标/羊。具体优先替换通过WrappedGoal较小priority与interruptable检查，不将数字直接视为每tick顺序执行。",
+    "UseSpell入口需活目标、当前不在casting且tickCount达到nextAttack；start置warmup=adjustedTickDelay(20)、spellCastingTickCount=getCastingTime、nextAttack=tickCount+interval、同步spell ID。续用目标活且warmup>0；tick减到0执行performSpellCasting。",
+    "Goal默认requiresUpdateEveryTick=false，adjustedTickDelay是ceil(n/2)；Mob742..780以serverTick+entityId奇偶交替全selector.tick与tickRunningGoals(false)。因此warmup20是10次该goal更新，正常调度约20tick而非20次每tick回调；起播同次全tick已可减1，不能宣称绝对第20世界tick。",
+    "Spellcaster.customServerAiStep在目标选择/导航之后逐serverAI tick减castingTickCount；CastingGoal继承续用canUse，下一全selector清理时stop写NONE。丢目标可停止UseSpell，但casting剩余与客户端姿态并非同一时刻归零。",
+    "Attack40tick casting、100间隔，近距两圈或远距16个fangs，地形实面检验后放置；Fangs实体伤害未读，不宣称头手骨是伤害源。Summon100/340生成3Vex，Wololo40warmup/60casting/140间隔改羊色。三种法术不拆三只参考。",
+    "服务器isCasting由count>0，客户端由同步byte>0；currentSpell与byte由setter写。NBT仅保存SpellTicks，不保存currentSpell、warmup、nextAttack或统一动画epoch；读档不能当作完整动作/效果续播实现。没有自定义死亡清姿态override，不推断Raider/LivingEntity所有死亡处理。"
+  ],
+  "native_body_and_hook_consumer": [
+    "IllagerModel用一套arms交叉块与左右独立arm切换：CROSSED只显示交叉arms，其余仅双臂。SPELLCASTING双臂zRoll±2.3561945、xRot随age cos*.25，yRot0；头朝向独立，腿可继续walk/riding分支。不是逐帧蓄势/接触/恢复的 authored clip。",
+    "每次setup先写头朝向与常规四肢姿态，再pose覆盖，最后visibility。没有reset所有ModelPart的统一调用；大部分相关角有显式写回，不能由缺reset一词宣布串姿态已复现。",
+    "Spellcaster客户端两点ENTITY_EFFECT位置按yBodyRot与tick cos左右对称于实体+.6横向/+1.8Y，非手骨世界坐标。不能把固定偏移粒子当手持挂点已对齐。",
+    "EvokerRenderer只有isCasting才绘ItemInHandLayer；其经translateToHand→arm.translateAndRotate，ModelPart153..163为局部pos/16、ZYX旋转、scale；随后手持层加X-90/Y180与左右偏移，第三人称左右context。仅记录接口，不制作道具或迁移左右偏移。",
+    "IllagerRenderer整体.9375缩放及CustomHeadLayer存在，头部装备层实现未读；不声称头脸贴图或装备全渲染链已验。"
+  ],
+  "current_body_consumer_comparison": [
+    "符法祭酒PRIEST既有身体分层、左右shoulder/elbow/wrist/hand、面具与冠，staff在right_hand，三组talisman在staff。研究不授权换成村民鼻脸、交叉臂块或改现有Steve基础形体；staff/符物件自身仍归贴图专岗。",
+    "TALISMAN24+9+17=50tick、3..24格且LOS，接触24/28/32；attack2.5秒左shoulder在1.2/1.4/1.6秒三次-70、期间-50回弹，chest于1.2转8度。BUFF20+1+19=40tick、20接触；buff2秒左肩1秒-65，2秒归零。skill同长度同骨名不另算完成项。",
+    "启动锁原点/方向/target，navstop，serverID/epoch同步；行动中face固定方向、水平速度*.35、TimedAttack.advance到指定帧才impact。祭酒可能受BINGSHA加速，必须使用effective定义与actionAge*speed，不擅改24/28/32为固定墙钟。",
+    "Talisman impact重新确认敌人/24格/LOS再shoot；shoot40..54从owner X/eyeY-.1/Z发射朝目标AABB中心，不取左手骨或staff。三次抬左臂不等于右手法杖口发射，接口差异记录而不自动判武器握持坏。",
+    "PRIEST策略先尝试ready加持supportCandidate，再talisman敌人；6格内退却、>18或无LOS追敌，中间停下。加持命中validSupport后8秒独立link，完成40tick身体动作并不要求加持同时消失。",
+    "finishAction清SKILL/START/SPEED与视觉事件；有效linkUntil未归零时保留BUFF_TARGET。interrupt/stun结束施法仍不必移除已命中的8秒友军加持。die取消attack/导航/目标、releaseSupport/clearPossession并切死亡epoch，44tick后移除，不复制Evoker简单cast布尔。",
+    "TimedAttack保留fired帧和cooldowns、world epoch；advance错过帧只记已消费不补发，reload跨末期取消，合法中段恢复且不重播已命中。TemplateMob NBT保存BlueprintAttack/Speed、link与UUID，dead加载取消attack但恢复death epoch；未知UUID不直接当死亡，待重载再次核对。",
+    "visualAnimation死亡优先；hurt仅skill0抢占；非armyPRIEST possession→buff，其余skill→attack。controller以server actionAge seek并thenPlayAndHold；具体GeckoLib父类切换残留未执行。SecondaryMotion每draw reset sleeve/talisman wrapper，UUID64上限、死亡/远距退出并清，施法符件动态幅度*.35；不把程序弹簧当新 authored动作。"
+  ],
+  "differences_and_remaining_checks": [
+    "原生Evoker阶段仅cast整体布尔与持续摆臂；本体已有明确3次接触关键帧，不能把参考的粗粒度系统倒退覆盖它。",
+    "祭酒death实际clip2秒而实体44tick，最后4tickhold是否稳定仅静态可见时长差异，不能据此判FAIL。",
+    "手臂/袖子遮挡面具、起手取消/死亡/读档后的复位、1.3加速多发接触与右手物件朝向需完整回放，离线代码不冒充游戏验收。",
+    "未完整读Raider父类生命周期、CustomHeadLayer、Fangs/Vex实体、GeckoLib控制器内部。原生SpellTicks读档与death客户端字节最终清理仅记录当前源边界，不虚构已复现bug。",
+    "本批没有PNG阅读/UV/贴图或新几何生产，不声称达到贴图、视图或1000参考门槛。"
+  ],
+  "production_modified": false,
+  "whole_candidate_max": 1,
+  "new_independently_accepted": 0,
+  "cumulative_applicable": null,
+  "true_gap": null,
+  "whole_asset_failed": false,
+  "production_authorized": false,
+  "task_complete": false
+}

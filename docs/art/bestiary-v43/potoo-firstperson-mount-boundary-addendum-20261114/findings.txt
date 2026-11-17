@@ -1,0 +1,12 @@
+Potoo 第一人称身体挂接补充核查（MERGE0）
+
+实际读取：IFalconry、MessageMosquitoMountPlayer 全文；ClientEvents 269–344；ClientProxy 1–116、206–217。四份原文件均与固定 1.20 commit 09755dade2cfbdf14839e026d3af446f9d3ff843 的缓存 Git tree blob 一致。源码研究，无新增画面研究或实机验收。
+
+1. 入口与注册：ClientProxy.clientInit 注册 ClientEvents 到 Forge EVENT_BUS；同类注册 POTOO→RenderPotoo。主程序调用 clientInit 的上游仍未读到，不据此宣称全启动链闭合。
+2. 第一人称：onRenderHand 仅在 MAIN_HAND 事件遍历玩家 IFalconry 乘客。主手优先、其次副手手套决定左右，结合 mainArm；没有手套时也没有显式排除整个循环，leftHand 默认 false。原实体 rideTick 的失去手套离乘逻辑属于另一入口。
+3. 矩阵：push→统一0.5缩放→左右 getHandOffset / Y=-0.6 / Z=-1 平移→插值身体 yaw→左+90或右-90度Y旋转→renderEntity→pop。Potoo 的 offset=1.0 来自前批已读实体，不是本接口的默认值。
+4. renderEntity 获取实际 renderer 后直接调用 render；本方法不经过 dispatcher shouldRender 路径。因此前批 RenderPotoo.shouldRender 对本地第一人称的排除不阻止这个手部直绘入口。这是身体挂接研究，不包含手套或任何手持物的模型/UV设计。
+5. 隐藏列表：绘制前 remove(UUID)、成功绘制后 add(UUID)。当前两个本地缓存的全量文本搜索只找到字段与这些写入（及其他图层写入），没有读取方；不能把写入本身当作隐藏效果已证明。调用者没有 finally 清理，异常会抛出崩溃报告，不宣称异常恢复已保障。
+6. 消息边界：MessageMosquitoMountPlayer 按 rider、mount 编解码，handler 入队后按接收端取玩家、解析实体并检查距离<16。允许 rider 仅 mosquito、enderiophage、bald eagle，Potoo 不在其中。前批实体发送此消息不等于该消息处理 Potoo；此处不宣称原版乘客同步失效。网络通道注册及原版乘客同步源码仍未闭合。
+
+可借鉴判断：身体附着预览要分别核对世界渲染和第一人称直绘入口、左右手变换与离乘条件。不能将物种换名或三个 helper 拆作新案例；本批并回原 Potoo 研究，新增独立验收信用0。无适用1000完成声明，无模型/动画/贴图修改。

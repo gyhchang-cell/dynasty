@@ -1,0 +1,55 @@
+400:     public void setMatrixOverrides(Matrix3f mat3Override, Matrix4f mat4Override) {
+401:         this.mat4Override = mat4Override;
+402:         this.mat3Override = mat3Override;
+403:     }
+404: 
+405:     public void clearMatrixOverrides() {
+406:         mat3Override = null;
+407:         mat4Override = null;
+408:     }
+409: 
+410:     public void getMatrixStack(PoseStack matrixStack) {
+411:         AdvancedModelRenderer parent = getParent();
+412:         if (parent != null) parent.getMatrixStack(matrixStack);
+413:         translateRotate(matrixStack);
+414:     }
+415: 
+416:     public Vec3 getWorldPos(Entity entity, float delta) {
+417:         PoseStack matrixStack = new PoseStack();
+418:         float dx = (float) (entity.xOld + (entity.getX() - entity.xOld) * delta);
+419:         float dy = (float) (entity.yOld + (entity.getY() - entity.yOld) * delta);
+420:         float dz = (float) (entity.zOld + (entity.getZ() - entity.zOld) * delta);
+421:         matrixStack.translate(dx, dy, dz);
+422:         float dYaw = Mth.rotLerp(delta, entity.yRotO, entity.getYRot());
+423:         matrixStack.mulPose(MathUtils.quatFromRotationXYZ(0, -dYaw + 180, 0, true));
+424:         matrixStack.scale(-1, -1, 1);
+425:         matrixStack.translate(0, -1.5f, 0);
+426:         MowzieRenderUtils.matrixStackFromModel(matrixStack, this);
+427:         PoseStack.Pose matrixEntry = matrixStack.last();
+428:         Matrix4f matrix4f = matrixEntry.pose();
+429: 
+430:         Vector4f vec = new Vector4f(0, 0, 0, 1);
+431:         vec.mul(matrix4f);
+432:         return new Vec3(vec.x(), vec.y(), vec.z());
+433:     }
+434: 
+435:     public void setWorldPos(Entity entity, Vec3 worldPos, float delta) {
+436:         PoseStack matrixStack = new PoseStack();
+437:         float dx = (float) (entity.xOld + (entity.getX() - entity.xOld) * delta);
+438:         float dy = (float) (entity.yOld + (entity.getY() - entity.yOld) * delta);
+439:         float dz = (float) (entity.zOld + (entity.getZ() - entity.zOld) * delta);
+440:         matrixStack.translate(dx, dy, dz);
+441:         float dYaw = Mth.rotLerp(delta, entity.yRotO, entity.getYRot());
+442:         matrixStack.mulPose(MathUtils.quatFromRotationXYZ(0, -dYaw + 180, 0, true));
+443:         matrixStack.scale(-1, -1, 1);
+444:         matrixStack.translate(0, -1.5f, 0);
+445:         PoseStack.Pose matrixEntry = matrixStack.last();
+446:         Matrix4f matrix4f = matrixEntry.pose();
+447:         matrix4f.invert();
+448: 
+449:         Vector4f vec = new Vector4f((float) worldPos.x(), (float) worldPos.y(), (float) worldPos.z(), 1);
+450:         vec.mul(matrix4f);
+451:         rotationPointX = vec.x() * 16;
+452:         rotationPointY = vec.y() * 16;
+453:         rotationPointZ = vec.z() * 16;
+454:     }

@@ -1,0 +1,58 @@
+{
+  "date": "2026-11-14",
+  "family": "AlexsMobs:RockyRoller",
+  "scope": "body motion state input, parent-child transform and transition recovery; no object asset work",
+  "production_modified": false,
+  "applicability": "Bounded reference for existing creature body special-state blending and attachment inheritance. Not a proposal to give Dynasty an extra rolling skill, alter damage or copy body silhouette. A specific unfinished Dynasty asset is not selected for production in this research batch.",
+  "creation": {
+    "entity": "Constructor creates custom movement control. defineSynchedData sets ROLLING and ANGRY false. rollProgress/prevRollProgress/counter/clientRoll default0; maxRollTime50, rollDelta unset. Renderer creates ModelRockyRoller.",
+    "skeleton": "128x128 declaration; root→body→head,tail,4limbs and spike planes. Body18x16x20 is main mass, limbs connect to same parent. Body roll therefore affects all children; no independent segment simulation."
+  },
+  "state_producer": [
+    "Idle goal starts30..59ticks rolling when grounded with a forward drop, no target and cooldown0. Goal reports canContinue=false; roll state continues at entity level, not tied to goal remaining active.",
+    "Melee goal selects approach position with world block/raycast checks, then turns to enemy and starts30..69ticks rolling. Goal.stop resets rollTimeout only, not rollFromPos nor ROLLING.",
+    "Server updates ANGRY from alive target within20blocks. Losing target suppresses angry contact behavior but does not immediately cancel rolling; roll continues until own stop rules.",
+    "rollFor sets maxRollTime, clears earthquakeCooldown and raises synced ROLLING only when rollCooldown0. No Citadel keyframe animation/event API in this direct chain."
+  ],
+  "motion_consumer": [
+    "tick saves prevRollProgress then increments/decrements rollProgress between0 and5 according to synced boolean, giving a5tick pose blend.",
+    "handleRoll increments counter on both sides; on server first tick locks yaw and captures current horizontal velocity plus forward0.35(adult)/0.2(baby), initialY0.27. Later ticks keep captured horizontal velocity and currentY, lock body/head yaw.",
+    "Time exceeds maxRollTime: server clears rolling, cooldown10..19, counter0, velocityZERO. If counter>2 and velocity²<=0.02, or dead, tick clears rolling. Non-active branch sets stepheight0.66 and counter0; active uses1.0.",
+    "Body collision delegates ICustomCollisions.getAllowedMovementForEntity; that Citadel implementation is missing/unread. Entity permits pointeddripstone passage. Movement controller does query support shape and path type for jumping/steering, but that is ENTITY movement, not animated bone collision."
+  ],
+  "model_consumer": [
+    "setupAnim first resetToDefaultPose. Interpolates prev/current progress; walkProgress=5-rollProgress. Body shifted+6Y through blend; arms/tail receive walking adjustments from walkProgress*limbSwingAmount.",
+    "During rolling bodyX=(rollCounter+partial)*0.2*progress*0.2; stores bodyX into entity.clientRoll and adds bob. It is time-driven visual rotation, not distance/ground-normal integration.",
+    "During unroll bodyX=progress*0.2*radians(wrapDegrees(degrees(clientRoll))). As progress returns0, body angle returns0 regardless of saved visual angle. clientRoll itself is not explicitly cleared; default-pose reset prevents additive accumulation.",
+    "Idle tail/head/arm oscillations and leg gait still added after roll branch. No claim that limbs are locked or physically tucked, no exact intersection/ground-contact guarantee without render.",
+    "Head yaw and half headpitch remain procedural; child transforms inherit whole body rotation. An attachment interface would need to read the final composed bone transform, not only raw entity yaw. No weapon/object implementation added."
+  ],
+  "renderer_consumer": "RenderRockyRoller binds exact ModelRockyRoller and selects ROLLING texture first, otherwise ANGRY, otherwise normal. scale hook empty. This proves reference-path selection, not actual PNG appearance: PNGs not opened.",
+  "contact_boundary": [
+    "Entity angry+alive rolling branch checks living entities in inflated boundingbox0.3, applies damage/push and extends target hit end to counter+10. No limb/mesh contact frame.",
+    "Unlike handleRoll inner movement block, the outer contact loop lacks an explicit !isClientSide guard in this class. Do not claim server-only authoritative damage or copy it into Dynasty.",
+    "Horizontal collision may call earthquake server-side; it uses world block queries and mobgriefing. That effect is unrelated to a per-bone contact solver and is not proposed for Dynasty."
+  ],
+  "stop_invalid_reload": [
+    "Fixed duration, stalled velocity or death stop pose state; losing target alone is not stop. Goal.stop alone is not complete body lifecycle cleanup.",
+    "No custom NBT save/load overrides in this whole class, so its rolling flag/clock/visual angle are not explicitly persisted here. A newly constructed instance starts defaults; superclass/network behavior not fully read. Do not promise mid-roll reload continuity.",
+    "Only booleans synced in this class, not counter/progress/clientRoll. A late observer may ramp its own local progress and clock; exact phase equality unproven.",
+    "No explicit teleport or render-gap reset. During no-render period clientRoll may be stale for unroll. No Java/game/full animation playback performed.",
+    "Citadel default-pose/interpolation helpers and collision implementation unavailable locally. Native MobRenderer recursive behavior not re-read this batch. Direct consumer chain complete at these four classes, dependency/runtime gates remain open."
+  ],
+  "counting": {
+    "new_independently_accepted": 0,
+    "cumulative_applicable": null,
+    "true_gap": null,
+    "global_semantic_dedup_complete": false,
+    "rule": "One creature family at most; four files, texture states, goals and bone children not extra references. Earlier accepted credit preserved. No claim applicable1000 reached."
+  },
+  "independent_acceptance_required": [
+    "Verify cached pin/blob agreement and actual reviewed scopes",
+    "Review relevance to a named still-unfinished Dynasty body task before credit/adoption",
+    "Resolve collision/default-pose framework dependency if claiming its behavior",
+    "Separately verify stop/death/target loss/late observer/reload/render gap",
+    "No production until applicable1000 gate accepted"
+  ],
+  "next": "Choose another genuinely new body action lifecycle with explicit stop/invalid/reload reset; do not count helpers as additional creatures or turn this read into a new Dynasty rolling skill."
+}

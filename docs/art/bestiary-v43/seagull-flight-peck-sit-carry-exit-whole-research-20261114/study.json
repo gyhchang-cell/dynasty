@@ -1,0 +1,44 @@
+{
+  "family": "AlexsMobs:Seagull",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "scope": "鸟体飞行/滑翔、啄取/坐姿、局部AI退出与嘴部挂点接口；不设计食物、地图、挂件或其它物件资产。",
+  "prior_full_comparison": [
+    "先完整比较Seal study：取物后送回与嘴部挂点均需区分视觉变换和实体坐标；Seagull是拾取/偷取后逃飞及坐姿，不复制Seal返程状态。",
+    "完整比较BaldEagle whole-study：同属鸟翼/飞行控制，Seagull无抓取俯冲权重，拍翼输入来自转向和上升速度，另有坐姿/啄取状态；共享公式或物品层不另计数。",
+    "v43 study/dedup Seagull精确名未发现具名整链；不保证其它目录全局首次。"
+  ],
+  "actual_body_pose_and_modes": [
+    "64×64，13节点root→body4×5×9→tail、head3×8×3→beak2×2×4、左右翼各接wingtip→羽平面、两leg3×4×3。连续胸躯/颈头与双段翼，不是独立漂浮羽盒；喙没有上下颚分离。原PNG未查看。",
+    "fly/sit/attack prev在tick更新前缓存，progress逐tick±1至0..5。飞行设腿X85、翼X−90/Z±90并向外后移、翼尖Z+2/X−10、尾X20、headY+1/Z−1。sitbodyY+4、legsY−4；这只补偿局部偏移，未做足端/地形碰撞解算。",
+    "flapAmount：原始yaw差abs>8时+.1cap1，上升时min(−yMot*.2,1)，否则以.05衰减。未wrap的yaw差穿越角度边界可不同于实际最短转角；没有回放不判可见错误。模型拍翼/bob幅度用flapAmount*flyProgress*.2，滑翔与拍翼因此有实际区别。",
+    "飞行头部yaw用同步flightLookYaw*fly权重；陆地用netHeadYaw/headPitch*(5−fly)*.2。最终攻击头X60与look/idle/gait叠加。服务器随机选择±60飞行look目标，最多4°/tick趋近；look历史/时钟未完整持久化。",
+    "peck设ATTACK_TICK7，期间attackProgress升至5、之后回落；没有本类啄取伤害接触事件。目标拾取/偷取分别调用peck，不应把名字attackProgress当作近战伤害证明。",
+    "幼体整体.5、head1.45，渲染后设headScale=.9；成年渲染也显式设.9。区别于一般恢复1，不把它自动修正。无需假定scale恢复为1才正确，须结合作者默认成年头比例。"
+  ],
+  "flight_and_stop_boundaries": [
+    "server Flying时启用无重力、timeFlying++；接地且非水/气泡且timeFlying>30、乘客或恋爱会取消Flying。同一飞行分支仍setNoGravity(true)，下一tick非飞行分支再false。land/flight控制器按最终flag切换，但未显式清速度。幼体setFlying(true)被转为false。",
+    "自定义MoveHelper距目的地<.3转WAIT并delta*.5，否则加归一化向量speed*.03、身体朝速度；WAIT无主动delta清零。DirectPathNavigator写wanted不代表完整避障。",
+    "AIWanderIdle禁止坐姿/乘客/特定活目标/aiItemFlag，选择陆行、空飞、环绕或降落；stop只stop navigation+super，不清FLYING/速度/环绕书签。水平碰撞调用stop后同tick仍可能执行后续wanted写入；不凭静态顺序宣称实机卡死。",
+    "AIScatter筛附近威胁，continue只目标非空；超过20距调用stop清本地目标/飞行目的地，不清FLYING、nav或delta。寻找逃点有眼部射线/空块检查，不证明整个展开双翼体积可通过。",
+    "坐姿travel若有path则stop navigation并将输入vec=ZERO，仍super.travel且不清已有delta。入水坐姿还追加Y+.02，因此不能把坐姿截图说成实际静止。"
+  ],
+  "peck_carry_sit_exit": [
+    "偷取Goal在targetSelector，flags MOVE/TARGET，资格配置开启/冷却0/非坐/手空及附近可偷食玩家。start aiItemFlag=true；continue仅target非空、非创造，且手空或fleeTime>0，没有局部距离/活性/旁观重检。完整原生调度缺口保留。",
+    "tick先写玩家眼部目的地，距离<2才取食，复制单个入主手并peck，设fleeTime60及冷却；随后逃点分支可覆盖同tick目的地。stop清aiItemFlag、target、fleeVec、fleeTime，不停导航/控制器、不清Flying/物理速度或已经衔住食物。",
+    "AITargetItems复用整读CreatureAITargetItems；自身资格非坐且无活攻击目标，moveTo近2写wanted并peck，远8或已飞行则控制高度。stop调用super停导航并清aiItemFlag，未保证controller/velocity清除。这个入口与偷取Goal不能合并成同一个stop结论。",
+    "RevealTreasure canUse已有TREASURE_POS且treasureSitTime>0，start取落脚地并置aiItemFlag。接近XZ平方<=2.5时用差向量*.2直接delta贴近顶面，差<=.04则没有主动归零；eatItem把heldItemTime设200，设非飞/坐姿并将剩余时间最多100。stop清sitPos、Sitting、aiItemFlag，不清TREASURE_POS/feederUUID/nav/velocity。未覆写continue，原生Goal默认继续策略未核读。",
+    "食物持有>200且canTargetItem(可食且非坐)时才消费/治疗；Reveal设置sit与eatItem不等于坐姿当tick已经消费，必须结合非坐资格。成功受伤取消sit、掉衔物、设置偷取冷却并清feederUUID/treasureSitTime；保留TREASURE_POS书签。未新增或改变这类玩法。"
+  ],
+  "actual_attachment_reload_and_limits": [
+    "Renderer ModelSeagull+seagull.png/name wingull换图，shadow.2，无模型scale覆写。嵌套LayerHeldItem从MAINHAND取物，root→body→head.translateAndRotate，再offset(0,−.24,−.25)、Y−2.5/X−90，GROUND context。不走beak节点；挂点由head继承啄取/注视动作，但最终嘴部贴合须实测。",
+    "层幼体再整体.5/位移1.5，没有单独显式重建模型renderToBuffer中头1.45与成年.9的缩放逻辑；translateAndRotate的scale行为依赖Citadel，不能静态保证完全重合，也未制作所衔物件。",
+    "食用粒子按实体宽度、bodyyaw和高度算位置，不是模型喙端采样；服务端拾取以实体距离等资格，视觉挂点不改变服务器接触点。",
+    "NBT保存Flying/Sitting/StealCooldown/TreasureSitTime/feederUUID/TreasurePos，未存pose进度、attackclock、heldItemTime、flightLook目标、环绕时钟或aiItemFlag。加载恢复flags/书签后重新派生动作，不保证吃食/环绕精确续帧。",
+    "完整自定义entity含嵌套Goal/MoveHelper、两个独立Goal、模型和renderer已核读；原生Goal/TargetGoal/MoveControl、装备保存和Citadel/网络依赖仍不全。PNG未看、未回放、无Java/游戏。1000适用累计与缺口未知，独立验收新增0。"
+  ],
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "complete": false
+}

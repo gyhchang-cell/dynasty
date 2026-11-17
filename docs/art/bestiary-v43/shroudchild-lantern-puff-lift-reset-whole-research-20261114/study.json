@@ -1,0 +1,63 @@
+{
+  "target": "dynasty:fuhun_baibu_tongzi",
+  "status": "RESEARCH_ONLY_HOLD0",
+  "new_whole_sources": 12,
+  "new_whole_lines": 1148,
+  "reused_whole_sources": 1,
+  "partial_modelengine_sources": 2,
+  "relevance": "Bounded complete own-body puff/lift/pose reset, actual propulsion contact vs visual compression and noninterrupting goal interaction. No target-facing retreat behavior, not a final child movement implementation.",
+  "body": "Model body15cube separate center6cube, separate bubblesroot with4innercuboids; body->bottomBits4hangingcuboids and stem4planarleaves/stem1crossplane. scaleController is nonvisible controller at(1,1,1), not an attachment object or independentreference.64x64declared UV. Gel and solid instantiate same hierarchy with different visibility, not two creatures.",
+  "actual_authored_animations": [
+    {
+      "id": "PUFF",
+      "state_duration": 28,
+      "authored_keyframes": "7tick scaleController offset(+.4,-.4,+.4), body/bubbles/centerY-3, stemY+3,bottomBitsY-3, leaves flare±.2rad; next3ticks scaleoffset(-.45,+.6,-.45), body/bubbles/centerY+4.5,stemY-4.5,bottomY+4 andleaves±.3/bottomX-.9; reset7. Authored intervals endat17; statecontinues to28 but no keyframeat17..28 so defaultpose afterreset under read animator."
+    },
+    {
+      "id": "DIE",
+      "state_duration": 25,
+      "authored_keyframes": "3ticks scaleController(-.5,-.5,-.5), bottomY-3/stemY+3; next3 scaleoffset(+1.3,+1.3,+1.3), bottomY+3/stemY-3; no hold/reset keyframe. Do not claim inflated pose persists to25: MMModelAnimator only adds transforms within active interval, at>=6 no authoredtransform and defaultreset runs."
+    },
+    {
+      "id": "HURT",
+      "state_duration": 10,
+      "authored_keyframes": "NONE in full ModelLantern.animate; no other hurtprocedural branch. State/goal exists but a10tick label is not a10tick visible hurt animation. This missing authored hurt response remains HOLD0, not credited as a third finishedanimation."
+    }
+  ],
+  "actual_impulse_consumer": [
+    "Entitytick aftersuper when PUFF animationTick==7 addsY .2+.2/groundDist; ifdist0 firstsets1. This is bothsides in source. Serveralso when MOVE_TO active and sweptreach passes addsnormalizeddestinationdelta*.2. Action peak has real impulseconsumer; not continuouslyacceleratingcontroller.",
+    "Everytick groundDist>=2 addsY-.0055; distmeasured every5ticks down16 untilblock!=Blocks.AIR (notisAir/fluid/solid general). Lift/height is discrete approximatedgrounddistance, not a fixednoGravity hovercontroller.",
+    "When serverNO_ANIMATION and groundDist<5 OR random1/13 &&dist<16 requestsPUFF. Owncontroller tick every2..6checks route canReach thenWAITonblocked, but does notaccelerate or setyaw; allhorizontalimpulse is in PUFF7tick. canReach sweepsfullAABB fromstep1 toceil(length)-1.",
+    "RandomFlyGoal MOVE sets randomdestination within±16XYZ if no wanted or distancesquared<1 or>3600; canContinuefalse. It has no customstop; persistentcontroller destination intentionally outlives one-shotgoal. Do not equate goalend with movementend.",
+    "Customtravel water moveRelative.02/move/velocity*.8;lava*.5; air moves withground/airinput thenvelocity*.91 (groundfriction*.91 onground). Owntravel has no vanilla gravitysubtract; separatetickdescent-.0055 is present. Nativeouter movement/death call order not run, no perfecthoverpromise.",
+    "No target orretreatgoal, no actorfacing/headtracking in model. Only a hover-puff physicsreference; cannot satisfy childserverobserver oralwaysfacingplayer by itself."
+  ],
+  "state_exit_and_hurt_death": [
+    "PUFF uses SimpleAnimationAI(entity,PUFF,false): noMOVE/LOOKflags, sets hurtInterruptsAnimationfalse onstart. Randomflight may supplydestinationduringpuff; not a full AI freeze. AnimationTakeDamage MOVE+JUMP, AnimationDieAI interruptsAIfalse; deathgoal itself doesnotstoprandommovement.",
+    "Project AnimationAI canContinue matchinganimation &&tick<duration; stop sendsNO_ANIMATION only ifsameanimation. It doesnotclearvelocity/navigation/input/destination. Sameclass-name llibrary AnimationAI was also read but is NOT the imported projectbase; excluded from productionchain/credit.",
+    "MowzieLLibraryEntity hurt firstcallssuper, onlyacceptedhurt then startsHURT ifalive and(NO_ANIMATION orhurtInterrupts) andplaysHurt; lethal startsDIE. DefaultplaysHurttrue/hurtInterruptsfalse in reusedMowzieEntity. Therefore ordinaryhurt doesnotinterruptalreadyrunningpuff through thiscondition.",
+    "MowzieLLibraryEntity tick increments animationTick whenactive, clientresets at>=duration. Projectgoals handle serverstop; AnimationHandler.send isserveronly setsanimation/resetclock andsends IDordinal. updateAnimations methodread but ownLLibrarytickdoesnotcallit; no doubledclock assumed. Networkhandler/order not read.",
+    "DeathDuration override returns deathanimationduration-20 =5 forLantern25. ReusedMowzieEntitytickDeath removesonserver atdeathTime>=5. This permits removal beforeauthored6tick end, not25tick deathlifetime. Ownparticles atanimTick1 andsound2 are not bodyanimation evidence; exactrenderedlastframeunverified."
+  ],
+  "final_render_and_reset": [
+    "MowzieEntityModel.setupAnim animator.update resetsmaps everyframe thenanimate. Model.setDefaultAngles resets storedpos/rot andextraanglesset, then keyframe transformsareapplied; final body/bubbles scales copiedfromscaleControllerXYZ eachframe, center2xscale. Ownedscaleexplicitlywritten rather than relying onpose-reset toclearit.",
+    "MMModelAnimator interpolatesbetween keyframe maps withsin(pi/2*t), appliesoffsets/rotationsonlywhen animationTick in[previousBoundary,currentBoundary). Atboundaries beyondlast authoredinterval noneapplied. Resetkeyframeemptytransform yields default afterreturn; no automaticlastposehold.",
+    "AdvancedModelBase.reset loopsregisteredAdvancedRenderers; partialAdvancedRenderer resetrestorespos/rot only, notscale/opacity/visibility. Scalestate recovery here comesfromexplicit setScale aftercontrollerreset. Do not generalize resetToDefaultPose toallrenderstate.",
+    "Mainmodel hidesgelbody/bubbles/bottom/center butshowsstem; gelinstance hidesstem andusesopacity body.6/center.5/bottom.7. Bodycenterbubbles renderedasseparateroots. GelLayer copiesproperties thenprepare/setupAnim onitsownmodelbeforetranslucentrender, so reliesonresamplingactualanimation not justcopyingboneangles.",
+    "Renderer fullblocklight15 andgetFlipDegrees0; actualPNGnotviewed. Visibility, opacitycompositing andmodelpixels not validated inrunningrender; no fakegame screenshot."
+  ],
+  "negative_controls": {
+    "target_facing_backstep": "ABSENT; no relevanttargettracking policy.",
+    "hurt_actual_clip": "ABSENT despite declared10tickstate.",
+    "death_full25tickvisual": "NOT VERIFIED andserverremoval threshold5 differs.",
+    "motion_on_actionstop": "NOT cleared byreadgoalstop.",
+    "pose_scale_reset": "Explicit finalscaleconsumerfound; genericpose-resetonlyrot/pos.",
+    "actual_file_missing": "Puff/deathinlineactualanimationpresent, hurtbodyresponsemissing.",
+    "1000_gate": "Unverified, no production."
+  },
+  "new_independently_accepted": 0,
+  "applicable_cumulative": null,
+  "true_gap_to_1000": null,
+  "production_modified": false,
+  "pending": "Independent relevance/dedup; ownmissinghurtbodyaction and nativeoutercall/network/renderboundaries; newerreference notportaccepted."
+}

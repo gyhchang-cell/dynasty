@@ -1,0 +1,182 @@
+{
+  "recorded_utc": "2026-11-09T16:43:11.341255+00:00",
+  "status": "ONE_BOUNDED_NATIVE_DAMAGE_TO_BODY_RENDERER_CONSUMER_CHAIN_REVIEWED",
+  "scope": "Minecraft 1.20.1 Forge 47.4.10 mapped source; applicability to wide PlayerModel mob renderer. Not all mod renderers or PlayerRenderer.",
+  "archive_provenance": [
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/source.json",
+      "sha256": "fa071494c7b6618019cbd49cbe0d7ece805287aa400506fe0584aa2e12fbf4fb"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/shader-source.json",
+      "sha256": "dea7af2784e63ba194d03f3e9561760a681c505f7cc1cd5099db2f859b8f7ec8"
+    }
+  ],
+  "sources": [
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/world/entity/LivingEntity.java",
+      "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "read_scope": "394-416,540-556,1058-1175,1295-1340,1544-1562,1698-1788 only"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/client/renderer/entity/LivingEntityRenderer.java",
+      "sha256": "6ce598009a4bb6e68599c13e82f62102b3de533a42fe4428d482e5a0886ac018",
+      "read_scope": "51-156,170-230 only"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/client/renderer/entity/MobRenderer.java",
+      "sha256": "6c429d18ace46b0f15dcf711fbdb8ccf92eae3d16e49b29a31533d1a2019e520",
+      "read_scope": "25-61 only; remainder not studied"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/client/renderer/texture/OverlayTexture.java",
+      "sha256": "237fb79985653a8bee80bacab870cb139a1f4c4eba8b1167bd53f6b162e8544d",
+      "read_scope": "entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "sha256": "397cccc120d7d8884f1327ddd5bef8fcc601fefee9b98f02f5eaaf65c57d7980",
+      "read_scope": "896-914,999-1013 only"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/network/protocol/game/ClientboundDamageEventPacket.java",
+      "sha256": "fe7649e421ce1dc427490cef6fd967bfd9042f0dc39f37501ca1d6ec3ce584cf",
+      "read_scope": "entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/network/protocol/game/ClientboundHurtAnimationPacket.java",
+      "sha256": "8dd78bb8beef81c7bbf9aadbbedddaf2ff879249d8d63b084ea95f651ac77d43",
+      "read_scope": "entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/server/level/ServerLevel.java",
+      "sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "read_scope": "991-1006 only"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/net/minecraft/client/model/EntityModel.java",
+      "sha256": "088e5e8045733f501a94b15be7250fad993aef6ae949ce18fb7b59ebdbb9e50d",
+      "read_scope": "entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/assets/minecraft/shaders/core/rendertype_entity_cutout_no_cull.vsh",
+      "sha256": "a0c74879d941dfec7c6dabaddd2ebd8dce39d74c71a861c643e845becaba5342",
+      "read_scope": "entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-damage-1.20.1/assets/minecraft/shaders/core/rendertype_entity_cutout_no_cull.fsh",
+      "sha256": "05af797273b1fcba6a9c447c25dc9097cb22becfd4621ef01c43be15f79e599b",
+      "read_scope": "entire file"
+    },
+    {
+      "path": "build/bestiary-v43/references/native-human-1.20.1/net/minecraft/client/model/HumanoidModel.java",
+      "sha256": "21197992734cfbf4a79eead6158ec7a47678bd509fbd039df6b83e432b06e707",
+      "read_scope": "85-412; includes complete setupAnim and attack pose consumers"
+    },
+    {
+      "path": "build/bestiary-v43/references/justinwon777__HumanCompanions/forge 1.20.1/src/main/java/com/github/justinwon777/humancompanions/client/renderer/CompanionRenderer.java",
+      "sha256": "81e4a33d6cd658580f156d30c4baca321d6a9b1c01090ef3ed5398d688d851f6",
+      "read_scope": "entire file; revisited to check no hurt/death transform override"
+    }
+  ],
+  "chain": [
+    {
+      "stage": "server hurt",
+      "finding": "LivingEntity.hurt initializes hurtDuration/hurtTime to10 in ordinary accepted-hit path. Cooldown branch can reject or apply only extra damage without restarting this timer; do not say every hit restarts it."
+    },
+    {
+      "stage": "server event to client",
+      "finding": "Unblocked ordinary-hit branch calls broadcastDamageEvent. ServerLevel sends ClientboundDamageEventPacket. ClientPacketListener resolves entity and calls handleDamageEvent. Base LivingEntity sets walkAnimation speed1.5, invulnerableTime20 and hurtTime10; it does not rotate model bones."
+    },
+    {
+      "stage": "separate hurt-animation packet",
+      "finding": "ClientboundHurtAnimationPacket -> ClientPacketListener -> animateHurt(yaw). Base LivingEntity method sets timers only and ignores yaw. This does not establish behavior of subclass overrides such as players."
+    },
+    {
+      "stage": "timer decay",
+      "finding": "base tick decrements positive hurtTime; a presentation timer distinct from invulnerability/collision and custom synced AI state."
+    },
+    {
+      "stage": "rendering overlay",
+      "finding": "LivingEntityRenderer.getOverlayCoords uses hurtTime>0 OR deathTime>0 to select overlay row3; otherwise row10. Default white overlay progress=0. Model rendered with RGBA multiplier1 except invisibility alpha."
+    },
+    {
+      "stage": "shader consumption",
+      "finding": "Default EntityModel uses entityCutoutNoCull. Vertex shader fetches packed overlay UV; fragment shader mixes overlay.rgb with textured vertex color using overlay.a before lightmap/fog. Overlay row3 is ABGR0xb20000ff (redRGB255,0,0 alpha178). Thus standard hurt tint keeps178/255 of pre-lightmap base RGB and mixes77/255 red. It is not a changed PNG or bone animation."
+    },
+    {
+      "stage": "body animation",
+      "finding": "Complete HumanoidModel.setupAnim uses locomotion/head/swim/riding/arm-use/attack/crouch/bob. No hurtTime/deathTime branch authors an injury pose. setupAttackAnimation consumes attacker attackTime; cannot label it defender hurt recoil. Hurt handling can change locomotion speed and entity knockback, so do not claim the visible body is absolutely motionless."
+    },
+    {
+      "stage": "death synchronization",
+      "finding": "Server die sends entity event3; client base handleEntityEvent for non-player sets health0 and dies. tickDeath increments deathTime and removes server entity at>=20 absent overrides/hooks."
+    },
+    {
+      "stage": "death transform",
+      "finding": "LivingEntityRenderer.setupRotations uses sqrt((deathTime+partialTick-1)/20*1.6), capped1, multiplied by default getFlipDegrees90 around Z on PoseStack before model scale/translation. It rotates whole rendered model, not individual leg/torso bones. Dead entities get zero locomotion inputs but setupAnim still executes; not a promise all pose channels reset."
+    },
+    {
+      "stage": "reference applicability",
+      "finding": "Human Companions CompanionRenderer inherits wide PlayerModel chain without overriding setupRotations/hurt overlay. Its custom armor/item layers are not claimed to use identical overlay handling; custom Forge events, shaders and subclass overrides may change this."
+    }
+  ],
+  "body_side_application": [
+    "Keep custom swindler deception/retreat state separate from native hurt tint and death roll. Neither red overlay nor ordinary attack swing supplies a fake-injury body clip.",
+    "Existing Dynasty resource/native binding must be checked before applying any death pose to avoid combining an authored root fall with an inherited whole-model roll. This is a future integration check, not an observed current defect.",
+    "No held object, accessory UV, gameplay timer or collision change required by this study."
+  ],
+  "analytic_samples_not_game_frames": [
+    {
+      "deathTime": 1,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 0.0
+    },
+    {
+      "deathTime": 2,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 25.455844
+    },
+    {
+      "deathTime": 5,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 50.911688
+    },
+    {
+      "deathTime": 10,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 76.367532
+    },
+    {
+      "deathTime": 13,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 88.181631
+    },
+    {
+      "deathTime": 14,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 90
+    },
+    {
+      "deathTime": 19,
+      "partialTick": 0,
+      "whole_model_roll_degrees": 90
+    }
+  ],
+  "counting": {
+    "bounded_mechanism_studies": 1,
+    "new_distinct_creature_reference_families": 0,
+    "new_accepted_reference_credit": 0,
+    "accepted_total": null,
+    "gap_to_1000": null,
+    "dedup": "Native renderer mechanism shared by many creatures; files, packets, shader stages and sampled ticks are not independent creatures."
+  },
+  "limits": [
+    "No game, Java or GPU renderer executed.",
+    "Sound calls were read as source only; no sound enabled or played.",
+    "No simulated fall pictures, gameplay screenshots or real runtime acceptance claimed.",
+    "No Dynasty model/texture/UV/bones/animation/timeline/collision/skill/sharedJar changed.",
+    "Only listed ranges studied; downloaded files are not counted as entirely read.",
+    "Unreviewed class overrides and external shaders remain outside this bounded base-chain finding."
+  ]
+}
