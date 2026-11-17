@@ -1,0 +1,78 @@
+{
+  "recorded_at": "2026-11-09T22:15:31.992789+00:00",
+  "decision": "FIXED_NEOFORGE_VERSION_SAVEDDATA_PATCHES_ACTUALLY_READ_NO_NATIVE_RUNTIME_CREDIT",
+  "artifacts": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/neoforge-26.3.0.76-moddev-config.json",
+      "sha256": "f3984c6319532aa7ba8e9681c0acf0394ca8f3effe841be36a6bd370daa16e2a",
+      "bytes": 7019
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/neoforge-26.3.0.76-userdev.jar",
+      "sha256": "13e6617391283699354dfa2d23f4ea4a9179c6cac6f4d7d345bdeb81f4867a99",
+      "bytes": 4015928
+    }
+  ],
+  "official_checksums": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/neoforge-26.3.0.76-moddev-config.json.sha256",
+      "sha256": "1166a4b9eef44eee030273230334b6f227e36ab8717d2a205653fa8a88e5307a",
+      "bytes": 64
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/neoforge-26.3.0.76-userdev.jar.sha256",
+      "sha256": "78a51b5c4c12dcafe2a915f0103f2a4a107f345be43bf057c1036522f4ccc18f",
+      "bytes": 64
+    }
+  ],
+  "official_base_url": "https://maven.neoforged.net/releases/net/neoforged/neoforge/26.3.0.76/",
+  "exact_userdev_config_relevant_fields_read": {
+    "spec": 2,
+    "mcp": "net.neoforged:neoform:26.3-1@zip",
+    "patches": "patches/",
+    "sources": "net.neoforged:neoforge:26.3.0.76:sources",
+    "universal": "net.neoforged:neoforge:26.3.0.76:universal",
+    "binpatches": "patches.lzma",
+    "features": {
+      "noLegacyClasspath": true,
+      "combinedBinaryPatches": true
+    }
+  },
+  "whole_patches": [
+    {
+      "member": "patches/net/minecraft/world/level/storage/SavedDataStorage.java.patch",
+      "raw_file": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/patches/net/minecraft/world/level/storage/SavedDataStorage.java.patch",
+        "sha256": "5a999df7ee9c35b8e5651969ceaedf452de16ec3968638d9bf6a186eb3ccb2c9",
+        "bytes": 3990
+      },
+      "actual_full_raw_text_read": "--- a/net/minecraft/world/level/storage/SavedDataStorage.java\n+++ b/net/minecraft/world/level/storage/SavedDataStorage.java\n@@ -46,8 +_,17 @@\n     private final Path dataFolder;\n     private CompletableFuture<?> pendingWriteFuture = CompletableFuture.completedFuture(null);\n     private boolean closed;\n+    // Neo: Needed to make level context available to modded saved data\n+    private final net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level;\n \n+    /** @deprecated Neo: Use the version that has a level */\n+    @Deprecated\n     public SavedDataStorage(Path dataFolder, DataFixer fixerUpper, HolderLookup.Provider registries) {\n+        this(null, dataFolder, fixerUpper, registries);\n+    }\n+\n+    public SavedDataStorage(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level, Path dataFolder, DataFixer fixerUpper, HolderLookup.Provider registries) {\n+        this.level = level;\n         this.fixerUpper = fixerUpper;\n         this.dataFolder = dataFolder;\n         this.registries = registries;\n@@ -68,7 +_,7 @@\n             return data;\n         }\n \n-        T newData = (T)type.constructor().get();\n+        T newData = (T)type.factory().create(this.level);\n         this.set(type, newData);\n         return newData;\n     }\n@@ -89,7 +_,7 @@\n             if (Files.exists(file)) {\n                 CompoundTag tag = this.readTagFromDisk(file, type.dataFixType(), SharedConstants.getCurrentVersion().dataVersion().version());\n                 RegistryOps<Tag> ops = this.registries.createSerializationContext(NbtOps.INSTANCE);\n-                return type.codec()\n+                return type.codecFactory().create(this.level)\n                     .parse(ops, tag.get(\"data\"))\n                     .resultOrPartial(error -> LOGGER.error(\"Failed to parse saved data for '{}': {}\", type, error))\n                     .orElse(null);\n@@ -106,7 +_,7 @@\n         data.setDirty();\n     }\n \n-    public CompoundTag readTagFromDisk(Path dataFile, DataFixTypes type, int newVersion) throws IOException {\n+    public CompoundTag readTagFromDisk(Path dataFile, @Nullable DataFixTypes type, int newVersion) throws IOException {\n         try (\n             InputStream in = Files.newInputStream(dataFile);\n             PushbackInputStream inputStream = new PushbackInputStream(new FastBufferedInputStream(in), 2);\n@@ -121,7 +_,15 @@\n             }\n \n             int version = NbtUtils.getDataVersion(tag, 1343);\n+            if (type != null)\n             return type.update(this.fixerUpper, tag, version, newVersion);\n+            else return tag;\n+        } finally {\n+            // Neo: delete any temporary files so that we don't inflate disk space unnecessarily.\n+            this.pendingWriteFuture = this.pendingWriteFuture.thenRunAsync(\n+                () -> net.neoforged.neoforge.common.IOUtilities.tryCleanupTempFiles(this.dataFolder, dataFile.getFileName().toString()),\n+                Util.ioPool()\n+            );\n         }\n     }\n \n@@ -196,7 +_,7 @@\n     }\n \n     private <T extends SavedData> CompoundTag encodeUnchecked(SavedDataType<T> type, SavedData data, RegistryOps<Tag> ops) {\n-        Codec<T> codec = type.codec();\n+        Codec<T> codec = type.codecFactory().create(this.level);\n         CompoundTag tag = new CompoundTag();\n         tag.put(\"data\", codec.encodeStart(ops, (T)data).getOrThrow());\n         NbtUtils.addCurrentDataVersion(tag);\n@@ -208,7 +_,11 @@\n \n         try {\n             FileUtil.createDirectoriesSafe(path.getParent());\n-            NbtIo.writeCompressed(tag, path);\n+            // Neo: ensure parent directories exist if the SavedData's path contains slashes\n+            if (!Files.exists(path)) {\n+                Files.createDirectories(path.getParent());\n+            }\n+            net.neoforged.neoforge.common.IOUtilities.writeNbtCompressed(tag, path);\n         } catch (IOException e) {\n             LOGGER.error(\"Could not save data to {}\", path.getFileName(), e);\n         }\n"
+    },
+    {
+      "member": "patches/net/minecraft/world/level/saveddata/SavedDataType.java.patch",
+      "raw_file": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/patches/net/minecraft/world/level/saveddata/SavedDataType.java.patch",
+        "sha256": "7c512e339b76a00276c6b38093f93939a27377f7161ba3a5f81ca683dcdedc55",
+        "bytes": 2065
+      },
+      "actual_full_raw_text_read": "--- a/net/minecraft/world/level/saveddata/SavedDataType.java\n+++ b/net/minecraft/world/level/saveddata/SavedDataType.java\n@@ -5,7 +_,33 @@\n import net.minecraft.resources.Identifier;\n import net.minecraft.util.datafix.DataFixTypes;\n \n-public record SavedDataType<T extends SavedData>(Identifier id, Supplier<T> constructor, Codec<T> codec, DataFixTypes dataFixType) {\n+// Neo: We do not have update logic compatible with DFU, several downstream patches from this record are made to support a nullable dataFixType.\n+// Neo: We also have to reintroduce the ability to make level-dependent objects/codecs\n+public record SavedDataType<T extends SavedData>(Identifier id, Factory<T> factory, Factory<Codec<T>> codecFactory, @org.jspecify.annotations.Nullable DataFixTypes dataFixType) {\n+    public SavedDataType(Identifier id, Supplier<T> constructor, Codec<T> codec, @org.jspecify.annotations.Nullable DataFixTypes dataFixType) {\n+        this(id, ignored -> constructor.get(), ignored -> codec, dataFixType);\n+    }\n+\n+    public SavedDataType(Identifier id, Supplier<T> constructor, Codec<T> codec) {\n+        this(id, ignored -> constructor.get(), ignored -> codec, null);\n+    }\n+\n+    public SavedDataType(Identifier id, Factory<T> constructor, Factory<Codec<T>> codec) {\n+        this(id, constructor, codec, null);\n+    }\n+\n+    // Neo: Use the level-sensitive factory\n+    @Deprecated\n+    public Supplier<T> constructor() {\n+        return () -> factory.create(null);\n+    }\n+\n+    // Neo: Use the level-sensitive codecFactory\n+    @Deprecated\n+    public Codec<T> codec() {\n+        return codecFactory.create(null);\n+    }\n+\n     @Override\n     public boolean equals(Object obj) {\n         return obj instanceof SavedDataType<?> type && this.id.equals(type.id);\n@@ -19,5 +_,10 @@\n     @Override\n     public String toString() {\n         return \"SavedDataType[\" + this.id + \"]\";\n+    }\n+\n+    @FunctionalInterface\n+    public interface Factory<T> {\n+        T create(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level);\n     }\n }\n"
+    }
+  ],
+  "findings": [
+    "Official userdev declares neoform26.3-1 and exactNeoForge26.3.0.76 sources/universal artifacts; no installer or tool execution.",
+    "SavedDataStorage patch adds optional ServerLevel construction/context factory+codecFactory, nullable datafix guard, temp cleanup, and IOUtilities compressed-write path. This class is not byte-identical to vanilla storage source.",
+    "SavedDataType patch adds level-sensitive factory/codecFactory with supplier/codec compatibility wrappers and nullable datafix type.",
+    "No textual hunk targets collectDirtyTags dirty-filter or setDirty(false) in these exactSavedDataStoragepatches. This observation is limited to this userdev textual patch, not a verified complete assembled/transformed class."
+  ],
+  "limits": [
+    "Main has not applied patches/NeoFormpipeline/binarypatches or compared finalNeoForgeclass. Absence of textual hunk alone does not prove final runtimeequivalence.",
+    "Source bytecode supplied separately from Mojang26.3 and existing localForge26.3 sources remain distinct artifacts. Need actual bound-method evidence for native dirty contract.",
+    "Earlier bulk config print clipped and not claimed complete configreading; relevant7fields reread separately and fullstoragepatch reread unclipped; fulltypepatchactualread.",
+    "No source/reference/newtask credit for an artifact/version/hash/patchcount. No never-save/livebug claim."
+  ],
+  "formal_credit": 0,
+  "native_credit": 0,
+  "production_changes": 0,
+  "checklist_deletions": 0,
+  "hours_claimed": null
+}

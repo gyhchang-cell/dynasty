@@ -1,0 +1,1043 @@
+{
+  "recorded_at": "2026-11-09T19:58:12.757684+00:00",
+  "reviewer_thread_id": "01a16364-cac0-7ca2-a042-a5312781ca34",
+  "decision": "ONE_NATIVE_PREPARATION_TO_NEW_CONTACT_TERRAIN_OR_GOAL_PHASE_TERMINATION_WHOLE_SUPPORTED_PENDING_ACTUAL_AUTHOR_ACK_AND_EXACT_PLAN",
+  "candidate": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-111.json",
+    "sha256": "72eefc2ef4200a3f0d41f2cd7f3f645c16de5b60333003747df2b0cf6bbe9b5e",
+    "bytes": 317252
+  },
+  "worker_binding_not_Main_credit": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-111-worker-validation-20261110.json",
+    "sha256": "f3b1166214aa3f90437787e5e2cb18da92e53776ecf38ed54436e4ea5282e1ea",
+    "bytes": 98105
+  },
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "actual_Main_all22_source_descriptors_read": [
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/RamTarget.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/RamTarget.java",
+      "start_line": 1,
+      "end_line": 109,
+      "listed_lines": 109,
+      "whole_file_read": true,
+      "file_sha256": "de2d04d5683183726412207a0f61e5bd9f01c263366d1b5c215a08cb40c15ac3",
+      "raw_range_sha256": "de2d04d5683183726412207a0f61e5bd9f01c263366d1b5c215a08cb40c15ac3",
+      "normalized_LF_join_without_final_LF_sha256": "de2d04d5683183726412207a0f61e5bd9f01c263366d1b5c215a08cb40c15ac3",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.function.Function;\nimport java.util.function.ToDoubleFunction;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.valueproviders.UniformInt;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.memory.WalkTarget;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.animal.goat.Goat;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.phys.Vec3;\n\npublic class RamTarget extends Behavior<Goat> {\n   public static final int TIME_OUT_DURATION = 200;\n   public static final float RAM_SPEED_FORCE_FACTOR = 1.65F;\n   private final Function<Goat, UniformInt> getTimeBetweenRams;\n   private final TargetingConditions ramTargeting;\n   private final float speed;\n   private final ToDoubleFunction<Goat> getKnockbackForce;\n   private Vec3 ramDirection;\n   private final Function<Goat, SoundEvent> getImpactSound;\n   private final Function<Goat, SoundEvent> getHornBreakSound;\n\n   public RamTarget(Function<Goat, UniformInt> p_217342_, TargetingConditions p_217343_, float p_217344_, ToDoubleFunction<Goat> p_217345_, Function<Goat, SoundEvent> p_217346_, Function<Goat, SoundEvent> p_217347_) {\n      super(ImmutableMap.of(MemoryModuleType.RAM_COOLDOWN_TICKS, MemoryStatus.VALUE_ABSENT, MemoryModuleType.RAM_TARGET, MemoryStatus.VALUE_PRESENT), 200);\n      this.getTimeBetweenRams = p_217342_;\n      this.ramTargeting = p_217343_;\n      this.speed = p_217344_;\n      this.getKnockbackForce = p_217345_;\n      this.getImpactSound = p_217346_;\n      this.getHornBreakSound = p_217347_;\n      this.ramDirection = Vec3.ZERO;\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_217349_, Goat p_217350_) {\n      return p_217350_.getBrain().hasMemoryValue(MemoryModuleType.RAM_TARGET);\n   }\n\n   protected boolean canStillUse(ServerLevel p_217352_, Goat p_217353_, long p_217354_) {\n      return p_217353_.getBrain().hasMemoryValue(MemoryModuleType.RAM_TARGET);\n   }\n\n   protected void start(ServerLevel p_217359_, Goat p_217360_, long p_217361_) {\n      BlockPos blockpos = p_217360_.blockPosition();\n      Brain<?> brain = p_217360_.getBrain();\n      Vec3 vec3 = brain.getMemory(MemoryModuleType.RAM_TARGET).get();\n      this.ramDirection = (new Vec3((double)blockpos.getX() - vec3.x(), 0.0D, (double)blockpos.getZ() - vec3.z())).normalize();\n      brain.setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(vec3, this.speed, 0));\n   }\n\n   protected void tick(ServerLevel p_217366_, Goat p_217367_, long p_217368_) {\n      List<LivingEntity> list = p_217366_.getNearbyEntities(LivingEntity.class, this.ramTargeting, p_217367_, p_217367_.getBoundingBox());\n      Brain<?> brain = p_217367_.getBrain();\n      if (!list.isEmpty()) {\n         LivingEntity livingentity = list.get(0);\n         livingentity.hurt(p_217366_.damageSources().noAggroMobAttack(p_217367_), (float)p_217367_.getAttributeValue(Attributes.ATTACK_DAMAGE));\n         int i = p_217367_.hasEffect(MobEffects.MOVEMENT_SPEED) ? p_217367_.getEffect(MobEffects.MOVEMENT_SPEED).getAmplifier() + 1 : 0;\n         int j = p_217367_.hasEffect(MobEffects.MOVEMENT_SLOWDOWN) ? p_217367_.getEffect(MobEffects.MOVEMENT_SLOWDOWN).getAmplifier() + 1 : 0;\n         float f = 0.25F * (float)(i - j);\n         float f1 = Mth.clamp(p_217367_.getSpeed() * 1.65F, 0.2F, 3.0F) + f;\n         float f2 = livingentity.isDamageSourceBlocked(p_217366_.damageSources().mobAttack(p_217367_)) ? 0.5F : 1.0F;\n         livingentity.knockback((double)(f2 * f1) * this.getKnockbackForce.applyAsDouble(p_217367_), this.ramDirection.x(), this.ramDirection.z());\n         this.finishRam(p_217366_, p_217367_);\n         p_217366_.playSound((Player)null, p_217367_, this.getImpactSound.apply(p_217367_), SoundSource.NEUTRAL, 1.0F, 1.0F);\n      } else if (this.hasRammedHornBreakingBlock(p_217366_, p_217367_)) {\n         p_217366_.playSound((Player)null, p_217367_, this.getImpactSound.apply(p_217367_), SoundSource.NEUTRAL, 1.0F, 1.0F);\n         boolean flag = p_217367_.dropHorn();\n         if (flag) {\n            p_217366_.playSound((Player)null, p_217367_, this.getHornBreakSound.apply(p_217367_), SoundSource.NEUTRAL, 1.0F, 1.0F);\n         }\n\n         this.finishRam(p_217366_, p_217367_);\n      } else {\n         Optional<WalkTarget> optional = brain.getMemory(MemoryModuleType.WALK_TARGET);\n         Optional<Vec3> optional1 = brain.getMemory(MemoryModuleType.RAM_TARGET);\n         boolean flag1 = optional.isEmpty() || optional1.isEmpty() || optional.get().getTarget().currentPosition().closerThan(optional1.get(), 0.25D);\n         if (flag1) {\n            this.finishRam(p_217366_, p_217367_);\n         }\n      }\n\n   }\n\n   private boolean hasRammedHornBreakingBlock(ServerLevel p_217363_, Goat p_217364_) {\n      Vec3 vec3 = p_217364_.getDeltaMovement().multiply(1.0D, 0.0D, 1.0D).normalize();\n      BlockPos blockpos = BlockPos.containing(p_217364_.position().add(vec3));\n      return p_217363_.getBlockState(blockpos).is(BlockTags.SNAPS_GOAT_HORN) || p_217363_.getBlockState(blockpos.above()).is(BlockTags.SNAPS_GOAT_HORN);\n   }\n\n   protected void finishRam(ServerLevel p_217356_, Goat p_217357_) {\n      p_217356_.broadcastEntityEvent(p_217357_, (byte)59);\n      p_217357_.getBrain().setMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, this.getTimeBetweenRams.apply(p_217357_).sample(p_217356_.random));\n      p_217357_.getBrain().eraseMemory(MemoryModuleType.RAM_TARGET);\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java",
+      "start_line": 1,
+      "end_line": 176,
+      "listed_lines": 176,
+      "whole_file_read": true,
+      "file_sha256": "fa18b8be507ebf0937d0c322cedef47d81d2f1ebce0b10d544b51edaba6d7927",
+      "raw_range_sha256": "fa18b8be507ebf0937d0c322cedef47d81d2f1ebce0b10d544b51edaba6d7927",
+      "normalized_LF_join_without_final_LF_sha256": "fa18b8be507ebf0937d0c322cedef47d81d2f1ebce0b10d544b51edaba6d7927",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.Lists;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.function.Function;\nimport java.util.function.ToIntFunction;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.memory.WalkTarget;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.pathfinder.Path;\nimport net.minecraft.world.level.pathfinder.WalkNodeEvaluator;\nimport net.minecraft.world.phys.Vec3;\n\npublic class PrepareRamNearestTarget<E extends PathfinderMob> extends Behavior<E> {\n   public static final int TIME_OUT_DURATION = 160;\n   private final ToIntFunction<E> getCooldownOnFail;\n   private final int minRamDistance;\n   private final int maxRamDistance;\n   private final float walkSpeed;\n   private final TargetingConditions ramTargeting;\n   private final int ramPrepareTime;\n   private final Function<E, SoundEvent> getPrepareRamSound;\n   private Optional<Long> reachedRamPositionTimestamp = Optional.empty();\n   private Optional<PrepareRamNearestTarget.RamCandidate> ramCandidate = Optional.empty();\n\n   public PrepareRamNearestTarget(ToIntFunction<E> p_147724_, int p_147725_, int p_147726_, float p_147727_, TargetingConditions p_147728_, int p_147729_, Function<E, SoundEvent> p_147730_) {\n      super(ImmutableMap.of(MemoryModuleType.LOOK_TARGET, MemoryStatus.REGISTERED, MemoryModuleType.RAM_COOLDOWN_TICKS, MemoryStatus.VALUE_ABSENT, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryStatus.VALUE_PRESENT, MemoryModuleType.RAM_TARGET, MemoryStatus.VALUE_ABSENT), 160);\n      this.getCooldownOnFail = p_147724_;\n      this.minRamDistance = p_147725_;\n      this.maxRamDistance = p_147726_;\n      this.walkSpeed = p_147727_;\n      this.ramTargeting = p_147728_;\n      this.ramPrepareTime = p_147729_;\n      this.getPrepareRamSound = p_147730_;\n   }\n\n   protected void start(ServerLevel p_147736_, PathfinderMob p_147737_, long p_147738_) {\n      Brain<?> brain = p_147737_.getBrain();\n      brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES).flatMap((p_186049_) -> {\n         return p_186049_.findClosest((p_147789_) -> {\n            return this.ramTargeting.test(p_147737_, p_147789_);\n         });\n      }).ifPresent((p_147778_) -> {\n         this.chooseRamPosition(p_147737_, p_147778_);\n      });\n   }\n\n   protected void stop(ServerLevel p_147762_, E p_147763_, long p_147764_) {\n      Brain<?> brain = p_147763_.getBrain();\n      if (!brain.hasMemoryValue(MemoryModuleType.RAM_TARGET)) {\n         p_147762_.broadcastEntityEvent(p_147763_, (byte)59);\n         brain.setMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, this.getCooldownOnFail.applyAsInt(p_147763_));\n      }\n\n   }\n\n   protected boolean canStillUse(ServerLevel p_147773_, PathfinderMob p_147774_, long p_147775_) {\n      return this.ramCandidate.isPresent() && this.ramCandidate.get().getTarget().isAlive();\n   }\n\n   protected void tick(ServerLevel p_147784_, E p_147785_, long p_147786_) {\n      if (!this.ramCandidate.isEmpty()) {\n         p_147785_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(this.ramCandidate.get().getStartPosition(), this.walkSpeed, 0));\n         p_147785_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new EntityTracker(this.ramCandidate.get().getTarget(), true));\n         boolean flag = !this.ramCandidate.get().getTarget().blockPosition().equals(this.ramCandidate.get().getTargetPosition());\n         if (flag) {\n            p_147784_.broadcastEntityEvent(p_147785_, (byte)59);\n            p_147785_.getNavigation().stop();\n            this.chooseRamPosition(p_147785_, (this.ramCandidate.get()).target);\n         } else {\n            BlockPos blockpos = p_147785_.blockPosition();\n            if (blockpos.equals(this.ramCandidate.get().getStartPosition())) {\n               p_147784_.broadcastEntityEvent(p_147785_, (byte)58);\n               if (this.reachedRamPositionTimestamp.isEmpty()) {\n                  this.reachedRamPositionTimestamp = Optional.of(p_147786_);\n               }\n\n               if (p_147786_ - this.reachedRamPositionTimestamp.get() >= (long)this.ramPrepareTime) {\n                  p_147785_.getBrain().setMemory(MemoryModuleType.RAM_TARGET, this.getEdgeOfBlock(blockpos, this.ramCandidate.get().getTargetPosition()));\n                  p_147784_.playSound((Player)null, p_147785_, this.getPrepareRamSound.apply(p_147785_), SoundSource.NEUTRAL, 1.0F, p_147785_.getVoicePitch());\n                  this.ramCandidate = Optional.empty();\n               }\n            }\n         }\n\n      }\n   }\n\n   private Vec3 getEdgeOfBlock(BlockPos p_147755_, BlockPos p_147756_) {\n      double d0 = 0.5D;\n      double d1 = 0.5D * (double)Mth.sign((double)(p_147756_.getX() - p_147755_.getX()));\n      double d2 = 0.5D * (double)Mth.sign((double)(p_147756_.getZ() - p_147755_.getZ()));\n      return Vec3.atBottomCenterOf(p_147756_).add(d1, 0.0D, d2);\n   }\n\n   private Optional<BlockPos> calculateRammingStartPosition(PathfinderMob p_147743_, LivingEntity p_147744_) {\n      BlockPos blockpos = p_147744_.blockPosition();\n      if (!this.isWalkableBlock(p_147743_, blockpos)) {\n         return Optional.empty();\n      } else {\n         List<BlockPos> list = Lists.newArrayList();\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = blockpos.mutable();\n\n         for(Direction direction : Direction.Plane.HORIZONTAL) {\n            blockpos$mutableblockpos.set(blockpos);\n\n            for(int i = 0; i < this.maxRamDistance; ++i) {\n               if (!this.isWalkableBlock(p_147743_, blockpos$mutableblockpos.move(direction))) {\n                  blockpos$mutableblockpos.move(direction.getOpposite());\n                  break;\n               }\n            }\n\n            if (blockpos$mutableblockpos.distManhattan(blockpos) >= this.minRamDistance) {\n               list.add(blockpos$mutableblockpos.immutable());\n            }\n         }\n\n         PathNavigation pathnavigation = p_147743_.getNavigation();\n         return list.stream().sorted(Comparator.comparingDouble(p_147743_.blockPosition()::distSqr)).filter((p_147753_) -> {\n            Path path = pathnavigation.createPath(p_147753_, 0);\n            return path != null && path.canReach();\n         }).findFirst();\n      }\n   }\n\n   private boolean isWalkableBlock(PathfinderMob p_147746_, BlockPos p_147747_) {\n      return p_147746_.getNavigation().isStableDestination(p_147747_) && p_147746_.getPathfindingMalus(WalkNodeEvaluator.getBlockPathTypeStatic(p_147746_.level(), p_147747_.mutable())) == 0.0F;\n   }\n\n   private void chooseRamPosition(PathfinderMob p_147766_, LivingEntity p_147767_) {\n      this.reachedRamPositionTimestamp = Optional.empty();\n      this.ramCandidate = this.calculateRammingStartPosition(p_147766_, p_147767_).map((p_289369_) -> {\n         return new PrepareRamNearestTarget.RamCandidate(p_289369_, p_147767_.blockPosition(), p_147767_);\n      });\n   }\n\n   public static class RamCandidate {\n      private final BlockPos startPosition;\n      private final BlockPos targetPosition;\n      final LivingEntity target;\n\n      public RamCandidate(BlockPos p_147794_, BlockPos p_147795_, LivingEntity p_147796_) {\n         this.startPosition = p_147794_;\n         this.targetPosition = p_147795_;\n         this.target = p_147796_;\n      }\n\n      public BlockPos getStartPosition() {\n         return this.startPosition;\n      }\n\n      public BlockPos getTargetPosition() {\n         return this.targetPosition;\n      }\n\n      public LivingEntity getTarget() {\n         return this.target;\n      }\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/animal/goat/GoatAi.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/GoatAi.java",
+      "start_line": 1,
+      "end_line": 114,
+      "listed_lines": 114,
+      "whole_file_read": true,
+      "file_sha256": "e2075cedd0d85cc6331d4e8b58f05619d694f1a78738694d825e4ca4940efc5d",
+      "raw_range_sha256": "e2075cedd0d85cc6331d4e8b58f05619d694f1a78738694d825e4ca4940efc5d",
+      "normalized_LF_join_without_final_LF_sha256": "e2075cedd0d85cc6331d4e8b58f05619d694f1a78738694d825e4ca4940efc5d",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.animal.goat;\n\nimport com.google.common.collect.ImmutableList;\nimport com.google.common.collect.ImmutableSet;\nimport com.mojang.datafixers.util.Pair;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.util.valueproviders.UniformInt;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.behavior.AnimalMakeLove;\nimport net.minecraft.world.entity.ai.behavior.AnimalPanic;\nimport net.minecraft.world.entity.ai.behavior.BabyFollowAdult;\nimport net.minecraft.world.entity.ai.behavior.CountDownCooldownTicks;\nimport net.minecraft.world.entity.ai.behavior.DoNothing;\nimport net.minecraft.world.entity.ai.behavior.FollowTemptation;\nimport net.minecraft.world.entity.ai.behavior.LongJumpMidJump;\nimport net.minecraft.world.entity.ai.behavior.LongJumpToRandomPos;\nimport net.minecraft.world.entity.ai.behavior.LookAtTargetSink;\nimport net.minecraft.world.entity.ai.behavior.MoveToTargetSink;\nimport net.minecraft.world.entity.ai.behavior.PrepareRamNearestTarget;\nimport net.minecraft.world.entity.ai.behavior.RamTarget;\nimport net.minecraft.world.entity.ai.behavior.RandomStroll;\nimport net.minecraft.world.entity.ai.behavior.RunOne;\nimport net.minecraft.world.entity.ai.behavior.SetEntityLookTargetSometimes;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetFromLookTarget;\nimport net.minecraft.world.entity.ai.behavior.Swim;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.schedule.Activity;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.crafting.Ingredient;\n\npublic class GoatAi {\n   public static final int RAM_PREPARE_TIME = 20;\n   public static final int RAM_MAX_DISTANCE = 7;\n   private static final UniformInt ADULT_FOLLOW_RANGE = UniformInt.of(5, 16);\n   private static final float SPEED_MULTIPLIER_WHEN_MAKING_LOVE = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_IDLING = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_FOLLOWING_ADULT = 1.25F;\n   private static final float SPEED_MULTIPLIER_WHEN_TEMPTED = 1.25F;\n   private static final float SPEED_MULTIPLIER_WHEN_PANICKING = 2.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_PREPARING_TO_RAM = 1.25F;\n   private static final UniformInt TIME_BETWEEN_LONG_JUMPS = UniformInt.of(600, 1200);\n   public static final int MAX_LONG_JUMP_HEIGHT = 5;\n   public static final int MAX_LONG_JUMP_WIDTH = 5;\n   public static final float MAX_JUMP_VELOCITY = 1.5F;\n   private static final UniformInt TIME_BETWEEN_RAMS = UniformInt.of(600, 6000);\n   private static final UniformInt TIME_BETWEEN_RAMS_SCREAMER = UniformInt.of(100, 300);\n   private static final TargetingConditions RAM_TARGET_CONDITIONS = TargetingConditions.forCombat().selector((p_289449_) -> {\n      return !p_289449_.getType().equals(EntityType.GOAT) && p_289449_.level().getWorldBorder().isWithinBounds(p_289449_.getBoundingBox());\n   });\n   private static final float SPEED_MULTIPLIER_WHEN_RAMMING = 3.0F;\n   public static final int RAM_MIN_DISTANCE = 4;\n   public static final float ADULT_RAM_KNOCKBACK_FORCE = 2.5F;\n   public static final float BABY_RAM_KNOCKBACK_FORCE = 1.0F;\n\n   protected static void initMemories(Goat p_218765_, RandomSource p_218766_) {\n      p_218765_.getBrain().setMemory(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, TIME_BETWEEN_LONG_JUMPS.sample(p_218766_));\n      p_218765_.getBrain().setMemory(MemoryModuleType.RAM_COOLDOWN_TICKS, TIME_BETWEEN_RAMS.sample(p_218766_));\n   }\n\n   protected static Brain<?> makeBrain(Brain<Goat> p_149448_) {\n      initCoreActivity(p_149448_);\n      initIdleActivity(p_149448_);\n      initLongJumpActivity(p_149448_);\n      initRamActivity(p_149448_);\n      p_149448_.setCoreActivities(ImmutableSet.of(Activity.CORE));\n      p_149448_.setDefaultActivity(Activity.IDLE);\n      p_149448_.useDefaultActivity();\n      return p_149448_;\n   }\n\n   private static void initCoreActivity(Brain<Goat> p_149454_) {\n      p_149454_.addActivity(Activity.CORE, 0, ImmutableList.of(new Swim(0.8F), new AnimalPanic(2.0F), new LookAtTargetSink(45, 90), new MoveToTargetSink(), new CountDownCooldownTicks(MemoryModuleType.TEMPTATION_COOLDOWN_TICKS), new CountDownCooldownTicks(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS), new CountDownCooldownTicks(MemoryModuleType.RAM_COOLDOWN_TICKS)));\n   }\n\n   private static void initIdleActivity(Brain<Goat> p_149458_) {\n      p_149458_.addActivityWithConditions(Activity.IDLE, ImmutableList.of(Pair.of(0, SetEntityLookTargetSometimes.create(EntityType.PLAYER, 6.0F, UniformInt.of(30, 60))), Pair.of(0, new AnimalMakeLove(EntityType.GOAT, 1.0F)), Pair.of(1, new FollowTemptation((p_149446_) -> {\n         return 1.25F;\n      })), Pair.of(2, BabyFollowAdult.create(ADULT_FOLLOW_RANGE, 1.25F)), Pair.of(3, new RunOne<>(ImmutableList.of(Pair.of(RandomStroll.stroll(1.0F), 2), Pair.of(SetWalkTargetFromLookTarget.create(1.0F, 3), 2), Pair.of(new DoNothing(30, 60), 1))))), ImmutableSet.of(Pair.of(MemoryModuleType.RAM_TARGET, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.LONG_JUMP_MID_JUMP, MemoryStatus.VALUE_ABSENT)));\n   }\n\n   private static void initLongJumpActivity(Brain<Goat> p_149462_) {\n      p_149462_.addActivityWithConditions(Activity.LONG_JUMP, ImmutableList.of(Pair.of(0, new LongJumpMidJump(TIME_BETWEEN_LONG_JUMPS, SoundEvents.GOAT_STEP)), Pair.of(1, new LongJumpToRandomPos<>(TIME_BETWEEN_LONG_JUMPS, 5, 5, 1.5F, (p_149476_) -> {\n         return p_149476_.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_LONG_JUMP : SoundEvents.GOAT_LONG_JUMP;\n      }))), ImmutableSet.of(Pair.of(MemoryModuleType.TEMPTING_PLAYER, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.BREED_TARGET, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, MemoryStatus.VALUE_ABSENT)));\n   }\n\n   private static void initRamActivity(Brain<Goat> p_149466_) {\n      p_149466_.addActivityWithConditions(Activity.RAM, ImmutableList.of(Pair.of(0, new RamTarget((p_149474_) -> {\n         return p_149474_.isScreamingGoat() ? TIME_BETWEEN_RAMS_SCREAMER : TIME_BETWEEN_RAMS;\n      }, RAM_TARGET_CONDITIONS, 3.0F, (p_287490_) -> {\n         return p_287490_.isBaby() ? 1.0D : 2.5D;\n      }, (p_149468_) -> {\n         return p_149468_.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_RAM_IMPACT : SoundEvents.GOAT_RAM_IMPACT;\n      }, (p_218772_) -> {\n         return p_218772_.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_HORN_BREAK : SoundEvents.GOAT_HORN_BREAK;\n      })), Pair.of(1, new PrepareRamNearestTarget<>((p_218770_) -> {\n         return p_218770_.isScreamingGoat() ? TIME_BETWEEN_RAMS_SCREAMER.getMinValue() : TIME_BETWEEN_RAMS.getMinValue();\n      }, 4, 7, 1.25F, RAM_TARGET_CONDITIONS, 20, (p_218768_) -> {\n         return p_218768_.isScreamingGoat() ? SoundEvents.GOAT_SCREAMING_PREPARE_RAM : SoundEvents.GOAT_PREPARE_RAM;\n      }))), ImmutableSet.of(Pair.of(MemoryModuleType.TEMPTING_PLAYER, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.BREED_TARGET, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.RAM_COOLDOWN_TICKS, MemoryStatus.VALUE_ABSENT)));\n   }\n\n   public static void updateActivity(Goat p_149456_) {\n      p_149456_.getBrain().setActiveActivityToFirstValid(ImmutableList.of(Activity.RAM, Activity.LONG_JUMP, Activity.IDLE));\n   }\n\n   public static Ingredient getTemptations() {\n      return Ingredient.of(Items.WHEAT);\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/CountDownCooldownTicks.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/CountDownCooldownTicks.java",
+      "start_line": 1,
+      "end_line": 39,
+      "listed_lines": 39,
+      "whole_file_read": true,
+      "file_sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d",
+      "raw_range_sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d",
+      "normalized_LF_join_without_final_LF_sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport java.util.Optional;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\n\npublic class CountDownCooldownTicks extends Behavior<LivingEntity> {\n   private final MemoryModuleType<Integer> cooldownTicks;\n\n   public CountDownCooldownTicks(MemoryModuleType<Integer> p_147462_) {\n      super(ImmutableMap.of(p_147462_, MemoryStatus.VALUE_PRESENT));\n      this.cooldownTicks = p_147462_;\n   }\n\n   private Optional<Integer> getCooldownTickMemory(LivingEntity p_147466_) {\n      return p_147466_.getBrain().getMemory(this.cooldownTicks);\n   }\n\n   protected boolean timedOut(long p_147464_) {\n      return false;\n   }\n\n   protected boolean canStillUse(ServerLevel p_147468_, LivingEntity p_147469_, long p_147470_) {\n      Optional<Integer> optional = this.getCooldownTickMemory(p_147469_);\n      return optional.isPresent() && optional.get() > 0;\n   }\n\n   protected void tick(ServerLevel p_147476_, LivingEntity p_147477_, long p_147478_) {\n      Optional<Integer> optional = this.getCooldownTickMemory(p_147477_);\n      p_147477_.getBrain().setMemory(this.cooldownTicks, optional.get() - 1);\n   }\n\n   protected void stop(ServerLevel p_147472_, LivingEntity p_147473_, long p_147474_) {\n      p_147473_.getBrain().eraseMemory(this.cooldownTicks);\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+      "start_line": 1,
+      "end_line": 97,
+      "listed_lines": 97,
+      "whole_file_read": true,
+      "file_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+      "raw_range_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+      "normalized_LF_join_without_final_LF_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.targeting;\n\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\n\npublic class TargetingConditions {\n   public static final TargetingConditions DEFAULT = forCombat();\n   private static final double MIN_VISIBILITY_DISTANCE_FOR_INVISIBLE_TARGET = 2.0D;\n   private final boolean isCombat;\n   private double range = -1.0D;\n   private boolean checkLineOfSight = true;\n   private boolean testInvisible = true;\n   @Nullable\n   private Predicate<LivingEntity> selector;\n\n   private TargetingConditions(boolean p_148351_) {\n      this.isCombat = p_148351_;\n   }\n\n   public static TargetingConditions forCombat() {\n      return new TargetingConditions(true);\n   }\n\n   public static TargetingConditions forNonCombat() {\n      return new TargetingConditions(false);\n   }\n\n   public TargetingConditions copy() {\n      TargetingConditions targetingconditions = this.isCombat ? forCombat() : forNonCombat();\n      targetingconditions.range = this.range;\n      targetingconditions.checkLineOfSight = this.checkLineOfSight;\n      targetingconditions.testInvisible = this.testInvisible;\n      targetingconditions.selector = this.selector;\n      return targetingconditions;\n   }\n\n   public TargetingConditions range(double p_26884_) {\n      this.range = p_26884_;\n      return this;\n   }\n\n   public TargetingConditions ignoreLineOfSight() {\n      this.checkLineOfSight = false;\n      return this;\n   }\n\n   public TargetingConditions ignoreInvisibilityTesting() {\n      this.testInvisible = false;\n      return this;\n   }\n\n   public TargetingConditions selector(@Nullable Predicate<LivingEntity> p_26889_) {\n      this.selector = p_26889_;\n      return this;\n   }\n\n   public boolean test(@Nullable LivingEntity p_26886_, LivingEntity p_26887_) {\n      if (p_26886_ == p_26887_) {\n         return false;\n      } else if (!p_26887_.canBeSeenByAnyone()) {\n         return false;\n      } else if (this.selector != null && !this.selector.test(p_26887_)) {\n         return false;\n      } else {\n         if (p_26886_ == null) {\n            if (this.isCombat && (!p_26887_.canBeSeenAsEnemy() || p_26887_.level().getDifficulty() == Difficulty.PEACEFUL)) {\n               return false;\n            }\n         } else {\n            if (this.isCombat && (!p_26886_.canAttack(p_26887_) || !p_26886_.canAttackType(p_26887_.getType()) || p_26886_.isAlliedTo(p_26887_))) {\n               return false;\n            }\n\n            if (this.range > 0.0D) {\n               double d0 = this.testInvisible ? p_26887_.getVisibilityPercent(p_26886_) : 1.0D;\n               double d1 = Math.max(this.range * d0, 2.0D);\n               double d2 = p_26886_.distanceToSqr(p_26887_.getX(), p_26887_.getY(), p_26887_.getZ());\n               if (d2 > d1 * d1) {\n                  return false;\n               }\n            }\n\n            if (this.checkLineOfSight && p_26886_ instanceof Mob) {\n               Mob mob = (Mob)p_26886_;\n               if (!mob.getSensing().hasLineOfSight(p_26887_)) {\n                  return false;\n               }\n            }\n         }\n\n         return true;\n      }\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/WalkTarget.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/WalkTarget.java",
+      "start_line": 1,
+      "end_line": 44,
+      "listed_lines": 44,
+      "whole_file_read": true,
+      "file_sha256": "08746534348dc829ac392db1a63c65eb11551b99f42b05b94424219684c34d54",
+      "raw_range_sha256": "08746534348dc829ac392db1a63c65eb11551b99f42b05b94424219684c34d54",
+      "normalized_LF_join_without_final_LF_sha256": "08746534348dc829ac392db1a63c65eb11551b99f42b05b94424219684c34d54",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.memory;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.ai.behavior.BlockPosTracker;\nimport net.minecraft.world.entity.ai.behavior.EntityTracker;\nimport net.minecraft.world.entity.ai.behavior.PositionTracker;\nimport net.minecraft.world.phys.Vec3;\n\npublic class WalkTarget {\n   private final PositionTracker target;\n   private final float speedModifier;\n   private final int closeEnoughDist;\n\n   public WalkTarget(BlockPos p_26417_, float p_26418_, int p_26419_) {\n      this(new BlockPosTracker(p_26417_), p_26418_, p_26419_);\n   }\n\n   public WalkTarget(Vec3 p_26413_, float p_26414_, int p_26415_) {\n      this(new BlockPosTracker(BlockPos.containing(p_26413_)), p_26414_, p_26415_);\n   }\n\n   public WalkTarget(Entity p_148209_, float p_148210_, int p_148211_) {\n      this(new EntityTracker(p_148209_, false), p_148210_, p_148211_);\n   }\n\n   public WalkTarget(PositionTracker p_26409_, float p_26410_, int p_26411_) {\n      this.target = p_26409_;\n      this.speedModifier = p_26410_;\n      this.closeEnoughDist = p_26411_;\n   }\n\n   public PositionTracker getTarget() {\n      return this.target;\n   }\n\n   public float getSpeedModifier() {\n      return this.speedModifier;\n   }\n\n   public int getCloseEnoughDist() {\n      return this.closeEnoughDist;\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/BlockPosTracker.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/BlockPosTracker.java",
+      "start_line": 1,
+      "end_line": 36,
+      "listed_lines": 36,
+      "whole_file_read": true,
+      "file_sha256": "772e4f668495d9e376809d74220eac8ac1e70e8a3f5a0970a5f7afd7b340c450",
+      "raw_range_sha256": "772e4f668495d9e376809d74220eac8ac1e70e8a3f5a0970a5f7afd7b340c450",
+      "normalized_LF_join_without_final_LF_sha256": "772e4f668495d9e376809d74220eac8ac1e70e8a3f5a0970a5f7afd7b340c450",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.phys.Vec3;\n\npublic class BlockPosTracker implements PositionTracker {\n   private final BlockPos blockPos;\n   private final Vec3 centerPosition;\n\n   public BlockPosTracker(BlockPos p_22676_) {\n      this.blockPos = p_22676_.immutable();\n      this.centerPosition = Vec3.atCenterOf(p_22676_);\n   }\n\n   public BlockPosTracker(Vec3 p_251060_) {\n      this.blockPos = BlockPos.containing(p_251060_);\n      this.centerPosition = p_251060_;\n   }\n\n   public Vec3 currentPosition() {\n      return this.centerPosition;\n   }\n\n   public BlockPos currentBlockPosition() {\n      return this.blockPos;\n   }\n\n   public boolean isVisibleBy(LivingEntity p_22679_) {\n      return true;\n   }\n\n   public String toString() {\n      return \"BlockPosTracker{blockPos=\" + this.blockPos + \", centerPosition=\" + this.centerPosition + \"}\";\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java",
+      "start_line": 1,
+      "end_line": 37,
+      "listed_lines": 37,
+      "whole_file_read": true,
+      "file_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b",
+      "raw_range_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b",
+      "normalized_LF_join_without_final_LF_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.sensing;\n\nimport com.google.common.collect.ImmutableSet;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.Set;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;\nimport net.minecraft.world.phys.AABB;\n\npublic class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T> {\n   protected void doTick(ServerLevel p_26710_, T p_26711_) {\n      AABB aabb = p_26711_.getBoundingBox().inflate((double)this.radiusXZ(), (double)this.radiusY(), (double)this.radiusXZ());\n      List<LivingEntity> list = p_26710_.getEntitiesOfClass(LivingEntity.class, aabb, (p_26717_) -> {\n         return p_26717_ != p_26711_ && p_26717_.isAlive();\n      });\n      list.sort(Comparator.comparingDouble(p_26711_::distanceToSqr));\n      Brain<?> brain = p_26711_.getBrain();\n      brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, list);\n      brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(p_26711_, list));\n   }\n\n   protected int radiusXZ() {\n      return 16;\n   }\n\n   protected int radiusY() {\n      return 16;\n   }\n\n   public Set<MemoryModuleType<?>> requires() {\n      return ImmutableSet.of(MemoryModuleType.NEAREST_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.java",
+      "start_line": 1,
+      "end_line": 74,
+      "listed_lines": 74,
+      "whole_file_read": true,
+      "file_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc",
+      "raw_range_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc",
+      "normalized_LF_join_without_final_LF_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.memory;\n\nimport com.google.common.collect.Iterables;\nimport it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.function.Predicate;\nimport java.util.stream.Stream;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\n\npublic class NearestVisibleLivingEntities {\n   private static final NearestVisibleLivingEntities EMPTY = new NearestVisibleLivingEntities();\n   private final List<LivingEntity> nearbyEntities;\n   private final Predicate<LivingEntity> lineOfSightTest;\n\n   private NearestVisibleLivingEntities() {\n      this.nearbyEntities = List.of();\n      this.lineOfSightTest = (p_186122_) -> {\n         return false;\n      };\n   }\n\n   public NearestVisibleLivingEntities(LivingEntity p_186104_, List<LivingEntity> p_186105_) {\n      this.nearbyEntities = p_186105_;\n      Object2BooleanOpenHashMap<LivingEntity> object2booleanopenhashmap = new Object2BooleanOpenHashMap<>(p_186105_.size());\n      Predicate<LivingEntity> predicate = (p_186111_) -> {\n         return Sensor.isEntityTargetable(p_186104_, p_186111_);\n      };\n      this.lineOfSightTest = (p_186115_) -> {\n         return object2booleanopenhashmap.computeIfAbsent(p_186115_, predicate);\n      };\n   }\n\n   public static NearestVisibleLivingEntities empty() {\n      return EMPTY;\n   }\n\n   public Optional<LivingEntity> findClosest(Predicate<LivingEntity> p_186117_) {\n      for(LivingEntity livingentity : this.nearbyEntities) {\n         if (p_186117_.test(livingentity) && this.lineOfSightTest.test(livingentity)) {\n            return Optional.of(livingentity);\n         }\n      }\n\n      return Optional.empty();\n   }\n\n   public Iterable<LivingEntity> findAll(Predicate<LivingEntity> p_186124_) {\n      return Iterables.filter(this.nearbyEntities, (p_186127_) -> {\n         return p_186124_.test(p_186127_) && this.lineOfSightTest.test(p_186127_);\n      });\n   }\n\n   public Stream<LivingEntity> find(Predicate<LivingEntity> p_186129_) {\n      return this.nearbyEntities.stream().filter((p_186120_) -> {\n         return p_186129_.test(p_186120_) && this.lineOfSightTest.test(p_186120_);\n      });\n   }\n\n   public boolean contains(LivingEntity p_186108_) {\n      return this.nearbyEntities.contains(p_186108_) && this.lineOfSightTest.test(p_186108_);\n   }\n\n   public boolean contains(Predicate<LivingEntity> p_186131_) {\n      for(LivingEntity livingentity : this.nearbyEntities) {\n         if (p_186131_.test(livingentity) && this.lineOfSightTest.test(livingentity)) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/sensing/Sensor.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/sensing/Sensor.java",
+      "start_line": 1,
+      "end_line": 55,
+      "listed_lines": 55,
+      "whole_file_read": true,
+      "file_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c",
+      "raw_range_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c",
+      "normalized_LF_join_without_final_LF_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.sensing;\n\nimport java.util.Set;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\n\npublic abstract class Sensor<E extends LivingEntity> {\n   private static final RandomSource RANDOM = RandomSource.createThreadSafe();\n   private static final int DEFAULT_SCAN_RATE = 20;\n   protected static final int TARGETING_RANGE = 16;\n   private static final TargetingConditions TARGET_CONDITIONS = TargetingConditions.forNonCombat().range(16.0D);\n   private static final TargetingConditions TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = TargetingConditions.forNonCombat().range(16.0D).ignoreInvisibilityTesting();\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS = TargetingConditions.forCombat().range(16.0D);\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = TargetingConditions.forCombat().range(16.0D).ignoreInvisibilityTesting();\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT = TargetingConditions.forCombat().range(16.0D).ignoreLineOfSight();\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT = TargetingConditions.forCombat().range(16.0D).ignoreLineOfSight().ignoreInvisibilityTesting();\n   private final int scanRate;\n   private long timeToTick;\n\n   public Sensor(int p_26800_) {\n      this.scanRate = p_26800_;\n      this.timeToTick = (long)RANDOM.nextInt(p_26800_);\n   }\n\n   public Sensor() {\n      this(20);\n   }\n\n   public final void tick(ServerLevel p_26807_, E p_26808_) {\n      if (--this.timeToTick <= 0L) {\n         this.timeToTick = (long)this.scanRate;\n         this.doTick(p_26807_, p_26808_);\n      }\n\n   }\n\n   protected abstract void doTick(ServerLevel p_26801_, E p_26802_);\n\n   public abstract Set<MemoryModuleType<?>> requires();\n\n   public static boolean isEntityTargetable(LivingEntity p_26804_, LivingEntity p_26805_) {\n      return p_26804_.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, p_26805_) ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(p_26804_, p_26805_) : TARGET_CONDITIONS.test(p_26804_, p_26805_);\n   }\n\n   public static boolean isEntityAttackable(LivingEntity p_148313_, LivingEntity p_148314_) {\n      return p_148313_.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, p_148314_) ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(p_148313_, p_148314_) : ATTACK_TARGET_CONDITIONS.test(p_148313_, p_148314_);\n   }\n\n   public static boolean isEntityAttackableIgnoringLineOfSight(LivingEntity p_182378_, LivingEntity p_182379_) {\n      return p_182378_.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, p_182379_) ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.test(p_182378_, p_182379_) : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.test(p_182378_, p_182379_);\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+      "start_line": 55,
+      "end_line": 75,
+      "listed_lines": 21,
+      "whole_file_read": false,
+      "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+      "raw_range_sha256": "0058d0cc1fcb50c1663cc4db8a4795f2d90d630e91aa38f42d9c71bb16e5cf3e",
+      "normalized_LF_join_without_final_LF_sha256": "f6efbc9db8222375dbb59d3e72b6a148dca1bf80fbf4330c2fc5f460d6871f6c",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "public class Goat extends Animal {\n   public static final EntityDimensions LONG_JUMPING_DIMENSIONS = EntityDimensions.scalable(0.9F, 1.3F).scale(0.7F);\n   private static final int ADULT_ATTACK_DAMAGE = 2;\n   private static final int BABY_ATTACK_DAMAGE = 1;\n   protected static final ImmutableList<SensorType<? extends Sensor<? super Goat>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.NEAREST_ITEMS, SensorType.NEAREST_ADULT, SensorType.HURT_BY, SensorType.GOAT_TEMPTATIONS);\n   protected static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.LOOK_TARGET, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.PATH, MemoryModuleType.ATE_RECENTLY, MemoryModuleType.BREED_TARGET, MemoryModuleType.LONG_JUMP_COOLDOWN_TICKS, MemoryModuleType.LONG_JUMP_MID_JUMP, MemoryModuleType.TEMPTING_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ADULT, MemoryModuleType.TEMPTATION_COOLDOWN_TICKS, MemoryModuleType.IS_TEMPTED, MemoryModuleType.RAM_COOLDOWN_TICKS, MemoryModuleType.RAM_TARGET, MemoryModuleType.IS_PANICKING);\n   public static final int GOAT_FALL_DAMAGE_REDUCTION = 10;\n   public static final double GOAT_SCREAMING_CHANCE = 0.02D;\n   public static final double UNIHORN_CHANCE = (double)0.1F;\n   private static final EntityDataAccessor<Boolean> DATA_IS_SCREAMING_GOAT = SynchedEntityData.defineId(Goat.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_HAS_LEFT_HORN = SynchedEntityData.defineId(Goat.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_HAS_RIGHT_HORN = SynchedEntityData.defineId(Goat.class, EntityDataSerializers.BOOLEAN);\n   private boolean isLoweringHead;\n   private int lowerHeadTick;\n\n   public Goat(EntityType<? extends Goat> p_149352_, Level p_149353_) {\n      super(p_149352_, p_149353_);\n      this.getNavigation().setCanFloat(true);\n      this.setPathfindingMalus(BlockPathTypes.POWDER_SNOW, -1.0F);\n      this.setPathfindingMalus(BlockPathTypes.DANGER_POWDER_SNOW, -1.0F);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+      "start_line": 84,
+      "end_line": 94,
+      "listed_lines": 11,
+      "whole_file_read": false,
+      "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+      "raw_range_sha256": "8091597a6be5f3b761eb349f1f29775c38117bc77a2a77c051261b836e211dbf",
+      "normalized_LF_join_without_final_LF_sha256": "17692083654d79648197e586f0111362c5a6de17d4bf01290fc59b32a8f35fd2",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   protected Brain.Provider<Goat> brainProvider() {\n      return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);\n   }\n\n   protected Brain<?> makeBrain(Dynamic<?> p_149371_) {\n      return GoatAi.makeBrain(this.brainProvider().makeBrain(p_149371_));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 10.0D).add(Attributes.MOVEMENT_SPEED, (double)0.2F).add(Attributes.ATTACK_DAMAGE, 2.0D);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+      "start_line": 167,
+      "end_line": 175,
+      "listed_lines": 9,
+      "whole_file_read": false,
+      "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+      "raw_range_sha256": "7436647d29a997401a5f92acfef9c4d69cb5e9c27e6269dd367cb341d1741fe6",
+      "normalized_LF_join_without_final_LF_sha256": "8d0dca42279c1298d98d3ffc137c02668f4765b07c078b1951c085e936e53a37",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   protected void customServerAiStep() {\n      this.level().getProfiler().push(\"goatBrain\");\n      this.getBrain().tick((ServerLevel)this.level(), this);\n      this.level().getProfiler().pop();\n      this.level().getProfiler().push(\"goatActivityUpdate\");\n      GoatAi.updateActivity(this);\n      this.level().getProfiler().pop();\n      super.customServerAiStep();\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+      "start_line": 245,
+      "end_line": 265,
+      "listed_lines": 21,
+      "whole_file_read": false,
+      "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+      "raw_range_sha256": "c7c57dce242847d078ac2016469453da9d9d42e77ed7d693d9dc19b7e30d8170",
+      "normalized_LF_join_without_final_LF_sha256": "be6d62f95c62be41e56659ccc2ef0ecfd62825287a1801a3c7421ef369929c68",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public void handleEntityEvent(byte p_149356_) {\n      if (p_149356_ == 58) {\n         this.isLoweringHead = true;\n      } else if (p_149356_ == 59) {\n         this.isLoweringHead = false;\n      } else {\n         super.handleEntityEvent(p_149356_);\n      }\n\n   }\n\n   public void aiStep() {\n      if (this.isLoweringHead) {\n         ++this.lowerHeadTick;\n      } else {\n         this.lowerHeadTick -= 2;\n      }\n\n      this.lowerHeadTick = Mth.clamp(this.lowerHeadTick, 0, 20);\n      super.aiStep();\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+      "start_line": 319,
+      "end_line": 329,
+      "listed_lines": 11,
+      "whole_file_read": false,
+      "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+      "raw_range_sha256": "4930caf6aa487101bef1fbf54e8ba1a04d89daa576fbcc56fbb55306f01602c8",
+      "normalized_LF_join_without_final_LF_sha256": "ed7c66b4b89d6980e1613939f9abc7047dbcfd9d7e1d219ff797f37eb3b43a2d",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public boolean isScreamingGoat() {\n      return this.entityData.get(DATA_IS_SCREAMING_GOAT);\n   }\n\n   public void setScreamingGoat(boolean p_149406_) {\n      this.entityData.set(DATA_IS_SCREAMING_GOAT, p_149406_);\n   }\n\n   public float getRammingXHeadRot() {\n      return (float)this.lowerHeadTick / 20.0F * 30.0F * ((float)Math.PI / 180F);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "start_line": 1268,
+      "end_line": 1290,
+      "listed_lines": 23,
+      "whole_file_read": false,
+      "file_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "raw_range_sha256": "be86614c0c66e6e4e06a7fe459479e7e17bdba3904a657b6f560c3bfdb438d76",
+      "normalized_LF_join_without_final_LF_sha256": "b4d5238ee44a068bfa965a5c56e0be7bc478b48f538b895a7f2bb3a70111b80d",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public boolean isDamageSourceBlocked(DamageSource p_21276_) {\n      Entity entity = p_21276_.getDirectEntity();\n      boolean flag = false;\n      if (entity instanceof AbstractArrow abstractarrow) {\n         if (abstractarrow.getPierceLevel() > 0) {\n            flag = true;\n         }\n      }\n\n      if (!p_21276_.is(DamageTypeTags.BYPASSES_SHIELD) && this.isBlocking() && !flag) {\n         Vec3 vec32 = p_21276_.getSourcePosition();\n         if (vec32 != null) {\n            Vec3 vec3 = this.getViewVector(1.0F);\n            Vec3 vec31 = vec32.vectorTo(this.position()).normalize();\n            vec31 = new Vec3(vec31.x, 0.0D, vec31.z);\n            if (vec31.dot(vec3) < 0.0D) {\n               return true;\n            }\n         }\n      }\n\n      return false;\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "start_line": 1414,
+      "end_line": 1427,
+      "listed_lines": 14,
+      "whole_file_read": false,
+      "file_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "raw_range_sha256": "c4e428367aa13e20c05c3a4049f55fb479c523493597b511c27317260e9af9b1",
+      "normalized_LF_join_without_final_LF_sha256": "7cbd6bcd9cf70e9222383dc031afb8c75fa1a440f12dcdab5f98f12ac2189617",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public void knockback(double p_147241_, double p_147242_, double p_147243_) {\n      net.minecraftforge.event.entity.living.LivingKnockBackEvent event = net.minecraftforge.common.ForgeHooks.onLivingKnockBack(this, (float) p_147241_, p_147242_, p_147243_);\n      if(event.isCanceled()) return;\n      p_147241_ = event.getStrength();\n      p_147242_ = event.getRatioX();\n      p_147243_ = event.getRatioZ();\n      p_147241_ *= 1.0D - this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);\n      if (!(p_147241_ <= 0.0D)) {\n         this.hasImpulse = true;\n         Vec3 vec3 = this.getDeltaMovement();\n         Vec3 vec31 = (new Vec3(p_147242_, 0.0D, p_147243_)).normalize().scale(p_147241_);\n         this.setDeltaMovement(vec3.x / 2.0D - vec31.x, this.onGround() ? Math.min(0.4D, vec3.y / 2.0D + p_147241_) : vec3.y, vec3.z / 2.0D - vec31.z);\n      }\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/level/EntityGetter.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/EntityGetter.java",
+      "start_line": 167,
+      "end_line": 180,
+      "listed_lines": 14,
+      "whole_file_read": false,
+      "file_sha256": "96d40415e5fbe59f9d4d902ed8dbabb66b3dee2e75577eb0b1e5ba1e141ad068",
+      "raw_range_sha256": "c599179c86b63187f020c5324389934125aba9afd4a1ee7fe72297edf277cf17",
+      "normalized_LF_join_without_final_LF_sha256": "36663453486e736244055ce8496f368f97ef1ad103c665f36780203c5dc609f9",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   default <T extends LivingEntity> List<T> getNearbyEntities(Class<T> p_45972_, TargetingConditions p_45973_, LivingEntity p_45974_, AABB p_45975_) {\n      List<T> list = this.getEntitiesOfClass(p_45972_, p_45975_, (p_186450_) -> {\n         return true;\n      });\n      List<T> list1 = Lists.newArrayList();\n\n      for(T t : list) {\n         if (p_45973_.test(p_45974_, t)) {\n            list1.add(t);\n         }\n      }\n\n      return list1;\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "start_line": 76,
+      "end_line": 77,
+      "listed_lines": 2,
+      "whole_file_read": false,
+      "file_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "raw_range_sha256": "00869dfb6b8695bbbf5378e5842a1f20add00713b6b63df9697ed1f8ee4e97b9",
+      "normalized_LF_join_without_final_LF_sha256": "6c909365b0a54e5033df026af7c8ba216148e00609721e26eade9c0f4b52105d",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public static final MemoryModuleType<Integer> RAM_COOLDOWN_TICKS = register(\"ram_cooldown_ticks\", Codec.INT);\n   public static final MemoryModuleType<Vec3> RAM_TARGET = register(\"ram_target\");\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/sensing/SensorType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/sensing/SensorType.java",
+      "start_line": 17,
+      "end_line": 17,
+      "listed_lines": 1,
+      "whole_file_read": false,
+      "file_sha256": "9262dda782778264ccc6c3454d0d2e59e8e0b6d543c4a29e7ff0969df2624cac",
+      "raw_range_sha256": "4f0839576dcaf7c683e99806e55250e5bd81de1a7ac3f887a41452692406e756",
+      "normalized_LF_join_without_final_LF_sha256": "0d5b370111f00b00683056907d4a890bac706fe6395b037fda7c31cea634c5fb",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public static final SensorType<NearestLivingEntitySensor<LivingEntity>> NEAREST_LIVING_ENTITIES = register(\"nearest_living_entities\", NearestLivingEntitySensor::new);\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/EntityType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+      "start_line": 213,
+      "end_line": 213,
+      "listed_lines": 1,
+      "whole_file_read": false,
+      "file_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "raw_range_sha256": "e7a798d99a9593a40cdb0ddacc2838036a8c454eb0173550275a25b3e8c36e59",
+      "normalized_LF_join_without_final_LF_sha256": "eaaee41f09fb234ccec6a9a90ecf22ee298a49b0152c641761ece4dab99bb30f",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public static final EntityType<Goat> GOAT = register(\"goat\", EntityType.Builder.of(Goat::new, MobCategory.CREATURE).sized(0.9F, 1.3F).clientTrackingRange(10));\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/damagesource/DamageSources.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSources.java",
+      "start_line": 183,
+      "end_line": 189,
+      "listed_lines": 7,
+      "whole_file_read": false,
+      "file_sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+      "raw_range_sha256": "33a86f33519632322d4a23c27ef356eb4336f68fe66c58b3ee8c196fd8cad983",
+      "normalized_LF_join_without_final_LF_sha256": "90aff9b78ccd66a6865caa7858cec69831214ae3a1f85da7694e26ca26aae8cc",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public DamageSource mobAttack(LivingEntity p_270357_) {\n      return this.source(DamageTypes.MOB_ATTACK, p_270357_);\n   }\n\n   public DamageSource noAggroMobAttack(LivingEntity p_270502_) {\n      return this.source(DamageTypes.MOB_ATTACK_NO_AGGRO, p_270502_);\n   }\n"
+    }
+  ],
+  "actual_Main_reading": {
+    "ranges": 22,
+    "distinct_lines": 916,
+    "archive_entries": 17,
+    "whole_declarations": 10,
+    "whole_names": [
+      "net/minecraft/world/entity/ai/behavior/BlockPosTracker.java",
+      "net/minecraft/world/entity/ai/behavior/CountDownCooldownTicks.java",
+      "net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java",
+      "net/minecraft/world/entity/ai/behavior/RamTarget.java",
+      "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.java",
+      "net/minecraft/world/entity/ai/memory/WalkTarget.java",
+      "net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java",
+      "net/minecraft/world/entity/ai/sensing/Sensor.java",
+      "net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+      "net/minecraft/world/entity/animal/goat/GoatAi.java"
+    ],
+    "source_binding_checks": [
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/behavior/RamTarget.java",
+        "start_line": 1,
+        "end_line": 109,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "de2d04d5683183726412207a0f61e5bd9f01c263366d1b5c215a08cb40c15ac3",
+        "raw_excerpt_preserved_sha256": "de2d04d5683183726412207a0f61e5bd9f01c263366d1b5c215a08cb40c15ac3"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java",
+        "start_line": 1,
+        "end_line": 176,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "fa18b8be507ebf0937d0c322cedef47d81d2f1ebce0b10d544b51edaba6d7927",
+        "raw_excerpt_preserved_sha256": "fa18b8be507ebf0937d0c322cedef47d81d2f1ebce0b10d544b51edaba6d7927"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/animal/goat/GoatAi.java",
+        "start_line": 1,
+        "end_line": 114,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "e2075cedd0d85cc6331d4e8b58f05619d694f1a78738694d825e4ca4940efc5d",
+        "raw_excerpt_preserved_sha256": "e2075cedd0d85cc6331d4e8b58f05619d694f1a78738694d825e4ca4940efc5d"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/behavior/CountDownCooldownTicks.java",
+        "start_line": 1,
+        "end_line": 39,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d",
+        "raw_excerpt_preserved_sha256": "43a5bbbf0fc797f8f1137e7523f80b937fe650eb393d22f90ba045f7aacca04d"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+        "start_line": 1,
+        "end_line": 97,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+        "raw_excerpt_preserved_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/memory/WalkTarget.java",
+        "start_line": 1,
+        "end_line": 44,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "08746534348dc829ac392db1a63c65eb11551b99f42b05b94424219684c34d54",
+        "raw_excerpt_preserved_sha256": "08746534348dc829ac392db1a63c65eb11551b99f42b05b94424219684c34d54"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/behavior/BlockPosTracker.java",
+        "start_line": 1,
+        "end_line": 36,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "772e4f668495d9e376809d74220eac8ac1e70e8a3f5a0970a5f7afd7b340c450",
+        "raw_excerpt_preserved_sha256": "772e4f668495d9e376809d74220eac8ac1e70e8a3f5a0970a5f7afd7b340c450"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java",
+        "start_line": 1,
+        "end_line": 37,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b",
+        "raw_excerpt_preserved_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.java",
+        "start_line": 1,
+        "end_line": 74,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc",
+        "raw_excerpt_preserved_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/sensing/Sensor.java",
+        "start_line": 1,
+        "end_line": 55,
+        "whole_file_read": true,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c",
+        "raw_excerpt_preserved_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+        "start_line": 55,
+        "end_line": 75,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "raw_excerpt_preserved_sha256": "f6efbc9db8222375dbb59d3e72b6a148dca1bf80fbf4330c2fc5f460d6871f6c"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+        "start_line": 84,
+        "end_line": 94,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "raw_excerpt_preserved_sha256": "17692083654d79648197e586f0111362c5a6de17d4bf01290fc59b32a8f35fd2"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+        "start_line": 167,
+        "end_line": 175,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "raw_excerpt_preserved_sha256": "8d0dca42279c1298d98d3ffc137c02668f4765b07c078b1951c085e936e53a37"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+        "start_line": 245,
+        "end_line": 265,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "raw_excerpt_preserved_sha256": "be6d62f95c62be41e56659ccc2ef0ecfd62825287a1801a3c7421ef369929c68"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/animal/goat/Goat.java",
+        "start_line": 319,
+        "end_line": 329,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "raw_excerpt_preserved_sha256": "ed7c66b4b89d6980e1613939f9abc7047dbcfd9d7e1d219ff797f37eb3b43a2d"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+        "start_line": 1268,
+        "end_line": 1290,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "raw_excerpt_preserved_sha256": "b4d5238ee44a068bfa965a5c56e0be7bc478b48f538b895a7f2bb3a70111b80d"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+        "start_line": 1414,
+        "end_line": 1427,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "raw_excerpt_preserved_sha256": "7cbd6bcd9cf70e9222383dc031afb8c75fa1a440f12dcdab5f98f12ac2189617"
+      },
+      {
+        "archive_entry": "net/minecraft/world/level/EntityGetter.java",
+        "start_line": 167,
+        "end_line": 180,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "96d40415e5fbe59f9d4d902ed8dbabb66b3dee2e75577eb0b1e5ba1e141ad068",
+        "raw_excerpt_preserved_sha256": "36663453486e736244055ce8496f368f97ef1ad103c665f36780203c5dc609f9"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+        "start_line": 76,
+        "end_line": 77,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+        "raw_excerpt_preserved_sha256": "6c909365b0a54e5033df026af7c8ba216148e00609721e26eade9c0f4b52105d"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/ai/sensing/SensorType.java",
+        "start_line": 17,
+        "end_line": 17,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "9262dda782778264ccc6c3454d0d2e59e8e0b6d543c4a29e7ff0969df2624cac",
+        "raw_excerpt_preserved_sha256": "0d5b370111f00b00683056907d4a890bac706fe6395b037fda7c31cea634c5fb"
+      },
+      {
+        "archive_entry": "net/minecraft/world/entity/EntityType.java",
+        "start_line": 213,
+        "end_line": 213,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+        "raw_excerpt_preserved_sha256": "eaaee41f09fb234ccec6a9a90ecf22ee298a49b0152c641761ece4dab99bb30f"
+      },
+      {
+        "archive_entry": "net/minecraft/world/damagesource/DamageSources.java",
+        "start_line": 183,
+        "end_line": 189,
+        "whole_file_read": false,
+        "actual_archive_and_private_bytes_equal": true,
+        "file_sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+        "raw_excerpt_preserved_sha256": "90aff9b78ccd66a6865caa7858cec69831214ae3a1f85da7694e26ca26aae8cc"
+      }
+    ]
+  },
+  "Main_findings": [
+    "One related native preparation-to-new-contact OR terrain/goal termination whole is substantively supported at most1, formal0 until actualauthorackandseparateexactplan/grant. No creditforhornresource,milk,sensors,Brain,knockback,shield,damagefactory,timer,packetornewentityname. Actual22ranges916distinctlines17entries10whole declarations read in bounded outputs; earlierdescriptorlistingclip notcredited.",
+    "Actual EntityType GOAT factory and Goatbrainprovider/sensor/memory registrations link nativeactor to fullGoatAi. Brain tick precedes updateActivity beforeparent; no actualloadedspawn/currentpackconfiguration/outerNoAI proof. CORE installsnavigation/countdown; RAM priority0RamTarget/priority1Prepare, activity absenceoftempting/breed/cooldown, orderedRAM-beforelongjump/idle, notguaranteeofexecution.",
+    "Nearestliving sensor inflates16box/excludesdeadself/sortsbydistance, visiblewrapper cachesSensor.isEntityTargetable for sampledlist. DefaultSensor randomphase andscan20 are invocations, notfreshsameframe/wallclockguarantees. RAMcombatcondition itself addsnonGoat+worldborder, defaultsLOS true/range-1; wrapperaddsnoncombat16visibility qualification. No universalLOSfree ramtargeting.",
+    "Prepare requiresLOOKregistered/cooldownabsent/visiblepresent/RAMtargetabsent; actuallystartuses nearestqualifiedvisible snapshot. Candidate holdsentity+block snapshots, notimmutablehitreceipt. Startdoesnotunconditionallyclearoldcandidate/timestamp unlesschooseRamPositionis called; this is sourcefieldlifecycle, not reproducedstalevictimexploit.",
+    "Preparestartposition firstrequires targetblockstabledestination+pathmalusexact0; fourhorizontalrays upto7/backoffwheninvalid/minManhattan4, thennearestgoatblockpositionwithnonnullreachablepath. Actualpatharrival/chunks/collision/footingnotcertified; helpernumbers do notaddreferences.",
+    "Preparetick rewriteswalk1.25/0andeye-look toheldentity. TargetBLOCKmove triggers59/navigationstop/rechoose; sameblockmotion doesnotreset. CanStillUseonlycandidatepresent+targetalive, notrepeatfulltargetconditions. Atstartblock equality58 andonceinitialtimestamp→elapsed20 releasesedgeVec3 andclearscandidate. Leavingstartwithouttargetblockchange doesnotreset timestamp, so20contiguousstationaryticks notproved.",
+    "ReleasegetEdgeOfBlock uses targetbottomcenter+signedhalfblock X/Z, no victimUUID. Preparestop onlywhenRAM_TARGETabsentwritesvariantminimumfailure600or100 and59; successfulstoredtargetdoesnotgetthisfailurepath. DefaultBehavior160budget reusedfromactual110 source, notnewhelpercredit orcompletedattackproof.",
+    "RamTargetstart requiresabsentcooldown/presentRAM_TARGET, snapshots normalizeddirection fromgoatBLOCKintegerXZ minus targetVec3 andrequestsWalkTargetspeed3/close0. Directionnotpercontactrecomputed, andno originalpreparedentityidentity retained. ContinuechecksRAM_TARGETpresent, finiteBehavior200defaultbudget distinctfromexplicitfinishRam.",
+    "Eachcontacttick queriescurrenteligibleLiving withinactualgoatbox andtakeslist0. DefaultEntityGetter filtersbasequerypreservingorder withoutaddingnearestdistancesort; originalpreparedvictimneednotbecontactvictim. Underlyingqueryindex/intersection/overridesunexpanded. Eligiblecontactbranchprecedesanyterrain/hornbranch.",
+    "Contactcalls noAggroMobAttack hurt ignoringbool, thencomputesforce andindependentlyshieldchecksordinarymobAttack source, requests knockback, callsfinishRam andimpactcue. Damagefactorytypesdiffer; shieldhalveisnotactualhurtblockreceipt. NoacceptedHP/control/denial/targetUUIDcueinferredfromnormalreturn.",
+    "Forceclampsspeed*1.65 to0.2..3 BEFOREadding0.25(speedlevel-slowlevel), thenmultipliesshieldfactor0.5or1andagefactor1or2.5. Wholeforceisnotfinallyclamped. NativeknockbackpostsForgeevent/cancel+rewrittenratios/strength, appliesresistance andstrength>0 impulse. Ramfinish/soundcanthereforeoccurnoadmitteddisplacement;listeners/physicsunverified.",
+    "Onlyifnoeligiblecontact, terrainnormalizeshorizontalcurrentdelta andsamplesposition+directionblockandaboveforSNAPS_GOAT_HORN. Noexplicitcollisionresult/raycast/mobGriefingtesthere. PlaysimpactthenexistingdropHornbool→optionalbreakcue→finishregardless. Tagcontents/hornitemadmission/intendedplayerpickupnotnewlyverified.",
+    "Finitehornconsumer alreadyb5wholeownsactualrestore/debitbeforeuncheckeditemspawn/age-reset; e6duplicateandMaincorrectionentirejudgmentsread/preserved, notnarrowedtomissingflagsonly. UUIDinstrumentselection/horn sides/supportGoatclass0; newmigration/ecology/materialcredit0.",
+    "Elsefinishguard comparesWALK_TARGETtracker.currentPositionwithRAM_TARGET closerThan0.25, notactorbodyposition. FullWalkTargetVec3floorsintoBlockPosTracker(BlockPos)thenblockcenter, versusBlockPosTracker(Vec3)directpreservesvector. ThereforedoNOTequatethemorclaimunconditionalimmediatefinish fromthissource; notnavigation/arrivalproof.",
+    "finishRam broadcasts59 BEFOREsamplevariantcooldown100..300or600..6000 anderasesRAM_TARGET; doesnotclearWALK_TARGEThere. RamTargethasnoownstopoverride, sogenericfinite200timeoutisnotthisexplicitfinishtransaction. Othermemorywriters/stop/removal/navigationmayintervene; noimmortalattack/restart/cooldownexploit asserted.",
+    "58/59 onlytoggleheadlowering; Goat aiStepincrements1ordecrements2clamped0..20, derivedatmost30degreepose. Cuesnotvictimidentity/HP/acceptedknockback/fulltransport/render/nativepixels orreasontext. Noartasset/heldobject work.",
+    "RAMcooldownCodecINT whileRAMtargetnocodec; fullCountDownCooldownTicks own timeoutfalse, continueinteger>0, decrementsetMemory, stoperase. SeparatefromExpirableValueTTL andBehaviorgameTimeend. No completeworldsave/load/Brainrehydration/nativepersistence accepted; broadhornownerretained0.",
+    "Fullthreeformal4fields+threegroups read: Wizardry ownsincomingproximityrefusal+anyLivingcollisionconsumption, IronDashownsdamageadmission→iframe/controltermination+failure-sideeffects, GoetyBulwarkownsperrecipientsharedchargecooldown. Currententity/blockroutepreparation→newfirsteligiblecontact ORterrain/goalcondition→resultindependentphasefinish is distinct wholedecision, notmerelyignoredhurtbool/force/timer/species wrapper.",
+    "WholeGuardianpriorfourfields reusedfromactual110savedreview0; Milk22/11andAxolotl21/12wholejudgments reused0 withactualEA51nowclosed50, Sonic20/12wordclarification+Main110whole closed504. Original111formal503/ecology49/pendingAxolotl110 remainsassemblyhistory; current504/gap496/232/ecology50 addsno111credit untilfurtherseparateauthorack/plan. Metadata451/25selectedmatchesnotglobalnoveltyproof ormanualreadingofallrecords."
+  ],
+  "Main_limits": [
+    "Maximum1whole recommendation, appliedformal0; actualoriginalauthorackandseparateexactcurrent504plan/Mainreview/latergrantrequired. Applicable1000notmet; no productionfix or gamefeaturecompletion.",
+    "FixedmappedForgeartifactsha only, notfreshremote/Gitcommit/tree/deployedpack/tag/config/registry guarantee. Sourcearchive/privatebytebindingintegrity0.",
+    "Actual22scopes916lines10whole notentireGoat/Living/EntityGetter/nativeengine; fullBrain/Behavior/ExpirableValue reusedfrom110, notsourceproofreexecuted. Helpers/ranges/metadata/hash0credit.",
+    "Fullthreeformal/threegroups/twogoatjudgments/Maincorrectionread, Guardian/Milk/Axolotl/Sonic savedjudgments reused0. Oldupstreamsourcechainsnotreread; no exhaustiveglobaluniqueness claim.",
+    "Nativeattacksourcegivesrequests/branchdecisions only. NoactualacceptedHP/shieldblock/knockback/displacement/actualcollidingvictim/graytext/phasecue receipt orBossimmuneimplementationaccepted.",
+    "AIouterNoAI/scheduler/navigation/MoveToTargetSink/path/collision/worldqueries/entityindex/cache/hooklisteners/overridequalificationnotexhaustive. Do notinferdeterministicarrival/trajectory/interruptibility/exploit.",
+    "Preparetimestampnotcontiguous20stationaryguarantee; RAMdirectionlatchedblockvsVec3andgoalpositioncomparisonnotbodyarrival. No unconditionalinstantfinish, realtimeoutcleanuporforeverattackbug proved.",
+    "Finitehornoldwholeallreceipt/resource/drop/age/instrumentlimitsretained. Terrainbool/cue/uncheckedspawnnotmaterialadmission/sameUUIDpickup/payment/reward/nativeecology credit.",
+    "Differentdamage-source shieldqueryandignoredhurtbool/Forgeknockbackcancel leaveeffect outcomesdistinct. No finalforceclamp/boundalllistenerbehaviors orstablevictimtransactioninferred.",
+    "CodecINT/noncodecRAMtarget notcompleteworldroundtrip/inflightresume. No newmigrationcredit or old1000automaticruntimeapproval.",
+    "Originalsealed111author22/14 andoldhistorypreserved plusadditivecurrent504/ecology50; currentacceptedcountsnot111newcredit. No pending111appendgrant yet.",
+    "No production/Java/build/game/process/display/sound/brightness/wake/unlock/focus/Git/network/sharedJar/proassets/originalworld/questIDs/rewards/masterchecklist/newchat/automation changes. Mainactivehoursnull/alltasksfalse; no taskdeletion justified."
+  ],
+  "all_original22_observations_preserved": [
+    "One proposed related native preparation-to-contact/terrain termination whole only, maximum1 pending Main or merge0. Complete old charge/dash/Goety judgments and groups, native finite-horn owner+duplicate+Main correction, Milk22/11 and pendingAxolotlMain21/12 plus pendingSonic20/12 read before newsource. Horn custody/instrument/age reset, milk, generic knockback/shield/Brain/expiry/timers/sensors/species/render/helper wrappers0extra.",
+    "Actual native EntityType.GOAT factory references Goat::new; Goat registers actual nearest-living sensor and RAM_TARGET/RAM_COOLDOWN memory, makeBrain delegates GoatAi. Own customServerAiStep ticks Brain before GoatAi.updateActivity and parent. This links actual native actor to behaviors, not naturalspawn/runtime acceptance or complete outer NoAI/scheduler verification.",
+    "Whole GoatAi installs CORE including MoveToTargetSink and CountDownCooldownTicks(RAM_COOLDOWN), then RAM priority0 RamTarget and priority1 PrepareRamNearestTarget. RAM activity requires no temptingplayer, breedtarget or cooldown. updateActivity picks RAM before longjump/idle. Helper initMemories writes normal600..6000 even before variant-specific later finish sampling; callers/actualspawn outside this bounded actor read are not certified.",
+    "Whole nearest-living sensor queries inflated16 box, excludes self/dead in its own predicate, sorts by actor distance, writes list plus visible wrapper. Wrapper findClosest traverses sorted snapshot and caches Sensor.isEntityTargetable per target. Sensor default random initial0..19 and interval20 are sensor invocations, not fresh every-frame visibility or wallclock guarantee. Registered actual sensor factory read.",
+    "RAM_TARGET_CONDITIONS is forCombat with explicit !GOAT type and worldborder boundingbox selector. Whole TargetingConditions default LOS is enabled and range remains-1; it calls canBeSeenByAnyone, actor canAttack/canAttackType/alliance and Sensing LOS for Mob. The extra nearest wrapper additionally applies its16-range noncombat visibility conditions. We do not relabel this as LOS-free universal ram targeting or audit unexpanded eligibility overrides.",
+    "Prepare entry requires LOOK registered, cooldown absent, nearest-visible present, RAM_TARGET absent. Start chooses nearest qualifying candidate only when visible snapshot returns one, then calculate-start. Fields are local Optional candidate and reachedTimestamp, not immutable accepted-victim receipt. Own start/stop do not unconditionally clear both fields on every invocation; chooseRamPosition resets timestamp/candidate when actually called. No stale-target exploit reproduced.",
+    "Calculate-start requires target block stable-destination and exact pathfindingmalus0, scans four horizontal rays up to7, backs off first invalid block and requires Manhattan distance>=4. Candidate starts sorted by goat block-position distance; first nonnull canReach path wins. This is an AI path request and local feasibility predicate, not actual route completion, loadedchunk guarantee or collision-engine acceptance.",
+    "Prepare tick requests WALK_TARGET(start,1.25,0) and eye-tracking LOOK_TARGET to held entity. If held target changes BLOCK position, broadcasts59, stops navigation and chooses again; continuous motion within same block is not that reset condition. canStillUse requires local candidate present and target alive only, not a full repeated RAM_TARGET_CONDITIONS or LOS test.",
+    "At goat start-block equality it broadcasts58, sets reachedTimestamp if absent, then when elapsed>=20 writes RAM_TARGET as target-block bottom-center plus directional half-block X/Z edge, plays prepare sound and clears candidate. Leaving start block without target-block change does not itself reset timestamp; do not promise20 contiguous stationary wallticks. Release is a Vec3 snapshot, not victim UUID or confirmed hit.",
+    "Prepare stop checks only absence of RAM_TARGET: if absent emits59 and writes fail cooldown minimum600 or100 according to current screaming flag. If RAM_TARGET exists, stop does not apply this failure cooldown. Generic Behavior finite160 entry clock and canStillUse semantics reused from actually-read110, not sourceproof replay; time budget is not completed preparation/attack evidence.",
+    "RamTarget entry requires cooldown absent and RAM_TARGET present; continuation only checks target memory present. Start latches ramDirection from current goat BLOCK integer X/Z minus stored Vec3, normalizes with Y0, and requests WALK_TARGET(storedVec,3,0). It does not retain or validate originally prepared victim identity, and does not recompute this latched direction each contact tick.",
+    "Contact tick performs a new getNearbyEntities(LivingEntity,conditions,goat,goat boundingbox); complete default EntityGetter helper filters rawquery list preserving its order without an added nearest sort. Only list.get(0) is processed. It need not be the prepared entity, and eligible living-contact branch precedes terrain/horn branch. Underlying world entity index, query intersection and arbitrary overrides not all read.",
+    "Contact requests hurt(noAggroMobAttack(goat), current ATTACK_DAMAGE), ignores boolean, then independently derives force, queries shield condition using a newly created ordinary mobAttack source, calls knockback, finishRam and impact sound. Actual source factories select MOB_ATTACK_NO_AGGRO vs MOB_ATTACK. Shield halving is a second source predicate, not the returned actual damage-block/HP receipt. No fixed accepted2HP or successful control promised.",
+    "Force is clamp(goat.getSpeed()*1.65,0.2,3)+0.25*(speed-effect-level minus slowdown-effect-level), then multiplied by shield?0.5:1 and age-selected1 or2.5. Effects adjustment is AFTER clamp, not a final total-force clamp. Generic native Living.knockback posts Forge hook, returns on cancel, uses modified strength/ratios then resistance, and only strength>0 updates impulse/delta. Request/sound/cooldown can therefore occur without admitted knockback or displacement; actual listeners/physics unverified.",
+    "If no eligible living contact, terrain test normalizes horizontal current delta, samples block at position+that direction and block.above against SNAPS_GOAT_HORN. It does not require a literal collision-result flag, player damage, or remaining horn. Terrain impact sound precedes dropHorn(); horn-break sound only if that bool true, then finishRam regardless. Loadedtag members and native material pickup not certified.",
+    "The actual finite horn consumer is already complete migration b5 owner, e6duplicate explicitly corrected after Main fullGoat read: chosen availability clears before unchecked addFreshEntity, age transition can reset, UUID-based instrument selection not separate. This candidate cites that saved whole judgment as support0 rather than rereading/reawarding horn custody or asserting dropHorn true means admitted drop/intended-player pickup.",
+    "Else no contact/terrain, finish if WALK_TARGET or RAM_TARGET missing, OR walk target tracker currentPosition closerThan RAM_TARGET by0.25. This compares two goal positions, NOT goat body distance-to-arrival. Complete WalkTarget(Vec3) floors to BlockPos then BlockPosTracker centers block; do not assume it equals original Vec3 or incorrectly infer unconditional immediate finish. Navigation may change/erase WALK_TARGET; no body arrival guarantee or reproduced stuckstate.",
+    "finishRam broadcasts59 BEFORE sampling current variant cooldown100..300 or600..6000 and erasing RAM_TARGET. It does not clear WALK_TARGET here. RamTarget has default finite200 Behavior budget and no own stop override or timeout cleanup shown, so a generic timeout alone is not this finish transaction. External stop/removal or memory/activity mutation may intervene; no perpetual attack/restart bug or uncancelable whole claimed.",
+    "Goat event58/59 only sets local lowering-head boolean. Own aiStep increments or subtracts2, clamps0..20, then parent; getRammingXHeadRot derives at most30degree. Repeated preparation58, retarget/failure/finish59 and sounds are phase requests, not target identity, accepted damage/knockback, material admission, custom graytext or model/network/nativepixels acceptance.",
+    "RAM_COOLDOWN_TICKS is Codec.INT whereas RAM_TARGET has no codec. CountDownCooldownTicks keeps integer>0, decrements through setMemory, disables own timeout, then erases at stop; integer is distinct from ExpirableValue TTL and Behavior endTimestamp. Full saved-world/read/load/brain rehydration not accepted here; finite horn persisted owner and generic Brain scope remain0, new migration credit0.",
+    "Whole comparison: Wizardry charge cancels actor incoming proximity attacks and consumes on any living collision; IronDash links hurt-admission to iframe/control termination with sibling failure-sideeffects; Goety Bulwark is shield-count per-recipient cooldown. Goat instead prepares against one moving entity/block route then settles a newly queried first contact OR terrain/goal condition with result-independent phase termination. PendingSonic uses expiring sound-memory predebit/current-target release, pendingAxolotl injury/sensor recovery opportunity; shared runtime framework/ignored hurt bool/cooldowns alone do not justify another count.",
+    "Current formal503/gap497/231 after108independently Mainclosed, current ecology49/gap951. Candidate22ranges916distinct citedlines17entries10whole supportingdeclarations are evidence0, not22/17/10credits. All selected saved judgments and caveats remain complete. This is max1 bounded applicable whole proposed for Main; no all-ledger novelty theorem, production fix/native acquisition/payment/quest/health/control acceptance or quantified hours."
+  ],
+  "all_original14_limits_preserved": [
+    "Maximum1 proposed related original-program whole, formal0 and no grant/marker/append; independent Main semantic review, actual author acknowledgment and separately frozen plan/grant remain required before any intake.",
+    "Fixed local Forge1.20.1-47.4.10 mapped native artifact bytes, not fresh remote/Git commit/tree/current sharedJar/config/tag/registry deployment authenticity.",
+    "New111 actual22scopes916lines17entries10whole are source bookkeeping0. Prior110 Behavior/Brain/ExpirableValue complete scopes reused literally without re-executing old sourceproof. No full Goat resource/milk oldchain replay; incidental lines excluded explicitly.",
+    "Catalogue451selecteddocs and25lexicalmatches plus49realreceipt bindings are discovery/integrity only, not actual fullmanual read of451/allledgers or global novelty. Only named complete selected judgments/wholegroups and pendingMain judgments read or reused.",
+    "Finitehorn whole b5 includes complete saved receipt/depletion/itemspawn/age reset and instrument-selection supplement; never narrow earlier owner to manufacture horn-reference credit. Goat milkEA50 and generic cures remain0.",
+    "Incomplete outer AI scheduling/NoAI inheritance/navigation/MoveToTargetSink/path engine/world query/loadedtag consumers mean requests/goal coordinates cannot stand for actual movement/contact/spawn or guaranteed interruption/recovery behavior.",
+    "Ram contact selects first current eligible query result rather than prepared target. No enforced stableUUID hit transaction; no runtime alternate-victim/stale-field/timeout/cooldown bypass exploit demonstrated.",
+    "Hurt bool ignored, shield check uses different constructed damage-source type, hook may alter/cancel knockback, resistance may remove force. No accepted HP loss, final block outcome, successful control/displacement or Boss immunity claim.",
+    "Footing/visibility callbacks, permissions/combat eligibility/LOS cache and shield-use engine/custom listeners/overrides not exhaustively read; no universal invulnerability/creative/spectator/team or terrain interpretation beyond shown predicates.",
+    "Preparation elapsed20 need not be contiguous stayed ticks, cooldown integer and finiteBehavior duration are separate clocks. No wall-time guarantee, exact timing loop or native reload/crash persistence acceptance; newmigration0.",
+    "Terrain impact/horn-break boolean and event58/59/head-angle are requests/source-derived presentation only. No actual material creation/admission/sameUUIDpickup/payment/reward or complete transport/animation/model/texture/UV/pixels/audio acceptance.",
+    "Candidate original111 is immutable; word-boundary clarity uses ordinary spaced wording. First111 in-memory construction failed olddescriptor key path after checks but before any output; corrected to archive_entry, no oldproof/consumedappend execution or formal mutation.",
+    "No production Java/tests/build/Gradle/game/process/display/audio/brightness/wake/focus/network/sharedJar/proasset/originalsave/Git/Mainstate/pending/taskdeletion/newchat/subagent/automation/provider operations.",
+    "Applicable1000 not reached: current503/remaining497 gatefalse. Candidate/pending/helper/group/file/hash counts are not completion or active-hours evidence; preserve all existing task IDs/rewards/progress and division of work."
+  ],
+  "complete_three_formal_judgments": [
+    {
+      "id": "wizardry-charge-contact-window-native-attack-refusal",
+      "complete_object_canonical_sha256": "6b745b2c48d323bab7e89014a151c78350ee0f301b0d6683542f71c2fcd9edf2",
+      "complete_four_fields": {
+        "full_chain_observation": "Charge.cast写玩家CHARGE_TIME及modifiers，IVariable ticker经已注册LivingUpdate→WizardData.update执行Charge.update；LivingAttack HIGH在目标为玩家、trueSource为Living且充能剩余>0并相邻AABB相交时cancel。",
+        "concrete_observation": "注释称近战，但代码不检查directSource或projectile，近身箭owner等Living来源也可能满足。碰撞伤害返回值被忽略，随后仍直接addVelocity；本人的防伤与对目标控制是两条语义。首次碰到任何Living即清chargeTime，空列表才递减；冲刺粒子不能证明击退或拒伤。",
+        "application_to_boss_immune": "明确基于本次最终条件产拒绝原因；不要按注释猜近战，也不能用成功施法/碰撞声音代表控制成功。",
+        "limitations": "固定提交全文方法/自有原生链静态研究，未启动游戏、不证明画面、声音或跨端。普通阴阳体质不新增灰字。"
+      }
+    },
+    {
+      "id": "iron-native-dash-contact-admission-and-collision-termination-with-target-iframe-side-effect",
+      "complete_object_canonical_sha256": "1c99925be1dd2675180d638e7ad6f4488c41b6d65e5dac193120c12521b1f2b5",
+      "complete_four_fields": {
+        "full_chain_observation": "完整VoltSpell103/VoltEffect111/BurningSpell151/BurningEffect51/accessor12/MagicMobEffect48及完整applyDamage/友伤/resist、nativeclient onPlayerTick135–195、onClientEntityTick、effectRemoved hook均读。真实spell/effect注册已核，onCast先移动再attempt10/15tick effect，忽略接纳结果，自身iframe20并设spin类型。Volt server effect tick逐contact调用实际applyDamage（自定义SpellDamageEvent取消/友伤可false，之后Living.hurt返回）；只有true才目标iframe20、hit和ignore最后UUID。若全拒则预测box无碰撞测试失败也可hit；hit后范围4/LOS burst，不读其hurt结果，再反推自己/hurtMarked/雷音粒子，false请求结束。Burning同家族反例：每Living contact忽略applyDamage返回仍目标iframe20，仅原始nearby列表为空时horizontalCollision才false。effectAdded/Removed flag4回调；Volt activeeffect烟电，Burning实际client player tick用autoSpin+synced FIRE生成轨迹，均非命中回执。",
+        "concrete_observation": "完整接触结算与控制终止事务1，不是两种spell/颜色分别计数。区别Wizardry charge：其首次任何Living碰撞耗剩余时间并拒本人近身伤害，未按实际damage结果给目标iframe；区别Goety bubble：块/成功受害累计共享反弹budget，而此处接纳bool支配目标iframe与本次冲刺结束，之后冲击排除仅最后一个成功目标；同族Burning失败仍改受害iframe并可因无关nearby阻止撞墙结束，作为比较并入1。目标已被拒伤不等于没有任何副作用，爆波可仅由环境碰撞触发。ignore!=entity.getUUID是引用比较，不据此指控实际必重复伤害。",
+        "application_to_boss_immune": "最终Boss拒控reason必须在所有控制副作用之前明确；hurtfalse只能是某伤害调用结果，不能自动播灰字，更不能据雷音/爆波推受害已成功。按目标去重用稳定UUID值比较和明确本次处理集合，单个lastUUID不能表达多个contact排除；反馈限频须独立于damage iframe，避免以拒伤后硬写iframe冒充无副作用。灰字/有限微光/原版音仍门槛后由主岗最小接入，普通阴阳无灰字新增。",
+        "limitations": "固定9a88991源archive manifest SHA/commit/URL核，未本轮rehash该archive且无tree。未闭合实际Neo native autoSpin碰撞内部/完整spin数据transport，不称本体动作或TCP已验；effect false仅请求结束。原生入口施法dispatch本批未再展开，不称自然获得完整。Burning effect方法无显式clientguard，不推实际调用频率；Vec3.add未赋值只是源码现象不实机bug。MagicManager粒子provider/像素/音色未验，不把几何/注册当观感。未游戏/编译/正式代码/资产/TODO修改。"
+      }
+    },
+    {
+      "id": "goety-bulwark-per-victim-charge-consumption-cooldown",
+      "complete_object_canonical_sha256": "8adf05116098ec8140e8e07f63299064c526bdc9732a4b7baaf18a67498614c9",
+      "complete_four_fields": {
+        "full_chain_observation": "Bulwark原生SpellResult给自己或盟友护盾数和持续时间→LivingAttack服务端非bypass门→按受击者cap的shieldCool控制breakShield/可选按伤害多扣/反击→LivingEffects每tick减少shieldCool并管理护盾到期；扣盾后给玩家发原版SHIELD_BREAK个人声音或非玩家原位声音。",
+        "concrete_observation": "有盾且非bypass就取消攻击，即便shieldCool>0也挡；仅cool<=0扣盾、播声和反推攻击者，随后设10tick。这是每受击者的共享冷却，不按攻击者/伤害原因；额外扣盾循环每次都播声，可在同tick重复多声，且breakShield直接--可成负数。shieldCool置10不立即发包，但扣盾已先发旧cool；下一tick减少再同步。效果到期另有WALL_DISAPPEAR提示。非Boss专属，不是灰字实现。",
+        "application_to_boss_immune": "可借鉴每目标限频与“效果持续挡、反馈少发”分离；必须给单次多层消耗聚合回执，否则名义冷却仍能同tick刷声音。",
+        "limitations": "固定本地提交全文方法静态观察，未运行/编译/验证像素或声。辅助路径/序列化包装不额外计数；普通体质不新增灰字要求。"
+      }
+    }
+  ],
+  "complete_three_groups": [
+    {
+      "index_zero_based": 23,
+      "canonical_sha256": "e6fd9b756f5555f88dff63df048ee6cdb2e288c9585b63f9c10b75e7fe2c5140",
+      "complete_group": {
+        "family": "wizardry-native-rejection-batch20",
+        "credited_chains": [
+          "wizardry-charge-contact-window-native-attack-refusal",
+          "wizardry-lightning-conversion-consumable-duplicate-suppression",
+          "wizardry-transience-bidirectional-source-target-immunity",
+          "wizardry-anchoring-final-displacement-refusal-and-resist-text",
+          "wizardry-shadowward-retaliatory-split-and-recursion-exclusion",
+          "wizardry-game-attack-interception-recursion-abort-window"
+        ],
+        "rationale": "锚定GreaterTelekinesis/Whirlwind相同资格/回执合并1，不计颜色/粒子/速度包装；Charge窗口防伤、闪电替代原生结算、双向瞬态、反伤重分配与实际重入中止分别有不同最终结果。DamageSafety只因真实游戏伤害拦截原生使用计1，辅助通用库存/变量方法不计。"
+      }
+    },
+    {
+      "index_zero_based": 188,
+      "canonical_sha256": "c34c4f187cc647fe5fd92bf227715ad1f6681e2f2a603cb55597998078ed8f1c",
+      "complete_group": {
+        "family": "batch176-dash-control-settlement",
+        "credited_chains": [
+          "iron-native-dash-contact-admission-and-collision-termination-with-target-iframe-side-effect"
+        ],
+        "rationale": "Admission-gated target iframe and control termination vs geometry fallback, sibling failure-side-effect merged; compare existing charge/bubble/Gust, all spell/particle/codec wrappers0."
+      }
+    },
+    {
+      "index_zero_based": 19,
+      "canonical_sha256": "d10c2f3f32828575a87f9e9be579f924225fcf12e649ebe193e354d625dd1806",
+      "complete_group": {
+        "family": "goety-native-feedback-policies-batch17",
+        "credited_chains": [
+          "goety-bulwark-per-victim-charge-consumption-cooldown",
+          "goety-no-knockback-single-use-native-event-stamp",
+          "goety-effect-applicability-state-conflict-and-boss-policy",
+          "goety-doom-expiry-final-execution-revalidation",
+          "goety-void-status-sound-lifecycle-and-position-snapshot",
+          "goety-bulwark-state-receiver-side-and-capability-validation"
+        ],
+        "rationale": "每目标消耗限频、一次性击退关联、应用前冲突政策、过期最终处决守卫、状态音生命周期、实际战斗状态S2C方向/实体能力校验是独立行为。所有effect常量分支合并1，不按getter/codec/声音包装计数；包校验与扣盾限频有不同最终决策和状态副作用。"
+      }
+    }
+  ],
+  "complete_two_goat_migration_saved_judgments": [
+    {
+      "id": "b5cf8998b62cb8f65d45",
+      "canonical_sha256": "b74b8a55ff48fd54a4f5db46cd5abb4bf54a2e35d2fb2319bf923c800959aa2e",
+      "complete_judgment": {
+        "candidate_id": "b5cf8998b62cb8f65d45",
+        "status": "accepted",
+        "family": "native-goat-finite-horn-resource-legacy-availability-upgrade",
+        "trigger": "Whole EntityGoatMissingStateFix + DataFixers3093 + Goat complete writer/reader/dropHorn/add/remove/ageBoundaryReached",
+        "input": "pre-horn-format goat with no saved left/right horn availability",
+        "output": "versioned upgrade sets both available true; current reader restores two actual finite horn receipts; dropHorn clears selected receipt before spawning actual horn item",
+        "preservation": "Actual consumable resource restored, not merely visible model horns. Missing current booleans alone would override synchronized true defaults tofalse, so version gate carries compatibility semantics. Horn sides and screaming variant not separate credits.",
+        "application_limit": "Fix unconditionally sets true; running against current false receipt would replenish resources, so never general missing-data fallback. Drop clears before unchecked entity spawn; age transitions intentionally reset horn availability. Horn instrument selection internals not read, not needed to claim receipt behavior.",
+        "supporting_candidates": [],
+        "credit": 1,
+        "evidence": [
+          {
+            "candidate_id": "b5cf8998b62cb8f65d45",
+            "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+            "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+            "path": "net/minecraft/util/datafix/fixes/EntityGoatMissingStateFix.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/util/datafix/fixes/EntityGoatMissingStateFix.java",
+            "start_line": 12,
+            "end_line": 16,
+            "method": "fix",
+            "file_sha256": "ac99901eab19a7a32a6e6a8dda6e8ac1cdf09dd958a1224ac62db49dc994fee0",
+            "method_sha256": "0603358509bef32f965601c829b872df00bc75e32980a5d8acac86230721deb5",
+            "structural_fingerprint": "a03b423da031e1e43a0553993abe56f987aec383327c40fa3a1c9d2671577dbf",
+            "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+            "context": "protected Typed<?> fix(Typed<?> p_238295_) {\n      return p_238295_.update(DSL.remainderFinder(), (p_238370_) -> {\n         return p_238370_.set(\"HasLeftHorn\", p_238370_.createBoolean(true)).set(\"HasRightHorn\", p_238370_.createBoolean(true));\n      });\n   }",
+            "parse_has_error": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "e6b2adbfde8d62b2441f",
+      "canonical_sha256": "729ee966bc467039614a3756f247e56b7bcd4510ba89c3aea2a5130105f4bacf",
+      "complete_judgment": {
+        "candidate_id": "e6b2adbfde8d62b2441f",
+        "status": "duplicate",
+        "family": "native-goat-finite-horn-depletion-and-instrument-selection-owner",
+        "trigger": "Goat pair/dropHorn/createHorn/ageBoundaryReached/finalizeSpawn",
+        "input": "two saved horn availability booleans; screaming instrument class",
+        "output": "depleted flags survive disk; drop chooses only remaining horn and marks absent BEFORE spawned item; UUIDseed stable horn instrument choice from proper registrytag",
+        "preservation": "Supplementary instrument-selection/source findings for already credited b5 whole finite-horn owner; no second reference credit.",
+        "application_limit": "Missing legacy booleans false unless DFU fixes upstream; item addFreshEntity unchecked after depletion so loss possible. Empty instrumenttag optional.get throws; ageBoundaryReached regrows horns on adult transition, not immutable lifetime ledger. No runtime claim.",
+        "supporting_candidates": [],
+        "duplicate_of": "b5cf8998b62cb8f65d45",
+        "reason": "Coordinator actual full Goat334 + MissingStateFix17 + DataFixers3093 registration6 independently re-read357 lines, agrees independent audit: batch075 b5 explicitly awarded complete finite horn resource availability restore/depletion-before-itemspawn and age regeneration along with versioned upgrade. Later e6 same saved resource pair and drop consumer is therefore same credited whole owner. UUID-derived instrument tag selection adds no independently retained earned receipt. Earlier e6 statement that b5 only adds missing flags was inaccurate. Keep substantive current-source observations as support0, do not reclassify earlier grant narrowly to manufacture second credit. No general claim all distinct version converters must merge; this correction follows actual already-awarded wholeowner scope.",
+        "correction_receipt": "coordinator-goat-horn-whole-owner-dedup-correction-20261101.json",
+        "credit": 0,
+        "evidence": [
+          {
+            "candidate_id": "e6b2adbfde8d62b2441f",
+            "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+            "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+            "path": "net/minecraft/world/entity/animal/goat/Goat.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+            "start_line": 238,
+            "end_line": 243,
+            "method": "readAdditionalSaveData",
+            "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+            "method_sha256": "d810a2abfd6d5341fd2f43eddfb222e316826f6899e9c09801f7c28b16c8fefb",
+            "structural_fingerprint": "3abba3a001f04b91dbff0b13b78c6d300893fa83348946249343544149c8edfa",
+            "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+            "context": "public void readAdditionalSaveData(CompoundTag p_149373_) {\n      super.readAdditionalSaveData(p_149373_);\n      this.setScreamingGoat(p_149373_.getBoolean(\"IsScreamingGoat\"));\n      this.entityData.set(DATA_HAS_LEFT_HORN, p_149373_.getBoolean(\"HasLeftHorn\"));\n      this.entityData.set(DATA_HAS_RIGHT_HORN, p_149373_.getBoolean(\"HasRightHorn\"));\n   }",
+            "parse_has_error": false
+          }
+        ]
+      }
+    }
+  ],
+  "complete_Main_goat_horn_whole_owner_correction": {
+    "recorded_at": "2026-11-01T08:32:53.585599+00:00",
+    "decision": "MERGE_PREVIOUSLY_OVERLAPPING_WHOLE_OWNER_CREDIT",
+    "retained_candidate": "b5cf8998b62cb8f65d45",
+    "merged_candidate": "e6b2adbfde8d62b2441f",
+    "review_file": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviews/batch-098.json",
+    "review_file_before_sha256": "607f6e2f37e7e86818746ef4180da34275340e486bf875dc3ef89c242da40005",
+    "review_file_after_sha256": "c533c411d973e1bd6422e1aad960198b095c0ff73dbc1686b3f4c4ce7bea8f13",
+    "independent_review": "docs/cod4/audit-20261022/legacy-migration-acceptance/independent-specialist-goat-horn-whole-owner-overlap-audit-20261101.json",
+    "independent_review_sha256": "cf154598dff2e90bd786b9f3986a2a0eaa00a6dc4a9c295f532ce8ba9b8757cf",
+    "actual_read_ranges": [
+      {
+        "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/util/datafix/fixes/EntityGoatMissingStateFix.java",
+        "start_line": 1,
+        "end_line": 17,
+        "file_sha256": "ac99901eab19a7a32a6e6a8dda6e8ac1cdf09dd958a1224ac62db49dc994fee0",
+        "range_sha256": "ac99901eab19a7a32a6e6a8dda6e8ac1cdf09dd958a1224ac62db49dc994fee0",
+        "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "revision_is_git_commit": false,
+        "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "credit": 0
+      },
+      {
+        "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/goat/Goat.java",
+        "start_line": 1,
+        "end_line": 334,
+        "file_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "range_sha256": "c02877950b24e96cd27159c5ab957a2b531f9ffb67840d0099ecf6d6f73bcd2f",
+        "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "revision_is_git_commit": false,
+        "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "credit": 0
+      },
+      {
+        "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/util/datafix/DataFixers.java",
+        "start_line": 726,
+        "end_line": 731,
+        "file_sha256": "2e9412a0090a6149f4cb33fb5a477c1a33c9e39b223c57b6027c788870f6ee39",
+        "range_sha256": "cf29aa34155813ebae9fb79dfae424ea68dbf4eb05203c533d8f5a3de14d7d92",
+        "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "revision_is_git_commit": false,
+        "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "credit": 0
+      }
+    ],
+    "actual_lines_read": 357,
+    "reason": "Coordinator actual full Goat334 + MissingStateFix17 + DataFixers3093 registration6 independently re-read357 lines, agrees independent audit: batch075 b5 explicitly awarded complete finite horn resource availability restore/depletion-before-itemspawn and age regeneration along with versioned upgrade. Later e6 same saved resource pair and drop consumer is therefore same credited whole owner. UUID-derived instrument tag selection adds no independently retained earned receipt. Earlier e6 statement that b5 only adds missing flags was inaccurate. Keep substantive current-source observations as support0, do not reclassify earlier grant narrowly to manufacture second credit. No general claim all distinct version converters must merge; this correction follows actual already-awarded wholeowner scope.",
+    "before_accepted": 990,
+    "expected_after_accepted": 989,
+    "accepted_reference_credit_delta": -1,
+    "gap": 11,
+    "production_changes": 0,
+    "game_starts": 0,
+    "checklist_deletions": 0,
+    "duration_hours_claimed": 0
+  },
+  "Guardian_prior_saved_judgment_reused0": {
+    "id": "native-guardian-los-windup-and-selector-release-with-split-target-cache-clock-beam-and-local-target-sound-lifetime",
+    "full_object_canonical_sha256": "5af871130a9a49d7a96cb0a3465f9ece71b5636c4b695367ef0b5a0a75743a93",
+    "full_four_fields_actually_read": {
+      "full_chain_observation": "Native registration -> target-qualified goal start at -10 -> LOS-progressed windup -> counter0 target integerID and separate nonsilent event21 -> client cache/localclock beam versus separately-lived literal-current-target sound -> two result-independent hurt requests -> ordinary selector stop release and own transient state boundary. removeAllGoals merely removes available set, not universal stop. Mutable/cancellable targetclear and packet order/delivery remain unproved. Whole family1 only.",
+      "concrete_observation": "Actual Guardian/ElderGuardian entity assignments, Guardian/Elder render assignments, full Guardian constructor and own goal registration read. AttackSelector considers Player/Squid/Axolotl beyond squared-distance9; common nearest-target scheduler predicate internals beyond concrete selector remain external. This is one Guardian/Elder variant family, no species/renderer/helper credit.\nFull attack goal canUse requires current target nonnull/alive. Base Goal.canContinue delegates canUse; Guardian further requires elder OR current distance-squared>9. start sets local attackTime=-10, stops navigation, requests look at current target, sets hasImpulse. No positive target-ID lease or start cue yet.\nFull Mob.serverAiStep alternates full selector cleanup/update with running-everytick dispatch; attack goal requires everytick. GoalSelector cleanup invokes WrappedGoal.stop when continuing fails/flags disabled; start/stop callbacks are gated by isRunning. Normal source order, not actual tick scheduling/latency or whole engine execution proof.\nAttack tick requests navigationstop/look then requires LOS to progress. NoLOS requests setTarget(null) and does not increment or request hurt that invocation; active target ID is not cleared here. Goal.stop separately sets activeID0, requests targetnull, triggers stroll. Main Mob.setTarget is cancellable/mutable LivingChangeTarget hook, so requested clearing is not guaranteed current-field clearing; consumers not expanded.\nAt attackTime reaching0 publish current target integerID and, only if notsilent, submit entity event21. Client beam metadata and sound event are separate productions, with no explicit immutable attempt sequence/UUID/dimension in these paths. Do not assert delivery/relative ordering from source call order.\nAt attackTime>=duration, first request indirectMagic(guardian,guardian) f=1 +2ifHARD +2ifelder; then request mobAttack with ATTACK_DAMAGE attribute. Both bool results ignored, second normal-return call not conditioned on first success, then targetnull request. Do not sum requested numbers into HP: current target native hurt/iframe/armor/hooks can differ; no actual accepted damage/control proof.\nOwn server activeID is nonzero indicator, but server getActiveAttackTarget returns current getTarget, not an ID relookup. Client on activeID update resets local attackTime0 and cache null; while positiveID, null cache queries current world ID once and accepts LivingEntity, while nonnull cache returns object without a new alive/removed/current-world lookup.\nClient aiStep increments local attackTime only up to getAttackDuration while IDpositive even if target lookup unresolved. With target object, own look and bubbles follow that object. Native model/render progress is local counter+partial divided by duration, not server remaining-duration/timestamp/confirmed impact.\nWhole renderer resolves getActiveAttackTarget, otherwise skips beam geometry; frustum fallback checks eye-to-target AABB. Geometry uses interpolated source eye and victim halfheight and local animation scale; custom vertex submissions do not prove visible pixels, texture quality, unloaded-model behavior or actual beam damage.\nActual synced pipeline read: set marks dirty/callback only force-or-valuechanged; packDirty clears dirty flags; ServerEntity makes current-id data packet. Receiver current-level entity lookup then assignValues checks serializer equality and calls onSyncedDataUpdated for each known field regardless prior equality. Full sendChanges cadence/audience/order/transport/serializers and exception recovery remain external.\nLiteral fixed GuardianAttackSoundInstance.tick line30 is !guardian.isRemoved() && guardian.getTarget()==null, NOT hasActiveAttackTarget. Exact archive entry SHA a1e3ce22d8c04cd163b6293d4042046512944e287f799a936a9f03e40d17eec5 confirmed. Mob.getTarget reads local target field, distinct from synced activeID and cached victim. Do not silently substitute remembered source/API condition.\nUnder that literal branch sound follows guardian emitter position, volume=animationScale^2, pitch=.7+.5*scale, constructor looptrue/attenuationNONE. Else base stop marks stoppedtrue and loopingfalse. ActiveID0 callback resets scale0, so a retained sound instance can calculate volume0; this is NOT proven persistent audible noise, SoundEngine leak or duplicate playback. SoundManager lifetime/world reset/engine policy not expanded.\nEvent21 generic receiver (exact098 support reused0) creates GuardianAttackSoundInstance from looked-up entity, whereas metadata target-ID drives geometry/cache/counter. Native missing/cached target and sound/current-target predicates are independent. No explicit denial reason/status acknowledgment, perattempt reconciliation packet or same-target instance map in these own paths; no runtime network/miscast failure claim.\nGuardian native hurt serverside may request stationary thorns2 to direct Living source (excluding actual avoid-thorns tag/THORNS), and trigger stroll BEFORE parent hurt. Parentfalse therefore not necessarily no earlier request. This is support0 under existing Goety pre-rejection-side-effect family, not a second new policy or actual retaliation-success proof.\nWhole Guardian/Elder files have no own save/read of active target-ID, goal attackTime, client cache or local sound counter. Own transient state has no explicit durable resume protocol here; do not claim full inherited serialization/world reload or restart outcome. Elder duration60 versus Guardian80, elder aura and sound/model/size variants are supporting same-family context0; fatigue helper/message branch not expanded.\nWhole proposed policy is LOS-progressed, selector-released warmup with split target-ID/cache/local-clock beam and separately-lived sound, ending in result-independent dual damage requests. Distinct Main must judge relatedness and may merge whole0 into existing cast/lock/attached-FX/follow-sound families. Loopholes/branches/packets/fullfiles/ranges/counters/renderer/effect constants never separate credits.\nGuardian and Elder constructor/registry/render bindings form one native encounter family. Selector Player/Squid/Axolotl distance-squared>9 is actual local selection, not universal Boss immunity or exhaustive nearest-target predicates.\nAttack canUse requires current nonnull living target; normal continuation additionally requires elder or distance-squared>9. Start attackTime=-10 stops navigation and requests look/impulse; no activeID or event21 yet. Full Goal/WrappedGoal delegates and running guards read.\nFull GoalSelector ordinary cleanup invokes stop on invalid continuation/disabled flags, then updates flag ownership/start and ticks running goals. Mob.serverAiStep alternates full passes versus everytick goals. removeAllGoals itself only removes from available set, so ordinary stop wiring is not every possible removal guarantee; whole engine scheduler not proved.\nEach attack tick snapshots current getTarget locally, stops navigation/looks, and only progresses with LOS. NoLOS requests targetnull, not activeIDclear; normal later stop clears ID0 and requests targetnull/stroll. Mob setter uses cancelable/mutable Forge target-change hook, so clearing is a request, not proven null result or immediate cleanup.\nCounter0 writes integer activeID and conditionally broadcasts21 when nonsilent. Later current-target changes have no per-tick republish in shown goal, while server getActiveAttackTarget uses current target when IDnonzero. This establishes split source identities, not a reproduced retarget race or delivery order.\nAt duration80 or elder60, two normal-return hurt requests occur: indirectMagic(guardian,guardian) magnitude1+2HARD+2elder, then mobAttack ATTACK_DAMAGE. Both booleans ignored; targetnull request follows regardless of returned flags. No sum of HP loss, immunity success, control denial or timing guarantee inferred.\nClient activeID callback resets cache and local clock. PositiveID with null cache does world integer lookup; cached LivingEntity is reused without local alive/removed/world recheck. PositiveID advances clock to duration even if lookup missing; particle/look paths require resolved object. No UUID, dimension or perattempt epoch shown.\nWhole renderer uses current resolved beam target, eye-to-half-height interpolation, local counter scale and target AABB frustum fallback; geometry requests alone are not rendered pixels/model/texture quality or actual accepted damage. Elder model/size/texture variants remain same-family0.\nCurrent metadata set invokes callback/dirty only on forced-or-different value. packDirty clears flags; ServerEntity makes current entityID packet. Client receiver current-world lookup/serializer check assigns known fields and invokes callbacks even without value comparison. Full send cadence, recipient policy, transport/order and exceptions not expanded.\nExact sound tick predicate is !guardian.isRemoved() && guardian.getTarget()==null, not hasActiveAttackTarget. Constructor looptrue and attenuationNONE; predicate follows emitter position, volume=scale squared and pitch=.7+.5scale. Else stop sets stoppedtrue/loopfalse. canPlaySound checks silent, but SoundEngine invocation/lifetime is outside actual reading.\nClearing activeID triggers clock reset0, so an existing sound instance can compute volume0. Retained instance does not demonstrate persistent audible noise, leak, duplicate playback or lost cleanup. Dead-but-notremoved/localtarget behavior is distinct from Illage alive/action-qualified following-sound owner and is no separate boolean credit.\nEvent21 receiver resolves entity then casts Guardian and constructs sound. Packet contains integerID/event byte, not UUID/dimension/attempt identity. It is a separate producer/consumer from target metadata/cache and no denial reason/acknowledgment. Seven exact prior098 support ranges were actually displayed and read here; they add0 separate mechanisms.\nOwn thorns request2 and random-stroll trigger precede parenthurt on server. Parentfalse need not undo earlier side effects; existing Goety pre-refusal side-effect whole family owns this support0. Native parenthurt223 lines are bound to already sealed Main096 proof, not reread or recredited.\nWhole Guardian/Elder classes contain no own serialization of attack target-ID/goalclock/cache/sound. This does not prove all inherited persistence/reload behavior. Elder aura helper and loaded damage-tag memberships unexpanded, no new aura or durability mechanism credit.\nNine complete saved substantive judgments and their complete formal-object canonical bindings were compared. Illage following audio, Goety/Aether mapping, Botania missile lock, Iron refusal beam/UUID cancellation, SpellEngine detached FX/attached expiry and Goety refusal-order keep their existing scopes0; none of these selected whole judgments equals this native LOS-progressed selector-release plus split feedback-clock and result-independent dual settlement policy.\nAccept at most one related whole source implementation in principle for coherent target-bound Boss feedback cancellation/reconciliation. No new global novelty, extra renderer/phase/species/helper/range credits, project immunity implementation/native acceptance or checklist deletion. Formal append awaits true original-author confirmation and guarded one-row plan.",
+      "application_to_boss_immune": "Boss denial feedback should name actual control decision and target and have one coherent release protocol. Keep AI goal target, synced target identity, client lookup/cache, predicted clock, sound object and actual settlement distinct. A visible beam/warmup audio/localclock is not success or IMMUNE. Study only, no natural BossAI freeze/forced look or production changes before applicable1000.",
+      "limitations": "One whole related source-policy candidate maximum1 pending Main independent semantic review; authorcredit0. No global uniqueness, native project immunity/Boss coverage or gameplay/visual/audio/TCP/material/quest acceptance. Applicable1000 gate remains false, formal496 unchanged.\nFixed local Forge mapped1.20.1/47.4.10 sources archive exact entry bytes and hashes, no Git commit/tree proof for these native entries, no freshness/network/download/build/Java/Gradle/game test. Native source is studied, not executed. Existing sealed096/098 source supports reused0, not fresh manual reread.\nFull ten files below actually read, including473Guardian/74Elder, two renderers, sound/base, Goal/Wrapped/Selector and metadata packet. Bounded Mob/Synched/ServerEntity/receiver/registry/factory pieces do not imply whole containing files. Extra imports/renderer/math/registry/support classes are not semantic credits.\nOnly Mob current target setter hook creation is called boundary; its registered listeners, every actual target assignment, common nearest-target/sensing/LOS/physics, outer LivingEntity dispatch and full ServerEntity send cadence are not all expanded. A source request to clear target may be canceled/redirected. No eager cleanup or exact wallclock/delivery promise.\nTwo damage requests normal-return only; native target-specific overrides/Player policies/hooks/iframe/armor/death are not exhaustively expanded. Exact parenthurt support from096 reused0; no sum-of-damage or reliable server result inferred. Guardian thorns side effect is existing rejection-order support0.\nLiteral sound predicate retained with exact file SHA. Positive/zero metadataID, local current target, cached victim and localclock are separate fields. IDclear resets volume parameter0, so retained instance alone is not an audible leak. SoundEngine/parser/model bake/texture/audio backend, resource inclusion/loading and actual sound/geometry visibility not validated.\nNine closest complete current substantive saved semantic decisions compared, their full canonical objects bound; previous source chains not replayed. Whole formal/uncredited/migration and actual accepted ecology receipt screening is discovery, not global semantic absence proof or all-ledger source reread. EA0028 Guardian reference is Dolphin source import/avoid-target context, not this whole beam policy.099preowned Wither/Ravager families0.\nSame-family elder beam60/magic/attribute/renderer variants0; elder area fatigue and raw damage-tag membership remain external despite own class call site read. Own absence of NBT overrides not proof all inherited persistence/lifecycle no-restore. No reproduced bug, changed code/assets/background/sharedJar/Mainmaster/task list or production permission.\nMaximum1 whole related policy only; formal count stays496 until original-author confirmation and Main-verified guarded append. No production authorization before applicable1000.\nFixed local mapped Forge1.20.1/47.4.10 source artifact, not fresh remote authenticity/Git commit/tree/current pack deployment. No upstream execution, build, Java/game/TCP/graphics/audio/native test.\nActually read all22/1282 current cited lines, ten whole files and seven121-line prior098 supports. Prior Main096 parenthurt223 lines reused0. Source/hash/line/descriptor counts not semantic credits; previous complete source chains of nine owners not reread.\nTarget hook listeners/outer scheduler/full nearest-target/LOS/physics/inherited lifecycle and serialization, per-target hurt overrides/iframes/armor/death and SoundEngine/model bake/texture loading/packet transport not exhaustive. No guaranteed eager stop, exact80/60 walltime, reliable state delivery or completed damage.\nLiteral sound predicate/current target, syncedID, cached client target and local clock stay distinct. IDclear resetting volume0 prevents treating retained object alone as audible leak; no fix or reproduced bug inferred.\nNine closest complete substantive semantic decisions read; broader immune/uncredited/migration/ecology search is discovery, not all-ledger semantic review or global absence proof. EA0028 Guardian import/avoid-target context only; clipped large ecology dump was not complete independent ecology-policy reading.\nTwo earlier overly broad metadata dumps were clipped; nine selected substantive judgments recovered in bounded output. All22 current source ranges were displayed before clipping. No credit for clipped bulk hash/screens or unread ancestor source.\nNo new artwork/building/quest/asset/sharedJar/user-save/native-world/test/automation changes or task deletion; original16 observations8 author limitations retained verbatim; activehours unclaimed."
+    },
+    "reading_status": "Ars/Forsaken prior complete judgment reused0; Guardian/Bumblezone complete saved judgment now actually read without clipping."
+  },
+  "Milk_Main22_findings_reused0": [
+    "One related living-provider mode-dependent container-exchange whole policy at most. Qualifying adult Cow/Goat can request fresh default milk without mutating a finite provider stock; creative existence-sensitive inventory admission differs from survival bucket debit and hand-or-overflow output. Consumer cure/container return is traced as output use and qualification, not an independently novel cure mechanism.",
+    "Cow whole94 and Goat interaction192-207 are read. Both literal BUCKET&&!isBaby paths play sound before constructing default milk, call same createFilledResult and set actual hand, then sidedSuccess. Cow breed/AI and Goat fallback food sound do not become extra resource policies; no own milk stock/feeding/cooldown debit is shown.",
+    "No own authoritative-server guard in those interaction branches. Enclosing dispatch, permissions, prediction and callbacks are not expanded; the source branch alone proves neither exploitable client duplication nor unlimited current-survival acquisition.",
+    "Items registers milk as MilkBucketItem with bucket crafting remainder and maxstack1. Default-instance invokes ItemStack(this)->count1 constructor, delegate lookup/forgeInit and damage hooks. This is a source construction chain; loaded registry/capability/current-player acquisition are separate.",
+    "createFilledResult default enables creative duplicate check. Creative returns the exact input reference unchanged; contains across items/armor/offhand can skip adding output entirely. Its predicate compares item/tag/caps without count; add return ignored. Sound and success can therefore coexist with no positive output request or inventory delta.",
+    "Noncreative createFilledResult shrinks input first. If empty, returns output to the subsequent hand assignment; otherwise inventory-add may mutate output, and false invokes Toss with remaining output. Output request, actual hand replacement, positive inventory delta, world admission and intended-player later pickup are separate evidence.",
+    "Inventory merge capacity checks stackability/maxstack/maxcontainer and item/tag/caps. addResource copies original stack preserving caps into empty destination, count0 then grow. Main/offhand/general slot selection and fallback free slot are ordered, not player preference or lossless arbitrary-backend guarantee.",
+    "Inventory.add ordinary loop returns whether the last attempted iteration reduced remainder. Earlier partial progress can end with false and a remaining stack; creative no-progress may clear count and returntrue without storing. Damaged-stack branch separately uses a free main slot or creative discard. No universal positive-admission receipt from boolean alone.",
+    "Living setItemInHand selects main/offhand or throws; Player setItemSlot verifies then mutates inventory before onEquipItem. A returned filled result is not itself committed slot state; failures/hooks/reentrancy/authoritative sync are outside this bounded path.",
+    "Overflow two-argument Player.drop invokes onPlayerTossEvent. Temporary captureDrops list is installed then reset null without visible restoration of an earlier capture collector in this method. Three-arg drop constructs ItemEntity/pickupDelay40 and does not spawn it itself. Toss cancel returnsnull; otherwise only nonclient requests unchecked addFreshEntity. No native loss/reentrancy exploit is asserted.",
+    "createFilledResult calls drop(output,false), so Toss includeNamefalse leaves this constructor path without thrower assignment. It does not set an intended-player ownership target or establish actual UUID pickup; motion, delay and nonnull event entity are not positive admitted-world custody.",
+    "Milk.use only requests startUsingItem/consume result. DRINK/duration32 do not close the enclosing use interruption/tick/finish lifecycle or prove elapsed real time. Full MilkBucketItem read is not full native use engine audit.",
+    "Milk finish server cure occurs before ServerPlayer criterion/stat and before survival-player shrink. This retains the curative stack type during matching. All source-order statements assume previous callbacks complete normally; neither criterion nor stat proves paid resource or effect removal.",
+    "curePotionEffects server-only iteration requires item-type curative match and noncanceled per-effect Remove, then onEffectRemoved, iterator.remove and dirty. No harmful-only filter appears; matching beneficial effects can also be removed. Removal helper requests attributes/passenger packets; actual listeners/network/effect-attribute internals are not all audited.",
+    "Milk ignores cure bool; survival-player shrink follows even for zero matching effects or all vetoed removals. Nonplayer and instabuild branches do not shrink through this conditional; empty result returns fresh BUCKET, otherwise original stack. No atomic cost-benefit/refund or universal one-bucket delivery claim.",
+    "Effect curative null lazily asks effect defaults; Forge default returns fresh milk list. Instance setters can replace it including empty. isCurativeItem uses isSameItem only, unlike creative inventory.contains tags/caps. These are different authorization equivalence relations, not per-stack UUID or per-source effect ownership.",
+    "Full curative interface writes each stack save; bounded read helper accepts CurativeItems TAG_LIST then reads compound entries and replaces list. Wrong list element type can produce an empty compound-list view; exact getter implementation not re-expanded, so no malformed-save or unknown-item recovery promise. Absent list allows lazy default conditional on other callers, not a full save roundtrip.",
+    "Existing complete TConstruct StrongBones whole owner already includes milk Finish, helmet item-type curative rewrite and equipped-item replacement release with same native cure consumer. Main103 complete four-field judgment is reused0, including update-retains-old-curative-list caveat. Generic milk cure/itemtype/remove callbacks are already owned0; novel related scope here is only living-provider/container-mode material exchange whole, with the consumer boundary retained.",
+    "Current EA23 Platypus paid-site digging, EA42 reserved farmer inventory/converter readiness, EA43 cat-rest attempt, EA45 peer overflow, Seal treatment and newly accepted EA49 habitat/timed-reel whole differ in qualified provider/material custody. EA42 complete selected judgment newly read; other3 and Seal/Fishing Main own complete judgments reused0, not old source rereading or global uniqueness theorem.",
+    "Three whole migration decisions actually read: paid-flower deferred stew effect identity fallback, finite version-upgraded goat horns, harvested sheep wool/regrowth. Milk does not debit those provider resource flags or create new migration; species reuse, same class or no finite flag alone cannot earn another credit.",
+    "All25 listed ranges751 line-occurrences15entries5wholeclasses/interfaces were actually read in two bounded outputs without clipping. Raw source excerpt keepends and all archive entry hashes are exact. MobEffectEvent1-80 includes complete base/Remove inner class only; outer class further events not claimed read. Prior ItemEntity/ServerLevel supports remain exact own reuse0.",
+    "Future quest integration must keep material provider -> existing prerequisites -> actual bucket/container debit -> admitted intended-player output -> conditional curative benefit distinct; original IDs/NBT variants/rewards/progress are preserved. This review implements no task or recipe, grants no current native economy acceptance and assigns no formal ID."
+  ],
+  "Milk_Main11_limits_reused0": [
+    "Fixed local mapped Forge1.20.1/47.4.10 archive identity and exact source bytes only, no fresh remote authenticity/Git commit/tree/current loaded pack registration guarantee.",
+    "At most1related provider/container whole in principle, formal/applied0. Cow/Goat, slots, loops, effects, timing/ranges/classes/cure helpers and source checks add0. Existing TConstruct cure/replacement whole is retained0; not a new cure or immunity reference.",
+    "All25listed source ranges actually read, five complete files/interfaces only. Remaining containing classes, full interaction/use engine, hook listeners, capabilities/FluidBucketWrapper/attribute packet machinery and current mod overrides not all read or run.",
+    "No authoritative player inventory delta, paid prerequisite, admitted ItemEntity, actual intended-player UUID pickup, actual removed effect or persisted return container; no all-effect/unconditional/harmful-only cure promise.",
+    "No-cost sound/sidedSuccess/criterion/stat/add boolean do not establish output; survival shrink may precede rejected overflow and may follow zero curative benefit, source callbacks can throw or mutate. No live duplication/loss exploit or general rollback/refund proved.",
+    "Curative helper read/write is not full effect/hidden-chain/stack capability/registry save roundtrip. Existing same-effect update may retain old curative list per already-owned TConstruct judgment; no per-caster or per-stack state authority implied.",
+    "EA42 full selected judgment newly read; three other selected whole judgments/Seal/currentFishing and TConstruct Main103 complete judgment reused0 with full limitations. Old source chains not reread, all48 ecology identity integrity is not48whole semantic review.",
+    "Original candidate historical47/gap953 and limits saying comparison pending retained verbatim. Current48/gap952/fishing closure supersedes numeric baseline only; original20/7 plus23/15/8 all preserved, no rewriting sealed history.",
+    "Native/runtime material survival/current loot or model UV/performance acceptance0. Ecological24/30 births9/10sameUUIDpickup/run12onGroundfalse remain unchanged. No game/process/display query or runtime marker consumed.",
+    "No production/quest/cap/probability/art/sharedJar/originalsave/master task list edits, no completed game-task deletion, no commit/push/publish/newchat/automation. Applicable1000 ecology gatefalse.",
+    "No quantified active hours; interruption/wait/download/parallel/wallclock excluded and tenhour total remains unverified. Author must confirm full Main whole judgment and normalize current48 before a separate reviewable minimum research package; no blanket package/validator/aggregation grant here."
+  ],
+  "Axolotl_Main21_12_saved_judgment_reused0": {
+    "binding": {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-axolotl-recovery-whole-review-20261110.json",
+      "sha256": "047c7a8fe3e6ab5372498947b4a7de1328f494161e9f8a36b3ef4da514ece3e7",
+      "bytes": 236314
+    },
+    "decision": "INDEPENDENT_ACTUAL_WHOLE_SOURCE_AND_SELECTED_SAVED_JUDGMENTS_SUPPORT_MAX1_RELATED_ECOLOGY_PENDING_SEPARATE_INTAKE",
+    "all21_findings": [
+      "One complete related existing-victim recovery-opportunity policy only: entity-associated raw damage attempt in water may prewrite an integer; independently scheduled sensor and PlayDead entry request regen; separately positive synced count gates own control/enemy eligibility; validation and breeding erase the opportunity. Maximum1 ecology applicability, no global/migration credit or per-helper/timer/species/effect credit.",
+      "Actual Main read Axolotl whole542 in preceding contiguous turn then all remaining36 saved scopes in bounded outputs, verified native archive/entry/raw excerpts. Fourteen whole declarations and partial Brain/Living/effect/DSL contexts are bookkeeping0. Additionally actually read complete LivingEntity.hurt1057..1207;38 range occurrences2437 lines/2402 distinct cited lines, not38 mechanisms.",
+      "Own hurt samples current health first. Server,!NoAI, first1in3 RNG, second random0..2<requested amount OR health/max<.5, requested amount<health, isInWater, causal/direct entity nonnull and !synced playingdead gates write200 before parent. It never requires positive raw amount or parent returntrue before write. Raw less-than-health is not accepted nonfatal injury.",
+      "Fresh complete parent hurt confirms Forge attack/invulnerability/client/dead/fire-resistance rejection and cooldown <=lastHurt rejection can follow prewrite. actuallyHurt is a call, not newly expanded finalsettlement engine; method returnflag2=!shieldBlocked||remaining>0 and recent-source assignment do not establish positive accepted HP loss. No failed-hit/reload exploit reproduced.",
+      "Brain tick before Axolotl activity update and later !NoAI syncedflag write means memory, activeactivity, runningbehavior, integerpositive and presentation flag are distinct. Own prewrite tests syncedflag, not memory directly. No exact tick race/reset loop guarantee.",
+      "PLAY_DEAD activity requires counter present only. PlayDead requires counter and HURT_BY_ENTITY present plus waterOrBubble; no explicit positiveinteger entry test. Start clears WALK/LOOK targets and requests regen200amp0, ignores bool. CORE Validate can instead proceed with merely registered attacker Optional.empty.",
+      "HurtBySensor default randomized initial0..19 and scan20 reads recent source, stores only causal LivingEntity; no-source clears HURT_BY but not attacker. Existing attacker is removed only if dead/different level. getLastDamageSource expires only when accessor sees gameTime-laststamp>40. Counter prewrite need not correspond to that sensor attacker.",
+      "Base Behavior entry sets running then endTimestamp gameTime+200; strict greater-than timeout. canStillUse only waterOrBubble and countpresent, does not require positivecount/attacker. No subclass stop cleanup here; no guaranteed exactly200 world/wall ticks, successful regeneration, frozenphysics or repeated-start exclusion.",
+      "Validate positive i stores i-1 with default permanentTTL; nonpositive erases counter and attacker then useDefaultActivity. EraseMemoryIf breeding uses BREED_TARGET presence and erases counter. updateActivity avoids reselection while already PLAY_DEAD. Leaving water locally fails continuation, not direct integer erase.",
+      "Brain forget-expired -> sensors -> start stopped active controls -> tick allrunning is explicit order. setActiveActivity erases configured other-activity memories and resets active set but does not itself synchronously stop every running control. Complete DSL present/registered distinction preserved; full caller scheduler outside these ranges not certified.",
+      "Positive syncedcount suppresses Axolotl own ambient and Move/Look controller parent delegation and its canBeSeenAsEnemy. Whole travel still applies water movement/inertia on locally controlled instance. Native canAttack/TargetingConditions consult eligibility in shown paths; not universal target clearing, all-damage/control immunity, total immobility or safeescape.",
+      "PLAY_DEAD_TICKS Codec.INT is serializable; attacker HURT_BY_ENTITY has no codec. Parent writes Brain and conditionally reconstructs through makeBrain/Forge hook. Brain emits coded present entries and can partial/fallback. setMemory wraps Long.MAX_VALUE while Validate decrements integer. No blanket reset/nonpersistence, no new saved-key migration or native reload guarantee.",
+      "Possible retained count without persisted attacker separates metadata from regen-entry after source-level reconstruction. Captured variant/health/provenance/hunting2400lease remains complete old Axolotl custody owner0. Bucket helpers not newly expanded, same wholeclass reading does not reaward that owner.",
+      "addEffect Applicable event can override default eligibility; Added post then insert/merge, bool ignored. Existing effect.update changes amplifier/duration/flags/hidden state without universally changing curative ownership. Known TConstruct itemtype-key/equipment-release and merge qualification remain whole0; no new per-effect authority.",
+      "Regen amp0 durationmod50 requests heal1 only belowmax; heal passes onLivingHeal, rejects nonpositive or currenthealth<=0 then clamps. Infinite duration uses entity tickCount for effect scheduling. Stronger/hidden merges and listener outcomes differ. No guaranteed4HP, accepted regeneration, survived attack or native health receipt.",
+      "Full StopAttackingIfTargetInvalid calls callback before targeterase when target invalid/dead/unreachable/differentlevel/predicate. Axolotl support additionally requires deadOrDying plus recent causal PLAYER in inflated20 queriedplayers. Not arbitrary kill reward, owner-only entitlement or current player receipt.",
+      "Player support only requests finite regen extension when absent/endsWithin2399, min2400(old+100), amp0; infinite/>=2400 skips extension. DIG_SLOWDOWN removal requested regardless, cancellable Remove may deny and absent effect yieldsfalse. Both booleans ignored; context0 not another paid gift/cure/reward policy.",
+      "Whole EA29 saved decision is fed actor refreshing nearby target-clear/retreat with asymmetric ground/hand processing, unlike this injured actor own state; EA47 requires accepted parenthurt and event/placement reinforcement plus caller/callee propensity debit. Currentpolicy neither clears nearby targets nor creates/debits admitted actors. Complete selected comparisons support1 bounded related applicability, not all-ledger uniqueness.",
+      "Witch original16/9 and distinct Main17/10 complete saved judgments preserved: generated current-hand self-potion countdown/outgoing gate/currentpayload completion and independent selfsource mitigation. Shared regen requests/customflag/timer do not themselves distinguish; injury-prewrite/sensor-qualified recovery opportunity is the complete contextual difference.",
+      "EA50 own Main22/11 reused0 and current record binding verified: adult living material/container exchange, not injured actor recovery. TConstruct complete four substantive fields and two whole global Axolotl/Brain decisions actually read; no old upstream chain replay, no exhaustive global owner absence theorem.",
+      "Future taskintegration requires actual accepted damage/state/benefit and intended-player acquisition/payment separately. Preserve IDs, rewards and progress; do not turn an eligibility flag, sound, pose, timer or successful request into completed survival/task evidence. No production implementation or native/game acceptance here."
+    ],
+    "all12_limits": [
+      "Maximum1 related ecology whole, accepted/applied formal0 pending originalauthor acknowledgment and separately reviewable minimum research package; noID/receipt/validator/fixture/aggregation grant from this review.",
+      "Fixed local mapped Forge1.20.1-47.4.10 archive only, not fresh Git/remote/current deployedbinary/tag/registry/config/listener authentication.",
+      "Actual37savedranges plus one extra parenthurt method, source0 wholeAxolotl read preceding contiguous turn. First oversized saved-comparator output clipped; EA29 remaining fields, EA47 complete and global/TConstruct bounded targeted recovery read. EA50 full own Main prior22/11 reused0, not freshly allEA50text/source reread.",
+      "Fourteen whole supporting declarations do not mean allBrain/Living/effect/AI/physics/world/query/network/render/persistence/Forge engine read. Extra parenthurt call actuallyHurt not newly fullengineaudit.",
+      "All original17checkpoint+15supplement observations,24candidate observations/15mandatoryconstraints/10limits retained verbatim. Original claim only bounded parenthurt read remains historical; separate Main fullhurt151lines qualification adds0, no rewriting author history.",
+      "Prewrite and optional prior attacker can disagree; effect merge/request and positivehealth differ. No native exploit, loss/duplication, stuckstate, body-control pause, healing, player fatigue removal or mutation fix proved.",
+      "Integer codec versus absent attacker codec is source reconstruction boundary, not native saved-world/clone/reload/crash recovery acceptance. Whole capturedcreature/Brain generic expiry owners remain0extra.",
+      "Combat eligibility consumers shown do not prove every AI/player/environment ignores actor, damage/control immunity or complete movementfreeze; travel still moves. No copied model/animation/texture/UV/art verification.",
+      "No actual material source/payment/provideradmission/nativeborn actor/strictkill/sameUUIDpickup/reward/quest/survival/performance acceptance. Existing24/30birth+9/10pickup and run12falseassertion unchanged.",
+      "Applicable1000 ecology remains49/gap951; immunity current502/gap498 independently closed107 does not satisfy ecology or authorize ecology probability/category/cap changes.",
+      "No sourceproof/consumed marker or append script replay; Main only immutable researchreceipt write. No production/Java/game/Gradle/process/display/audio/brightness/wake/focus/sharedJar/proasset/originalsave/Git/taskdeletion/newchat/automation.",
+      "No quantified active-hours claim; all previous scopes/COD5absence preserved. Whole objects and hashchecks are integrity evidence0, not newsemantic count or hours."
+    ],
+    "current_status": "PENDING0 under Mainblockingcorrection; do nottreat master pending0 as completependinginventory"
+  },
+  "Sonic_author20_12_saved_judgment_reused0": {
+    "binding": {
+      "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-110.json",
+      "sha256": "2c759d49c1c3931de038a1237ed345f5a53a4e43f28cd23322a0296438abd7c5",
+      "bytes": 185356
+    },
+    "all20_observations": [
+      "ONE proposed native Brain attack-attempt lifecycle whole: memory-qualified entry and gametime-bounded RUNNING attempt separate from expiring-memory delay/release latch; consume release opportunity before current target requalification; independent shot/hurt/push/cue then stop cooldown. Atmost1relatedorMainmerge0, no extra ray/threshold/timer/Brain/helper/species/event/codec credit.",
+      "Actual EntityType.WARDEN constructsWarden. Warden.makeBrain delegatesWardenAi, whose full156lines register allSonic memories, core/defaultactivities andFight list. Actual customServerAiStep ticksBrain before ordinary parent/darkness/anger andupdateActivity; containingWarden andfullouterMob/NoAI invocation notwhole read/run.",
+      "Fight is activity requiringATTACK_TARGET andconfigured to erase it onactivityexit. Ordered list includes digcooldownsetter, StopAttackingIfTargetInvalid, look/walk, newSonicBoom thenMeleeAttack18. BraincreatePriorityPairs increments priorities, TreeMap traversesascending; genericdeclarativebuilder/sensors/hooks canaffectconditions, not fullyexpanded. No separateactivity/goalcredit.",
+      "CompleteBehavior constructor andSonic entry: ATTACK_TARGETpresent, SONIC_BOOM_COOLDOWNabsent, other2soundmemoriesREGISTERED; stricthorizontalXZdistance<15 andverticaldifference²<20² throughEntity.closerThan. REGISTERED onlymeansslotexists, notsoundlatchesabsent. No directLOS/raycast inownSonicstartcondition; external targetselection mayapplyothergates.",
+      "Behavior.tryStart checksentry+extra once, marksRUNNING, drawsfixedduration60 fromequalmin/max andstoresendTimestamp=currentgameTime+duration beforestart. tickOrStop lateronlytimeout andcanStillUse; Sonicreturns true unconditionally. Entrymemoryconditions/range notautomaticallyrechecked there eachrunningtick. Timeout usesstrictgameTime>endTimestamp, not>= or guaranteed60wallticks.",
+      "Sonic.start writesATTACK_COOLING_DOWN trueTTL60 andSOUND_DELAY UnitTTL34, requestsentityevent62 andWARDEN_SONIC_CHARGE sound. These precede eventualcurrent-target eligibility. No immutablevictim/attemptUUID captured inSonic fields; laterbodyrereadsATTACK_TARGET. Charge/animation notsuccessfulshot/refusal receipt.",
+      "Brain.tick firstforgetOutdatedMemories, ticksensors, startsnonrunningbehaviors inactiveeligibleactivities, thenticksallRUNNINGbehaviors. getRunningBehaviors traversesallactivitieswithoutactivefilter. setActiveActivity erasesconfiguredmemoriesbutdoesnotcallstop here. Target/activityloss alone therefore doesnot prove immediatestop ofthiscanStillUsetrueattempt; explicitstopAll doesinvoke doStop. Wholeengine/overrides canstillstop/remove behavior.",
+      "ExpirableValue storesrawlongTTL, decrementswhenfinite andhasExpired iff<=0. Brain sweepexaminesexpired BEFORE decrement; slotsetter/getter/checkMemory useOptionalpresent withoutanexpirytest. Avaluebecoming0bydecrementremains untilnextsweep. This is delivered-Brain-update countdown, separatefromBehavior gameTime timestamp; no exact1.7seconds/dualclock atomicity/runtimeoffbyone orpause exploit asserted.",
+      "Each Sonic.tick firstlooks atcurrentattacktargetposition ifpresent. WhenbothSOUND_DELAY andSOUND_COOLDOWN absent, it writesSOUND_COOLDOWN UnitTTL26 BEFORE fetching/filteringcurrenttarget. Missing/ineligible/outofrange target cantherefore spendthisreleaseopportunity withnoray. Within normaldurationthelatchsuppressesownretry; externalmemorywriters/removal/callbacks remainoutside, notguaranteedexactlyonce.",
+      "ActualreleasecanTargetEntity requiresLivingEntitysamelevel, nativeNO_CREATIVE_OR_SPECTATOR predicate, notallied/notARMOR_STAND/notWARDEN/notinvulnerable/notdeadordying andworldbordercontainsboundingbox; thencloserThanstrictXZ15/Y20 again. These aredifferentfromentry/anger/currentloadedBosscontrolpredicates. NO_CREATIVE selector/alliances/worldborder/subclass internals notexhaustivelyaudited.",
+      "Qualifyingrelease usesemitterposition+y(double)1.6F tocurrentvictimeyes, normalizesvector, requestsSONIC_BOOMparticles fori1..<floor(length)+7 thenplaysboomsound. Itdoesnottraceblocksorcollidealongray inownbody. Sourceparticlepattern notworldadmission/visiblepixels/physicalprojectile orallterrainhitguarantee; vectors/math/backend remainboundaries.",
+      "Thenhurt(sonicBoom(emitter),10) booleanignored; normalreturnalwaysreadsKBRandpushesdirection*(2.5horizontal,.5vertical)*(1-KBR). BaseEntity.push addsdeltaMovement andsetsImpulse, notdirectsetPos/actualmotion. Parenthurtfalse notcancelthese laterrequests. This genericresult-independentray/force part isalreadyknownArs/Guardian/sharedsupport0, notthestatednewwhole byitself.",
+      "Sonic.stop onlysetsSONIC_BOOM_COOLDOWN TTL40; ownbodydoesnotclearothersound/attackcoolingmemoriesorissueaborted-victimreceipt. Warden.setAttackTarget separatelyclearsroar/cantreach, writesnewtarget, resetsSoniccooldown200. Warden.doHurtTarget setsSoniccooldown40 BEFOREsuperhurtresult. Sharedmemorycanbeaffected byotheractions, notprivatepervictimrefund/transaction.",
+      "WholeMeleeAttack builder requiresATTACK_COOLING_DOWNabsent+target+nearestvisible, thenrange/usableweapon check, swings/doHurtTargetignoredbool andwrites18cooldown. Sonicstart cooling60canwithholdthatlocalMelee branch. FullcommonMobattack/behaviorbuilder/externalcallers unexpanded; no universalmelee-lock guarantee orallattacksblockedclaim.",
+      "WholeStopAttackingIfTargetInvalid useslivingtarget/currentlevel/canAttack/custompredicate; Warden passesfalse tiredreachflag andanger/canTargetpredicate, invalidconsumer optionallyclearsanger/setdigcooldown thenerasestarget. This canchangeATTACK_TARGET independentlyofalreadyRUNNINGSonic. Sourceorderingnormalcallbacks only, no reproducedstaletargetattack/race.",
+      "Warden.handleEntityEvent62 startsownsonicAnimationState atcurrentclienttick; unlikeGuardianbeam noimmutablevictimID inthatowncue. Sound/particles originateemitter/rayrequests, notdeniedvictimtext. Model/animationclip/particlefactory/fullnetworkconsumer/actualpixelsunexpanded, no animationleak/loop orBossgraytext acceptance.",
+      "MemoryModuleType ATTACK_TARGET/ATTACK_COOLING_DOWN plainregister whilethreeSonicUnit slots explicitlyregistercodec. WholeExpirableValue exposesvalue+optionalttlcodec. FullSonic/Behavior have noownIO, but doNOTinferallSonicmemoryistransient orcompleteinflightreloadresume. Brainpartialcodecexplorationnotcitedascompleteroundtrip; save/world/recreatedbehaviorclocks unverified, migrationcredit0.",
+      "FullGuardianfourfields andgroup16Mainfindings8limits recoveredbeforeanynewSonic source. GuardianownsLOS-progressedselectorrelease, separateID/cache/localclockbeam/sound anddualhurt; proposedSonicownsBrainRUNNINGversusmemoryTTL/latepredebitqualification/stopcooldown lifecycle ifMainfindssubstantivedifferent. Newbeam/sound/damageconstantsalonewould0.",
+      "CompleteArsSonic/Forsaken/Bumblezone judgments/groups read orpriorsealedjudgmentreused0: actor-checkedcounterrayaftercancellation, refusaltocoalescedcharge, combat-revokedpacificationretainfullpolicies. Fourmigrationjudgments (Wardenanger,Shriekerwarning,Ravagerphase,Skreecherlifetimeattempt), completeEA16Main15/9+corrections andhistoricalpending54/actualaccepted826 compared; nativeSoniccooldownhelpersalreadyEA16support0, notnewclasscredit.",
+      "Fresh382crossarea candidate/proposal/whole-review/handoffsemanticdocuments and49receiptsselectedfields screened;13/5matches mostlynestedEA16comparison, notallwholesource review/globalnovelty. Ownpending089/098/108 andaccepted105107/Milk savedfullcontexts retained0. Main10822/12+authorplan presentlypendingformal0; current502/ecology49historicalexact, noindependentcandidatecredit orproduction authorization."
+    ],
+    "all12_limits": [
+      "Fixedlocallycached mappedForge1.20.1/47.4.10 exactarchive/extractedbytes only; no freshremote/Git/tree/currentpack/API/tag/config/loadedregistry/brainbuilder/listener compatibility guarantee.",
+      "24citedranges913lineoccurrences12entries6whole declarations actuallyread; Brain/Warden/Entity/DamageSources/MemoryModuleType/EntityType boundedpartials, notfullengine. Checkpoint25/981incidentalcodecandadjacentread exclusions explicit; helper/file/range/numericcounts0credit.",
+      "One proposedwholememory-qualifiedattempt/latepredebitcurrenttargetsettlement versuscue atmost1orMainmerge0. Genericray/force/particles/ignoredbool, warmup/slots/constants/Brain/codec/helper/entitynamecannotearnanotherreference.",
+      "No Java/Gradle/runtime/AI/combat/world/game/physics/render/audio/networkexecutions. Sourcewrite/request/boolean/cue notactualacceptedHP/displacement/targetidentity/denial/material/quest acceptance.",
+      "BehaviorgameTimebound andmemoryTTLs aredifferentconditionalclocks; owncanStillUsetrue/Brainallrunningdoesnot establishuniversaluncancelableattack. ExternalstopAll, removedbehavior,NoAI/scheduler/timechange/subclasses/hooks unexpanded. No exactwalltime/guaranteedsingle shot/exploitorrace.",
+      "SOUND_COOLDOWNpredebitbeforetargetfiltermaywasteopportunity normally, but externalmemorywriters/composition/callbackfailures unexpanded. No refund/atomicity/exactlyonce/conservedresource orpervictimwindowproof.",
+      "NativecanTarget/start/range checksnotglobalBosscontrolorLOScoverage; fullselectors/sensors/canAttack/alliance/border/mathtype/tagcontents/customrecipients/attributeclamping/hurt backend unexpanded. No universalwallpenetration oralltargeteligibility claim.",
+      "Hurtfalse followednormalreturnpush issharedsupport, notnewsemanticcountoractualknockback. Sound/event62/particlesnotrefusalreason, victimUUID, finalvisibleclip/graytext/microglow/audio acceptance. No model/texture/UV work.",
+      "Brainmemorycodecpartialread+typedUnitregistrations/wholeExpirablecodecnotcompletebrainworld/hiddenstate/persistence/clone/restore. DoNOTclaimallSonicmemoriesnonpersistent; BehaviorfreshendTimestamp/sourceownIOabsencealonecannotproveinflightresumability. No newmigrationcredit.",
+      "Complete4formaljudgments4groups/4migration/EA16Main15/9andhistoricalpending54 judgmentsread; oldunderlyingsourcechainsnotreplayed.382metadata/selected49receiptchecks arediscoveryonly, no exhaustiveglobalnovelty. OriginalclippedGuardianmetadata fullyrecovered beforeprescreen; no clippedoutputcredit.",
+      "Originalcurrent502 and49contexts/108authorplan retainedhistory;108hasnoappendgrantatassembly andnew110formal0. Applicable1000unmet gatefalse. No production/programUI/background/quest/texture/model/UV/building/sharedJar/originalworld/Mainstate/pending/taskchecklist edits.",
+      "No process/display/volume/brightness/focus/wake/network/Git/commit/push/publish/newchat/automation/providerbypass, nooldvalidators/consumedmarkers/appendsscriptsreplay. No quantifiedactivehours/tenhourcompletion orcompletedgamefeature/taskdeletion claim."
+    ],
+    "clarification": {
+      "schema_version": 1,
+      "created_utc": "2026-11-09T19:12:23.278431+00:00",
+      "batch": 110,
+      "status": "ADDITIVE_WORD_BOUNDARY_CLARIFICATION_ORIGINAL_CANDIDATE_UNCHANGED",
+      "candidate": {
+        "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-110.json",
+        "sha256": "2c759d49c1c3931de038a1237ed345f5a53a4e43f28cd23322a0296438abd7c5",
+        "bytes": 185356
+      },
+      "observation_index_one_based": 7,
+      "original_observation_verbatim": "Brain.tick firstforgetOutdatedMemories, ticksensors, startsnonrunningbehaviors inactiveeligibleactivities, thenticksallRUNNINGbehaviors. getRunningBehaviors traversesallactivitieswithoutactivefilter. setActiveActivity erasesconfiguredmemoriesbutdoesnotcallstop here. Target/activityloss alone therefore doesnot prove immediatestop ofthiscanStillUsetrueattempt; explicitstopAll doesinvoke doStop. Wholeengine/overrides canstillstop/remove behavior.",
+      "ambiguous_literal": "startsnonrunningbehaviors inactiveeligibleactivities",
+      "exact_interpretation": "Starts non-running behaviors IN ACTIVE eligible activities only. The concatenated phrase in+active must not be read as inactive. Brain423-439 checks activeActivities.contains(activity) before tryStart. Then tickEachRunningBehavior uses all RUNNING regardless activity; these are distinct loops.",
+      "corrected_observation": "Brain.tick first forgets outdated memories, ticks sensors, starts non-running behaviors only in currently active eligible activities, then ticks all RUNNING behaviors. getRunningBehaviors traverses all activities without an active-activity filter. setActiveActivity erases configured memories but does not call stop here. Target/activity loss alone therefore does not prove immediate stop of this canStillUse-true attempt; explicit stopAll invokes doStop. Engine/overrides can still stop/remove behavior.",
+      "source_scope": "Already actually read and sealed native Brain386-479; no source proof/validator rerun, no new lines or credit.",
+      "new_formal_credit": 0,
+      "new_migration_credit": 0,
+      "production_changes": 0,
+      "formal_mutations": 0
+    },
+    "credit": 0
+  },
+  "historical_baseline": 503,
+  "current_formal_baseline": {
+    "reviewed.json": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "a002689a0ccaccddb14abe02dbf46213829d7945f356d5be6e3c35881ed92881",
+      "bytes": 9399045
+    },
+    "semantic-dedup.json": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "sha256": "a25bf67eb7bbeee746251531c60e0e17256f4fc5f7f434387ba289009cee61df",
+      "bytes": 235508
+    },
+    "progress.json": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "6d90b68fb892039906261730bf013ec317414fe299df33dd48164f3c27b5aab4",
+      "bytes": 631
+    }
+  },
+  "latest110_actual_Main_closure": {
+    "path": "docs/cod4/audit-20261022/coordinator-program110-v2-formal-delta-review-20261110.json",
+    "sha256": "e1889598beca5f5ec1cf7790f7fae9cba99be95ee63901081d76a82fc6482ac4",
+    "bytes": 42533
+  },
+  "current_ecology_master": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "41b2f04748245e629c35b89616054df0539629bd3f95aec8e250f5f95fb76616",
+    "bytes": 1565858
+  },
+  "current_formal_count": 504,
+  "current_formal_groups": 232,
+  "current_shortfall": 496,
+  "current_ecology_count": 50,
+  "whole_semantic_key": "native-ram-entity-route-preparation-to-vector-goal-and-reselected-first-contact-versus-terrain-result-independent-termination",
+  "maximum_whole_supported": 1,
+  "formal_applied_credit": 0,
+  "new_migration_credit": 0,
+  "new_ecology_credit": 0,
+  "formal_gate_met": false,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "Main_prewrite_guard_note": "Initial Main guard incorrectly compared partial original excerpts including terminalLF to normalizedno-finalLF view; all22 physical excerpts and rawhashes verified exactly, separate normalized hashes exact. Explicitguard corrected before anyreceipt/formalwrite, notauthorerror.",
+  "old_upstream_chains_reread": false,
+  "source_proofs_rerun": false,
+  "production_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "active_hours_claimed": null
+}
