@@ -1,0 +1,81 @@
+{
+  "schema": "dynasty.ui-reference.author-correction.v1",
+  "recorded_utc": "2026-11-14T05:53:31.753771+00:00",
+  "status": "ACK_MAIN003_F05_CORRECTED_IMMUTABLE_ADDENDUM",
+  "original_003_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+    "sha256": "cf358f1de89f059c4264babcadabf4fbea39df90542064e1c8cb4a783bbefdba",
+    "bytes": 88833
+  },
+  "Main_preACK_review_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-DamageHome-Main-actual998-whole-preACK-review-20261114.json",
+    "sha256": "4399dfee01886ebbb405753ba556e47e07acdc4d04b9e96bc58ac2547d56e5d8",
+    "bytes": 101623
+  },
+  "Main_review_read_boundary": "Binding,56check count and required correction metadata checked; no claim to re-read all24 Main judgments or entire998 source this turn.",
+  "original_claim": {
+    "id": "F05",
+    "source": "HomeScreen97-117",
+    "observation": "Only HTTP200 response enters JSON array processing. Iterate entries, apply hasLoader predicate and choose greatest version under local comparator among nonnull version_number entries. Exceptions caught as Exception are ignored and converge to no found result."
+  },
+  "replacement_F05": {
+    "id": "F05",
+    "source": "HomeScreen84-129 (especially89,103-116,119-128)",
+    "observation": "Only HTTP200 enters JSON-array iteration. latest starts null before try and is assigned progressively when eligible nonnull version strings are found. catch(Exception) ignores failure without resetting latest. An exception before any nonempty candidate leaves null/possibly empty and callback ERROR; if a nonempty candidate was already selected before a later entry throws, found retains that partial result and callback can still produce LATEST or OUTDATED under the local comparator. It is therefore false that every network/parse/entry exception converges to no-found/ERROR."
+  },
+  "source_evidence": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/client/gui/HomeScreen.java",
+    "sha256": "4ace48715c40c8b6507166661332b50cec0044df725290529a2a98feb1eed7cd",
+    "bytes": 12945,
+    "source_url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/client/gui/HomeScreen.java",
+    "matches_fixed_manifest": true,
+    "range_reread_this_turn": [
+      84,
+      132
+    ],
+    "text": "    private void checkForUpdates() {\n        if (updateState == UpdateState.CHECKING) return;\n        updateState = UpdateState.CHECKING;\n\n        Thread thread = new Thread(() -> {\n            String latest = null;\n            try {\n                HttpRequest request = HttpRequest.newBuilder(URI.create(updateUrl()))\n                    .timeout(Duration.ofSeconds(10))\n                    .header(\"User-Agent\", \"damage-engine/\" + DamageEngineMeta.VERSION)\n                    .GET()\n                    .build();\n                HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());\n                if (response.statusCode() == 200) {\n                    JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();\n                    if (!array.isEmpty()) {\n                        // Only consider versions for the current loader platform (Fabric/NeoForge\n                        // releases share the same project on Modrinth). The URL already filters by\n                        // loaders; this is a defensive second check.\n                        for (int i = 0; i < array.size(); i++) {\n                            JsonObject entry = array.get(i).getAsJsonObject();\n                            if (!hasLoader(entry, DamageEngineMeta.PLATFORM)) continue;\n                            if (entry.has(\"version_number\") && !entry.get(\"version_number\").isJsonNull()) {\n                                String v = entry.get(\"version_number\").getAsString();\n                                if (latest == null || compareVersions(v, latest) > 0) {\n                                    latest = v;\n                                }\n                            }\n                        }\n                    }\n                }\n            } catch (Exception ignored) {\n                // network / parse failure -> error state\n            }\n\n            String found = latest;\n            Minecraft.getInstance().execute(() -> {\n                if (found == null || found.isEmpty()) {\n                    updateState = UpdateState.ERROR;\n                } else if (compareVersions(found, DamageEngineMeta.VERSION) > 0) {\n                    updateFoundVersion = found;\n                    updateState = UpdateState.OUTDATED;\n                } else {\n                    updateState = UpdateState.LATEST;\n                }\n            });\n        });\n        thread.setDaemon(true);\n        thread.start();",
+    "whole998_reread": false,
+    "gitblob_or_tree_claim": null,
+    "identity_limit": "Fixed source.json and raw SHA only; no cached Git tree object or synthetic gitblob proof claimed."
+  },
+  "case_analysis": [
+    {
+      "branch": "non200, empty array, or exception before assignment",
+      "result": "latest remains null, so found null and callback ERROR unless other assignment happened; no assignment shown in these branches."
+    },
+    {
+      "branch": "valid nonempty candidate then later malformed entry/hasLoader/comparison exception",
+      "result": "catch leaves earlier nonempty latest; found captures it; result may LATEST or OUTDATED, not necessarily ERROR."
+    },
+    {
+      "branch": "empty version string retained",
+      "result": "found empty yields ERROR by callback guard; nonnull alone does not imply success."
+    }
+  ],
+  "unchanged_scope": [
+    "F08 callback result classification and no active-screen/generation guard remain source observations.",
+    "Per-instance updateChecked still suppresses ordinary same-instance reinit retry, including ERROR.",
+    "Local comparator is not fully verified SemVer; candidate results not checked against network data.",
+    "At most one related whole remains source-only; no formal append/Main ledger update authorized.",
+    "Reported historical5 remains not independently Main certified. Four UI issues remain open."
+  ],
+  "checks": {
+    "original_003_sha_unchanged": true,
+    "Main_hash_exact": true,
+    "source_raw_sha_matches_manifest": true,
+    "correction_preserves_partial_result": true,
+    "no_998_retest_or_reread_claim": true,
+    "formal_credit_zero": true,
+    "no_gitblob_fabricated": true
+  },
+  "actions": {
+    "new_pure_JSON": 1,
+    "production_edits": 0,
+    "formal_state_edits": 0,
+    "network_requests": 0,
+    "game_or_Java_starts": 0,
+    "task_deletions": 0,
+    "new_formal_credit": 0
+  },
+  "all_tasks_complete": false
+}

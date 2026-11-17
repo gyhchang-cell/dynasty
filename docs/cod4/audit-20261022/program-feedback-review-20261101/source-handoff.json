@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "at": "2026-11-01T05:12:20Z",
+  "status": "SOURCE_REVIEW_COMPLETE_IMPLEMENTATION_AND_NATIVE_ACCEPTANCE_INCOMPLETE",
+  "authority": {
+    "source_thread": "01a16364-cac0-7ca2-a042-a5312781ca34",
+    "latest_scope": "程序bug/反饋接線：陰陽免疫、寒脈、BossImmune、真實狀態回執、多人AOE、橫掃4SRG整合邊界",
+    "five_hour_deadline_applies": false,
+    "automations_created": 0,
+    "automation_deletion": "由主協調完成；本岗未重建",
+    "game_runtime_owner": "主協調",
+    "shared_jar_write_allowed": false
+  },
+  "gate": {
+    "file": "docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+    "effective": 441,
+    "required": 1000,
+    "remaining": 559,
+    "passed": false,
+    "this_review_credit": 0,
+    "old_menu_100_or_5_transferred": 0,
+    "source_hash_or_method_credit": 0,
+    "production_implementation_started": false
+  },
+  "sources": {
+    "production_sources": {
+      "src/main/java/com/dynasty/expansion/QiConstitution.java": "c5fb3ab621aaa7642ca842c84ad4a2dd4aa277547bb22efb107e0b3edf5843b9",
+      "src/main/java/com/dynasty/expansion/ExpansionEffects.java": "fe8c30f7e51122824cf9565f6a088c07b131d81af8cd1609b197edc69419f8f2",
+      "src/main/java/com/dynasty/expansion/CombatFeedback.java": "7ed8e88e3fc96dca90ac4498bf339e64e7a90a0cdf0989b6618ea671dca1088c",
+      "src/main/java/com/dynasty/expansion/ExpansionClient.java": "379c3355d2d52a815c7da6bf195f7163f52993f0291d03bc77eba39bb5f8f9f9",
+      "src/main/java/com/dynasty/expansion/EquipmentBehaviors.java": "feb3324f6c4cf1df914e869235e8fe3cc49e5914e31f1b188f96838984ef38f4",
+      "src/main/java/com/dynasty/expansion/ExpansionWeapons.java": "c8a941f03434f4c220d2a9575da0b1689a2e797f79bc6480a3e8229531ca7546",
+      "src/main/java/com/dynasty/expansion/SecondaryProjectile.java": "6fb6b1c7a62fd5195dba23b50de14f158aa4f588f8eeb2ee36c216404979d6da",
+      "src/main/java/com/dynasty/expansion/SecondaryCombatActions.java": "fca8a62780036e4f6d054dc64e951f00de1262b8edcf59c57d9364011a04ef6b",
+      "src/main/java/com/dynasty/expansion/SecondaryMob.java": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "src/main/java/com/dynasty/expansion/ExpansionSupplies.java": "ae9dd058dc75e723c87b62d5c38c37bc30eeb9c1f7efcfaf1682791c51ab0fce",
+      "src/main/java/com/dynasty/expansion/GeothermalWater.java": "49ab5732faaab28c92da3cd5829991b027b62e3dde74fade31f85b30252e57fd",
+      "src/main/java/com/dynasty/cod3/WeaponLift.java": "27d2b57d142f14be356ffe6f7abaa893320bc2eed6376905e2eb1bdc6feb452c",
+      "src/main/java/com/dynasty/cod3/FangtianSweep.java": "02557c5e4a411561d5754b35e119b3af2c6d9eff2d132820cc4773621240a912",
+      "src/main/java/com/dynasty/network/CombatFeedbackNetworkRegistration.java": "25c0235ff1c3ae081bc496af3a56851d622bca7af3d70c29b9febcfc358b53fc"
+    },
+    "native_archive": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "native_members": {
+      "net/minecraft/world/entity/LivingEntity.java": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "net/minecraftforge/network/PacketDistributor.java": "ae7a9f7b6a0e276dca8d05452518f095d2c6954fe93a0aa6c678cf18c80e5824",
+      "net/minecraft/server/players/PlayerList.java": "a0411d38e7aa956ee62988607d3e65de282b647bb6611540f7420c4f7fd43ba3"
+    },
+    "current_immune_progress": {
+      "target": 1000,
+      "reviewed_effective_semantic_dedup": 441,
+      "remaining": 559,
+      "source_projects_acquired": 79,
+      "acquisition_credit": 0,
+      "formal_design_gate_satisfied": false,
+      "production_changes": false,
+      "game_started": false,
+      "counting_note": "Each manually reviewed semantically independent game implementation site earns 1; full containing methods and native chain context are evidence, not extra credits. Method/file counts, wrappers, ports, constant-only variants and candidate hits earn 0. Semantic cross-project review still requires human-agent judgment; verifier checks key uniqueness and hashes only."
+    }
+  },
+  "observations": [
+    {
+      "id": "PF-01",
+      "topic": "陰陽免疫與清理",
+      "kind": "EXISTING_SOURCE_PATH_PRESERVED",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/QiConstitution.java:18-50",
+        "src/main/java/com/dynasty/expansion/ExpansionEffects.java:46-52"
+      ],
+      "fact": "體質每次按當前ServerPlayer、四件裝備和isDay判斷；Applicable為DENY，裝備變更與LivingTick在效果tick前嘗試清理。apply先拒絕再做相反陰陽抵消，沒有持久化免疫旗標。",
+      "boundary": "removeEffect可被Forge Remove事件取消；不宣稱必然移除成功。普通體質與Boss灰字規格分開，不能把Boss灰字追加到普通陰陽需求。",
+      "action": "不重做已通過邏輯；換裝/晝夜/換維雙客戶端驗收由協調安排。"
+    },
+    {
+      "id": "PF-02",
+      "topic": "寒脈解除來源",
+      "kind": "EXISTING_SOURCE_PATH_PRESERVED_WITH_CONDITIONAL_TIMING_OBSERVATION",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/ExpansionEffects.java:25-40",
+        "src/main/java/com/dynasty/expansion/GeothermalWater.java:14-29",
+        "src/main/java/com/dynasty/expansion/ExpansionSupplies.java:20-35",
+        "src/main/java/com/dynasty/expansion/ExpansionSupplies.java:93-99",
+        "native:LivingEntity.java:751-770,978-986"
+      ],
+      "fact": "溫泉以已載入水連通區及實際岩漿方塊判定，每20 entity tick檢查；暖酒另有維度綁定有效期及移除/拒絕FROST。遇火解除放在FROST本身每20 duration tick的applyEffectTick。",
+      "boundary": "本輪不驗冰紋。FROST遇火時直接移除activeEffects，原版tickEffects遍歷同一HashMap且捕捉ConcurrentModificationException；若還有待遍歷效果，可能提前結束該tick的剩餘效果遍歷。這是條件性源碼觀察，未實機復現，不能據此推翻已過驗收或直接改生產。",
+      "action": "只提交給集中驗收加入多效果共存、遇火後服務端移除及雙客戶端清除比對。"
+    },
+    {
+      "id": "PF-03",
+      "topic": "Boss免疫類型與回執消費",
+      "kind": "REMAINING_WIRING_GAP_SOURCE_CONFIRMED",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/ExpansionEffects.java:49-50",
+        "src/main/java/com/dynasty/expansion/QiConstitution.java:29-33",
+        "src/main/java/com/dynasty/expansion/ExpansionWeapons.java:97-101",
+        "src/main/java/com/dynasty/expansion/CombatFeedback.java:20-44",
+        "src/main/java/com/dynasty/expansion/ExpansionClient.java:85-89"
+      ],
+      "fact": "普通體質拒絕及Boss的SHA/STAGGER或牽引拒絕都送IMMUNE=9。客戶端type9走預設ENCHANTED_HIT及PLAYER_ATTACK_CRIT；本處沒有專用Boss灰字、拒控嗡鳴或原因欄位。",
+      "boundary": "僅限此封包處理鏈，不冒稱全客戶端所有視覺類已讀。Boss guard在apply/武器入口；原生其他呼叫是否應受同一政策，需按原需求決定，不把任意addEffect false都判成Boss免疫。",
+      "action": "1000門檻前不改wire/正式反饋；灰字與反饋原因需要能區分普通體質及Boss拒控，模型/貼圖由原專崗交付。"
+    },
+    {
+      "id": "PF-04",
+      "topic": "去重策略",
+      "kind": "CURRENT_BEHAVIOR_NOT_NEW_BUG_CLAIM",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/CombatFeedback.java:28-44"
+      ],
+      "fact": "目前在目標實體NBT記最後type/tick，3刻內同或低優先級被抑制，高優先級可以覆蓋；IMMUNE優先級5，控制/破甲4。不是按攻擊者、原因或每個獨立狀態作去重。",
+      "boundary": "多人攻同一目標會共用桶；不同目標不共用該桶。不能從這一點推定實機刷屏或沒有刷屏。",
+      "action": "集中AOE、連擊及同目標多人拒控驗收；保留現有節流，不為研究改生產。"
+    },
+    {
+      "id": "PF-05",
+      "topic": "Armor Break與Stagger的準入結果",
+      "kind": "REMAINING_WIRING_GAP_SOURCE_CONFIRMED",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/ExpansionEffects.java:53-63",
+        "src/main/java/com/dynasty/expansion/EquipmentBehaviors.java:424-431",
+        "src/main/java/com/dynasty/expansion/SecondaryProjectile.java:26-38",
+        "native:LivingEntity.java:924-955"
+      ],
+      "fact": "apply為void且丟棄addEffect回傳；白虎符破甲與種子命中後仍直接送ARMOR/STAGGER。普通目標被Applicable拒絕或效果未更新時，這些呼叫本身沒有確認新狀態成立。",
+      "boundary": "addEffect=false可能是不變/較弱更新或拒絕，不能自動都發IMMUNE；已有狀態、重施、拒絕必須區分。Boss種子入口已送高優先級IMMUNE時，立即STAGGER通常會被同目標節流擋下，不能錯稱每次都發雙包。",
+      "action": "門檻後讓反饋依真實接受/刷新/不變/拒絕結果；不新增額外傷害或平行控制帳本。"
+    },
+    {
+      "id": "PF-06",
+      "topic": "金豹破甲回執",
+      "kind": "REMAINING_WIRING_GAP_SOURCE_CONFIRMED",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/SecondaryCombatActions.java:113-120",
+        "src/main/java/com/dynasty/expansion/SecondaryMob.java:272-296"
+      ],
+      "fact": "金豹contact在doHurtTarget成功後送ARMOR；所讀doHurtTarget switch沒有golden_leopard施加BREAK的分支。此鏈把一次成功近戰當成破甲回執。",
+      "boundary": "不能排除外部事件或既有目標BREAK狀態；需要用無其他破甲來源的普通目標驗證。沒有更改此生物模型、動作或傷害。",
+      "action": "待協調確認此技能設計應施加的真實既有狀態，門檻後只修回執與狀態的對應。"
+    },
+    {
+      "id": "PF-07",
+      "topic": "Knockdown與Launch",
+      "kind": "MIXED_EXISTING_GOOD_PATH_AND_REMAINING_WIRING_GAP",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/ExpansionWeapons.java:97-101",
+        "src/main/java/com/dynasty/expansion/SecondaryCombatActions.java:82-90",
+        "src/main/java/com/dynasty/cod3/WeaponLift.java:60-112"
+      ],
+      "fact": "WeaponLift在原生主擊來源匹配後，等待速度增量、可上升碰撞空間及實際Y上升至少.02才送LAUNCH，並限制世界、生命、距離與壽命。相對地，奇門拉拽直接設速度後發KNOCKDOWN；鑽地怪age19直接設速度後發自身LAUNCH，未觀察後續實際位移。",
+      "boundary": "已通過WeaponLift邏輯不重寫、不重跑。發送對象是被拉目標或躍出的mob，不能稱都發給錯誤實體；缺口是回執時機/真實狀態含義。",
+      "action": "集中驗收碰撞阻擋、拒控、未形成倒地/浮空等負例；不替建模專崗製作倒地起身動作。"
+    },
+    {
+      "id": "PF-08",
+      "topic": "Hit與Block",
+      "kind": "EXISTING_SOURCE_PATH_PRESERVED",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/CombatFeedback.java:46-62",
+        "src/main/java/com/dynasty/expansion/EquipmentBehaviors.java:258-283"
+      ],
+      "fact": "Hit在LOWEST LivingDamage檢查取消、正傷、服務端、真實武器來源及非合成傷害；Block在LOWEST ShieldBlock檢查取消/正blocked damage後送到防守者，perfect使用原時間窗並清理STAGGER。",
+      "boundary": "正傷事件並非整個事件匯流排返回後的HP快照；不外推到所有外部同優先級監聽器。此處沒有宣稱完成反應動畫/材質火花/聲音驗收。",
+      "action": "保留已通過邏輯，只銜接專崗實際資產與集中原生驗收。"
+    },
+    {
+      "id": "PF-09",
+      "topic": "多人AOE接收範圍與Camera",
+      "kind": "SOURCE_SCOPE_CONFIRMED_RUNTIME_PENDING",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/CombatFeedback.java:28-36",
+        "src/main/java/com/dynasty/expansion/CombatFeedback.java:64-73",
+        "src/main/java/com/dynasty/network/CombatFeedbackNetworkRegistration.java:12-16",
+        "src/main/java/com/dynasty/expansion/ExpansionClient.java:57-90",
+        "native:PacketDistributor.java:51,125-131,217-221",
+        "native:PlayerList.java:628-641"
+      ],
+      "fact": "wire16/v2只向客戶端；NEAR由目標位置與維度派送，原版broadcast逐玩家檢查同維度及距離平方嚴格小於32²，excluded=null。客戶端僅粒子與本地聲音，此方法沒有Camera旋轉、位置或控制寫入。",
+      "boundary": "不能把原碼檢查當成雙客戶端實收或整個模組無相機副作用驗收；恰好32格不屬於目前範圍內。",
+      "action": "集中驗收攻擊者、受擊者、旁觀者、超出範圍者及異維度者，禁止用本機FakePlayer替代真人雙客戶端。"
+    },
+    {
+      "id": "PF-10",
+      "topic": "延遲封包與客戶端預算",
+      "kind": "CONDITIONAL_LIFECYCLE_GAP",
+      "refs": [
+        "src/main/java/com/dynasty/expansion/CombatFeedback.java:20,64-73",
+        "src/main/java/com/dynasty/expansion/ExpansionClient.java:57-89"
+      ],
+      "fact": "封包只有type和起終點座標，沒有維度/UUID/發送tick；enqueueWork後由當前Minecraft.level消費。每gameTime最多128粒子，入口達上限直接return，未依IMMUNE等優先級保留預算。",
+      "boundary": "換維時晚到包是否能呈現在新世界需真實連線時序復現；不把可能性說成已發生。預算可能抑制整個包及其聲音，但本輪未測低幀率與實際性能。",
+      "action": "在集中驗收列出換維邊界、同tick多目標和飽和後高優先級拒控回執，不提前改協議。"
+    }
+  ],
+  "sweep": {
+    "classification": "KNOWN_PENDING_INTEGRATION_NOT_NEW_BUG",
+    "coordinator_latest_correction_applied": true,
+    "coordinator_statement": {
+      "shared_bundle_prefix": "0e4fb4f2",
+      "private_current_bundle_prefix": "b40e2143",
+      "ownership": "協調執行自有sweep01；本岗不操作launcher/ps環境/共享Jar"
+    },
+    "one_time_read_observation": {
+      "prepared_4_srg_receipt": "docs/cod4/audit-20261022/sweep-receipt-research/coordinator-srg-integration-preparation-20261029.json",
+      "private_prepared_classes_match_recorded_4_hashes": true,
+      "project_shared_4_class_hashes_differ": true,
+      "private_Receipt_has_ServerLevel_level": true,
+      "project_shared_Receipt_has_ServerLevel_level": false,
+      "source_still_matches_delivered": true
+    },
+    "interpretation": "世界快照欄位缺失證實不是同一修復版本；與協調已知待整合一致，不重立項、不重跑55個已過離線案例。私有current-bundle由協調掌握，本次舊prepared讀取不得覆蓋它。",
+    "runtime_verified": false,
+    "jar_written": false
+  },
+  "research_dedup": {
+    "new_credit": 0,
+    "mechanism": "BloodMagic落地反彈與Ars既計落地拒傷/下一tick恢復Y同族",
+    "existing_id": "ars-bounce-fall-source-avoidance-and-next-tick-motion",
+    "detail_file": "research-dedup-note.json",
+    "baseline_count_unchanged": 441
+  },
+  "verification": {
+    "type": "read-only source/ZIP classfile parse plus evidence JSON validation only",
+    "existing_passed_tests_rerun": 0,
+    "new_native_tests": 0,
+    "java_or_gradle_processes_started": 0,
+    "game_server_or_client_started": 0,
+    "network_requests_this_delegation": 0,
+    "known_quota_lock_retries": 0,
+    "alternate_account_or_model_attempts": 0
+  },
+  "changes": {
+    "production_sources": 0,
+    "shared_jars": 0,
+    "launcher_tools": 0,
+    "model_texture_assets": 0,
+    "user_instances_or_saves": 0,
+    "master_todos_or_research_ledgers": 0,
+    "automations": 0,
+    "commits_or_pushes": 0,
+    "local_evidence_only": true
+  },
+  "remaining_limits": [
+    "免疫有效語義參考仍441/1000，缺559；本報告及方法/檔案/雜湊不增加信用。",
+    "門檻未通過前不改正式免疫/狀態回執/協議。",
+    "實機、雙客戶端、低幀率、音畫及Camera整體驗收由主協調安排；本輪未執行。",
+    "橫掃整合已知在協調私有bundle，主清單只能由協調驗收後刪除。"
+  ],
+  "overall_task_complete": false
+}

@@ -1,0 +1,398 @@
+{
+  "schema": "specialist-UI-known-notification-owner-complete-source-support-v1",
+  "recorded_utc": "2026-11-14T05:13:38.028288+00:00",
+  "status": "ACTUAL_FIXED_LOCAL_SOURCE_SUPPORT_MERGE0_KNOWN_UI_ISSUES_NO_PRODUCTION_FIX",
+  "priority": "Latest human continuation of own menu/world/tooltip task; original-program delegation retained as subsequent scope.",
+  "previous_UI_audit": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-resume-existing-delivery-and-provihealth-config-MERGE0-20261114.json",
+    "sha256": "2f008c7523cf03ab3a835ac2eed8c0f1a3017d95e73b9500dae555ed4c54a6ec",
+    "bytes": 64987
+  },
+  "existing_UI_delivery_preserved": true,
+  "original_four_findings": [
+    {
+      "id": "UI-20261101-01",
+      "title": "設定中樞標題與返回文案不隨語言切換",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:250",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:257"
+      ],
+      "trigger": "英文或其他非中文介面，開啟設定中樞；或切換語言後重新開啟。",
+      "causal_chain": [
+        "SettingsHub 的 title 是 Component.literal(\"设置与更多\")。",
+        "返回按鈕是 Component.literal(\"返回\")。",
+        "此兩個 Component 未引用語言資源；原版語言切換/reload 不會翻譯 literal。"
+      ],
+      "observed_scope": "源碼確定的固定文案；本輪沒有啟動客戶端取得英文截圖。",
+      "repair_boundary_after_gate": "只涉及自有標題及通用返回標籤；原動作與畫面背景保留。",
+      "gate": "NOT_MET"
+    },
+    {
+      "id": "UI-20261101-02",
+      "title": "設定中樞縮放後以父主選單舊尺寸繪製背景",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:261",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:144"
+      ],
+      "trigger": "在設定中樞保持開啟的情況下調整視窗/GUI尺寸，例如邏輯視口由320×240擴至640×400。",
+      "causal_chain": [
+        "Minecraft.resizeDisplay 只對當前 screen 呼叫 resize。",
+        "Screen.resize 更新當前物件 width/height 並重建控件；沒有遞迴更新 parent。",
+        "SettingsHub.render 呼叫 parent.renderArtwork(g)，而該方法用 parent.width、parent.height、parent.layout。",
+        "中樞面板及控件已用新尺寸，背景比例、漸層、邊框仍取父物件舊尺寸。"
+      ],
+      "observed_scope": "尺寸來源失同步由呼叫鏈確定；空白區/裁切等實際像素表現待靜音實機授權後驗收，不冒稱已看見。",
+      "repair_boundary_after_gate": "讓設定頁繪製取當前視口，主選單原畫、裁切規則及原尺寸下效果保留；不能為同步背景重跑父主菜單 init 的服務初始化。",
+      "gate": "NOT_MET"
+    },
+    {
+      "id": "UI-20261101-03",
+      "title": "Realms 通知圖示仍綁在已隱藏的主頁按鈕",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED_CONDITIONAL_DISPLAY",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:92",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:126",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:251"
+      ],
+      "trigger": "正常非Demo帳號；Realms validClient 且有 unseen notification、邀請、新聞或試用等可繪製狀態。",
+      "causal_chain": [
+        "arrange 隱藏所有按鈕，只恢復四個主操作；menu.online 仍存在但 visible=false。",
+        "主頁render只檢查 realms!=null 與 realmsLayer!=null，未按可見入口決定通知圖示所有權。",
+        "原版RealmsNotificationsScreen.render 在 validClient 為真時繪圖，並不讀本模組按鈕visible。",
+        "設定中樞另建可見Realms按鈕，只繪背景及自身widgets，沒有對應通知層。"
+      ],
+      "observed_scope": "源碼可確認層與可見入口分離；本輪未聯網查Realms、未注入帳號通知、未實機復現。",
+      "repair_boundary_after_gate": "先確定通知應附著哪個可見入口；不可僅把原layer搬到Hub就宣稱完成，因原版getConfiguration還要求當前screen instanceof TitleScreen。",
+      "gate": "NOT_MET"
+    },
+    {
+      "id": "UI-20261101-04",
+      "title": "Forge 模組更新圖示仍在主頁舊 Mods 按鈕位置繪製",
+      "severity": "P2",
+      "evidence_level": "SOURCE_CONFIRMED_CONDITIONAL_DISPLAY",
+      "locations": [
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:71",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:92",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:137",
+        "src/main/java/com/dynasty/client/DynastyTitleScreen.java:251"
+      ],
+      "trigger": "Forge 檢查結果 showNotification.shouldDraw() 為真，且 VERSION_CHECK 開啟。",
+      "causal_chain": [
+        "Mods按鈕被主頁arrange隱藏；syncOriginalBounds只同步其幾何，未把通知所有權轉到中樞可見按鈕。",
+        "主頁render仍呼叫updateLayer.render。",
+        "Forge layer通過通知狀態及設定檢查後直接讀modButton幾何繪圖，沒有visible檢查。",
+        "SettingsHub新建Mods wrapper，但未繪製updateLayer。"
+      ],
+      "observed_scope": "有更新狀態時會發生的源碼問題；本輪未檢查更新服務或造通知事件。",
+      "repair_boundary_after_gate": "通知與當前可見Mods入口同步，並保留Forge更新開關；不改全局更新機制。",
+      "gate": "NOT_MET"
+    }
+  ],
+  "old_business_before_new_source": "Complete four original UI findings plus complete five UI examples/support were read before these new native full classes; old program references are not imported into UI count.",
+  "actual_reading": {
+    "source_archive": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "bytes": 7546864
+    },
+    "members": [
+      {
+        "binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/com/mojang/realmsclient/gui/screens/RealmsNotificationsScreen.java",
+          "sha256": "ac88e7102999e2e66da8f739d6a9d1533c4d76e669387812e43a722bba82b91f",
+          "bytes": 8398
+        },
+        "archive_member": "com/mojang/realmsclient/gui/screens/RealmsNotificationsScreen.java",
+        "archive_bytes_exact": true,
+        "total_lines": 217,
+        "ranges": [
+          [
+            1,
+            217
+          ]
+        ],
+        "unique_selected_lines": 217,
+        "whole_class_read": true,
+        "selected_source": [
+          {
+            "from": 1,
+            "to": 217,
+            "text": "package com.mojang.realmsclient.gui.screens;\n\nimport com.mojang.realmsclient.client.RealmsClient;\nimport com.mojang.realmsclient.dto.RealmsNotification;\nimport com.mojang.realmsclient.exception.RealmsServiceException;\nimport com.mojang.realmsclient.gui.RealmsDataFetcher;\nimport com.mojang.realmsclient.gui.task.DataFetcher;\nimport java.util.Objects;\nimport javax.annotation.Nullable;\nimport net.minecraft.Util;\nimport net.minecraft.client.GameNarrator;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.realms.RealmsScreen;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class RealmsNotificationsScreen extends RealmsScreen {\n   private static final ResourceLocation INVITE_ICON_LOCATION = new ResourceLocation(\"realms\", \"textures/gui/realms/invite_icon.png\");\n   private static final ResourceLocation TRIAL_ICON_LOCATION = new ResourceLocation(\"realms\", \"textures/gui/realms/trial_icon.png\");\n   private static final ResourceLocation NEWS_ICON_LOCATION = new ResourceLocation(\"realms\", \"textures/gui/realms/news_notification_mainscreen.png\");\n   private static final ResourceLocation UNSEEN_NOTIFICATION_ICON_LOCATION = new ResourceLocation(\"minecraft\", \"textures/gui/unseen_notification.png\");\n   @Nullable\n   private DataFetcher.Subscription realmsDataSubscription;\n   @Nullable\n   private RealmsNotificationsScreen.DataFetcherConfiguration currentConfiguration;\n   private volatile int numberOfPendingInvites;\n   static boolean checkedMcoAvailability;\n   private static boolean trialAvailable;\n   static boolean validClient;\n   private static boolean hasUnreadNews;\n   private static boolean hasUnseenNotifications;\n   private final RealmsNotificationsScreen.DataFetcherConfiguration showAll = new RealmsNotificationsScreen.DataFetcherConfiguration() {\n      public DataFetcher.Subscription initDataFetcher(RealmsDataFetcher p_275318_) {\n         DataFetcher.Subscription datafetcher$subscription = p_275318_.dataFetcher.createSubscription();\n         RealmsNotificationsScreen.this.addNewsAndInvitesSubscriptions(p_275318_, datafetcher$subscription);\n         RealmsNotificationsScreen.this.addNotificationsSubscriptions(p_275318_, datafetcher$subscription);\n         return datafetcher$subscription;\n      }\n\n      public boolean showOldNotifications() {\n         return true;\n      }\n   };\n   private final RealmsNotificationsScreen.DataFetcherConfiguration onlyNotifications = new RealmsNotificationsScreen.DataFetcherConfiguration() {\n      public DataFetcher.Subscription initDataFetcher(RealmsDataFetcher p_275318_) {\n         DataFetcher.Subscription datafetcher$subscription = p_275318_.dataFetcher.createSubscription();\n         RealmsNotificationsScreen.this.addNotificationsSubscriptions(p_275318_, datafetcher$subscription);\n         return datafetcher$subscription;\n      }\n\n      public boolean showOldNotifications() {\n         return false;\n      }\n   };\n\n   public RealmsNotificationsScreen() {\n      super(GameNarrator.NO_TITLE);\n   }\n\n   public void init() {\n      this.checkIfMcoEnabled();\n      if (this.realmsDataSubscription != null) {\n         this.realmsDataSubscription.forceUpdate();\n      }\n\n   }\n\n   public void added() {\n      super.added();\n      this.minecraft.realmsDataFetcher().notificationsTask.reset();\n   }\n\n   @Nullable\n   private RealmsNotificationsScreen.DataFetcherConfiguration getConfiguration() {\n      boolean flag = this.inTitleScreen() && validClient;\n      if (!flag) {\n         return null;\n      } else {\n         return this.getRealmsNotificationsEnabled() ? this.showAll : this.onlyNotifications;\n      }\n   }\n\n   public void tick() {\n      RealmsNotificationsScreen.DataFetcherConfiguration realmsnotificationsscreen$datafetcherconfiguration = this.getConfiguration();\n      if (!Objects.equals(this.currentConfiguration, realmsnotificationsscreen$datafetcherconfiguration)) {\n         this.currentConfiguration = realmsnotificationsscreen$datafetcherconfiguration;\n         if (this.currentConfiguration != null) {\n            this.realmsDataSubscription = this.currentConfiguration.initDataFetcher(this.minecraft.realmsDataFetcher());\n         } else {\n            this.realmsDataSubscription = null;\n         }\n      }\n\n      if (this.realmsDataSubscription != null) {\n         this.realmsDataSubscription.tick();\n      }\n\n   }\n\n   private boolean getRealmsNotificationsEnabled() {\n      return this.minecraft.options.realmsNotifications().get();\n   }\n\n   private boolean inTitleScreen() {\n      return this.minecraft.screen instanceof TitleScreen;\n   }\n\n   private void checkIfMcoEnabled() {\n      if (!checkedMcoAvailability) {\n         checkedMcoAvailability = true;\n         (new Thread(\"Realms Notification Availability checker #1\") {\n            public void run() {\n               RealmsClient realmsclient = RealmsClient.create();\n\n               try {\n                  RealmsClient.CompatibleVersionResponse realmsclient$compatibleversionresponse = realmsclient.clientCompatible();\n                  if (realmsclient$compatibleversionresponse != RealmsClient.CompatibleVersionResponse.COMPATIBLE) {\n                     return;\n                  }\n               } catch (RealmsServiceException realmsserviceexception) {\n                  if (realmsserviceexception.httpResultCode != 401) {\n                     RealmsNotificationsScreen.checkedMcoAvailability = false;\n                  }\n\n                  return;\n               }\n\n               RealmsNotificationsScreen.validClient = true;\n            }\n         }).start();\n      }\n\n   }\n\n   public void render(GuiGraphics p_282587_, int p_282992_, int p_283028_, float p_281605_) {\n      if (validClient) {\n         this.drawIcons(p_282587_);\n      }\n\n      super.render(p_282587_, p_282992_, p_283028_, p_281605_);\n   }\n\n   private void drawIcons(GuiGraphics p_282966_) {\n      int i = this.numberOfPendingInvites;\n      int j = 24;\n      int k = this.height / 4 + 48;\n      int l = this.width / 2 + 80;\n      int i1 = k + 48 + 2;\n      int j1 = 0;\n      if (hasUnseenNotifications) {\n         p_282966_.blit(UNSEEN_NOTIFICATION_ICON_LOCATION, l - j1 + 5, i1 + 3, 0.0F, 0.0F, 10, 10, 10, 10);\n         j1 += 14;\n      }\n\n      if (this.currentConfiguration != null && this.currentConfiguration.showOldNotifications()) {\n         if (hasUnreadNews) {\n            p_282966_.pose().pushPose();\n            p_282966_.pose().scale(0.4F, 0.4F, 0.4F);\n            p_282966_.blit(NEWS_ICON_LOCATION, (int)((double)(l + 2 - j1) * 2.5D), (int)((double)i1 * 2.5D), 0.0F, 0.0F, 40, 40, 40, 40);\n            p_282966_.pose().popPose();\n            j1 += 14;\n         }\n\n         if (i != 0) {\n            p_282966_.blit(INVITE_ICON_LOCATION, l - j1, i1, 0.0F, 0.0F, 18, 15, 18, 30);\n            j1 += 16;\n         }\n\n         if (trialAvailable) {\n            int k1 = 0;\n            if ((Util.getMillis() / 800L & 1L) == 1L) {\n               k1 = 8;\n            }\n\n            p_282966_.blit(TRIAL_ICON_LOCATION, l + 4 - j1, i1 + 4, 0.0F, (float)k1, 8, 8, 8, 16);\n         }\n      }\n\n   }\n\n   void addNewsAndInvitesSubscriptions(RealmsDataFetcher p_275490_, DataFetcher.Subscription p_275623_) {\n      p_275623_.subscribe(p_275490_.pendingInvitesTask, (p_239521_) -> {\n         this.numberOfPendingInvites = p_239521_;\n      });\n      p_275623_.subscribe(p_275490_.trialAvailabilityTask, (p_239494_) -> {\n         trialAvailable = p_239494_;\n      });\n      p_275623_.subscribe(p_275490_.newsTask, (p_238946_) -> {\n         p_275490_.newsManager.updateUnreadNews(p_238946_);\n         hasUnreadNews = p_275490_.newsManager.hasUnreadNews();\n      });\n   }\n\n   void addNotificationsSubscriptions(RealmsDataFetcher p_275619_, DataFetcher.Subscription p_275628_) {\n      p_275628_.subscribe(p_275619_.notificationsTask, (p_274637_) -> {\n         hasUnseenNotifications = false;\n\n         for(RealmsNotification realmsnotification : p_274637_) {\n            if (!realmsnotification.seen()) {\n               hasUnseenNotifications = true;\n               break;\n            }\n         }\n\n      });\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   interface DataFetcherConfiguration {\n      DataFetcher.Subscription initDataFetcher(RealmsDataFetcher p_275608_);\n\n      boolean showOldNotifications();\n   }\n}"
+          }
+        ],
+        "source_quantity_credit": 0
+      },
+      {
+        "binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/client/gui/TitleScreenModUpdateIndicator.java",
+          "sha256": "66fbd8b4b5cebfa7083ddfbbee50e98c39eace758eb65dca1923585bb3ca90a9",
+          "bytes": 2567
+        },
+        "archive_member": "net/minecraftforge/client/gui/TitleScreenModUpdateIndicator.java",
+        "archive_bytes_exact": true,
+        "total_lines": 71,
+        "ranges": [
+          [
+            1,
+            71
+          ]
+        ],
+        "unique_selected_lines": 71,
+        "whole_class_read": true,
+        "selected_source": [
+          {
+            "from": 1,
+            "to": 71,
+            "text": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.client.gui;\n\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.client.gui.screens.Screen;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraftforge.fml.loading.FMLConfig;\nimport net.minecraftforge.versions.forge.ForgeVersion;\nimport net.minecraftforge.fml.VersionChecker;\nimport net.minecraftforge.client.loading.ClientModLoader;\n\npublic class TitleScreenModUpdateIndicator extends Screen\n{\n\n    private static final ResourceLocation VERSION_CHECK_ICONS = new ResourceLocation(ForgeVersion.MOD_ID, \"textures/gui/version_check_icons.png\");\n\n    private final Button modButton;\n    private VersionChecker.Status showNotification = null;\n    private boolean hasCheckedForUpdates = false;\n\n    public TitleScreenModUpdateIndicator(Button modButton)\n    {\n        super(Component.translatable(\"forge.menu.updatescreen.title\"));\n        this.modButton = modButton;\n    }\n\n    @Override\n    public void init()\n    {\n        if (!hasCheckedForUpdates)\n        {\n            if (modButton != null)\n            {\n                showNotification = ClientModLoader.checkForUpdates();\n            }\n            hasCheckedForUpdates = true;\n        }\n    }\n\n    @Override\n    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick)\n    {\n        if (showNotification == null || !showNotification.shouldDraw() || !FMLConfig.getBoolConfigValue(FMLConfig.ConfigValue.VERSION_CHECK))\n        {\n            return;\n        }\n\n        int x = modButton.getX();\n        int y = modButton.getY();\n        int w = modButton.getWidth();\n        int h = modButton.getHeight();\n\n        guiGraphics.blit(VERSION_CHECK_ICONS, x + w - (h / 2 + 4), y + (h / 2 - 4), showNotification.getSheetOffset() * 8, (showNotification.isAnimated() && ((System.currentTimeMillis() / 800 & 1) == 1)) ? 8 : 0, 8, 8, 64, 16);\n    }\n\n    public static TitleScreenModUpdateIndicator init(TitleScreen guiMainMenu, Button modButton)\n    {\n        TitleScreenModUpdateIndicator titleScreenModUpdateIndicator = new TitleScreenModUpdateIndicator(modButton);\n        titleScreenModUpdateIndicator.resize(guiMainMenu.getMinecraft(), guiMainMenu.width, guiMainMenu.height);\n        titleScreenModUpdateIndicator.init();\n        return titleScreenModUpdateIndicator;\n    }\n\n}"
+          }
+        ],
+        "source_quantity_credit": 0
+      },
+      {
+        "binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/TitleScreen.java",
+          "sha256": "6ce3f8d2a15e002bc09372cfd343658a24f462a21a4f2bbb03006471a989ba95",
+          "bytes": 15770
+        },
+        "archive_member": "net/minecraft/client/gui/screens/TitleScreen.java",
+        "archive_bytes_exact": true,
+        "total_lines": 336,
+        "ranges": [
+          [
+            1,
+            175
+          ],
+          [
+            176,
+            336
+          ]
+        ],
+        "unique_selected_lines": 336,
+        "whole_class_read": true,
+        "selected_source": [
+          {
+            "from": 1,
+            "to": 175,
+            "text": "package net.minecraft.client.gui.screens;\n\nimport com.mojang.authlib.minecraft.BanDetails;\nimport com.mojang.blaze3d.systems.RenderSystem;\nimport com.mojang.logging.LogUtils;\nimport com.mojang.realmsclient.RealmsMainScreen;\nimport com.mojang.realmsclient.gui.screens.RealmsNotificationsScreen;\nimport java.io.IOException;\nimport java.util.Objects;\nimport java.util.concurrent.CompletableFuture;\nimport java.util.concurrent.Executor;\nimport javax.annotation.Nullable;\nimport net.minecraft.SharedConstants;\nimport net.minecraft.Util;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.gui.Font;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.AbstractWidget;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.ImageButton;\nimport net.minecraft.client.gui.components.LogoRenderer;\nimport net.minecraft.client.gui.components.MultiLineLabel;\nimport net.minecraft.client.gui.components.PlainTextButton;\nimport net.minecraft.client.gui.components.SplashRenderer;\nimport net.minecraft.client.gui.components.Tooltip;\nimport net.minecraft.client.gui.components.events.GuiEventListener;\nimport net.minecraft.client.gui.components.toasts.SystemToast;\nimport net.minecraft.client.gui.screens.multiplayer.JoinMultiplayerScreen;\nimport net.minecraft.client.gui.screens.multiplayer.SafetyScreen;\nimport net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;\nimport net.minecraft.client.renderer.CubeMap;\nimport net.minecraft.client.renderer.PanoramaRenderer;\nimport net.minecraft.client.renderer.texture.TextureManager;\nimport net.minecraft.client.resources.language.I18n;\nimport net.minecraft.network.chat.CommonComponents;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.MinecraftServer;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.level.levelgen.WorldOptions;\nimport net.minecraft.world.level.levelgen.presets.WorldPresets;\nimport net.minecraft.world.level.storage.LevelStorageSource;\nimport net.minecraft.world.level.storage.LevelSummary;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport org.slf4j.Logger;\n\n@OnlyIn(Dist.CLIENT)\npublic class TitleScreen extends Screen {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final String DEMO_LEVEL_ID = \"Demo_World\";\n   public static final Component COPYRIGHT_TEXT = Component.literal(\"Copyright Mojang AB. Do not distribute!\");\n   public static final CubeMap CUBE_MAP = new CubeMap(new ResourceLocation(\"textures/gui/title/background/panorama\"));\n   private static final ResourceLocation PANORAMA_OVERLAY = new ResourceLocation(\"textures/gui/title/background/panorama_overlay.png\");\n   @Nullable\n   private SplashRenderer splash;\n   private Button resetDemoButton;\n   @Nullable\n   private RealmsNotificationsScreen realmsNotificationsScreen;\n   private final PanoramaRenderer panorama = new PanoramaRenderer(CUBE_MAP);\n   private final boolean fading;\n   private long fadeInStart;\n   @Nullable\n   private TitleScreen.WarningLabel warningLabel;\n   private final LogoRenderer logoRenderer;\n   private net.minecraftforge.client.gui.TitleScreenModUpdateIndicator modUpdateNotification;\n\n   public TitleScreen() {\n      this(false);\n   }\n\n   public TitleScreen(boolean p_96733_) {\n      this(p_96733_, (LogoRenderer)null);\n   }\n\n   public TitleScreen(boolean p_265779_, @Nullable LogoRenderer p_265067_) {\n      super(Component.translatable(\"narrator.screen.title\"));\n      this.fading = p_265779_;\n      this.logoRenderer = Objects.requireNonNullElseGet(p_265067_, () -> {\n         return new LogoRenderer(false);\n      });\n   }\n\n   private boolean realmsNotificationsEnabled() {\n      return this.realmsNotificationsScreen != null;\n   }\n\n   public void tick() {\n      if (this.realmsNotificationsEnabled()) {\n         this.realmsNotificationsScreen.tick();\n      }\n\n      this.minecraft.getRealms32BitWarningStatus().showRealms32BitWarningIfNeeded(this);\n   }\n\n   public static CompletableFuture<Void> preloadResources(TextureManager p_96755_, Executor p_96756_) {\n      return CompletableFuture.allOf(p_96755_.preload(LogoRenderer.MINECRAFT_LOGO, p_96756_), p_96755_.preload(LogoRenderer.MINECRAFT_EDITION, p_96756_), p_96755_.preload(PANORAMA_OVERLAY, p_96756_), CUBE_MAP.preload(p_96755_, p_96756_));\n   }\n\n   public boolean isPauseScreen() {\n      return false;\n   }\n\n   public boolean shouldCloseOnEsc() {\n      return false;\n   }\n\n   protected void init() {\n      if (this.splash == null) {\n         this.splash = this.minecraft.getSplashManager().getSplash();\n      }\n\n      int i = this.font.width(COPYRIGHT_TEXT);\n      int j = this.width - i - 2;\n      int k = 24;\n      int l = this.height / 4 + 48;\n      Button modButton = null;\n      if (this.minecraft.isDemo()) {\n         this.createDemoMenuOptions(l, 24);\n      } else {\n         this.createNormalMenuOptions(l, 24);\n         modButton = this.addRenderableWidget(Button.builder(Component.translatable(\"fml.menu.mods\"), button -> this.minecraft.setScreen(new net.minecraftforge.client.gui.ModListScreen(this)))\n            .pos(this.width / 2 - 100, l + 24 * 2).size(98, 20).build());\n      }\n      modUpdateNotification = net.minecraftforge.client.gui.TitleScreenModUpdateIndicator.init(this, modButton);\n\n      this.addRenderableWidget(new ImageButton(this.width / 2 - 124, l + 72 + 12, 20, 20, 0, 106, 20, Button.WIDGETS_LOCATION, 256, 256, (p_280830_) -> {\n         this.minecraft.setScreen(new LanguageSelectScreen(this, this.minecraft.options, this.minecraft.getLanguageManager()));\n      }, Component.translatable(\"narrator.button.language\")));\n      this.addRenderableWidget(Button.builder(Component.translatable(\"menu.options\"), (p_280838_) -> {\n         this.minecraft.setScreen(new OptionsScreen(this, this.minecraft.options));\n      }).bounds(this.width / 2 - 100, l + 72 + 12, 98, 20).build());\n      this.addRenderableWidget(Button.builder(Component.translatable(\"menu.quit\"), (p_280831_) -> {\n         this.minecraft.stop();\n      }).bounds(this.width / 2 + 2, l + 72 + 12, 98, 20).build());\n      this.addRenderableWidget(new ImageButton(this.width / 2 + 104, l + 72 + 12, 20, 20, 0, 0, 20, Button.ACCESSIBILITY_TEXTURE, 32, 64, (p_280835_) -> {\n         this.minecraft.setScreen(new AccessibilityOptionsScreen(this, this.minecraft.options));\n      }, Component.translatable(\"narrator.button.accessibility\")));\n      this.addRenderableWidget(new PlainTextButton(j, this.height - 10, i, 10, COPYRIGHT_TEXT, (p_280834_) -> {\n         this.minecraft.setScreen(new CreditsAndAttributionScreen(this));\n      }, this.font));\n      this.minecraft.setConnectedToRealms(false);\n      if (this.realmsNotificationsScreen == null) {\n         this.realmsNotificationsScreen = new RealmsNotificationsScreen();\n      }\n\n      if (this.realmsNotificationsEnabled()) {\n         this.realmsNotificationsScreen.init(this.minecraft, this.width, this.height);\n      }\n\n      if (!this.minecraft.is64Bit()) {\n         this.warningLabel = new TitleScreen.WarningLabel(this.font, MultiLineLabel.create(this.font, Component.translatable(\"title.32bit.deprecation\"), 350, 2), this.width / 2, l - 24);\n      }\n\n   }\n\n   private void createNormalMenuOptions(int p_96764_, int p_96765_) {\n      this.addRenderableWidget(Button.builder(Component.translatable(\"menu.singleplayer\"), (p_280832_) -> {\n         this.minecraft.setScreen(new SelectWorldScreen(this));\n      }).bounds(this.width / 2 - 100, p_96764_, 200, 20).build());\n      Component component = this.getMultiplayerDisabledReason();\n      boolean flag = component == null;\n      Tooltip tooltip = component != null ? Tooltip.create(component) : null;\n      (this.addRenderableWidget(Button.builder(Component.translatable(\"menu.multiplayer\"), (p_280833_) -> {\n         Screen screen = (Screen)(this.minecraft.options.skipMultiplayerWarning ? new JoinMultiplayerScreen(this) : new SafetyScreen(this));\n         this.minecraft.setScreen(screen);\n      }).bounds(this.width / 2 - 100, p_96764_ + p_96765_ * 1, 200, 20).tooltip(tooltip).build())).active = flag;\n      (this.addRenderableWidget(Button.builder(Component.translatable(\"menu.online\"), (p_210872_) -> {\n         this.realmsButtonClicked();\n      }).bounds(this.width / 2 + 2, p_96764_ + p_96765_ * 2, 98, 20).tooltip(tooltip).build())).active = flag;\n   }\n\n   @Nullable\n   private Component getMultiplayerDisabledReason() {\n      if (this.minecraft.allowsMultiplayer()) {"
+          },
+          {
+            "from": 176,
+            "to": 336,
+            "text": "         return null;\n      } else {\n         BanDetails bandetails = this.minecraft.multiplayerBan();\n         if (bandetails != null) {\n            return bandetails.expires() != null ? Component.translatable(\"title.multiplayer.disabled.banned.temporary\") : Component.translatable(\"title.multiplayer.disabled.banned.permanent\");\n         } else {\n            return Component.translatable(\"title.multiplayer.disabled\");\n         }\n      }\n   }\n\n   private void createDemoMenuOptions(int p_96773_, int p_96774_) {\n      boolean flag = this.checkDemoWorldPresence();\n      this.addRenderableWidget(Button.builder(Component.translatable(\"menu.playdemo\"), (p_280837_) -> {\n         if (flag) {\n            this.minecraft.createWorldOpenFlows().loadLevel(this, \"Demo_World\");\n         } else {\n            this.minecraft.createWorldOpenFlows().createFreshLevel(\"Demo_World\", MinecraftServer.DEMO_SETTINGS, WorldOptions.DEMO_OPTIONS, WorldPresets::createNormalWorldDimensions);\n         }\n\n      }).bounds(this.width / 2 - 100, p_96773_, 200, 20).build());\n      this.resetDemoButton = this.addRenderableWidget(Button.builder(Component.translatable(\"menu.resetdemo\"), (p_232770_) -> {\n         LevelStorageSource levelstoragesource = this.minecraft.getLevelSource();\n\n         try (LevelStorageSource.LevelStorageAccess levelstoragesource$levelstorageaccess = levelstoragesource.createAccess(\"Demo_World\")) {\n            LevelSummary levelsummary = levelstoragesource$levelstorageaccess.getSummary();\n            if (levelsummary != null) {\n               this.minecraft.setScreen(new ConfirmScreen(this::confirmDemo, Component.translatable(\"selectWorld.deleteQuestion\"), Component.translatable(\"selectWorld.deleteWarning\", levelsummary.getLevelName()), Component.translatable(\"selectWorld.deleteButton\"), CommonComponents.GUI_CANCEL));\n            }\n         } catch (IOException ioexception) {\n            SystemToast.onWorldAccessFailure(this.minecraft, \"Demo_World\");\n            LOGGER.warn(\"Failed to access demo world\", (Throwable)ioexception);\n         }\n\n      }).bounds(this.width / 2 - 100, p_96773_ + p_96774_ * 1, 200, 20).build());\n      this.resetDemoButton.active = flag;\n   }\n\n   private boolean checkDemoWorldPresence() {\n      try {\n         boolean flag;\n         try (LevelStorageSource.LevelStorageAccess levelstoragesource$levelstorageaccess = this.minecraft.getLevelSource().createAccess(\"Demo_World\")) {\n            flag = levelstoragesource$levelstorageaccess.getSummary() != null;\n         }\n\n         return flag;\n      } catch (IOException ioexception) {\n         SystemToast.onWorldAccessFailure(this.minecraft, \"Demo_World\");\n         LOGGER.warn(\"Failed to read demo world data\", (Throwable)ioexception);\n         return false;\n      }\n   }\n\n   private void realmsButtonClicked() {\n      this.minecraft.setScreen(new RealmsMainScreen(this));\n   }\n\n   public void render(GuiGraphics p_282860_, int p_281753_, int p_283539_, float p_282628_) {\n      if (this.fadeInStart == 0L && this.fading) {\n         this.fadeInStart = Util.getMillis();\n      }\n\n      float f = this.fading ? (float)(Util.getMillis() - this.fadeInStart) / 1000.0F : 1.0F;\n      this.panorama.render(p_282628_, Mth.clamp(f, 0.0F, 1.0F));\n      RenderSystem.enableBlend();\n      p_282860_.setColor(1.0F, 1.0F, 1.0F, this.fading ? (float)Mth.ceil(Mth.clamp(f, 0.0F, 1.0F)) : 1.0F);\n      p_282860_.blit(PANORAMA_OVERLAY, 0, 0, this.width, this.height, 0.0F, 0.0F, 16, 128, 16, 128);\n      p_282860_.setColor(1.0F, 1.0F, 1.0F, 1.0F);\n      float f1 = this.fading ? Mth.clamp(f - 1.0F, 0.0F, 1.0F) : 1.0F;\n      this.logoRenderer.renderLogo(p_282860_, this.width, f1);\n      int i = Mth.ceil(f1 * 255.0F) << 24;\n      if ((i & -67108864) != 0) {\n         if (this.warningLabel != null) {\n            this.warningLabel.render(p_282860_, i);\n         }\n\n         net.minecraftforge.client.ForgeHooksClient.renderMainMenu(this, p_282860_, this.font, this.width, this.height, i);\n         if (this.splash != null) {\n            this.splash.render(p_282860_, this.width, this.font, i);\n         }\n\n         String s = \"Minecraft \" + SharedConstants.getCurrentVersion().getName();\n         if (this.minecraft.isDemo()) {\n            s = s + \" Demo\";\n         } else {\n            s = s + (\"release\".equalsIgnoreCase(this.minecraft.getVersionType()) ? \"\" : \"/\" + this.minecraft.getVersionType());\n         }\n\n         if (Minecraft.checkModStatus().shouldReportAsModified()) {\n            s = s + I18n.get(\"menu.modded\");\n         }\n\n         net.minecraftforge.internal.BrandingControl.forEachLine(true, true, (brdline, brd) ->\n            p_282860_.drawString(this.font, brd, 2, this.height - ( 10 + brdline * (this.font.lineHeight + 1)), 16777215 | i)\n         );\n\n         net.minecraftforge.internal.BrandingControl.forEachAboveCopyrightLine((brdline, brd) ->\n            p_282860_.drawString(this.font, brd, this.width - font.width(brd), this.height - (10 + (brdline + 1) * ( this.font.lineHeight + 1)), 16777215 | i)\n         );\n\n\n         for(GuiEventListener guieventlistener : this.children()) {\n            if (guieventlistener instanceof AbstractWidget) {\n               ((AbstractWidget)guieventlistener).setAlpha(f1);\n            }\n         }\n\n         super.render(p_282860_, p_281753_, p_283539_, p_282628_);\n         if (this.realmsNotificationsEnabled() && f1 >= 1.0F) {\n            RenderSystem.enableDepthTest();\n            this.realmsNotificationsScreen.render(p_282860_, p_281753_, p_283539_, p_282628_);\n         }\n         if (f1 >= 1.0f) modUpdateNotification.render(p_282860_, p_281753_, p_283539_, p_282628_);\n\n      }\n   }\n\n   public boolean mouseClicked(double p_96735_, double p_96736_, int p_96737_) {\n      if (super.mouseClicked(p_96735_, p_96736_, p_96737_)) {\n         return true;\n      } else {\n         return this.realmsNotificationsEnabled() && this.realmsNotificationsScreen.mouseClicked(p_96735_, p_96736_, p_96737_);\n      }\n   }\n\n   public void removed() {\n      if (this.realmsNotificationsScreen != null) {\n         this.realmsNotificationsScreen.removed();\n      }\n\n   }\n\n   public void added() {\n      super.added();\n      if (this.realmsNotificationsScreen != null) {\n         this.realmsNotificationsScreen.added();\n      }\n\n   }\n\n   private void confirmDemo(boolean p_96778_) {\n      if (p_96778_) {\n         try (LevelStorageSource.LevelStorageAccess levelstoragesource$levelstorageaccess = this.minecraft.getLevelSource().createAccess(\"Demo_World\")) {\n            levelstoragesource$levelstorageaccess.deleteLevel();\n         } catch (IOException ioexception) {\n            SystemToast.onWorldDeleteFailure(this.minecraft, \"Demo_World\");\n            LOGGER.warn(\"Failed to delete demo world\", (Throwable)ioexception);\n         }\n      }\n\n      this.minecraft.setScreen(this);\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   static record WarningLabel(Font font, MultiLineLabel label, int x, int y) {\n      public void render(GuiGraphics p_281783_, int p_281383_) {\n         this.label.renderBackgroundCentered(p_281783_, this.x, this.y, 9, 2, 2097152 | Math.min(p_281383_, 1426063360));\n         this.label.renderCentered(p_281783_, this.x, this.y, 9, 16777215 | p_281383_);\n      }\n   }\n}"
+          }
+        ],
+        "source_quantity_credit": 0
+      },
+      {
+        "binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/Screen.java",
+          "sha256": "f3aacbf124f8ecb15296ff9ab6e6665b6294b16977059c285a05ff19cfc91c56",
+          "bytes": 24392
+        },
+        "archive_member": "net/minecraft/client/gui/screens/Screen.java",
+        "archive_bytes_exact": true,
+        "total_lines": 646,
+        "ranges": [
+          [
+            314,
+            357
+          ],
+          [
+            425,
+            436
+          ]
+        ],
+        "unique_selected_lines": 56,
+        "whole_class_read": false,
+        "selected_source": [
+          {
+            "from": 314,
+            "to": 357,
+            "text": "   public final void init(Minecraft p_96607_, int p_96608_, int p_96609_) {\n      this.minecraft = p_96607_;\n      this.font = p_96607_.font;\n      this.width = p_96608_;\n      this.height = p_96609_;\n      if (!this.initialized) {\n         if (!net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Pre(this, this.children, this::addEventWidget, this::removeWidget))) {\n         this.init();\n         }\n         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Post(this, this.children, this::addEventWidget, this::removeWidget));\n      } else {\n         this.repositionElements();\n      }\n\n      this.initialized = true;\n      this.triggerImmediateNarration(false);\n      this.suppressNarration(NARRATE_SUPPRESS_AFTER_INIT_TIME);\n   }\n\n   protected void rebuildWidgets() {\n      this.clearWidgets();\n      this.clearFocus();\n      if (!net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Pre(this, this.children, this::addEventWidget, this::removeWidget))) {\n      this.init();\n      }\n      net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Post(this, this.children, this::addEventWidget, this::removeWidget));\n   }\n\n   public List<? extends GuiEventListener> children() {\n      return this.children;\n   }\n\n   protected void init() {\n   }\n\n   public void tick() {\n   }\n\n   public void removed() {\n   }\n\n   public void added() {\n   }\n"
+          },
+          {
+            "from": 425,
+            "to": 436,
+            "text": "   protected void repositionElements() {\n      this.rebuildWidgets();\n   }\n\n   public void resize(Minecraft p_96575_, int p_96576_, int p_96577_) {\n      this.width = p_96576_;\n      this.height = p_96577_;\n      this.repositionElements();\n   }\n\n   public static void wrapScreenError(Runnable p_96580_, String p_96581_, String p_96582_) {\n      try {"
+          }
+        ],
+        "source_quantity_credit": 0
+      },
+      {
+        "binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/Minecraft.java",
+          "sha256": "92ebe926f67bb8b4a706349a4af397d5f4b2f6d054aee1a5ac70c0697632c59a",
+          "bytes": 118880
+        },
+        "archive_member": "net/minecraft/client/Minecraft.java",
+        "archive_bytes_exact": true,
+        "total_lines": 2897,
+        "ranges": [
+          [
+            970,
+            1055
+          ],
+          [
+            1268,
+            1293
+          ]
+        ],
+        "unique_selected_lines": 112,
+        "whole_class_read": false,
+        "selected_source": [
+          {
+            "from": 970,
+            "to": 1055,
+            "text": "   public void setScreen(@Nullable Screen p_91153_) {\n      if (SharedConstants.IS_RUNNING_IN_IDE && Thread.currentThread() != this.gameThread) {\n         LOGGER.error(\"setScreen called from non-game thread\");\n      }\n\n      if (p_91153_ == null && this.level == null) {\n         p_91153_ = new TitleScreen();\n      } else if (p_91153_ == null && this.player.isDeadOrDying()) {\n         if (this.player.shouldShowDeathScreen()) {\n            p_91153_ = new DeathScreen((Component)null, this.level.getLevelData().isHardcore());\n         } else {\n            this.player.respawn();\n         }\n      }\n\n      net.minecraftforge.client.ForgeHooksClient.clearGuiLayers(this);\n      Screen old = this.screen;\n      if (p_91153_ != null) {\n         var event = new net.minecraftforge.client.event.ScreenEvent.Opening(old, p_91153_);\n         if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event)) return;\n         p_91153_ = event.getNewScreen();\n      }\n\n      if (old != null && p_91153_ != old) {\n         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Closing(old));\n         old.removed();\n      }\n\n      this.screen = p_91153_;\n      if (this.screen != null) {\n         this.screen.added();\n      }\n\n      BufferUploader.reset();\n      if (p_91153_ != null) {\n         this.mouseHandler.releaseMouse();\n         KeyMapping.releaseAll();\n         p_91153_.init(this, this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());\n         this.noRender = false;\n      } else {\n         this.soundManager.resume();\n         this.mouseHandler.grabMouse();\n      }\n\n      this.updateTitle();\n   }\n\n   public void setOverlay(@Nullable Overlay p_91151_) {\n      this.overlay = p_91151_;\n   }\n\n   public void destroy() {\n      try {\n         LOGGER.info(\"Stopping!\");\n\n         try {\n            this.narrator.destroy();\n         } catch (Throwable throwable1) {\n         }\n\n         try {\n            if (this.level != null) {\n               this.level.disconnect();\n            }\n\n            this.clearLevel();\n         } catch (Throwable throwable) {\n         }\n\n         if (this.screen != null) {\n            this.screen.removed();\n         }\n\n         this.close();\n      } finally {\n         Util.timeSource = System::nanoTime;\n         if (this.delayedCrash == null) {\n            System.exit(0);\n         }\n\n      }\n\n   }\n\n   public void close() {\n      if (this.currentFrameProfile != null) {"
+          },
+          {
+            "from": 1268,
+            "to": 1293,
+            "text": "   public void resizeDisplay() {\n      int i = this.window.calculateScale(this.options.guiScale().get(), this.isEnforceUnicode());\n      this.window.setGuiScale((double)i);\n      if (this.screen != null) {\n         this.screen.resize(this, this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());\n         net.minecraftforge.client.ForgeHooksClient.resizeGuiLayers(this, this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());\n      }\n\n      RenderTarget rendertarget = this.getMainRenderTarget();\n      rendertarget.resize(this.window.getWidth(), this.window.getHeight(), ON_OSX);\n      if (this.gameRenderer != null)\n      this.gameRenderer.resize(this.window.getWidth(), this.window.getHeight());\n      this.mouseHandler.setIgnoreFirstMove();\n   }\n\n   public void cursorEntered() {\n      this.mouseHandler.cursorEntered();\n   }\n\n   public int getFps() {\n      return fps;\n   }\n\n   public long getFrameTimeNs() {\n      return this.frameTimeNs;\n   }"
+          }
+        ],
+        "source_quantity_credit": 0
+      }
+    ],
+    "whole_classes": 3,
+    "selected_unique_lines": 792,
+    "raw_lines_are_not_references": true,
+    "no_screen_or_Minecraft_full_class_claim": true
+  },
+  "independent_judgments": [
+    {
+      "id": "N01",
+      "source": "RealmsNotificationsScreen:35-57,76-109",
+      "observation": "getConfiguration requires current minecraft.screen instanceof TitleScreen plus validClient. Options select showAll or onlyNotifications, not total notification disable.",
+      "implication": "Moving layer rendering to SettingsHub (Screen subclass) alone does not move its data subscription lifecycle."
+    },
+    {
+      "id": "N02",
+      "source": "RealmsNotificationsScreen:86-101; TitleScreen:88-94; Screen:349-356",
+      "observation": "TitleScreen.tick forwards layer tick. SettingsHub inherits empty Screen.tick. If a future hub merely forwards layer.tick, native getConfiguration still returns null in that hub.",
+      "implication": "Presentation relocation and subscription eligibility are distinct obligations; no real service test was performed."
+    },
+    {
+      "id": "N03",
+      "source": "RealmsNotificationsScreen:138-182",
+      "observation": "render gates by validClient. Unseen icon uses static cached hasUnseenNotifications without currentConfiguration check. News/invites/trial additionally require nonnull configuration and showOldNotifications.",
+      "implication": "Cached icons and refresh eligibility must not be conflated. No assertion that all icon types render in every state."
+    },
+    {
+      "id": "N04",
+      "source": "RealmsNotificationsScreen:146-180",
+      "observation": "Icon coordinates use notification-layer own width/height, vanilla center anchor and left-growing icon budget. Dynasty translates that layer relative to a retained hidden menu.online button.",
+      "implication": "Target viewport, actual visible owner and reserved icon width all require explicit alignment; graphics translation alone is insufficient lifecycle repair."
+    },
+    {
+      "id": "N05",
+      "source": "RealmsNotificationsScreen:63-74,111-136; TitleScreen:108-161,300-314",
+      "observation": "TitleScreen.init creates or reinitializes existing Realms layer; layer.init may availability-check and force-update subscription. added resets notificationsTask. Constructor/service side effects are source facts only.",
+      "implication": "Refreshing parent initialization merely to fix hub background dimensions risks unrelated lifecycle work and must be avoided."
+    },
+    {
+      "id": "N06",
+      "source": "TitleScreenModUpdateIndicator:24-68",
+      "observation": "Forge indicator captures final original modButton. init checks updates once per indicator instance when button nonnull, sets hasCheckedForUpdates. render checks status/showDraw/config and then reads button geometry; no visible test.",
+      "implication": "A relocated visible wrapper is not automatically indicator owner. Preserve VERSION_CHECK gate and existing update service behavior."
+    },
+    {
+      "id": "N07",
+      "source": "DynastyTitleScreen.arrange/MenuButton/SettingsHub plus fixed Forge layer",
+      "observation": "arrange hides Mods and Realms main buttons; main render calls both layers. Hub constructs new wrappers over originals, but renderWidget does not sync original bounds; only initial main init syncs hidden Mods geometry.",
+      "implication": "Existing known UI-20261101-03/-04 confirmed as source-owned conditional placement bugs, not two new semantic references."
+    },
+    {
+      "id": "N08",
+      "source": "Minecraft.setScreen:970-1015; Screen.init:314-340; resize:429-433",
+      "observation": "Screen transition removed/added/init and resize-driven reposition use current screen. Current hub has own geometry; parent object is a return target and is not recursively resized.",
+      "implication": "Known resize bug should ultimately use current viewport without calling parent init or drawing new background art. No fix performed while gate false."
+    },
+    {
+      "id": "N09",
+      "source": "Screen/Minecraft selected raw ranges",
+      "observation": "Selected source also exposed incidental nearby setOverlay/destroy/partial close, cursorEntered/FPS and start of wrapScreenError.",
+      "implication": "These incidental lines do not constitute full ancestor methods or accepted new chains; full Screen646/Minecraft class not claimed."
+    },
+    {
+      "id": "N10",
+      "source": "Prior source-findings-001 full four findings and this extension",
+      "observation": "Four known followups retain original IDs and source-confirmed/conditional evidence level. Full native source reading strengthens support.",
+      "implication": "No new whole reference, no claim of runtime reproduction, current account notification state, network check or source change."
+    }
+  ],
+  "limits": [
+    "No data-fetcher task implementation, subscription internals or service behavior outside shown call boundaries was executed or newly read.",
+    "No current native pixel, window-resize, English locale, Forge update or Realms account-state test was run.",
+    "Do not render this read-only evidence as a production patch, permission request, final UI acceptance or source187 study.",
+    "Source class/read ranges are shared native support for already recorded four issues; distinct-count credit0."
+  ],
+  "Main186_status_addendum": {
+    "receipt": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program186-Main-actual1171-whole-MERGE0-review-20261114.json",
+      "sha256": "18bfd50db5dbad2dbd47cb678c15a1d52f5e65928e4e0bd9e4f5432a14ad9fce",
+      "bytes": 169773
+    },
+    "observation": "Verified receipt metadata/decision/hash only. Main independently completed selected1171 review with22 judgments/67checks per its receipt. Specialist has not re-read all of Main new judgments.",
+    "decision_observed": "MERGE0_EXISTING_COMPLETE_LIVE_BEE613_SPENT_STING_AND_UNSAVED_RETIREMENT_CLOCK_OWNER",
+    "semantic_credit_added": 0,
+    "Main_checks_count": 67,
+    "prior_UI_audit_pending_wording_is_historical": true,
+    "own_first_path_nested_output_and_range_parse_failures": "Main failure/recovery sections retained in immutable Main receipt; not reclassified as source failures.",
+    "185_status_not_advanced_here": true
+  },
+  "epoch_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/coordinator-bamboo-EA0079-Main-actual78-data-application-20261114.json",
+    "sha256": "9740b3c719880b19ee2724f16e557959f7160556405f1a78e8c5f40aac9ae273",
+    "bytes": 16771
+  },
+  "program535_groups263_ecology78_context_only": true,
+  "UI_gate": {
+    "required_relevant_semantically_distinct": 1000,
+    "existing_UI_examples_recorded": 5,
+    "old100_modpack_docs_not_reclassified": true,
+    "new_formal_credit": 0,
+    "gate_passed": false,
+    "notification_topic_old_count": 0
+  },
+  "checks": {
+    "audit_binding_matches": true,
+    "fixed_archive": true,
+    "five_archive_members_exact": true,
+    "three_whole_classes": true,
+    "selected792": true,
+    "ten_judgments": true,
+    "Main186receipt_exact": true,
+    "Main186MERGE0": true,
+    "Main186zero_credit": true,
+    "original_UI_not_replaced": true,
+    "background_unchanged_again": true
+  },
+  "checks_count": 11,
+  "authority": {
+    "production_changes": false,
+    "formal_append": false,
+    "execution": false,
+    "new_private_preview": false,
+    "game_start": false,
+    "task_cleanup": false
+  },
+  "actions": {
+    "production_or_asset_edits": 0,
+    "formal_state_edits": 0,
+    "session_active_pending_edits": 0,
+    "jar_writes": 0,
+    "game_starts": 0,
+    "network_requests": 0,
+    "user_instance_or_save_access": 0,
+    "runtime_acceptance_added": 0,
+    "reference_credit_added": 0,
+    "active_hours_claimed": null
+  },
+  "all_tasks_complete": false
+}
