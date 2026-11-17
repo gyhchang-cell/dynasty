@@ -1,0 +1,123 @@
+{
+  "status": "PRIVATE-132-actual-two-whole-read-source-context-only-author0-incomplete-native-chain",
+  "created_utc": "2026-11-11T11:32:58.120134+00:00",
+  "batch": 132,
+  "repo": "SammySemicolon/Malum-Mod",
+  "commit": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+  "prescreen": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-132-malum-weeping-well-complete-project-prescreen-20261111.json",
+    "sha256": "44db4febaeccd65cb033b48db2152d6f9c7585ec31508ba29512a06d324eabf0",
+    "bytes": 113936
+  },
+  "source_pins": {
+    "manifest": {
+      "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/source.json",
+      "sha256": "b043544f49d3d3ec9a097b4e1637f1ee4031b762b26b50b85b3b648deb04ae12",
+      "bytes": 69291
+    },
+    "tree": {
+      "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/tree.json",
+      "sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+      "bytes": 3280258
+    }
+  },
+  "actual_source_ranges": [
+    {
+      "source_path": "src/main/java/com/sammy/malum/core/handlers/WeepingWellRejectionHandler.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/WeepingWellRejectionHandler.java",
+      "start_line": 1,
+      "end_line": 139,
+      "whole_file_read": true,
+      "file_sha256": "1cb267f94b80ea9dcd1eb116834466e0aef0d1ef8eea874df500af0643d555c3",
+      "git_blob_sha1": "c31104f96c7d76dd292b55ed3126afba3f2842e6",
+      "raw_excerpt_sha256": "1cb267f94b80ea9dcd1eb116834466e0aef0d1ef8eea874df500af0643d555c3",
+      "excerpt": "package com.sammy.malum.core.handlers;\n\nimport com.sammy.malum.*;\nimport com.sammy.malum.client.VoidRevelationHandler;\nimport com.sammy.malum.common.data.attachment.*;\nimport com.sammy.malum.common.entity.FloatingItemEntity;\nimport com.sammy.malum.common.payloads.VoidRejectionPayload;\nimport com.sammy.malum.registry.common.*;\nimport com.sammy.malum.registry.common.MalumContent;\nimport com.sammy.malum.registry.common.magic.*;\nimport com.sammy.malum.registry.common.sound.*;\nimport net.minecraft.client.resources.sounds.Sound;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.*;\nimport net.minecraft.server.level.*;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.*;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\nimport net.neoforged.neoforge.event.tick.EntityTickEvent;\nimport net.neoforged.neoforge.network.*;\nimport team.lodestar.lodestone.helpers.*;\nimport team.lodestar.lodestone.modules.toolkit.sound.SoundPlayer;\n\nimport static com.sammy.malum.client.VoidRevelationHandler.RevelationType.BLACK_CRYSTAL;\n\npublic class WeepingWellRejectionHandler {\n\n    public static final ResourceLocation GRAVITY_MODIFIER_ID = MalumMod.malumPath(\"weeping_well_reduced_gravity\");\n\n    public static void handlePrimordialSoupContact(Entity entity) {\n        if (entity instanceof LivingEntity livingEntity) {\n            TouchOfDarknessHandler.handlePrimordialSoupContact(livingEntity);\n            var data = livingEntity.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n            if (data.isInRejectedState) {\n                return;\n            }\n            data.setGoopStatus();\n        }\n        if (entity instanceof FloatingItemEntity) {\n            return;\n        }\n        entity.setDeltaMovement(entity.getDeltaMovement().scale(0.3f));\n    }\n\n    public static void entityTick(EntityTickEvent.Pre event) {\n        if (event.getEntity() instanceof LivingEntity living) {\n            var level = living.level();\n            if (living.hasData(MalumAttachmentTypes.WEEPING_WELL_INFO) || living instanceof Player) {\n                var data = living.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n                data.update(living);\n                updateGravity(living);\n                if (data.isInGoop()) {\n                    handleRejectionState(level, living);\n                }\n            }\n        }\n    }\n\n    public static void updateGravity(LivingEntity entity) {\n        var gravity = entity.getAttribute(Attributes.GRAVITY);\n        if (gravity != null) {\n            var data = entity.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n            if (gravity.hasModifier(GRAVITY_MODIFIER_ID)) {\n                gravity.removeModifier(GRAVITY_MODIFIER_ID);\n            }\n            if (data.isInRejectedState) {\n                gravity.addTransientModifier(getEntityGravityAttributeModifier(entity));\n            }\n        }\n    }\n\n    public static void handleRejectionState(Level level, LivingEntity living) {\n        var data = living.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n        int rejection = data.voidRejection;\n        if (!level.isClientSide) {\n            if (living instanceof Player && level.getGameTime() % 6L == 0) {\n                SoundPlayer.create(MalumSoundEvents.SONG_OF_THE_VOID).volume(0.5f + rejection * 0.02f).pitch(0.5f + rejection * 0.03f).play(living);\n            }\n            if (data.wasJustRejected()) {\n                if (!(living instanceof Player player)) {\n                    living.remove(Entity.RemovalReason.DISCARDED);\n                    return;\n                }\n                launchPlayer(player);\n            }\n        }\n        if (data.isInRejectedState && rejection > 0) {\n            float intensity = rejection / WeepingWellData.MAX_REJECTION;\n            Vec3 movement = living.getDeltaMovement();\n            living.setDeltaMovement(movement.x, Math.pow(intensity, 2)/2f, movement.z);\n        }\n    }\n\n    public static void launchPlayer(Player player) {\n        var progression = player.getData(MalumAttachmentTypes.PROGRESSION_DATA);\n        var level = player.level();\n        if (level instanceof ServerLevel serverLevel) {\n            WeepingWellData.checkForWeepingWell(player).ifPresent(weepingWell -> {\n                BlockPos worldPosition = weepingWell.getBlockPos();\n                MalumParticleEffectTypes.WEEPING_WELL_REACTS.createEffect(worldPosition.getCenter()).spawn(serverLevel);\n            });\n            MalumParticleEffectTypes.WEEPING_WELL_REACTS.createEffect(player).spawn(serverLevel);\n            if (!player.isCreative()) {\n                player.hurt(DamageTypeHelper.create(level, MalumDamageTypes.VOID), 4);\n            }\n            if (!progression.hasBeenRejected) {\n                SoulHarvestHandler.spawnSpirits(player)\n                        .setCustomItems(MalumContent.Spirits.UMBRAL_SPIRIT.get())\n                        .setPreferredCollector(player)\n                        .spawnSpirits(level);\n            }\n            PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new VoidRejectionPayload(player.getId()));\n            SoundPlayer.create(MalumSoundEvents.VOID_REJECTION).volume(2f).pitch(0.5f, 0.8f).play(player);\n        } else {\n            VoidRevelationHandler.seeTheRevelation(BLACK_CRYSTAL);\n        }\n\n        progression.hasBeenRejected = true;\n        player.addEffect(new MobEffectInstance(MalumMobEffects.REJECTED, 400, 0));\n    }\n\n    public static AttributeModifier getEntityGravityAttributeModifier(LivingEntity livingEntity) {\n        return new AttributeModifier(GRAVITY_MODIFIER_ID, updateEntityGravity(livingEntity), AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);\n    }\n\n    public static double updateEntityGravity(LivingEntity living) {\n        var data = living.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n        if (data.voidRejection > 0) {\n            return -Math.min(60, data.voidRejection) / 60f;\n        }\n        return 0;\n    }\n}",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/WeepingWellRejectionHandler.java"
+    },
+    {
+      "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+      "start_line": 1,
+      "end_line": 274,
+      "whole_file_read": true,
+      "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+      "git_blob_sha1": "030bbb00c7a7b879b955f7df2d8a00fd6e556f15",
+      "raw_excerpt_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+      "excerpt": "package com.sammy.malum.common.events;\n\nimport com.sammy.malum.common.block.storage.jar.*;\nimport com.sammy.malum.common.data.attachment.AvariceMarkData;\nimport com.sammy.malum.common.data.listener.banner.MalumBannerPatternReloadListener;\nimport com.sammy.malum.common.data.listener.malignant_conversion.MalignantConversionReloadListener;\nimport com.sammy.malum.common.data.listener.reaping.ReapingDataReloadListener;\nimport com.sammy.malum.common.data.listener.rite.*;\nimport com.sammy.malum.common.data.listener.spellweaving.SpellweavingEqualityReloadListener;\nimport com.sammy.malum.common.data.listener.spirit.SpiritDataReloadListener;\nimport com.sammy.malum.common.effect.ascension.*;\nimport com.sammy.malum.common.effect.rite.aura.*;\nimport com.sammy.malum.common.effect.rite.aura.soulwood.*;\nimport com.sammy.malum.common.effect.gluttony.*;\nimport com.sammy.malum.common.entity.activator.*;\nimport com.sammy.malum.common.entity.nitrate.*;\nimport com.sammy.malum.common.entity.soulTag.SoulTagEntity;\nimport com.sammy.malum.common.geas.pact.aerial.*;\nimport com.sammy.malum.common.geas.pact.infernal.*;\nimport com.sammy.malum.common.geas.pact.earthen.ProfaneAsceticGeas;\nimport com.sammy.malum.common.geas.pact.sacred.*;\nimport com.sammy.malum.common.geas.pact.wicked.*;\nimport com.sammy.malum.common.item.curiosities.curios.runes.madness.*;\nimport com.sammy.malum.common.item.curiosities.curios.runes.miracle.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.elemental.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.esoteric.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.rotten.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.weeping.*;\nimport com.sammy.malum.common.item.curiosities.pouch.*;\nimport com.sammy.malum.common.item.curiosities.tools.spellweaver.*;\nimport com.sammy.malum.common.item.curiosities.weapons.greatsword.*;\nimport com.sammy.malum.common.item.curiosities.weapons.scythe.MalumScytheItem;\nimport com.sammy.malum.core.handlers.*;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.neoforged.bus.api.*;\nimport net.neoforged.fml.common.*;\nimport net.neoforged.neoforge.event.*;\nimport net.neoforged.neoforge.event.entity.*;\nimport net.neoforged.neoforge.event.entity.item.*;\nimport net.neoforged.neoforge.event.entity.living.*;\nimport net.neoforged.neoforge.event.entity.player.*;\nimport net.neoforged.neoforge.event.level.*;\nimport net.neoforged.neoforge.event.tick.*;\nimport team.lodestar.wayward_attributes.WaywardTags;\n\nimport java.util.List;\n\n@EventBusSubscriber()\npublic class RuntimeEventHandler {\n\n    @SubscribeEvent\n    public static void onEntityJoin(EntityJoinLevelEvent event) {\n        SoulDataHandler.syncData(event);\n        GeasEffectHandler.syncGeas(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingDamage(LivingDamageEvent.Post event) {\n        double RANGE = 8.0D;\n\n        LivingEntity damagedEntity = event.getEntity();\n\n        if (damagedEntity.level().isClientSide()) {\n            return;\n        }\n        if(!event.getSource().is(WaywardTags.DamageTypeTags.IS_MAGIC)) {\n            return;\n        }\n\n        if (event.getNewDamage() <= 0.0F) {\n            return;\n        }\n\n        double rangeSquared = RANGE * RANGE;\n\n        List<SoulTagEntity> soulTags =\n                damagedEntity.level().getEntitiesOfClass(\n                        SoulTagEntity.class,\n                        damagedEntity.getBoundingBox().inflate(RANGE),\n                        SoulTagEntity::isAlive\n                );\n\n        for (SoulTagEntity soulTag : soulTags) {\n\n            if (soulTag.distanceToSqr(damagedEntity) <= rangeSquared) {\n\n                soulTag.createSoulTag(\n                        damagedEntity\n                );\n                break;\n            }\n        }\n    }\n\n    @SubscribeEvent\n    public static void playerLeftClick(PlayerInteractEvent.LeftClickBlock event) {\n        SpiritJarBlock.cancelBreak(event);\n    }\n\n    @SubscribeEvent\n    public static void sweepAttack(SweepAttackEvent event) {\n        MalumScytheItem.enableScytheSweeping(event);\n    }\n\n    @SubscribeEvent\n    public static void onEntityJoin(MobSpawnEvent.PositionCheck event) {\n        SoulDataHandler.markAsSpawnerSpawned(event);\n    }\n\n    @SubscribeEvent\n    public static void onEntityFall(LivingFallEvent event) {\n        AscensionEffect.onEntityFall(event);\n        LiftedEffect.onEntityFall(event);\n        SkyTetherEffect.onEntityFall(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingTarget(LivingChangeTargetEvent event) {\n        SoulDataHandler.preventTargeting(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingVisibility(LivingEvent.LivingVisibilityEvent event) {\n        CurioConcealingRing.preventDetection(event);\n        WarlockGeas.increaseDetection(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingTick(EntityTickEvent.Pre event) {\n        AvariceMarkData.entityTick(event);\n        SoulDataHandler.entityTick(event);\n        SoulWardHandler.entityTick(event);\n        WindTunnelHandler.entityTick(event);\n        GeasEffectHandler.entityTick(event);\n        CurioWatcherNecklace.entityTick(event);\n        TouchOfDarknessHandler.entityTick(event);\n        CurioHiddenBladeNecklace.entityTick(event);\n        VindictiveBrandSwordItem.entityTick(event);\n        MalignantConversionHandler.entityTick(event);\n        WeepingWellRejectionHandler.entityTick(event);\n    }\n\n    @SubscribeEvent\n    public static void onPlayerTick(PlayerTickEvent.Pre event) {\n        StaffAbilityHandler.recoverStaffCharges(event);\n    }\n\n    @SubscribeEvent\n    public static void modifyBlockDrops(BlockDropsEvent event) {\n        AvariceMarkData.applyAvariceMark(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.LOWEST)\n    public static void modifyBlockDropsLate(BlockDropsEvent event) {\n        SpellweaverToolEffectActivator.redirectDrops(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.LOWEST)\n    public static void breakBlock(BlockEvent.BreakEvent event) {\n        SpellweavingPickaxeItem.triggerSpellweavingEffect(event);\n    }\n\n    @SubscribeEvent\n    public static void registerListeners(AddReloadListenerEvent event) {\n        SpiritDataReloadListener.register(event);\n        SpiritRiteTypeReloadListener.register(event);\n\n        MalumBannerPatternReloadListener.register(event);\n\n        SpellweavingEqualityReloadListener.register(event);\n        ReapingDataReloadListener.register(event);\n        MalignantConversionReloadListener.register(event);\n    }\n\n    @SubscribeEvent\n    public static void isPotionApplicable(MobEffectEvent.Applicable event) {\n        GluttonyEffect.canApplyPotion(event);\n    }\n\n    @SubscribeEvent\n    public static void onPotionApplied(MobEffectEvent.Added event) {\n        GluttonyEffect.removeExistingHunger(event);\n        RuneTwinnedDurationItem.scaleDuration(event);\n        RuneAilmentCleansingItem.scaleDuration(event);\n    }\n\n    @SubscribeEvent\n    public static void onPotionExpired(MobEffectEvent.Expired event) {\n    }\n\n    @SubscribeEvent\n    public static void onStartUsingItem(LivingEntityUseItemEvent.Start event) {\n        ProfaneAsceticGeas.modifyEating(event);\n        CurioVoraciousRing.modifyEating(event);\n    }\n\n    @SubscribeEvent\n    public static void onPickupItem(ItemEntityPickupEvent.Pre event) {\n        SoulwovenPouchItem.trySwallowItem(event);\n        RavenousPouchItem.trySwallowItem(event);\n    }\n\n    @SubscribeEvent\n    public static void onPickupItem(ItemEntityPickupEvent.Post event) {\n        AvariceMarkData.pickupItem(event);\n    }\n\n    @SubscribeEvent\n    public static void onHurt(LivingDamageEvent.Post event) {\n        SoulDataHandler.exposeSoul(event);\n        DesperateNeedEffect.spawnLocusts(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.HIGHEST)\n    public static void onIncomingDamage(LivingIncomingDamageEvent event) {\n        MalignantConversionHandler.shieldPlayer(event);\n    }\n\n    @SubscribeEvent\n    public static void onHurt(LivingDamageEvent.Pre event) {\n        SoulWardHandler.shieldPlayer(event);\n        OakenMightEffect.increaseDamage(event);\n        StoneWardEffect.reduceDamage(event);\n        MalumAttributeEventHandler.processAttributes(event);\n    }\n\n    @SubscribeEvent\n    public static void onKnockback(LivingKnockBackEvent event) {\n        WindsweptGeas.scaleKnockback(event);\n        SkyBreakerGeas.scaleKnockback(event);\n    }\n\n    @SubscribeEvent\n    public static void onHeal(LivingHealEvent event) {\n        LifeweaverGeas.onHeal(event);\n        TrialOfFaithEffect.spawnLocusts(event);\n    }\n\n    @SubscribeEvent\n    public static void onDeath(LivingDeathEvent event) {\n        SoulHarvestHandler.onDeath(event);\n        GluttonyEffect.onDeath(event);\n    }\n\n    @SubscribeEvent\n    public static void onDrops(LivingDropsEvent event) {\n        EnsouledItemHarvestHandler.onDrops(event);\n    }\n\n    @SubscribeEvent\n    public static void onItemExpire(ItemExpireEvent event) {\n        EnsouledItemHarvestHandler.onItemExpire(event);\n    }\n\n    @SubscribeEvent\n    public static void onItemUseBlock(UseItemOnBlockEvent event) {\n        BlockTappingHandler.drainBlock(event);\n    }\n    @SubscribeEvent\n    public static void onItemUseStart(LivingEntityUseItemEvent.Start event) {\n        ContinuingShotGeas.onItemUseStart(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.HIGHEST)\n    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {\n        NitrateExplosion.processExplosion(event);\n        BlastweaverGeas.processExplosion(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.HIGHEST)\n    public static void onExplosionKnockback(ExplosionKnockbackEvent event) {\n        CurioWindweaverNecklace.onExplosionKnockback(event);\n    }\n}",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java"
+    }
+  ],
+  "actual_read_summary": {
+    "ranges": 2,
+    "distinct_lines": 413,
+    "files": 2,
+    "whole_files": 2,
+    "scope_note": "Actual current-batch visible reads only, not413 new global source lines or2 semantic references. RuntimeEventHandler is prior saved source context now reread whole; no old owner credit reopened."
+  },
+  "missing_fixed_tree_bodies": [
+    {
+      "source_path": "src/main/java/com/sammy/malum/common/block/curiosities/weeping_well/PrimordialSoupBlock.java",
+      "tree_blob_sha1": "4e73a084fda7dd04a46d4cb03cbf34436135acbe",
+      "tree_size": 2868,
+      "local_body_locations": {
+        "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/block/curiosities/weeping_well/PrimordialSoupBlock.java": false,
+        "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/block/curiosities/weeping_well/PrimordialSoupBlock.java": false,
+        "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/block/curiosities/weeping_well/PrimordialSoupBlock.java": false
+      },
+      "tree_metadata_only_not_read": true
+    },
+    {
+      "source_path": "src/main/java/com/sammy/malum/common/data/attachment/WeepingWellData.java",
+      "tree_blob_sha1": "5292a2fabcb30620538454599b5dbd3dc8b85bbb",
+      "tree_size": 2933,
+      "local_body_locations": {
+        "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/attachment/WeepingWellData.java": false,
+        "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/attachment/WeepingWellData.java": false,
+        "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/data/attachment/WeepingWellData.java": false
+      },
+      "tree_metadata_only_not_read": true
+    },
+    {
+      "source_path": "src/main/java/com/sammy/malum/common/effect/RejectedEffect.java",
+      "tree_blob_sha1": "fc4a3ff1ca82e018ef3a094a97f68e9d3d681d8d",
+      "tree_size": 1321,
+      "local_body_locations": {
+        "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/effect/RejectedEffect.java": false,
+        "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/effect/RejectedEffect.java": false,
+        "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/effect/RejectedEffect.java": false
+      },
+      "tree_metadata_only_not_read": true
+    },
+    {
+      "source_path": "src/main/java/com/sammy/malum/common/payloads/VoidRejectionPayload.java",
+      "tree_blob_sha1": "774a4281c7c18b297160d91f92ca49a1ca11a5f4",
+      "tree_size": 1237,
+      "local_body_locations": {
+        "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/payloads/VoidRejectionPayload.java": false,
+        "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/payloads/VoidRejectionPayload.java": false,
+        "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/payloads/VoidRejectionPayload.java": false
+      },
+      "tree_metadata_only_not_read": true
+    },
+    {
+      "source_path": "src/main/java/com/sammy/malum/core/handlers/TouchOfDarknessHandler.java",
+      "tree_blob_sha1": "3bd9f8070beb4e412f030782f8250db06fcd6568",
+      "tree_size": 635,
+      "local_body_locations": {
+        "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/TouchOfDarknessHandler.java": false,
+        "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/TouchOfDarknessHandler.java": false,
+        "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/core/handlers/TouchOfDarknessHandler.java": false
+      },
+      "tree_metadata_only_not_read": true
+    }
+  ],
+  "local_lookup_correction": "Initial rg --files missing-name navigation could omit ignored .work paths; conclusion instead uses explicit Path.is_file checks at all15 exact locations across three known pools. Only those locations are claimed absent, not the entire disk/upstream.",
+  "provenance_checks": "Both rawSHA256/GitblobSHA1 match pinned manifest and fulltree; raw excerpts are completefiles. These identity checks add0credit and execute no old validator.",
+  "source_reading_correction": "Initial broad formal output clipped and combined16sweep result clipped by orchestration output budget; neither counted as complete. All three formal objects subsequently emitted individually, all16sweep objects visible through separate bounded0..4,5..10,11..15 outputs. These saved judgment reads are not new underlying source reading or semantic credit.",
+  "proposed_max_credit": 0,
+  "formal_credit": 0,
+  "production_changes": 0,
+  "network_requests": 0,
+  "game_starts": 0,
+  "tasks_deleted": 0
+}

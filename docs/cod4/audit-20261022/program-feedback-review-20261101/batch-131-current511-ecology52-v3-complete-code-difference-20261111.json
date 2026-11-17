@@ -1,0 +1,48 @@
+{
+  "status": "PRIVATE_V3_TEXT_AND_AST_ONLY",
+  "created_utc": "2026-11-11T13:58:17.877363+00:00",
+  "prior_v2_plan": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-131-current511-ecology52-v2-private-append-plan-20261111.json",
+    "sha256": "d04dd439d9a1064c610f7509dc2dd1e08e31fa2132988744f94f8d03a201da9e",
+    "bytes": 713052
+  },
+  "prior_v2_code": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/append-batch131-current511-ecology52-v2-private-proposal-20261111.py",
+    "sha256": "4f4afa1f849a352c23eadb871107f426158b51ee489a9797dc13a51fdf053022",
+    "bytes": 15283
+  },
+  "new_v3_code": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/append-batch131-current511-ecology52-v3-private-proposal-20261111.py",
+    "sha256": "933ad3f0f29e27001b978edbe65f6b83e4881d162fc0c55736051df392faee5b",
+    "bytes": 17207
+  },
+  "Main_v2_held": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program131-v2-static-inventory-held-20261111.json",
+    "sha256": "5c56bb5e461ab98a42d76418961c95c610efb3707a4ad73caa3bb8b6ac03142e",
+    "bytes": 1601
+  },
+  "included_only_known_external_addition": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-sugar-glider-whole-preack-review-20261111.json",
+    "sha256": "40681650c464bc5e7a0ad011c9a45316adbbd34bb6d8cd89d39acfa5c2e1c04e",
+    "bytes": 158259
+  },
+  "inventory_delta": [
+    {
+      "directory": "docs/cod4/audit-20261022/ecology-availability-research",
+      "glob": "*.json",
+      "added": [
+        {
+          "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-sugar-glider-whole-preack-review-20261111.json",
+          "sha256": "40681650c464bc5e7a0ad011c9a45316adbbd34bb6d8cd89d39acfa5c2e1c04e",
+          "bytes": 158259
+        }
+      ],
+      "removed": [],
+      "before_count": 463,
+      "after_count": 464
+    }
+  ],
+  "complete_code_diff": "--- sealed131v2\n+++ private131v3\n@@ -1,4 +1,4 @@\n-\"\"\"PRIVATE131 CURRENT511/ECOLOGY52 V2 UNEXECUTED proposal. No current execution grant.\n+\"\"\"PRIVATE131 CURRENT511/ECOLOGY52 V3 UNEXECUTED proposal. No current execution grant.\n Main must independently review exact plan/code/current inputs and separately invoke once.\n Prior127 is consumed historical data only. Three writes are sequential, not atomic.\n Any attempt consumes external one-use authority; no retry, rebase or rollback.\n@@ -12,7 +12,7 @@\n \n ROOT = Path(__file__).resolve().parents[4]\n PRIVATE = Path(__file__).resolve().parent\n-PLAN = PRIVATE / \"batch-131-current511-ecology52-v2-private-append-plan-20261111.json\"\n+PLAN = PRIVATE / \"batch-131-current511-ecology52-v3-private-append-plan-20261111.json\"\n MAIN = \"01a16364-cac0-7ca2-a042-a5312781ca34\"\n FORMAL = [\"docs/cod4/audit-20261022/immune-feedback-research/\" + name\n           for name in (\"reviewed.json\", \"semantic-dedup.json\", \"progress.json\")]\n@@ -100,6 +100,34 @@\n     check_inventories()\n     by_path = {b[\"path\"]: b for b in inputs}\n     require(len(by_path) == len(inputs), \"Duplicate frozen inputs\")\n+    prior_v2_plan = load(plan[\"prior131_v2_plan\"])\n+    prior_v2_readset = load(plan[\"prior131_v2_readset\"])\n+    held = load(plan[\"prior131_v2_Main_held\"])\n+    require(held[\"plan\"] == plan[\"prior131_v2_plan\"] and\n+            held[\"grant_created\"] is False and held[\"append_invoked\"] is False and\n+            held[\"formal_writes\"] == 0, \"V2 held review differs\")\n+    require(prior_v2_plan[\"current_readset\"] == plan[\"prior131_v2_readset\"] and\n+            len(prior_v2_readset[\"files\"]) == 1032 and\n+            all(by_path.get(b[\"path\"]) == b for b in prior_v2_readset[\"files\"]),\n+            \"Prior1032 unchanged coverage reduced\")\n+    sugar = plan[\"included_Main_sugar_glider_review\"]\n+    require(binding(sugar[\"path\"]) == sugar and by_path.get(sugar[\"path\"]) == sugar,\n+            \"Known one readonly Main addition differs\")\n+    require(len(readset[\"inventories\"]) == len(prior_v2_readset[\"inventories\"]),\n+            \"Inventory scope changed\")\n+    inventory_deltas = []\n+    for before, after in zip(prior_v2_readset[\"inventories\"], readset[\"inventories\"]):\n+        require(before[\"directory\"] == after[\"directory\"] and before[\"glob\"] == after[\"glob\"],\n+                \"Inventory selectors changed\")\n+        if before != after:\n+            require(after[\"paths\"] == sorted(before[\"paths\"] + [str(resolve(sugar[\"path\"]).resolve())]) and\n+                    len(before[\"paths\"]) == 463 and len(after[\"paths\"]) == 464,\n+                    \"Inventory change is not precisely the known one addition\")\n+            inventory_deltas.append((before[\"directory\"], before[\"glob\"]))\n+    require(len(inventory_deltas) == 1, \"Unexpected number of inventory deltas\")\n+    for key in (\"baseline\", \"entry\", \"dedup_group\", \"current511_ecology52_context\",\n+                \"private_preimages\", \"private_postimages\", \"exact_full_field_differences\"):\n+        require(plan[key] == prior_v2_plan[key], \"V3 changed sealed evidence or proposed delta\")\n     prior_result = load(plan[\"prior127_actual_acceptance\"])\n     prior_readset = load(plan[\"prior127_readset\"])\n     require(prior_result[\"grant_permanently_consumed\"] is True and",
+  "source_reread_credit": 0,
+  "Python_imported_or_invoked": false
+}
