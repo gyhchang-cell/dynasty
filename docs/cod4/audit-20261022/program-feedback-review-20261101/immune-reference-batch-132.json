@@ -1,0 +1,1507 @@
+{
+  "status": "PRIVATE-author-bounded0-incomplete-state-and-contact-native-chain",
+  "created_utc": "2026-11-11T11:32:58.120134+00:00",
+  "batch": 132,
+  "repo": "SammySemicolon/Malum-Mod",
+  "commit": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+  "semantic_dedup_key": "malum-weeping-well-contact-exemption-and-rejection-gravity-source-context-only",
+  "count_unit": "No new count: handler+eventbridge are context only until actual producer/state/consumer whole and semantic independence are closed.",
+  "proposed_max_credit": 0,
+  "formal_credit": 0,
+  "prescreen": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-132-malum-weeping-well-complete-project-prescreen-20261111.json",
+    "sha256": "44db4febaeccd65cb033b48db2152d6f9c7585ec31508ba29512a06d324eabf0",
+    "bytes": 113936
+  },
+  "source_progress": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-132-malum-weeping-well-actual-source-progress-20261111.json",
+    "sha256": "01788788ec03335fa6dc0095e2913200538871680ae0018966edfd31c70f2c26",
+    "bytes": 24379
+  },
+  "source_refs": [
+    {
+      "source_path": "src/main/java/com/sammy/malum/core/handlers/WeepingWellRejectionHandler.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/WeepingWellRejectionHandler.java",
+      "start_line": 1,
+      "end_line": 139,
+      "whole_file_read": true,
+      "file_sha256": "1cb267f94b80ea9dcd1eb116834466e0aef0d1ef8eea874df500af0643d555c3",
+      "git_blob_sha1": "c31104f96c7d76dd292b55ed3126afba3f2842e6",
+      "raw_excerpt_sha256": "1cb267f94b80ea9dcd1eb116834466e0aef0d1ef8eea874df500af0643d555c3",
+      "excerpt": "package com.sammy.malum.core.handlers;\n\nimport com.sammy.malum.*;\nimport com.sammy.malum.client.VoidRevelationHandler;\nimport com.sammy.malum.common.data.attachment.*;\nimport com.sammy.malum.common.entity.FloatingItemEntity;\nimport com.sammy.malum.common.payloads.VoidRejectionPayload;\nimport com.sammy.malum.registry.common.*;\nimport com.sammy.malum.registry.common.MalumContent;\nimport com.sammy.malum.registry.common.magic.*;\nimport com.sammy.malum.registry.common.sound.*;\nimport net.minecraft.client.resources.sounds.Sound;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.*;\nimport net.minecraft.server.level.*;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.*;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\nimport net.neoforged.neoforge.event.tick.EntityTickEvent;\nimport net.neoforged.neoforge.network.*;\nimport team.lodestar.lodestone.helpers.*;\nimport team.lodestar.lodestone.modules.toolkit.sound.SoundPlayer;\n\nimport static com.sammy.malum.client.VoidRevelationHandler.RevelationType.BLACK_CRYSTAL;\n\npublic class WeepingWellRejectionHandler {\n\n    public static final ResourceLocation GRAVITY_MODIFIER_ID = MalumMod.malumPath(\"weeping_well_reduced_gravity\");\n\n    public static void handlePrimordialSoupContact(Entity entity) {\n        if (entity instanceof LivingEntity livingEntity) {\n            TouchOfDarknessHandler.handlePrimordialSoupContact(livingEntity);\n            var data = livingEntity.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n            if (data.isInRejectedState) {\n                return;\n            }\n            data.setGoopStatus();\n        }\n        if (entity instanceof FloatingItemEntity) {\n            return;\n        }\n        entity.setDeltaMovement(entity.getDeltaMovement().scale(0.3f));\n    }\n\n    public static void entityTick(EntityTickEvent.Pre event) {\n        if (event.getEntity() instanceof LivingEntity living) {\n            var level = living.level();\n            if (living.hasData(MalumAttachmentTypes.WEEPING_WELL_INFO) || living instanceof Player) {\n                var data = living.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n                data.update(living);\n                updateGravity(living);\n                if (data.isInGoop()) {\n                    handleRejectionState(level, living);\n                }\n            }\n        }\n    }\n\n    public static void updateGravity(LivingEntity entity) {\n        var gravity = entity.getAttribute(Attributes.GRAVITY);\n        if (gravity != null) {\n            var data = entity.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n            if (gravity.hasModifier(GRAVITY_MODIFIER_ID)) {\n                gravity.removeModifier(GRAVITY_MODIFIER_ID);\n            }\n            if (data.isInRejectedState) {\n                gravity.addTransientModifier(getEntityGravityAttributeModifier(entity));\n            }\n        }\n    }\n\n    public static void handleRejectionState(Level level, LivingEntity living) {\n        var data = living.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n        int rejection = data.voidRejection;\n        if (!level.isClientSide) {\n            if (living instanceof Player && level.getGameTime() % 6L == 0) {\n                SoundPlayer.create(MalumSoundEvents.SONG_OF_THE_VOID).volume(0.5f + rejection * 0.02f).pitch(0.5f + rejection * 0.03f).play(living);\n            }\n            if (data.wasJustRejected()) {\n                if (!(living instanceof Player player)) {\n                    living.remove(Entity.RemovalReason.DISCARDED);\n                    return;\n                }\n                launchPlayer(player);\n            }\n        }\n        if (data.isInRejectedState && rejection > 0) {\n            float intensity = rejection / WeepingWellData.MAX_REJECTION;\n            Vec3 movement = living.getDeltaMovement();\n            living.setDeltaMovement(movement.x, Math.pow(intensity, 2)/2f, movement.z);\n        }\n    }\n\n    public static void launchPlayer(Player player) {\n        var progression = player.getData(MalumAttachmentTypes.PROGRESSION_DATA);\n        var level = player.level();\n        if (level instanceof ServerLevel serverLevel) {\n            WeepingWellData.checkForWeepingWell(player).ifPresent(weepingWell -> {\n                BlockPos worldPosition = weepingWell.getBlockPos();\n                MalumParticleEffectTypes.WEEPING_WELL_REACTS.createEffect(worldPosition.getCenter()).spawn(serverLevel);\n            });\n            MalumParticleEffectTypes.WEEPING_WELL_REACTS.createEffect(player).spawn(serverLevel);\n            if (!player.isCreative()) {\n                player.hurt(DamageTypeHelper.create(level, MalumDamageTypes.VOID), 4);\n            }\n            if (!progression.hasBeenRejected) {\n                SoulHarvestHandler.spawnSpirits(player)\n                        .setCustomItems(MalumContent.Spirits.UMBRAL_SPIRIT.get())\n                        .setPreferredCollector(player)\n                        .spawnSpirits(level);\n            }\n            PacketDistributor.sendToPlayersTrackingEntityAndSelf(player, new VoidRejectionPayload(player.getId()));\n            SoundPlayer.create(MalumSoundEvents.VOID_REJECTION).volume(2f).pitch(0.5f, 0.8f).play(player);\n        } else {\n            VoidRevelationHandler.seeTheRevelation(BLACK_CRYSTAL);\n        }\n\n        progression.hasBeenRejected = true;\n        player.addEffect(new MobEffectInstance(MalumMobEffects.REJECTED, 400, 0));\n    }\n\n    public static AttributeModifier getEntityGravityAttributeModifier(LivingEntity livingEntity) {\n        return new AttributeModifier(GRAVITY_MODIFIER_ID, updateEntityGravity(livingEntity), AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);\n    }\n\n    public static double updateEntityGravity(LivingEntity living) {\n        var data = living.getData(MalumAttachmentTypes.WEEPING_WELL_INFO);\n        if (data.voidRejection > 0) {\n            return -Math.min(60, data.voidRejection) / 60f;\n        }\n        return 0;\n    }\n}",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/WeepingWellRejectionHandler.java"
+    },
+    {
+      "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+      "local_path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+      "start_line": 1,
+      "end_line": 274,
+      "whole_file_read": true,
+      "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+      "git_blob_sha1": "030bbb00c7a7b879b955f7df2d8a00fd6e556f15",
+      "raw_excerpt_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+      "excerpt": "package com.sammy.malum.common.events;\n\nimport com.sammy.malum.common.block.storage.jar.*;\nimport com.sammy.malum.common.data.attachment.AvariceMarkData;\nimport com.sammy.malum.common.data.listener.banner.MalumBannerPatternReloadListener;\nimport com.sammy.malum.common.data.listener.malignant_conversion.MalignantConversionReloadListener;\nimport com.sammy.malum.common.data.listener.reaping.ReapingDataReloadListener;\nimport com.sammy.malum.common.data.listener.rite.*;\nimport com.sammy.malum.common.data.listener.spellweaving.SpellweavingEqualityReloadListener;\nimport com.sammy.malum.common.data.listener.spirit.SpiritDataReloadListener;\nimport com.sammy.malum.common.effect.ascension.*;\nimport com.sammy.malum.common.effect.rite.aura.*;\nimport com.sammy.malum.common.effect.rite.aura.soulwood.*;\nimport com.sammy.malum.common.effect.gluttony.*;\nimport com.sammy.malum.common.entity.activator.*;\nimport com.sammy.malum.common.entity.nitrate.*;\nimport com.sammy.malum.common.entity.soulTag.SoulTagEntity;\nimport com.sammy.malum.common.geas.pact.aerial.*;\nimport com.sammy.malum.common.geas.pact.infernal.*;\nimport com.sammy.malum.common.geas.pact.earthen.ProfaneAsceticGeas;\nimport com.sammy.malum.common.geas.pact.sacred.*;\nimport com.sammy.malum.common.geas.pact.wicked.*;\nimport com.sammy.malum.common.item.curiosities.curios.runes.madness.*;\nimport com.sammy.malum.common.item.curiosities.curios.runes.miracle.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.elemental.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.esoteric.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.rotten.*;\nimport com.sammy.malum.common.item.curiosities.curios.sets.weeping.*;\nimport com.sammy.malum.common.item.curiosities.pouch.*;\nimport com.sammy.malum.common.item.curiosities.tools.spellweaver.*;\nimport com.sammy.malum.common.item.curiosities.weapons.greatsword.*;\nimport com.sammy.malum.common.item.curiosities.weapons.scythe.MalumScytheItem;\nimport com.sammy.malum.core.handlers.*;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.neoforged.bus.api.*;\nimport net.neoforged.fml.common.*;\nimport net.neoforged.neoforge.event.*;\nimport net.neoforged.neoforge.event.entity.*;\nimport net.neoforged.neoforge.event.entity.item.*;\nimport net.neoforged.neoforge.event.entity.living.*;\nimport net.neoforged.neoforge.event.entity.player.*;\nimport net.neoforged.neoforge.event.level.*;\nimport net.neoforged.neoforge.event.tick.*;\nimport team.lodestar.wayward_attributes.WaywardTags;\n\nimport java.util.List;\n\n@EventBusSubscriber()\npublic class RuntimeEventHandler {\n\n    @SubscribeEvent\n    public static void onEntityJoin(EntityJoinLevelEvent event) {\n        SoulDataHandler.syncData(event);\n        GeasEffectHandler.syncGeas(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingDamage(LivingDamageEvent.Post event) {\n        double RANGE = 8.0D;\n\n        LivingEntity damagedEntity = event.getEntity();\n\n        if (damagedEntity.level().isClientSide()) {\n            return;\n        }\n        if(!event.getSource().is(WaywardTags.DamageTypeTags.IS_MAGIC)) {\n            return;\n        }\n\n        if (event.getNewDamage() <= 0.0F) {\n            return;\n        }\n\n        double rangeSquared = RANGE * RANGE;\n\n        List<SoulTagEntity> soulTags =\n                damagedEntity.level().getEntitiesOfClass(\n                        SoulTagEntity.class,\n                        damagedEntity.getBoundingBox().inflate(RANGE),\n                        SoulTagEntity::isAlive\n                );\n\n        for (SoulTagEntity soulTag : soulTags) {\n\n            if (soulTag.distanceToSqr(damagedEntity) <= rangeSquared) {\n\n                soulTag.createSoulTag(\n                        damagedEntity\n                );\n                break;\n            }\n        }\n    }\n\n    @SubscribeEvent\n    public static void playerLeftClick(PlayerInteractEvent.LeftClickBlock event) {\n        SpiritJarBlock.cancelBreak(event);\n    }\n\n    @SubscribeEvent\n    public static void sweepAttack(SweepAttackEvent event) {\n        MalumScytheItem.enableScytheSweeping(event);\n    }\n\n    @SubscribeEvent\n    public static void onEntityJoin(MobSpawnEvent.PositionCheck event) {\n        SoulDataHandler.markAsSpawnerSpawned(event);\n    }\n\n    @SubscribeEvent\n    public static void onEntityFall(LivingFallEvent event) {\n        AscensionEffect.onEntityFall(event);\n        LiftedEffect.onEntityFall(event);\n        SkyTetherEffect.onEntityFall(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingTarget(LivingChangeTargetEvent event) {\n        SoulDataHandler.preventTargeting(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingVisibility(LivingEvent.LivingVisibilityEvent event) {\n        CurioConcealingRing.preventDetection(event);\n        WarlockGeas.increaseDetection(event);\n    }\n\n    @SubscribeEvent\n    public static void onLivingTick(EntityTickEvent.Pre event) {\n        AvariceMarkData.entityTick(event);\n        SoulDataHandler.entityTick(event);\n        SoulWardHandler.entityTick(event);\n        WindTunnelHandler.entityTick(event);\n        GeasEffectHandler.entityTick(event);\n        CurioWatcherNecklace.entityTick(event);\n        TouchOfDarknessHandler.entityTick(event);\n        CurioHiddenBladeNecklace.entityTick(event);\n        VindictiveBrandSwordItem.entityTick(event);\n        MalignantConversionHandler.entityTick(event);\n        WeepingWellRejectionHandler.entityTick(event);\n    }\n\n    @SubscribeEvent\n    public static void onPlayerTick(PlayerTickEvent.Pre event) {\n        StaffAbilityHandler.recoverStaffCharges(event);\n    }\n\n    @SubscribeEvent\n    public static void modifyBlockDrops(BlockDropsEvent event) {\n        AvariceMarkData.applyAvariceMark(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.LOWEST)\n    public static void modifyBlockDropsLate(BlockDropsEvent event) {\n        SpellweaverToolEffectActivator.redirectDrops(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.LOWEST)\n    public static void breakBlock(BlockEvent.BreakEvent event) {\n        SpellweavingPickaxeItem.triggerSpellweavingEffect(event);\n    }\n\n    @SubscribeEvent\n    public static void registerListeners(AddReloadListenerEvent event) {\n        SpiritDataReloadListener.register(event);\n        SpiritRiteTypeReloadListener.register(event);\n\n        MalumBannerPatternReloadListener.register(event);\n\n        SpellweavingEqualityReloadListener.register(event);\n        ReapingDataReloadListener.register(event);\n        MalignantConversionReloadListener.register(event);\n    }\n\n    @SubscribeEvent\n    public static void isPotionApplicable(MobEffectEvent.Applicable event) {\n        GluttonyEffect.canApplyPotion(event);\n    }\n\n    @SubscribeEvent\n    public static void onPotionApplied(MobEffectEvent.Added event) {\n        GluttonyEffect.removeExistingHunger(event);\n        RuneTwinnedDurationItem.scaleDuration(event);\n        RuneAilmentCleansingItem.scaleDuration(event);\n    }\n\n    @SubscribeEvent\n    public static void onPotionExpired(MobEffectEvent.Expired event) {\n    }\n\n    @SubscribeEvent\n    public static void onStartUsingItem(LivingEntityUseItemEvent.Start event) {\n        ProfaneAsceticGeas.modifyEating(event);\n        CurioVoraciousRing.modifyEating(event);\n    }\n\n    @SubscribeEvent\n    public static void onPickupItem(ItemEntityPickupEvent.Pre event) {\n        SoulwovenPouchItem.trySwallowItem(event);\n        RavenousPouchItem.trySwallowItem(event);\n    }\n\n    @SubscribeEvent\n    public static void onPickupItem(ItemEntityPickupEvent.Post event) {\n        AvariceMarkData.pickupItem(event);\n    }\n\n    @SubscribeEvent\n    public static void onHurt(LivingDamageEvent.Post event) {\n        SoulDataHandler.exposeSoul(event);\n        DesperateNeedEffect.spawnLocusts(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.HIGHEST)\n    public static void onIncomingDamage(LivingIncomingDamageEvent event) {\n        MalignantConversionHandler.shieldPlayer(event);\n    }\n\n    @SubscribeEvent\n    public static void onHurt(LivingDamageEvent.Pre event) {\n        SoulWardHandler.shieldPlayer(event);\n        OakenMightEffect.increaseDamage(event);\n        StoneWardEffect.reduceDamage(event);\n        MalumAttributeEventHandler.processAttributes(event);\n    }\n\n    @SubscribeEvent\n    public static void onKnockback(LivingKnockBackEvent event) {\n        WindsweptGeas.scaleKnockback(event);\n        SkyBreakerGeas.scaleKnockback(event);\n    }\n\n    @SubscribeEvent\n    public static void onHeal(LivingHealEvent event) {\n        LifeweaverGeas.onHeal(event);\n        TrialOfFaithEffect.spawnLocusts(event);\n    }\n\n    @SubscribeEvent\n    public static void onDeath(LivingDeathEvent event) {\n        SoulHarvestHandler.onDeath(event);\n        GluttonyEffect.onDeath(event);\n    }\n\n    @SubscribeEvent\n    public static void onDrops(LivingDropsEvent event) {\n        EnsouledItemHarvestHandler.onDrops(event);\n    }\n\n    @SubscribeEvent\n    public static void onItemExpire(ItemExpireEvent event) {\n        EnsouledItemHarvestHandler.onItemExpire(event);\n    }\n\n    @SubscribeEvent\n    public static void onItemUseBlock(UseItemOnBlockEvent event) {\n        BlockTappingHandler.drainBlock(event);\n    }\n    @SubscribeEvent\n    public static void onItemUseStart(LivingEntityUseItemEvent.Start event) {\n        ContinuingShotGeas.onItemUseStart(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.HIGHEST)\n    public static void onExplosionDetonate(ExplosionEvent.Detonate event) {\n        NitrateExplosion.processExplosion(event);\n        BlastweaverGeas.processExplosion(event);\n    }\n\n    @SubscribeEvent(priority = EventPriority.HIGHEST)\n    public static void onExplosionKnockback(ExplosionKnockbackEvent event) {\n        CurioWindweaverNecklace.onExplosionKnockback(event);\n    }\n}",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java"
+    }
+  ],
+  "full_chain_observation": [
+    "Pinned Malum3de9de9d snapshot; actual full WeepingWellRejectionHandler139 and RuntimeEventHandler274 read. @EventBusSubscriber onLivingTick EntityTickEvent.Pre runs preceding helpers then WeepingWellRejectionHandler.entityTick. No full native bus/load/runtime proof and no assertion previous calls always return.",
+    "Contact helper first calls TouchOfDarknessHandler for any Living, then checks attachment isInRejectedState. True returns before setGoopStatus and before generic .3 motion scaling; FloatingItemEntity also exempt from scaling. Missing actual PrimordialSoupBlock body means collision reachability/contact call and sequencing not closed.",
+    "Entity Pre path handles Living with existing WEEPING_WELL_INFO or any Player; data.update(living) precedes updateGravity, then only data.isInGoop invokes rejection handler. Missing WeepingWellData prevents proving who changes goop/rejected flags, thresholds, timing, transition uniqueness, persistence or cleanup.",
+    "updateGravity removes the one fixed weeping_well_reduced_gravity modifier ID if present, then re-adds transient ADD_MULTIPLIED_TOTAL only when isInRejectedState. Amount=-min(60,voidRejection)/60 for positive counter, otherwise0. This is a local modifier request: no final gravity/other modifier/nativeattribute/runtime guarantee.",
+    "When in goop, server Player sound is scheduled by worldtime%6; wasJustRejected true removes nonPlayer with DISCARDED and returns, or invokes launchPlayer. Later both-side local branch ifrejected and counter>0 overwrites Y with pow(rejection/MAX_REJECTION,2)/2 while retaining X/Z. MAX_REJECTION declaration/type unavailable; do not infer divisionprecision, actual scale, duration or threshold.",
+    "launchPlayer server requests well-position and player particle effects; noncreative requests VOID hurt4 with boolean ignored; if progression.hasBeenRejected false requests preferred-collector Umbral spirit spawn. Then tracking+self VoidRejectionPayload numeric entityId and sound requested. Only after server/client branch normal return writes hasBeenRejected=true and requests REJECTED400 effect ignoringbool. No confirmed damage, drop, receipt, payment or final state from request order.",
+    "Client launch branch calls BLACK_CRYSTAL revelation before common progression flag/effect request. Actual VoidRejectionPayload body missing; no proof receiver calls launchPlayer, level/identity validation, duplicate control, packet delivery, realclient mutation or visibleaudio outcome.",
+    "Complete saved3 projectformal and16projectsweep judgments actually read before handlerbody; clipped outputs replaced by bounded complete emissions. Exact sweep decision counts {\"accepted\": 11, \"excluded\": 3, \"pending\": 2}. SoulWard/Aegis/Gluttony and all saved sweep owners/statuses remain; no new underlying source reread claim from saved excerpts, no global510noveltyaudit.",
+    "Author0 for incomplete contact-producer/state machine/payload consumer chain. Handler conditional behavior alone does not establish a semantically new immunity or final refusal whole, regardless names, number of branches or two complete files. Missing five concrete bodies stay a research gap; no network acquisition or modern-to-1.20.1 transplant."
+  ],
+  "concrete_observation": "The rejection flag gates contact slowing and supplies a separately rewritten gravity/motion request; launch damage/effect/feedback/reward requests settle at different points. Actual flag producer/state machine/contact and packet consumer bodies missing, so no new whole credit.",
+  "application_to_boss_immune": "Distinguish rejecting a contact slow from later direct motion/attribute requests; derive feedback and rewards from their real commit points. Research context only, no Dynasty changes.",
+  "limitations": [
+    "Author maximum0, formallyapplied0, no independent Main new judgment. Incomplete control/contact/state/packet chain not eligible as1 merely because full handler methods were read.",
+    "WeepingWellData/MAX_REJECTION/update/isInGoop/wasJustRejected/setGoopStatus not read; actual state eligibility, debounce, persistence, expiry, world or owner cleanup unknown.",
+    "PrimordialSoupBlock actual collision/contact producer, TouchOfDarkness sideeffects and RejectedEffect body not cached at checked exact locations. Tree blobs are metadata, not source reading.",
+    "VoidRejectionPayload registration/receiver/body absent at checked exact locations; no enabled packet, actual entity identity validation, clientlaunch or feedback success claimed.",
+    "All motion, attribute, hurt, addEffect, remove, spawnSpirits, particles and sounds are source calls; actual engine admission/results/transactions and exception paths not tested. No demonstrated exploit, permanent gravity loss, duplicate reward or itemloss.",
+    "No exact MAX_REJECTION type/arithmetic assumption; no allfire/Boss immunity, hurt refusal, continuous impulse budget or successful escape outcome implied.",
+    "Only current snapshot is pinned; no Dynasty Forge1.20.1 binary/API/installedpack compatibility, modern native behavior or acquisition/crafting/payment availability.",
+    "Saved3+16 complete judgments are bounded sameproject prescreen, not all510 semantic/source novelty proof. Other-project navigation scans add0 and no phantom references.",
+    "Local body absence limited to three known source pools15 exact paths, not universal disk/upstream absence; no external download requested/run.",
+    "No production/UI/background/asset/sharedJar/world/userinstance/Mainactive/session/pending/ownership/externalprompts mutation; no Java/Gradle/game/network/Git/automation/newchat or tasks deleted.127originalproposal remains unexecuted and may become stale as Main serialized ecology proceeds;131preformalMainACK now closed but no plan authority.",
+    "Formal510/238 gap490 gatefalse remains at this receipt creation; researchgate not reached. No native acceptance, activehours or alltaskcompletion claim."
+  ],
+  "complete_project_formal_judgments": [
+    {
+      "id": "malum-native-soul-ward-overdraw-mitigation-dirty-sync-and-self-hud",
+      "status": "reviewed_effective",
+      "repo": "SammySemicolon/Malum-Mod",
+      "commit": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "category": "native_damage_absorption_and_feedback_lifecycle",
+      "semantic_dedup_key": "malum-native-soul-ward-overdraw-mitigation-dirty-sync-and-self-hud",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/MalumMod.java",
+          "source_path": "src/main/java/com/sammy/malum/MalumMod.java",
+          "lines": [
+            48,
+            76
+          ],
+          "file_sha256": "3beef8ee1df41a0f8f0cb833e73a1c7021822e51ba0331e1310ace4db6896df8",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/MalumMod.java#L48-L76"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            180,
+            204
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L180-L204"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            216,
+            221
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L216-L221"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            682,
+            685
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L682-L685"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/item/curiosities/armor/SoulStainedSteelArmorItem.java",
+          "source_path": "src/main/java/com/sammy/malum/common/item/curiosities/armor/SoulStainedSteelArmorItem.java",
+          "lines": [
+            1,
+            41
+          ],
+          "file_sha256": "40643d6d56c366fbbf17238809756c68d5fbf9233f3c219b434bb09edf076c0a",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/item/curiosities/armor/SoulStainedSteelArmorItem.java#L1-L41"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/item/curiosities/armor/MalumArmorItem.java",
+          "source_path": "src/main/java/com/sammy/malum/common/item/curiosities/armor/MalumArmorItem.java",
+          "lines": [
+            1,
+            32
+          ],
+          "file_sha256": "671be559550be8ca2fd6e1aea9fbccb50b9c1d2b97c5924f5c15bb255d8139f4",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/item/curiosities/armor/MalumArmorItem.java#L1-L32"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumAttributes.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumAttributes.java",
+          "lines": [
+            1,
+            60
+          ],
+          "file_sha256": "00cbbd5773f6e3e0ba50f6887676a551d61acf94088426af2c6cfd0e5ad17b4c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumAttributes.java#L1-L60"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            48,
+            49
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L48-L49"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            128,
+            141
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L128-L141"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            214,
+            225
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L214-L225"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/SoulWardHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/core/handlers/SoulWardHandler.java",
+          "lines": [
+            1,
+            80
+          ],
+          "file_sha256": "4825ad85ffe6cd8608122e2a1ac1a5694eafe0e11c3e74b24f9c58b76f4156d8",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/SoulWardHandler.java#L1-L80"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/attachment/SoulWardData.java",
+          "source_path": "src/main/java/com/sammy/malum/common/data/attachment/SoulWardData.java",
+          "lines": [
+            1,
+            141
+          ],
+          "file_sha256": "97d7d2bdaf80af52769404f934c085aa00692a4efa3f07613f15cfbd9b1dbf70",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/data/attachment/SoulWardData.java#L1-L141"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/systems/events/ModifySoulWardPropertiesEvent.java",
+          "source_path": "src/main/java/com/sammy/malum/core/systems/events/ModifySoulWardPropertiesEvent.java",
+          "lines": [
+            1,
+            62
+          ],
+          "file_sha256": "5f94caf2c23045bed79b1cf00480bf46094232913efef694e4acd61bb02328bd",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/systems/events/ModifySoulWardPropertiesEvent.java#L1-L62"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/systems/events/SoulWardDamageEvent.java",
+          "source_path": "src/main/java/com/sammy/malum/core/systems/events/SoulWardDamageEvent.java",
+          "lines": [
+            1,
+            25
+          ],
+          "file_sha256": "248051cc2206ee4817c83a047df4e287cf4bb7ece042e6df145e569436fbcbbe",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/systems/events/SoulWardDamageEvent.java#L1-L25"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/systems/events/SoulWardEvent.java",
+          "source_path": "src/main/java/com/sammy/malum/core/systems/events/SoulWardEvent.java",
+          "lines": [
+            1,
+            26
+          ],
+          "file_sha256": "e504531791e65483799425301f69627ed4bd0181960422ef4d83e4ecff37f70c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/systems/events/SoulWardEvent.java#L1-L26"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumAttachmentTypes.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumAttachmentTypes.java",
+          "lines": [
+            48,
+            50
+          ],
+          "file_sha256": "080c725dda2309349c6c213b1a91289af29b2174a8401b95a0c5f6ec61bbec59",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumAttachmentTypes.java#L48-L50"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/config/CommonConfig.java",
+          "source_path": "src/main/java/com/sammy/malum/config/CommonConfig.java",
+          "lines": [
+            37,
+            45
+          ],
+          "file_sha256": "8c2bdce9e115d5a6361a28a79eb1352812c77a56adff3e1e9327f54686a86092",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/config/CommonConfig.java#L37-L45"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java",
+          "lines": [
+            17,
+            18
+          ],
+          "file_sha256": "a3fd1724dceffcb41ae70ffe54a4235b425db78416d270b955aa2af24ff5c68c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java#L17-L18"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java",
+          "lines": [
+            32,
+            41
+          ],
+          "file_sha256": "a3fd1724dceffcb41ae70ffe54a4235b425db78416d270b955aa2af24ff5c68c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java#L32-L41"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/events/ClientSetupHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/client/events/ClientSetupHandler.java",
+          "lines": [
+            79,
+            82
+          ],
+          "file_sha256": "728f8eb05f4018f5ae876d1ec45f5203be8a67615289e3e523648af87ad72811",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/events/ClientSetupHandler.java#L79-L82"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/client/SoulWardRenderHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/core/handlers/client/SoulWardRenderHandler.java",
+          "lines": [
+            1,
+            140
+          ],
+          "file_sha256": "d7ff4556c4043ebb55db65210c1b531a8b24deec3e1406a81cdeb305133ca97c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/client/SoulWardRenderHandler.java#L1-L140"
+        }
+      ],
+      "full_chain_observation": "Mod注册gear/attributes/attachment→真实SoulStainedSteelArmorItem每槽+3容量/恢复率→原生attribute支持的Living每server tick SoulWardData恢复资源→native LivingDamage.Pre shieldPlayer按来源配置吸收→先减ward/发SoulWardDamageEvent/原生位置声音→setNewDamage残值→dirty在native tick同步attachment→客户端自己ward数据驱动tick插值/亮度/fade→GUI注册层画shader护盾。Lodestone原生装备属性入口/声音终点已固定源码补辅助0。",
+      "concrete_observation": "完整游戏资源减伤/反馈/HUD家族1，不拆两个event类/每槽armor/通用同步与shader。默认物理剩0.7、魔法剩0.1，不是免疫；config0或其它event改比例可到0，但不得说默认零伤。只要ward>0，吸收额按整次伤害比例计算，不按剩余ward反向限制，ward减后clamp0，所以最后很少ward也可承担一次大吸收；与Mekanism按实际能量事务结算不同。Integrity最低.01参与资源损耗。先加入4倍恢复CD，即使已耗尽也延长；后发非可取消SoulWardDamageEvent，其absorb/lost记录是算式值不是最终HP实际变化/最终损失clamp值。之后同native handler还有OakenMight/StoneWard/Attributes处理，发出的声不是最终hurt接纳确认。dirty每server tick最多统一同步这一data，不等于按目标回执节流；冷却自然每tick减本身不置dirty，网络不是每tick必发。",
+      "application_to_boss_immune": "Boss免控必须由最终明确拒绝原因发灰字，既有减伤资源/护盾声不能替代IMMUNE。伤害预算、网络dirty合并、UI平滑与按目标限频属于不同规则。客户端跨世界要明确清理视觉缓存，避免旧目标反馈延续到新会话。",
+      "limitations": "固定3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10。HUD static old/display/glow/fade只在player非null时更新，本链无world identity/登出重置；刚进新世界可能从旧插值衔接，未实机不能定性可见bug。shader本体/Lodestone渲染工具与NeoForge attachment收包内部辅助0，不声称完整原生S2C安全/画面或音效已验。原生装备入口已读，未验证配方获取或依赖版本组合编译。无游戏/正式源码/资产/待办改动。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T17:44:42.855106+00:00",
+      "auxiliary_refs": [
+        {
+          "repo": "LodestarMC/Lodestone",
+          "commit": "700fbde9ce1487525a74504b88446d45e07aaf69",
+          "path": "tools/cod4/immune-feedback-research/sources/LodestarMC__Lodestone/src/main/java/team/lodestar/lodestone/modules/toolkit/item/LodestoneArmorItem.java",
+          "source_path": "src/main/java/team/lodestar/lodestone/modules/toolkit/item/LodestoneArmorItem.java",
+          "lines": [
+            1,
+            40
+          ],
+          "file_sha256": "5d7ed1706df93a36a3fa137b9dcd0a07cd5c66a2bb51747c2bc0f4f37bad874e",
+          "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/modules/toolkit/item/LodestoneArmorItem.java#L1-L40",
+          "research_credit": 0,
+          "role": "auxiliary generic dependency, not an extra implementation",
+          "note": "本地固定700fbde9ce1487525a74504b88446d45e07aaf69，真实getDefaultAttributeModifiers把子类createExtraAttributes加入装备默认属性；SoundPlayer最终Level.playSound(null,实体头高坐标,类别,随机pitch/volume)。两个通用辅助类信用0，未声称该缓存提交与Malum依赖BOM编译已验证。"
+        },
+        {
+          "repo": "LodestarMC/Lodestone",
+          "commit": "700fbde9ce1487525a74504b88446d45e07aaf69",
+          "path": "tools/cod4/immune-feedback-research/sources/LodestarMC__Lodestone/src/main/java/team/lodestar/lodestone/modules/toolkit/sound/SoundPlayer.java",
+          "source_path": "src/main/java/team/lodestar/lodestone/modules/toolkit/sound/SoundPlayer.java",
+          "lines": [
+            1,
+            88
+          ],
+          "file_sha256": "dba1106fb34507008036688e728040f589d36f34c9828702d866d15c5bd8a0a4",
+          "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/modules/toolkit/sound/SoundPlayer.java#L1-L88",
+          "research_credit": 0,
+          "role": "auxiliary generic dependency, not an extra implementation",
+          "note": "本地固定700fbde9ce1487525a74504b88446d45e07aaf69，真实getDefaultAttributeModifiers把子类createExtraAttributes加入装备默认属性；SoundPlayer最终Level.playSound(null,实体头高坐标,类别,随机pitch/volume)。两个通用辅助类信用0，未声称该缓存提交与Malum依赖BOM编译已验证。"
+        }
+      ]
+    },
+    {
+      "id": "malum-native-aegis-incoming-denial-transformed-capacity-and-postattack-window",
+      "status": "reviewed_effective",
+      "repo": "SammySemicolon/Malum-Mod",
+      "commit": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "category": "native_final_damage_refusal",
+      "semantic_dedup_key": "malum-native-aegis-incoming-denial-transformed-capacity-and-postattack-window",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/item/curiosities/armor/MalignantStrongholdArmorItem.java",
+          "source_path": "src/main/java/com/sammy/malum/common/item/curiosities/armor/MalignantStrongholdArmorItem.java",
+          "lines": [
+            1,
+            36
+          ],
+          "file_sha256": "d483a33afc41c5f0f8f81e05aaef6d40bd7a046f6a72f87d366627d61d788dc7",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/item/curiosities/armor/MalignantStrongholdArmorItem.java#L1-L36"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/attachment/MalignantInfluenceData.java",
+          "source_path": "src/main/java/com/sammy/malum/common/data/attachment/MalignantInfluenceData.java",
+          "lines": [
+            1,
+            135
+          ],
+          "file_sha256": "d67335b76e97e0755ae7ec740e906e1080fb5a9b1e80687a7cbb727fa3de6e97",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/data/attachment/MalignantInfluenceData.java#L1-L135"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/MalignantConversionHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/core/handlers/MalignantConversionHandler.java",
+          "lines": [
+            1,
+            182
+          ],
+          "file_sha256": "19415c6b7fb82f499c1b6e6a531e222967b8a382a936844188995161f15fcfb2",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/MalignantConversionHandler.java#L1-L182"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionReloadListener.java",
+          "source_path": "src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionReloadListener.java",
+          "lines": [
+            1,
+            106
+          ],
+          "file_sha256": "5ccc23795a1e00a3738c0cfec66c7e0eb4e4080d3fcdfb7e315172eab3507168",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionReloadListener.java#L1-L106"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionData.java",
+          "source_path": "src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionData.java",
+          "lines": [
+            1,
+            11
+          ],
+          "file_sha256": "32adc223b3f9e029b88adf080a1f6c8f269e5586aa85a5159fa096c1db638cd1",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionData.java#L1-L11"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionAttributePayout.java",
+          "source_path": "src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionAttributePayout.java",
+          "lines": [
+            1,
+            8
+          ],
+          "file_sha256": "e5107b93404951f6a41048ba45192fa4086106a0ed33ddb6172fc64550d3f25f",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/data/listener/malignant_conversion/MalignantConversionAttributePayout.java#L1-L8"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/core/handlers/client/MalignantAegisRenderHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/core/handlers/client/MalignantAegisRenderHandler.java",
+          "lines": [
+            1,
+            139
+          ],
+          "file_sha256": "6f3b000175d1a19c0b3a22b3acd42dc6cac8934012199c65c6661daf063dc95f",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/client/MalignantAegisRenderHandler.java#L1-L139"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            164,
+            176
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L164-L176"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            214,
+            217
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L214-L217"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            128,
+            141
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L128-L141"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            682,
+            690
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L682-L690"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumAttachmentTypes.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumAttachmentTypes.java",
+          "lines": [
+            68,
+            70
+          ],
+          "file_sha256": "080c725dda2309349c6c213b1a91289af29b2174a8401b95a0c5f6ec61bbec59",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumAttachmentTypes.java#L68-L70"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumAttributes.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumAttributes.java",
+          "lines": [
+            42,
+            49
+          ],
+          "file_sha256": "00cbbd5773f6e3e0ba50f6887676a551d61acf94088426af2c6cfd0e5ad17b4c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumAttributes.java#L42-L49"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/resources/data/malum/malignant_conversion_data/soul_ward_capacity.json",
+          "source_path": "src/main/resources/data/malum/malignant_conversion_data/soul_ward_capacity.json",
+          "lines": [
+            1,
+            13
+          ],
+          "file_sha256": "a33b9d87fa53feace67c751b938c2a54e742c5415599c3724bd2c1cc1bad4154",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/resources/data/malum/malignant_conversion_data/soul_ward_capacity.json#L1-L13"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java",
+          "lines": [
+            32,
+            41
+          ],
+          "file_sha256": "a3fd1724dceffcb41ae70ffe54a4235b425db78416d270b955aa2af24ff5c68c",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/events/ClientRuntimeEventHandler.java#L32-L41"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/events/ClientSetupHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/client/events/ClientSetupHandler.java",
+          "lines": [
+            79,
+            85
+          ],
+          "file_sha256": "728f8eb05f4018f5ae876d1ec45f5203be8a67615289e3e523648af87ad72811",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/events/ClientSetupHandler.java#L79-L85"
+        }
+      ],
+      "full_chain_observation": "已注册MalignantStronghold装备给conversion .25/件→实际AddReloadListener装载soul_ward_capacity数据→native entityTick runConversion移除旧扣减/读原始ward容量/按比例给Aegis容量（ceil）→恢复整数charge→HIGHEST LivingIncomingDamage原生gate：server/notbypass/original>=2/charge>0→减1/写DamageContainer postAttackInvulnerabilityTicks min(old*2,40)/同步+hit或deplete声/取消伤害→已注册自身HUD按同步data画。",
+      "concrete_observation": "此独立IncomingDamage最终拒绝点1，不与后段SoulWard百分比Pre减伤混成“同一护盾换色”。例如同时有ward正容量和conversion装备，数据转换才产生aegis容量；只穿全Malignant但没有可转换源，不应凭装备名推必有护盾。门按original>=2，不按最终伤害门，失败/外部后续监听交互未动态证实。每次合格只耗1，无按目标时间窗；postAttackInvulnerabilityTicks写入容器后取消，原生取消路径是否真的应用该窗口需引擎验收，本条不声称无敌帧真实延长通过。reduceAegis置dirty且立即sync，随后tick dirty可能再次sync，不称单包保证。",
+      "application_to_boss_immune": "Boss灰字应由显式拒控点一次派发；写了无敌时长但随后取消事件，不能静态等同实际生效。生命周期codec字段必须与实际state一致，不能只测网络encode/decode存在。",
+      "limitations": "固定3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10。完整生产/数据转换/收费/consumer方法已读。CODEC的aegisCooldown字段实际forGetter(getMalignantAegis)，保存/同步会写charge而非真实cooldown；保留静态具体观察，不替上游修复、不冒称动态复现。client容量<=0时tick ifPresent不更新static显示值，绘制capacity门隐藏，本链无world身份重置。客户端shader/NeoForge attachment内部辅助0，无游戏/正式代码/资产/待办改动。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T17:50:07.895354+00:00",
+      "auxiliary_refs": [
+        {
+          "repo": "LodestarMC/Lodestone",
+          "commit": "700fbde9ce1487525a74504b88446d45e07aaf69",
+          "path": "tools/cod4/immune-feedback-research/sources/LodestarMC__Lodestone/src/main/java/team/lodestar/lodestone/modules/toolkit/item/LodestoneArmorItem.java",
+          "source_path": "src/main/java/team/lodestar/lodestone/modules/toolkit/item/LodestoneArmorItem.java",
+          "lines": [
+            1,
+            40
+          ],
+          "file_sha256": "5d7ed1706df93a36a3fa137b9dcd0a07cd5c66a2bb51747c2bc0f4f37bad874e",
+          "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/modules/toolkit/item/LodestoneArmorItem.java#L1-L40",
+          "research_credit": 0,
+          "role": "auxiliary generic dependency, not an extra implementation",
+          "note": "同57辅助完整类复用0，不因被另一游戏producer引用而给通用库加数。"
+        },
+        {
+          "repo": "LodestarMC/Lodestone",
+          "commit": "700fbde9ce1487525a74504b88446d45e07aaf69",
+          "path": "tools/cod4/immune-feedback-research/sources/LodestarMC__Lodestone/src/main/java/team/lodestar/lodestone/modules/toolkit/sound/SoundPlayer.java",
+          "source_path": "src/main/java/team/lodestar/lodestone/modules/toolkit/sound/SoundPlayer.java",
+          "lines": [
+            1,
+            88
+          ],
+          "file_sha256": "dba1106fb34507008036688e728040f589d36f34c9828702d866d15c5bd8a0a4",
+          "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/modules/toolkit/sound/SoundPlayer.java#L1-L88",
+          "research_credit": 0,
+          "role": "auxiliary generic dependency, not an extra implementation",
+          "note": "同57辅助完整类复用0，不因被另一游戏producer引用而给通用库加数。"
+        }
+      ]
+    },
+    {
+      "id": "malum-native-gluttony-status-denial-plus-retrospective-hunger-cleanse",
+      "status": "reviewed_effective",
+      "repo": "SammySemicolon/Malum-Mod",
+      "commit": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "category": "native_mutually_exclusive_status_applicability_and_retrospective_cleanup",
+      "semantic_dedup_key": "malum-native-gluttony-status-denial-plus-retrospective-hunger-cleanse",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/MalumMod.java",
+          "source_path": "src/main/java/com/sammy/malum/MalumMod.java",
+          "lines": [
+            1,
+            104
+          ],
+          "file_sha256": "3beef8ee1df41a0f8f0cb833e73a1c7021822e51ba0331e1310ace4db6896df8",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/MalumMod.java#L1-L104"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            180,
+            208
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L180-L208"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            330,
+            330
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L330-L330"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumContent.java",
+          "lines": [
+            704,
+            705
+          ],
+          "file_sha256": "8046bdedacc73276cc204abf6b1b8d3322d9c4ca80cbc46482fb078b4202857d",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumContent.java#L704-L705"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/MalumMobEffects.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/MalumMobEffects.java",
+          "lines": [
+            1,
+            86
+          ],
+          "file_sha256": "29d295ef5fe60e310c21032aac533a119819256a63048cc35f4f78e312c957cf",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/MalumMobEffects.java#L1-L86"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/registry/common/item/MalumFoodProperties.java",
+          "source_path": "src/main/java/com/sammy/malum/registry/common/item/MalumFoodProperties.java",
+          "lines": [
+            1,
+            20
+          ],
+          "file_sha256": "b68b5374bb7cf5db5b95dd89b9af3c2e87f7e24388eabb8d18585c3374165460",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/registry/common/item/MalumFoodProperties.java#L1-L20"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "source_path": "src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java",
+          "lines": [
+            1,
+            274
+          ],
+          "file_sha256": "ff3f276196640386a885233ff7143eff35d720e8b1dd947e62887ef9881f78d5",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/events/RuntimeEventHandler.java#L1-L274"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/effect/gluttony/GluttonyEffect.java",
+          "source_path": "src/main/java/com/sammy/malum/common/effect/gluttony/GluttonyEffect.java",
+          "lines": [
+            1,
+            261
+          ],
+          "file_sha256": "1dee6785c27595b9d3f8d8cbeff617833d09f09945bd24a611ede12668009c88",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/effect/gluttony/GluttonyEffect.java#L1-L261"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/item/IMalumEventResponder.java",
+          "source_path": "src/main/java/com/sammy/malum/common/item/IMalumEventResponder.java",
+          "lines": [
+            1,
+            37
+          ],
+          "file_sha256": "aeea795c2abc21e0430d24e28aa35456680785659b0317e85918c1b7f2ce6405",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/item/IMalumEventResponder.java#L1-L37"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/common/item/curiosities/weapons/scythe/RavenousScytheItem.java",
+          "source_path": "src/main/java/com/sammy/malum/common/item/curiosities/weapons/scythe/RavenousScytheItem.java",
+          "lines": [
+            1,
+            59
+          ],
+          "file_sha256": "dc7cc9af798be9aae9b36b739b461ab25065ef13365496e1db361392936ca134",
+          "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/item/curiosities/weapons/scythe/RavenousScytheItem.java#L1-L59"
+        }
+      ],
+      "full_chain_observation": "真实@Mod注册MobEffects与Gear/Materials。RuntimeEventHandler原生Applicable→GluttonyEffect.canApplyPotion，只对HUNGER且目标已有GLUTTONY/TRIAL_OF_FAITH/DESPERATE_NEED写DO_NOT_APPLY；Added→removeExistingHunger对任意刚加入效果事件重查目标当前三态，有则移除既有HUNGER。RottingEssence注册食品原生95%施HUNGER600tick；RavenousScythe服务端合格原生伤害Pre响应applyGluttony，通过可修改properties事件后addEffect/放大既有实例。",
+      "concrete_observation": "计1：当前互斥状态同时覆盖新效果最终拒绝与旧效果事后清除的双阶段一致性政策；三种状态名、两个事件回调及属性构造不拆数。不是按装备multiset等级和放大阈值拒绝，也不是定时cap缩短。Added没有限定新效果就是gluttony，任意Added都重查；是否新状态已出现在entity.hasEffect取决于NeoForge插入时序，静态不假定必当场清旧。保留Gluttony每tick仍causeFoodExhaustion，免Hunger不等于免所有饥饿耗费。属性事件允许替换effectType，不把任意替换都推成有免疫资格。",
+      "application_to_boss_immune": "Boss控制拒绝应在适用性最终门产生明确原因；已有状态清除和新请求拒绝要分别覆盖，不能只用客户端当前效果列表猜拒绝。普通阴阳不新增灰字要求。",
+      "limitations": "上述所引关键类/完整方法全文已读。Lodestone两个固定源码文件已补读仅作分发支持0，未验证Malum构建锁定所用Lodestone版本相同，也未展开外部charged attack判定，不能声称实装此物品必定触发。直接Applicable拒绝链独立成立；无Boss灰字/音效/实机同步结论。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-28T13:03:10.889998+00:00",
+      "auxiliary_refs": [
+        {
+          "repo": "LodestarMC/Lodestone",
+          "commit": "700fbde9ce1487525a74504b88446d45e07aaf69",
+          "path": "tools/cod4/immune-feedback-research/sources/LodestarMC__Lodestone/src/main/java/team/lodestar/lodestone/handlers/ItemEventHandler.java",
+          "source_path": "src/main/java/team/lodestar/lodestone/handlers/ItemEventHandler.java",
+          "lines": [
+            1,
+            174
+          ],
+          "file_sha256": "0bdb117afc6e8c4d9d3fe5400862c3fef9f746434e06568d920b51657230b47a",
+          "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/handlers/ItemEventHandler.java#L1-L174",
+          "research_credit": 0,
+          "role": "auxiliary generic dependency, not an extra implementation",
+          "note": "完整泛型分发：真实Pre事件按目标/攻击者主手与护甲lookup调用接口；基础分发不是独立游戏实现，且未验证依赖版本锁定。"
+        },
+        {
+          "repo": "LodestarMC/Lodestone",
+          "commit": "700fbde9ce1487525a74504b88446d45e07aaf69",
+          "path": "tools/cod4/immune-feedback-research/sources/LodestarMC__Lodestone/src/main/java/team/lodestar/lodestone/events/GameEvents.java",
+          "source_path": "src/main/java/team/lodestar/lodestone/events/GameEvents.java",
+          "lines": [
+            1,
+            50
+          ],
+          "file_sha256": "25e658519142363920415f2bb94182222ba27beda3cc4e3305b8520f65dde30c",
+          "url": "https://github.com/LodestarMC/Lodestone/blob/700fbde9ce1487525a74504b88446d45e07aaf69/src/main/java/team/lodestar/lodestone/events/GameEvents.java#L1-L50",
+          "research_credit": 0,
+          "role": "auxiliary generic dependency, not an extra implementation",
+          "note": "完整泛型分发：真实Pre事件按目标/攻击者主手与护甲lookup调用接口；基础分发不是独立游戏实现，且未验证依赖版本锁定。"
+        }
+      ]
+    }
+  ],
+  "complete_project_sweep_judgments": [
+    {
+      "candidate_id": "6e218a95c5ae2aaf6106",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/client/renderer/block/WindTunnelRenderer.java",
+      "method": "getOffset",
+      "source_local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/renderer/block/WindTunnelRenderer.java",
+      "source_metadata": "build/item-use-references/SammySemicolon__Malum-Mod/source.json",
+      "source_root": "build/item-use-references/SammySemicolon__Malum-Mod",
+      "line": 145,
+      "end_line": 151,
+      "source_sha256": "8906ce58f8177fa8bbda8f5da8f3959735744330f1a63bcba6dc3f42d8860f6d",
+      "snippet_sha256": "edeb4ca93c0880bb62c26372381ddcac348bae1f2b02add72e5687345e3fc7fc",
+      "structural_fingerprint": "6d934e671018e7748afc49075ef265076ac5c917010477f6c05087cc3770ae5d",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/renderer/block/WindTunnelRenderer.java#L145-L151",
+      "discovery_tags": [
+        "expiry_window"
+      ],
+      "ast_calls": [
+        "getTunnelLength",
+        "getGameTime",
+        "getInstance"
+      ],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "private float getOffset(WindTunnelBlockEntity tunnel, float interval, float partialTicks) {\n        int tunnelLength = tunnel.getTunnelLength();\n        float intensity = tunnelLength/MAX_STRENGTH;\n        float rate = 1+intensity;\n        double time = Minecraft.getInstance().level.getGameTime() + partialTicks;\n        return (float) ((time * rate / interval) % interval);\n    }",
+      "status": "unreviewed",
+      "candidate_index": 3793,
+      "decision": "excluded",
+      "observation": "纯渲染的时间取模偏移函数，无队列、去重或回执归属，排除关键词误命中。",
+      "reviewed_at": "2026-10-23T08:48:55.776457+08:00",
+      "original_decision": "excluded",
+      "credit": 0,
+      "external_runtime_tested": false
+    },
+    {
+      "candidate_id": "acdfc7ed33d836173a45",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/client/renderer/block/artifice/SpiritInfluenceRendererData.java",
+      "method": "tickData",
+      "source_local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/renderer/block/artifice/SpiritInfluenceRendererData.java",
+      "source_metadata": "build/item-use-references/SammySemicolon__Malum-Mod/source.json",
+      "source_root": "build/item-use-references/SammySemicolon__Malum-Mod",
+      "line": 21,
+      "end_line": 38,
+      "source_sha256": "f2a0e872a509fc2bc9da39e043c3a38c2f385bec673034829e90fa5909ffccd8",
+      "snippet_sha256": "620b12a4b9a0f30a16dc238c172064b22c2878a53dc8ae950fba7881521fc05e",
+      "structural_fingerprint": "29df679c0166f2e1273492096c6442dea066ad948733e786d35fe207d6bd614b",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/renderer/block/artifice/SpiritInfluenceRendererData.java#L21-L38",
+      "discovery_tags": [
+        "expiry_window"
+      ],
+      "ast_calls": [
+        "getInstance",
+        "getGameTime",
+        "getGameTime",
+        "getActiveSpiritType",
+        "merge",
+        "min",
+        "maxValue",
+        "keySet",
+        "equals",
+        "merge",
+        "max"
+      ],
+      "ast_guards": [
+        "(level.getGameTime() == gameTimeCache)",
+        "(activeSpiritType != null)",
+        "(spiritType.equals(activeSpiritType))"
+      ],
+      "parse_error": false,
+      "excerpt": "private SpiritInfluenceRendererData tickData(IArtificeAcceptor target) {\n        ClientLevel level = Minecraft.getInstance().level;\n        if (level.getGameTime() == gameTimeCache) {\n            return this;\n        }\n        gameTimeCache = level.getGameTime();\n        var activeSpiritType = target.getActiveSpiritType();\n        if (activeSpiritType != null) {\n            merge(activeSpiritType, 1, (a, b) -> Math.min(a + b, maxValue()));\n        }\n        for (SpiritArcanaType spiritType : keySet()) {\n            if (spiritType.equals(activeSpiritType)) {\n                continue;\n            }\n            merge(spiritType, 1, (a, b) -> Math.max(a - b, 0));\n        }\n        return this;\n    }",
+      "status": "unreviewed",
+      "candidate_index": 3885,
+      "decision": "excluded",
+      "observation": "SpiritInfluenceRendererData以gameTimeCache防同tick重复插值，实际仅灵力渲染淡入淡出，未审具体玩法消费者来源，作为通用视觉缓存不计专属1000。",
+      "reviewed_at": "2026-10-24T17:25:56.737517+08:00",
+      "original_decision": "excluded",
+      "credit": 0,
+      "external_runtime_tested": false
+    },
+    {
+      "candidate_id": "b7d7645f6f922e735833",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/networked/nitrate/EthericNitrateImpactParticleEffect.java",
+      "method": "act",
+      "source_local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/visual_effects/networked/nitrate/EthericNitrateImpactParticleEffect.java",
+      "source_metadata": "build/item-use-references/SammySemicolon__Malum-Mod/source.json",
+      "source_root": "build/item-use-references/SammySemicolon__Malum-Mod",
+      "line": 31,
+      "end_line": 94,
+      "source_sha256": "a47676a0bcd6878fef31c898b0bf95348d0115c1289a2999633d5e49f0518e79",
+      "snippet_sha256": "423eac660643a9cdc836b98c27602d6db8f43024e5c7e0b567124dc290f8a0df",
+      "structural_fingerprint": "7548a8e35e2a4f729d7ff58b01bda351f0a2d3ad9400a3524430922db875e625",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/networked/nitrate/EthericNitrateImpactParticleEffect.java#L31-L94",
+      "discovery_tags": [
+        "expiry_window"
+      ],
+      "ast_calls": [
+        "getPosX",
+        "getPosY",
+        "getPosZ",
+        "getColor",
+        "asWeighedRandom",
+        "asWeighedRandom",
+        "nextDouble",
+        "cos",
+        "nextFloat",
+        "sin",
+        "scale",
+        "asWeighedRandom",
+        "add",
+        "scale",
+        "scale",
+        "getParticleSpeed",
+        "equals",
+        "getParticleSpeed",
+        "setParticleSpeed",
+        "getAge",
+        "getLifetime",
+        "getGameTime",
+        "spiritLightSpecs",
+        "getParticlePosition",
+        "enableForcedSpawn",
+        "multiplyLifetime",
+        "getBuilder",
+        "multiplyLifetime",
+        "getBloomBuilder",
+        "spawnParticles",
+        "asWeighedRandom",
+        "act",
+        "spiritMotionSparks",
+        "setBehavior",
+        "getParticleOptions",
+        "sparkBehavior",
+        "setMotion",
+        "enableForcedSpawn",
+        "addTickActor",
+        "multiplyLifetime",
+        "setScaleData",
+        "setLengthData",
+        "getBuilder",
+        "build",
+        "setEasing",
+        "create",
+        "build",
+        "setEasing",
+        "create",
+        "setMotion",
+        "addTickActor",
+        "multiplyLifetime",
+        "modifyScaleData",
+        "getBloomBuilder",
+        "multiplyValue",
+        "spawnParticles",
+        "build",
+        "randomSpinOffset",
+        "createRandomDirection",
+        "nextFloat",
+        "pow",
+        "nextFloat",
+        "repeat",
+        "setRandomMotion",
+        "enableNoClip",
+        "setRandomOffset",
+        "setColorData",
+        "setScaleData",
+        "setSpinData",
+        "setLifetime",
+        "setTransparencyData",
+        "create",
+        "get",
+        "build",
+        "setEasing",
+        "create",
+        "build",
+        "setEasing",
+        "create",
+        "getColor"
+      ],
+      "ast_guards": [
+        "(velocity.equals(Vec3.ZERO))",
+        "(p.getAge() < p.getLifetime() * 0.7f)",
+        "(level.getGameTime() % 2 == 0)"
+      ],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void act(Level level, RandomSource random, NetworkedParticleEffectPositionData positionData, MalumNetworkedParticleEffectColorData colorData, NetworkedParticleEffectExtraData extraData) {\n        double posX = positionData.getPosX();\n        double posY = positionData.getPosY();\n        double posZ = positionData.getPosZ();\n        Vec3 pos = new Vec3(posX, posY, posZ);\n        for (int i = 0; i < 16; i++) {\n            ColorParticleData color = colorData.getColor();\n            float lifetimeMultiplier = Easing.SINE_IN_OUT.asWeighedRandom(random, 1f, 1.5f);\n            float gravityStrength = Easing.SINE_IN_OUT.asWeighedRandom(random, 0.03f, 0.06f);\n            double horizontalAngle = random.nextDouble() * Math.PI * 2;\n            double x = (Math.cos(horizontalAngle));\n            double y = Mth.nextFloat(random, -1, 1);\n            double z = (Math.sin(horizontalAngle));\n            Vec3 direction = new Vec3(x, y, z);\n            Vec3 motion = direction.scale(Easing.SINE_IN_OUT.asWeighedRandom(random, 2f, 3f));\n            Vec3 spawnPosition = pos.add(direction.scale(0.25f));\n            final Consumer<LodestoneWorldParticle> sparkBehavior = p -> {\n                Vec3 velocity = p.getParticleSpeed().scale(0.75f);\n                if (velocity.equals(Vec3.ZERO)) {\n                    velocity = p.getParticleSpeed();\n                }\n                p.setParticleSpeed(velocity.x, (velocity.y - gravityStrength) * 0.98f, velocity.z);\n                if (p.getAge() < p.getLifetime() * 0.7f) {\n                    if (level.getGameTime() % 2 == 0) {\n                        var lightSpecs = spiritLightSpecs(level, p.getParticlePosition(), p.colorData);\n                        lightSpecs.getBuilder()\n                                .multiplyLifetime(lifetimeMultiplier / 2f)\n                                .enableForcedSpawn();\n                        lightSpecs.getBloomBuilder()\n                                .multiplyLifetime(lifetimeMultiplier / 4f);\n                        lightSpecs.spawnParticles();\n                    }\n                }\n            };\n            float scalar = Easing.SINE_IN_OUT.asWeighedRandom(random, 0.8f, 1.1f);\n            var sparks = SparkParticleEffects.spiritMotionSparks(level, spawnPosition, color).act(b -> b.getParticleOptions().setBehavior(SparkParticleBehavior.sparkBehavior()));\n            sparks.getBuilder()\n                    .setLengthData(GenericParticleData.create(3f * scalar, 0.75f * scalar, 0f).setEasing(Easing.QUARTIC_OUT, Easing.SINE_IN_OUT).build())\n                    .setScaleData(GenericParticleData.create(0.4f * scalar, 0.2f * scalar, 0f).setEasing(Easing.SINE_IN, Easing.QUAD_IN).build())\n                    .multiplyLifetime(lifetimeMultiplier)\n                    .addTickActor(sparkBehavior)\n                    .enableForcedSpawn()\n                    .setMotion(motion);\n            sparks.getBloomBuilder()\n                    .modifyScaleData(d -> d.multiplyValue(2f))\n                    .multiplyLifetime(lifetimeMultiplier)\n                    .addTickActor(sparkBehavior)\n                    .setMotion(motion);\n            sparks.spawnParticles();\n        }\n        final SpinParticleData spinData = SpinParticleData.createRandomDirection(random, nextFloat(random, 0.05f, 0.1f)).randomSpinOffset(random).build();\n        float scaleMultiplier = (float) (1 + Math.pow(random.nextFloat(), 2) * 0.5f);\n        WorldParticleBuilder.create(MalumParticles.GIANT_GLOWING_STAR.get())\n                .setTransparencyData(GenericParticleData.create(0.9f, 0.07f, 0).setEasing(Easing.SINE_IN, Easing.CIRC_IN).build())\n                .setLifetime(15)\n                .setSpinData(spinData)\n                .setScaleData(GenericParticleData.create(5f * scaleMultiplier, 0.5f, 0).setEasing(Easing.EXPO_OUT, Easing.SINE_IN).build())\n                .setColorData(colorData.getColor())\n                .setRandomOffset(0.6f)\n                .enableNoClip()\n                .setRandomMotion(0.02f, 0.02f)\n                .repeat(level, posX, posY, posZ, 3);\n    }",
+      "status": "unreviewed",
+      "candidate_index": 6425,
+      "decision": "pending",
+      "observation": "完整读硝酸盐粒子消费，按粒子age与lifetime七成限流并按level时间双tick衍生光点；仍未取得实际爆炸玩法生产者与网络配送链，不仅凭渲染life参数计实现。",
+      "reviewed_at": "2026-10-24T17:44:58.572459+08:00",
+      "original_decision": "pending",
+      "credit": 0,
+      "external_runtime_tested": false
+    },
+    {
+      "candidate_id": "c39eb4bd3fcdb6746789",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/visual_effects/networked/staff/UnwindingChaosChargeParticleEffect.java",
+      "method": "act",
+      "source_local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/visual_effects/networked/staff/UnwindingChaosChargeParticleEffect.java",
+      "source_metadata": "build/item-use-references/SammySemicolon__Malum-Mod/source.json",
+      "source_root": "build/item-use-references/SammySemicolon__Malum-Mod",
+      "line": 50,
+      "end_line": 121,
+      "source_sha256": "4c284a311c169eaa1a24ab2a699464dc664d05b203bf30f1016d0491c4e18efe",
+      "snippet_sha256": "4099e4b26f213c61fa0a67431523c45e58b499dad455f3c8e73349aecbd6090a",
+      "structural_fingerprint": "a6259dae65330f5a0e575569119b030ac233410a9078e25133c5a7c1fea14e3e",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/visual_effects/networked/staff/UnwindingChaosChargeParticleEffect.java#L50-L121",
+      "discovery_tags": [
+        "expiry_window"
+      ],
+      "ast_calls": [
+        "getEntity",
+        "getGameTime",
+        "getAsVector",
+        "normalize",
+        "subtract",
+        "position",
+        "atan2",
+        "toRadians",
+        "cos",
+        "sin",
+        "cross",
+        "subtract",
+        "add",
+        "position",
+        "getBbHeight",
+        "getParticlePosition",
+        "length",
+        "max",
+        "getAge",
+        "getLifetime",
+        "lerp",
+        "lerp",
+        "length",
+        "lerp",
+        "getParticleSpeed",
+        "scale",
+        "normalize",
+        "setParticleSpeed",
+        "getSpirit",
+        "asWeighedRandom",
+        "asWeighedRandom",
+        "scale",
+        "normalize",
+        "add",
+        "add",
+        "scale",
+        "sin",
+        "scale",
+        "cos",
+        "add",
+        "scale",
+        "spiritLightSpecs",
+        "get",
+        "build",
+        "setEasing",
+        "create",
+        "addTickActor",
+        "setLifetime",
+        "setLifeDelay",
+        "setTransparencyData",
+        "modifyColorData",
+        "modifyScaleData",
+        "setLengthData",
+        "setBehavior",
+        "getBuilder",
+        "sparkBehavior",
+        "build",
+        "setEasing",
+        "create",
+        "multiplyValue",
+        "asWeighedRandom",
+        "multiplyCoefficient",
+        "modifyTransparencyData",
+        "modifyScaleData",
+        "modifyColorData",
+        "addTickActor",
+        "setLifetime",
+        "setLifeDelay",
+        "setTransparencyData",
+        "getBloomBuilder",
+        "multiplyCoefficient",
+        "multiplyValue",
+        "asWeighedRandom",
+        "multiplyCoefficient",
+        "spawnParticles",
+        "spiritLightSpecs",
+        "get",
+        "build",
+        "setCoefficient",
+        "create",
+        "setLifetime",
+        "addTickActor",
+        "setLifeDelay",
+        "setTransparencyData",
+        "setColorData",
+        "setRenderType",
+        "getBuilder",
+        "build",
+        "create",
+        "spawnParticlesRaw"
+      ],
+      "ast_guards": [
+        "(entity != null)",
+        "(distance.length() == 0)"
+      ],
+      "parse_error": false,
+      "excerpt": "@OnlyIn(Dist.CLIENT)\n    @Override\n    public void act(Level level, RandomSource random, NetworkedParticleEffectPositionData positionData, MalumNetworkedParticleEffectColorData colorData, UnwindingChaosChargeEffectData extraData) {\n        final Entity entity = level.getEntity(extraData.entityId);\n        if (entity != null) {\n            var smokeColor = new Color(45, 15, 15);\n            long gameTime = level.getGameTime();\n            var pos = positionData.getAsVector();\n            var direction = pos.subtract(entity.position()).normalize();\n            float yRot = ((float) (Mth.atan2(direction.x, direction.z) * (double) (180F / (float) Math.PI)));\n            float yaw = (float) Math.toRadians(yRot);\n            Vec3 left = new Vec3(-Math.cos(yaw), 0, Math.sin(yaw));\n            Vec3 up = left.cross(direction);\n\n            Consumer<LodestoneWorldParticle> behavior = p -> {\n                Vec3 distance = entity.position().add(0, entity.getBbHeight() / 2f, 0).subtract(p.getParticlePosition());\n                if (distance.length() == 0) {\n                    distance = new Vec3(0, 0.02f, 0);\n                }\n                float delta = Math.max(p.getAge() / (float) p.getLifetime(), 0);\n                float lerp = Easing.QUINTIC_IN_OUT.lerp(delta, 0.05f, 0.5f);\n                float velocity = (float) Easing.CIRC_IN.lerp(delta, 0.05f, 0.2f + distance.length() * 1.2f);\n                final Vec3 speed = p.getParticleSpeed().lerp(distance.normalize().scale(velocity), lerp);\n                p.setParticleSpeed(speed);\n            };\n\n            for (int i = 0; i < 16; i++) {\n                SpiritArcanaType cyclingSpiritType = colorData.getSpirit();\n                float spread = Easing.SINE_IN_OUT.asWeighedRandom(random, 0.5f, 0.6f);\n                float speed = Easing.SINE_IN_OUT.asWeighedRandom(random, 0.6f, 0.8f);\n                float angle = i / 16f * (float) Math.PI * 2f;\n                Vec3 particleDirection = direction\n                        .add(left.scale(Math.sin(angle) * spread))\n                        .add(up.scale(Math.cos(angle) * spread))\n                        .normalize().scale(speed);\n                Vec3 particlePosition = pos.add(particleDirection.scale(2f));\n                var lightSpecs = spiritLightSpecs(level, particlePosition, cyclingSpiritType, new WorldParticleOptions(MalumParticles.SPARK.get()));\n                var transparencyData = GenericParticleData.create(0.4f, 0.8f, 0f).setEasing(Easing.SINE_IN_OUT, Easing.EXPO_IN_OUT).build();\n                int lifeDelay = i * 2;\n                int lifetime = 20;\n                lightSpecs.getBuilder()\n                        .setBehavior(SparkParticleBehavior.sparkBehavior())\n                        .setLengthData(GenericParticleData.create(0.2f, 2f, 0f).setEasing(Easing.SINE_IN, Easing.SINE_IN_OUT).build())\n                        .modifyScaleData(d -> d.multiplyValue(Easing.SINE_IN_OUT.asWeighedRandom(random, 2, 2.5f)))\n                        .modifyColorData(c -> c.multiplyCoefficient(0.5f))\n                        .setTransparencyData(transparencyData)\n                        .setLifeDelay(lifeDelay)\n                        .setLifetime(lifetime)\n                        .addTickActor(behavior);\n                lightSpecs.getBloomBuilder()\n                        .setTransparencyData(transparencyData)\n                        .setLifeDelay(lifeDelay)\n                        .setLifetime(lifetime)\n                        .addTickActor(behavior)\n                        .modifyColorData(c -> c.multiplyCoefficient(0.5f))\n                        .modifyScaleData(d -> d.multiplyValue(Easing.SINE_IN_OUT.asWeighedRandom(random, 0.7f, 1.1f)))\n                        .modifyTransparencyData(d -> d.multiplyCoefficient(1.4f));\n                lightSpecs.spawnParticles();\n\n                lightSpecs = spiritLightSpecs(level, particlePosition, cyclingSpiritType, new WorldParticleOptions(LodestoneParticleTypes.WISP_PARTICLE.get()));\n                transparencyData = GenericParticleData.create(1f, 0f).setCoefficient(1.5f).build();\n                lightSpecs.getBuilder()\n                        .setRenderType(LodestoneWorldParticleRenderType.LUMITRANSPARENT)\n                        .setColorData(ColorParticleData.create(smokeColor).build())\n                        .setTransparencyData(transparencyData)\n                        .setLifeDelay(lifeDelay)\n                        .addTickActor(behavior)\n                        .setLifetime(lifetime);\n                lightSpecs.spawnParticlesRaw();\n            }\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 6459,
+      "decision": "pending",
+      "observation": "混沌法杖粒子包从当前level用entityId找实体并闭包跟随，lifeDelay按序号错峰而无持续存活/维度重验；须补真实武器发包使用链，不能单凭粒子消费者计相近战斗回执完成。",
+      "reviewed_at": "2026-10-24T17:44:58.572462+08:00",
+      "original_decision": "pending",
+      "credit": 0,
+      "external_runtime_tested": false
+    },
+    {
+      "candidate_id": "439e0b9adf46795b359d",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/client/renderer/block/banner/MalumBannerRenderer.java",
+      "method": "render",
+      "source_local": "build/item-use-references/SammySemicolon__Malum-Mod/src/main/java/com/sammy/malum/client/renderer/block/banner/MalumBannerRenderer.java",
+      "source_metadata": "build/item-use-references/SammySemicolon__Malum-Mod/source.json",
+      "source_root": "build/item-use-references/SammySemicolon__Malum-Mod",
+      "line": 30,
+      "end_line": 63,
+      "source_sha256": "20d8a78bb422985a7e86e734630643c1fa933973ecc304257c346b262bbf764c",
+      "snippet_sha256": "93f35ca3d633ce13d37b04eb3298244ccbc6526dea150195a6b65228e512388a",
+      "structural_fingerprint": "49fcdc05e66d8f6834c1161d8053f4faebaf709809cac5fa6b64ec5639ed6765",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/client/renderer/block/banner/MalumBannerRenderer.java#L30-L63",
+      "discovery_tags": [
+        "expiry_window"
+      ],
+      "ast_calls": [
+        "getBlockState",
+        "getBlockPos",
+        "getValue",
+        "isVertical",
+        "getAxis",
+        "equals",
+        "floorMod",
+        "getX",
+        "getY",
+        "getZ",
+        "getGameTime",
+        "getLevel",
+        "cos",
+        "pushPose",
+        "translate",
+        "mulPose",
+        "rotationDegrees",
+        "toYRot",
+        "translate",
+        "isHorizontal",
+        "getAxis",
+        "translate",
+        "translate",
+        "translate",
+        "mulPose",
+        "rotation",
+        "setLightLevel",
+        "createWorld",
+        "renderBanner",
+        "popPose"
+      ],
+      "ast_guards": [
+        "type.direction.getAxis().isVertical()",
+        "type.equals(SoulwovenBannerBlock.BannerType.HANGING_Z)",
+        "(type.direction.getAxis().isHorizontal())"
+      ],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void render(T blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource bufferIn, int combinedLightIn, int combinedOverlayIn) {\n        var blockState = blockEntity.getBlockState();\n        var pos = blockEntity.getBlockPos();\n\n        var type = blockState.getValue(SoulwovenBannerBlock.BANNER_TYPE);\n        var direction = type.direction.getAxis().isVertical() ? type.equals(SoulwovenBannerBlock.BannerType.HANGING_Z) ? Direction.NORTH : Direction.WEST : type.direction;\n        float sway = ((float) Math.floorMod((pos.getX() * 7L + pos.getY() * 9L + pos.getZ() * 13L) + blockEntity.getLevel().getGameTime(), 100L) + partialTicks) / 100.0F;\n        float swayRotation = (0.01F * Mth.cos((float) (Math.PI * 2) * sway)) * (float) Math.PI;\n\n        poseStack.pushPose();\n        poseStack.translate(0.5f, 0.5f, 0.5f);\n        poseStack.mulPose(Axis.YN.rotationDegrees(direction.toYRot()));\n        poseStack.translate(-0.5f, -0.5f, -0.5f);\n        if (type.direction.getAxis().isHorizontal()) {\n            poseStack.translate(0, -0.25f, 0.0625f);\n            swayRotation -= 0.0125f;\n        } else {\n            poseStack.translate(0, 0, 0.5f);\n            swayRotation = swayRotation - 0.0157f;\n        }\n        poseStack.translate(0, 1f, 0);\n        poseStack.mulPose(Axis.XP.rotation(swayRotation));\n        float xStart = 0;\n        float xEnd = 1;\n        float yStart = -2;\n        float yEnd = 0;\n\n        var vertices = new Vector3f[]{new Vector3f(xEnd, yStart, 0), new Vector3f(xStart, yStart, 0), new Vector3f(xStart, yEnd, 0), new Vector3f(xEnd, yEnd, 0)};\n        var builder = VFXBuilders.createWorld().setLightLevel(pos);\n\n        renderBanner(blockEntity, poseStack, builder, vertices);\n        poseStack.popPose();\n    }",
+      "status": "unreviewed",
+      "candidate_index": 4023,
+      "decision": "excluded",
+      "observation": "MalumBannerRenderer.render全文是按worldtime/坐标100周期摆动布面并绘制顶点，纯装饰渲染，无战斗事件消费链；不因gameTime关键词算相关实现。",
+      "reviewed_at": "2026-10-26T18:24:47.547282+08:00",
+      "original_decision": "excluded",
+      "credit": 0,
+      "external_runtime_tested": false
+    },
+    {
+      "candidate_id": "53a2016e1f3070a23e20",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/wicked/BerserkerGeas.java",
+      "method": "outgoingDamageEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/wicked/BerserkerGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 63,
+      "end_line": 84,
+      "source_sha256": "e787d6ba249489facd71e3acf121988332960ad48bbc79bef98860574fe4d269",
+      "snippet_sha256": "6bad991b44335000c4e775e528ca38ff7092697e68d1407248ce1b8cfdc8ba3a",
+      "structural_fingerprint": "d0554b02ab5d0696e003abc425802f3cbec111a37cef76faa483b266ae2d559a",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/wicked/BerserkerGeas.java#L63-L84",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void outgoingDamageEvent(LivingDamageEvent.Pre event, LivingEntity attacker, LivingEntity target, ItemStack stack) {\n        if (target.level().isClientSide) {\n            return;\n        }\n        if (event.getSource().is(MalumDamageTypes.BERSERKER_SPIRIT_IMPACT)) {\n            return;\n        }\n        if (storedDamage >= 4) {\n            int hits = Mth.ceil(storedDamage/4);\n            for (int i = 0; i < hits; i++) {\n                WorldEventHandler.addWorldEvent(target.level(),\n                        new DelayedDamageWorldEvent(target)\n                                .setAttacker(attacker)\n                                .setDamageData(0, 2, 10+i*2)\n                                .setMagicDamageType(MalumDamageTypes.BERSERKER_SPIRIT_IMPACT)\n                                .setImpactParticleEffect(MalumParticleEffectTypes.BERSERKER_IMPACT, new MalumNetworkedParticleEffectColorData(MalumSpiritTypes.WICKED_SPIRIT, MalumSpiritTypes.ELDRITCH_SPIRIT))\n                                .setSound(MalumSoundEvents.BERSERKER_WRATH, 0.7f, 1.3f, 1));\n            }\n            resetDamageNextTick = true;\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7457,
+      "decision": "accepted",
+      "observation": "全文BerserkerGeas+实体GeasSoulData缓存创建/GeasEffectHandler lookup与Lodestone事件桥、完整DelayedDamageWorldEvent及世界Post消费：Incoming缓存(stored+4+amount)*.8，Pre使伤害翻倍；输出Pre排除自身BERSERKER源后按ceil(stored/4)安排10+2*i延迟命中，故不是最终伤害回执。只标resetDamageNextTick，实体下次Pre才清stored，使同tick横扫多目标共享；否则40tick衰减。每事件按当前ServerLevel UUID重找目标/攻击者，无最长TTL；delay>0先减并return，delay0下一次才执行，hurt bool未控反馈。effect type构造误写REAPER但注册BERSERKER工厂仍产本类，缓存整组dirty会重建而CODEC只存type，不能称跨重载保留。整条反击延迟/多目标窗口1，框架方法0额外。",
+      "reviewed_at": "2026-10-26T22:32:26.002403+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "1cd987417e8aaa1877ca17469f0b45ebc753f5ee"
+      }
+    },
+    {
+      "candidate_id": "527ff9c89710be55523c",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/aqueous/PatienceRepaidGeas.java",
+      "method": "update",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/aqueous/PatienceRepaidGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 57,
+      "end_line": 86,
+      "source_sha256": "386d6a873b15b377d2eb4b97b91f0a51ace85ccb4d410ef7100d18ecb49e1d82",
+      "snippet_sha256": "acf95dfaeee6c1f5ee90f2cd0c3e6f55e1561e3c54e9c1c3fd5261261d624518",
+      "structural_fingerprint": "4006d9698ab26e27718d22d7bf0c19b3019eab3187e456c42fef67580e7721b9",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/aqueous/PatienceRepaidGeas.java#L57-L86",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void update(EntityTickEvent.Pre event, LivingEntity entity) {\n        if (entity.level() instanceof ServerLevel level) {\n            if (bufferedDamage > 0) {\n                damageTimer++;\n                float delta = Math.min(bufferedDamage / (entity.getMaxHealth() * 0.5f), 1);\n                int time = 100 - Mth.ceil(delta * 80);\n                if (damageTimer > time) {\n                    float percentage = 1f - delta * 0.8f;\n                    float damage = bufferedDamage * percentage;\n                    var velocity = entity.getDeltaMovement();\n\n                    entity.hurt(DamageTypeHelper.create(entity.level(), MalumDamageTypes.KARMIC), damage);\n                    entity.setDeltaMovement(velocity);\n                    if (entity instanceof ServerPlayer serverplayer) {\n                        serverplayer.connection.send(new ClientboundSetEntityMotionPacket(serverplayer));\n                    }\n\n                    MalumParticleEffectTypes.PATIENCE_REPAID.createEffect(entity)\n                            .color(new MalumNetworkedParticleEffectColorData(MalumSpiritTypes.AQUEOUS_SPIRIT, MalumSpiritTypes.ELDRITCH_SPIRIT))\n                            .spawn(level);\n\n                    SoundPlayer.create(MalumSoundEvents.PATIENT_DROWNING).pitchVariance(0.1f).play(entity);\n\n                    bufferedDamage -= damage;\n                    damageTimer = 0;\n                }\n            }\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7458,
+      "decision": "accepted",
+      "observation": "全文PatienceRepaidGeas与实际Incoming/Death/实体Pre事件链：Incoming未cancel且非KARMIC时半伤并把half*1.2记入当前实体geas实例buffer；server有buffer才timer++，strict timer>100-ceil(delta*80)排出buffer*(1-.8delta)。hurt返回值不查仍恢复速度、自运动包/粒子/声音、扣buffer并timer0；自己的KARMIC死亡取消hp1。GeasSoulData按实体缓存，dirty重建全组且序列化仅type，buffer/timer不持久；与Berserker多目标反击语义不同，这是延后承伤消费1，不把每回调拆计。",
+      "reviewed_at": "2026-10-26T22:32:26.002423+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "f6b35dadce11a4782706e975e2752f641d029236"
+      }
+    },
+    {
+      "candidate_id": "37f30d23f048f9b6b2c2",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/infernal/WyrdReconstructionGeas.java",
+      "method": "incomingDeathEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/infernal/WyrdReconstructionGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 72,
+      "end_line": 108,
+      "source_sha256": "ec51c50db4d0dea50c079c34bec3cdc0fb06e0676c52021239f8ca90b92d83a3",
+      "snippet_sha256": "51e36ac0315554e32b056041a5169e437cc4eedae5f304bc808484b89f6678f5",
+      "structural_fingerprint": "400252aedc16c7c214873453c80e6af4b60a8d6387a142fdfd4068f7ef6faebc",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/infernal/WyrdReconstructionGeas.java#L72-L108",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void incomingDeathEvent(LivingDeathEvent event, LivingEntity attacker, LivingEntity target, ItemStack stack) {\n        var source = event.getSource();\n        if (source.is(Tags.DamageTypes.IS_TECHNICAL)) {\n            return;\n        }\n        if (source.is(MalumDamageTypes.VOID)) {\n            return;\n        }\n        if (target.hasEffect(MalumMobEffects.WYRD_EXHAUSTION)) {\n            return;\n        }\n        if (event.isCanceled()) {\n            return;\n        }\n        if (delay > 0) {\n            event.setCanceled(true);\n            target.setHealth(1);\n            return;\n        }\n        float health = Easing.SINE_IN_OUT.asWeighedRandom(target.getRandom(), 1, target.getMaxHealth() * 0.66f);\n        if (target.level() instanceof ServerLevel serverLevel) {\n            for (Entity knockbackTarget : serverLevel.getEntities(target, target.getBoundingBox().inflate(2f), t -> canApplyKnockback(target, t))) {\n                knockbackTarget.setDeltaMovement(knockbackTarget.position().subtract(target.position()).normalize().scale(2f).add(0, 0.5f, 0));\n            }\n\n            SoundPlayer.create(MalumSoundEvents.WYRD_RECONSTRUCTION).play(target);\n            MalumParticleEffectTypes.WYRD_RECONSTRUCTION_REVIVE.createEffect(target)\n                    .color(new MalumNetworkedParticleEffectColorData(MalumSpiritTypes.SACRED_SPIRIT, MalumSpiritTypes.INFERNAL_SPIRIT))\n                    .customData(new WyrdReconstructionReviveParticleEffect.WyrdReconstructionEffectData(target.getId()))\n                    .spawn(serverLevel);\n        }\n        delay = 15;\n        spiritCollectionActivations = TRIGGERS;\n        event.setCanceled(true);\n        target.setHealth(health);\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7459,
+      "decision": "accepted",
+      "observation": "全文WyrdReconstructionGeas并核GeasSoulData及Death/Pre实际调度：死亡拒技术/VOID/耗竭/已取消，delay>0取消hp1；否则写delay15、activations12取消并回血。Pre在delay>0只--return，0时收魂设2并--，第12次才写36000tick耗竭。两次收魂之间delay恰0死亡会重置整轮，不存在覆盖全轮的统一无敌窗；未在首次保命就写持久冷却。实例delay/次数不进只存type的CODEC且dirty缓存全重建，不能声称跨装备重建/读档稳定。一个死亡拦截-延迟动作-晚消费冷却链1。",
+      "reviewed_at": "2026-10-26T22:32:26.002429+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "c451b28bdf58ea0d26e13c784ec1e8c8cc84c256"
+      }
+    },
+    {
+      "candidate_id": "36c376831f074427c953",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/aerial/ContinuingShotGeas.java",
+      "method": "finalizedOutgoingDamageEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/aerial/ContinuingShotGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 33,
+      "end_line": 39,
+      "source_sha256": "64d9878252e00322dd1ca48f389685120337c407067fb24b4accd4f12c45ccce",
+      "snippet_sha256": "cd49b01ad73a7bca1f1b365ffd170b4a4b5795bf6ff449730983024ac17eca2f",
+      "structural_fingerprint": "54fd2f84ad6d9b6232ccf84b382c5ca52a88c75c4fbb662efea7a7ce1538b552",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/aerial/ContinuingShotGeas.java#L33-L39",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void finalizedOutgoingDamageEvent(LivingDamageEvent.Post event, LivingEntity attacker, LivingEntity target, ItemStack stack) {\n        final Entity projectile = event.getSource().getDirectEntity();\n        if ((projectile instanceof AbstractArrow arrow && arrow.isCritArrow()) || projectile instanceof AbstractBoltProjectile) {\n            applyEffect(attacker, true);\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7460,
+      "decision": "accepted",
+      "observation": "全文ContinuingShotGeas并核ProjectileMixin、RuntimeEventHandler及Lodestone Post实际桥：critical arrow或bolt伤害Post为当前attacker赋TRUE_SHOT；自身未再查newDamage>0，桥用source.entity或lastAttacker后备，不能当严格正伤快照。碰方块只在server依当前owner且仍持对应geas赋负面，旧投射物换装备时行为可变。applyEffect先删相反状态，新200tick或amp+1封4/时间+40封400；实际UseStart读两状态当前层数调整duration无下界夹紧。命中/未命中回执到后续拉弓消费同一实现1，状态注册不另计。",
+      "reviewed_at": "2026-10-26T22:32:26.002432+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "74db8ae5677d77ece3f60cb21879e0134776a030"
+      }
+    },
+    {
+      "candidate_id": "1051313a73bb9594b06c",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/infernal/CombustionGeas.java",
+      "method": "extinguish",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/infernal/CombustionGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 48,
+      "end_line": 62,
+      "source_sha256": "7634114883d6ed96561f00ba25ec3d3c98deb87dd56c0742fd6bf22ef3fe1070",
+      "snippet_sha256": "a3c828715a4deefe2fcf416b46860957b368fe3eff140c79d792a9c817a6c7ad",
+      "structural_fingerprint": "79a9f6760442fcbda32fcd642e2ecccada98249f13ef41ea82f7096f530781dc",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/infernal/CombustionGeas.java#L48-L62",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "public static void extinguish(LivingEntity entity) {\n        if (GeasEffectHandler.hasGeasEffect(entity, MalumGeasEffectTypes.PACT_OF_COMBUSTION)) {\n            if (entity.wasOnFire) {\n                for (int i = 0; i < 3; i++) {\n                    WorldEventHandler.addWorldEvent(entity.level(),\n                            new DelayedDamageWorldEvent(entity)\n                                    .setDamageData(0, 4, (i+1)*2)\n                                    .setMagicDamageType(MalumDamageTypes.KARMIC)\n                                    .setImpactParticleEffect(MalumParticleEffectTypes.COMBUSTION_BURN, new MalumNetworkedParticleEffectColorData(MalumSpiritTypes.INFERNAL_SPIRIT, MalumSpiritTypes.WICKED_SPIRIT))\n                                    .setSound(MalumSoundEvents.COMBUSTION_WHIPLASH, 0.5f, 0.4f, 1f));\n\n                }\n            }\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7461,
+      "decision": "accepted",
+      "observation": "全文CombustionGeas、Entity.extinguishFire HEAD注入和完整DelayedDamageWorldEvent实际消费：当前geas且wasOnFire安排3个KARMIC自伤，delay2/4/6在delay>0分支--return故各多等一次消费者tick，无单次熄火去重和client筛选在producer。事件存target UUID/currentworld查活体，attacker/projectile未设；hurt返回false仍音效/粒子，末尾end而下次handler才移除。save存delay/target/attacker却不存projectileUUID或nbtData；Pre火伤另清8fireticks/iframes及反馈在最终伤害前。整条熄火惩罚队列1，三次伤害与通用调度support0额外。",
+      "reviewed_at": "2026-10-26T22:32:26.002435+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "5d69a41cfc9d96ef6a4aeca694c6462c1354ac94"
+      }
+    },
+    {
+      "candidate_id": "004f2cd460595ee1066d",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/authority/GleefulTargetAuthority.java",
+      "method": "incomingDamageEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/authority/GleefulTargetAuthority.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 39,
+      "end_line": 52,
+      "source_sha256": "b242d39bab4e772f4571e951804db6cc51b8a09625e8d0784a2247ae6e2d56e4",
+      "snippet_sha256": "d3ad8626786635a043f94e86ee6717948c33c4f6d7e76b420cf13cc21bb8d822",
+      "structural_fingerprint": "74c726940e18d5dbf8afd77a638b9cc13afda4da5bb5165797f8cab32734a8e9",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/authority/GleefulTargetAuthority.java#L39-L52",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void incomingDamageEvent(LivingDamageEvent.Pre event, LivingEntity attacker, LivingEntity target, ItemStack stack) {\n        if (event.getSource().is(MalumTags.DamageTypes.GLEEFUL_TARGET_BLACKLIST)) {\n            return;\n        }\n        var gleefulTarget = target.getEffect(MalumMobEffects.GLEEFUL_TARGET);\n        int addedAmount = (int) (100 * target.getAttributeValue(MalumAttributes.ARCANE_RESONANCE));\n        if (gleefulTarget == null) {\n            target.addEffect(new MobEffectInstance(MalumMobEffects.GLEEFUL_TARGET, addedAmount * 4, 0, true, true, true));\n        }\n        else {\n            EntityHelper.extendEffect(gleefulTarget, target, addedAmount, 36000);\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7464,
+      "decision": "accepted",
+      "observation": "全文GleefulTargetAuthority及MobEffectInstanceMixin实际调用：未黑名单伤害Pre按resonance*100先给4倍时长/后续+时长封36000，非最终hurt回执。效果tick HEAD缓存pausePotionEffects结果；已冻结时只每10worldtick重查，失去GLEEFUL_TARGET后仍可能多冻结最多到下个10边界。tickDownDuration直接返原duration而非递减，shouldApplyEffectTickThisTick返回false抑制DOT/恢复实际执行；自身GLEEFUL和instant不冻结。一个受击触发的实际游戏效果延期消费链1，不把debuff/属性注册独立计，framework0。",
+      "reviewed_at": "2026-10-28T18:13:38.041024+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "68609aee97999c24b1f980bc54958a3ec6e66995"
+      }
+    },
+    {
+      "candidate_id": "c86438b9b7fc870bf985",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/authority/InvertedHeartAuthority.java",
+      "method": "damageTargets",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/authority/InvertedHeartAuthority.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 110,
+      "end_line": 130,
+      "source_sha256": "a9ab3b4056b99214f8eae2f8b97c0e575cb460eb98654352863f6617b9bde179",
+      "snippet_sha256": "743590c670fb736e08d8de70d573320ba7bfc554a23da8ecba4a6142a5529e5c",
+      "structural_fingerprint": "56fd1e59b5ad9df649cd579d0c6cb7081db11f1a5546067b31e68e51eeccd93f",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/authority/InvertedHeartAuthority.java#L110-L130",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "public void damageTargets(LivingEntity wrathBearer, @Nullable LivingEntity excludedTarget, ResourceKey<DamageType> damageType, float damage) {\n        var targets = new ArrayList<>(visibleTargets.values());\n        Collections.shuffle(targets);\n\n        for (int i = 0; i < targets.size(); i++) {\n            LivingEntity target = targets.get(i);\n            if (target.equals(excludedTarget)) {\n                continue;\n            }\n            if (target.isAlive()) {\n                var color = new MalumNetworkedParticleEffectColorData(MalumSpiritTypes.WICKED_SPIRIT, MalumSpiritTypes.ELDRITCH_SPIRIT);\n                WorldEventHandler.addWorldEvent(target.level(),\n                        new DelayedDamageWorldEvent(target)\n                                .setMagicDamageType(damageType)\n                                .setImpactParticleEffect(MalumParticleEffectTypes.INVERTED_HEART_IMPACT, color)\n                                .setSound(MalumSoundEvents.INVERTED_HEART_IMPACT, 1f, 2f, 0.5f)\n                                .setAttacker(wrathBearer)\n                                .setDamageData(0, damage, 8 + i * 2));\n            }\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7465,
+      "decision": "accepted",
+      "observation": "全文InvertedHeartAuthority+实际Post桥/实体Pre和DelayedDamageWorldEvent：40tick一次全清重扫可见目标缓存(WeakHashMap UUID->实体ref)，传播Post必须source.entity==attacker避免lastAttacker后备，目标伤害new/2；反击Post用originalDamage并各用黑名单排重入。damageTargets打乱缓存，排当前主目标且当前isAlive就按8+2*i排队，未重查LOS/范围/队伍/维度。事件放target.level，消费按该level重解target/attacker UUID且不检查当前owner合法性；hurt bool不控反馈，无最大年龄。40tick候选快照-Post来源约束-延迟传播同一玩法1，两个伤害变种/调度支持不拆。",
+      "reviewed_at": "2026-10-28T18:13:38.041054+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "5fff528110f3e2bbbac566590aca9186ff9c6e93"
+      }
+    },
+    {
+      "candidate_id": "66824fa03cb81a3504fd",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/eldritch/ArcanaphageGeas.java",
+      "method": "incomingDamageEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/eldritch/ArcanaphageGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 60,
+      "end_line": 66,
+      "source_sha256": "554307c6ddf6d820341f2cc55540f7a707cb0adbf8ddc2c0b17d42aba63ed4a4",
+      "snippet_sha256": "c5cfa9942613046d0efc48c4ca4a0f00c17cc1bc443609f7b6dfbb2510bb1d7b",
+      "structural_fingerprint": "2ebbb0d232c10e6b5d0afe8e2cd447cf4cee860b968af9af8ae7679270929784",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/eldritch/ArcanaphageGeas.java#L60-L66",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void incomingDamageEvent(LivingIncomingDamageEvent event, LivingEntity attacker, LivingEntity target, ItemStack stack) {\n        if (!event.getSource().is(WaywardTags.DamageTypeTags.IS_MAGIC)) {\n            event.setCanceled(true);\n            target.hurt(new ArcanaphageDamageSource(event.getSource()), event.getAmount());\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7466,
+      "decision": "accepted",
+      "observation": "全文ArcanaphageGeas及实际Incoming分发：当前实例遇非magic源先cancel原事件再target.hurt同amount的新包装DamageSource；包装保留type/direct/entity/sourcePosition，仅is(IS_MAGIC)强制true，避免同效果重入无限递归，其它源标签仍原值。内层hurt结果未回传外层已cancel，不能由外层false推断没发生伤害，也未排已取消输入。本例为真实模组伤害递归/来源保留实施1；收魂叠层buff仅上下文0额外，非泛状态语料。",
+      "reviewed_at": "2026-10-28T18:13:38.041060+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "263264ba23bee3736a2b1a694300838dc56bb3e8"
+      }
+    },
+    {
+      "candidate_id": "99d3ab3d1d0173eba209",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/eldritch/ShatteringAddictGeas.java",
+      "method": "modifySpiritSpoilsEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/eldritch/ShatteringAddictGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 39,
+      "end_line": 47,
+      "source_sha256": "62d50458cef13313aedd79308cd4efddda632f59d13eb9aad6efb19d8c278102",
+      "snippet_sha256": "7b1825062bce1e812b572c7d50b09df2c0dfdaa7907c55a47aaf199803a04466",
+      "structural_fingerprint": "462d24530445c414041025f1b72b36e8e3dc4856dea8023fd9b7d377236f8e8e",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/eldritch/ShatteringAddictGeas.java#L39-L47",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void modifySpiritSpoilsEvent(ModifySpiritSpoilsEvent event, LivingEntity attacker) {\n        if (attacker.level() instanceof ServerLevel serverLevel) {\n            long timeSince = serverLevel.getGameTime() - attacker.getData(MalumAttachmentTypes.LIVING_SOUL_INFO).getMostRecentShatter();\n            if (timeSince < 2) {\n                event.addBonus(1);\n            }\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7467,
+      "decision": "accepted",
+      "observation": "全文ShatteringAddictGeas、SoulHarvestHandler.onDeath/dropSpirits/applySpiritLootBonuses及LivingSoulData：仅未cancel非player灵魂可掉落死亡，先用当前attacker(源entity或lastHurtByMob)算本次奖励再setMostRecentShatter(now)，最后标soulless阻止重复。modifySpiritSpoils实际回调读上一次击杀戳，age<2加1且无>=0约束；首默认0早期可命中，跨维度没有key。时戳进实体CODEC，withdrawal只age>32000消耗玩家食物而不是奖励成功回执。一个实际两tick连杀归属/时钟消费链1，掉落/属性/饥饿变种不拆计。",
+      "reviewed_at": "2026-10-28T18:13:38.041063+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "bb996bef4954abf414417f9e3e44beb334e4b42b"
+      }
+    },
+    {
+      "candidate_id": "df372669a07c55063be1",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/common/geas/pact/wicked/ReaperGeas.java",
+      "method": "outgoingDamageEvent",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/common/geas/pact/wicked/ReaperGeas.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 37,
+      "end_line": 81,
+      "source_sha256": "5121b3c589c19481350f5d6605dae70b47a917b313dc25a579bf82862f3bfd11",
+      "snippet_sha256": "48d51273aaa412655008784cb720b1fde6e0d3c98e03e3ce299cebbbcb4513fd",
+      "structural_fingerprint": "43c98a6c3928707cd0e20db0ce0b26cc6723e1ed8860bfc6c315dad7404e3673",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/common/geas/pact/wicked/ReaperGeas.java#L37-L81",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "@Override\n    public void outgoingDamageEvent(LivingDamageEvent.Pre event, LivingEntity attacker, LivingEntity target, ItemStack stack) {\n        if (attacker.level() instanceof ServerLevel level) {\n            var source = event.getSource();\n            var heldItem = attacker.getMainHandItem();\n            if (source.is(net.minecraft.world.damagesource.DamageTypes.PLAYER_ATTACK) || source.is(MalumDamageTypes.TYRVING)) {\n                if (!heldItem.isEmpty()) {\n                    event.setNewDamage(event.getNewDamage() * 0.1f);\n                    if (heldItem.isDamageableItem()) {\n                        heldItem.hurtAndBreak(10, attacker, MAINHAND);\n                    }\n                }\n                return;\n            }\n            if (source.is(MalumTags.DamageTypes.TRIGGERS_SCYTHE_COMBO)) {\n                MalumScytheItem.ScytheDamage damage = MalumScytheItem.getScytheDamage(source, attacker);\n                float physicalDamage = damage.physicalDamage();\n                float magicDamage = damage.magicDamage();\n                float damageScalar = 0.1f;\n                float chance = 0.3f;\n                int extraHits = 2;\n                if (damage.isBoomerang()) {\n                    chance *= 2;\n                }\n                float average = (physicalDamage + magicDamage) / 2;\n                physicalDamage *= physicalDamage / average * damageScalar;\n                magicDamage *= magicDamage / average * damageScalar;\n                if (MalumScytheItem.isEnhanced(attacker)) {\n                    extraHits++;\n                    chance += 0.1f;\n                }\n                if (attacker.getRandom().nextFloat() < chance) {\n                    for (int i = 0; i < extraHits; i++) {\n                        int delay = 4 + i * 3;\n                        WorldEventHandler.addWorldEvent(level,\n                                new DelayedDamageWorldEvent(target)\n                                        .setAttacker(attacker, source.getDirectEntity())\n                                        .setDamageData(physicalDamage, magicDamage, delay)\n                                        .setPhysicalDamageType(MalumDamageTypes.SCYTHE_COMBO)\n                                        .setSound(MalumSoundEvents.REAPER_CUT, 0.9f, 1.1f, 1));\n                    }\n                }\n            }\n        }\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7468,
+      "decision": "accepted",
+      "observation": "全文ReaperGeas+MalumScytheItem实际Pre/Post桥和DelayedDamageWorldEvent：PLAYER_ATTACK/TYRVING先当前主手损10耐久并把Pre伤害*.1后return；指定tag镰刀源按当前属性或boomerang字段快照决定概率和2/3次延迟4+3*i补刀。consumer保存attacker/directUUID，currentworld复解，忽略hurt返回仍播音。SCYTHE_COMBO Post按当前getScytheWeapon/canSweep决定slash与实际trySweep，后者不核hurt就knockback，非排队时装备快照。一个延迟连击-来源重解-Post专属扫击反馈链1，不把多击及每种动作独立计；源tag另固定blob核验。",
+      "reviewed_at": "2026-10-28T18:13:38.041066+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "293fe2efd2337fd29f72da5b13ddf3eaae23ddf6"
+      }
+    },
+    {
+      "candidate_id": "25cb15bad7a1ef4065de",
+      "repo": "SammySemicolon/Malum-Mod",
+      "revision": "3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10",
+      "path": "src/main/java/com/sammy/malum/core/handlers/MalignantConversionHandler.java",
+      "method": "shieldPlayer",
+      "source_local": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/src/main/java/com/sammy/malum/core/handlers/MalignantConversionHandler.java",
+      "source_root": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68",
+      "source_metadata": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/source.json",
+      "line": 29,
+      "end_line": 63,
+      "source_sha256": "19415c6b7fb82f499c1b6e6a531e222967b8a382a936844188995161f15fcfb2",
+      "snippet_sha256": "b5f53be230ad67bd8be37cc76f7d6484f14f6adf523aeca7912df4c2396fa373",
+      "structural_fingerprint": "f24c40e0980b9d8281a88d5517e2f81cc83a588ec455f27839878f0b94c656af",
+      "url": "https://github.com/SammySemicolon/Malum-Mod/blob/3de9de9d1f680ebfb8bc2d5db9c2b9840f8bba10/src/main/java/com/sammy/malum/core/handlers/MalignantConversionHandler.java#L29-L63",
+      "discovery_tags": [
+        "explicit_followup_full_method"
+      ],
+      "ast_calls": [],
+      "ast_guards": [],
+      "parse_error": false,
+      "excerpt": "public static void shieldPlayer(LivingIncomingDamageEvent event) {\n        var entity = event.getEntity();\n        if (entity.level().isClientSide()) {\n            return;\n        }\n        var source = event.getSource();\n        if (source.is(MalumTags.DamageTypes.BYPASSES_MALIGNANT_AEGIS)) {\n            return;\n        }\n        if (!(event.getOriginalAmount() >= 2f)) {\n            return;\n        }\n        var optional = MalignantInfluenceData.getMalignantAegisData(entity);\n        if (optional.isEmpty()) {\n            return;\n        }\n        var data = optional.get();\n        int aegis = data.getMalignantAegis();\n        if (aegis <= 0) {\n            return;\n        }\n        data.reduceAegis(1);\n        var container = event.getContainer();\n        int invulnerabilityTicks = Math.min(container.getPostAttackInvulnerabilityTicks() * 2, 40);\n        container.setPostAttackInvulnerabilityTicks(invulnerabilityTicks);\n        entity.syncData(MalumAttachmentTypes.MALIGNANT_INFLUENCE);\n\n        if (data.getMalignantAegis() == 0) {\n            SoundPlayer.create(MalumSoundEvents.MALIGNANT_AEGIS_DEPLETE).play(entity);\n        }\n        else {\n            SoundPlayer.create(MalumSoundEvents.MALIGNANT_AEGIS_HIT).volume(0.25f).play(entity);\n        }\n        event.setCanceled(true);\n    }",
+      "status": "unreviewed",
+      "candidate_index": 7469,
+      "decision": "accepted",
+      "observation": "全文MalignantConversionHandler.shieldPlayer/entityTick与MalignantInfluenceData全部方法，实际RuntimeEventHandler HIGHEST Incoming：server/nonbypass/original>=2/容量和盾层>0才先reduceAegis(1)、延长postAttackInvulnerability到min(2*原,40)、sync+音后cancel，并无检查已cancel事件，所以取消不等于没消费。Pre每tick容量不足--cooldown，<=0恢复1并addCooldown，容量变小夹回；recover无论增长都延长冷却仅增不减。CODEC aegisCooldown错误getter绑定getMalignantAegis，读档会以层数代原剩余时间，不能声称持久冷却正确。一个真实阻伤-取消回执-恢复时钟链1，转换通用属性算法0。",
+      "reviewed_at": "2026-10-28T18:13:38.041069+08:00",
+      "original_decision": "accepted",
+      "credit": 1,
+      "external_runtime_tested": false,
+      "pin_verification": {
+        "kind": "pinned_tree_blob",
+        "tree": "tools/cod4/sweep-receipt-research/.work/research-sources/SammySemicolon__Malum-Mod__3de9de9d1f68/tree.json",
+        "tree_sha256": "8bc373ef07f249eb356eac5867e88c32bc0aadab276240548654bdf54e5a9b17",
+        "blob_sha1": "22b10e310df23bfc69b8997e35b1d359f1de2e24"
+      }
+    }
+  ],
+  "sweep_decision_counts": {
+    "accepted": 11,
+    "excluded": 3,
+    "pending": 2
+  },
+  "Main_whole_review": false,
+  "append_plan_created": false,
+  "append_authorized": false,
+  "formal_count": 510,
+  "groups": 238,
+  "gap": 490,
+  "gate": false,
+  "production_changes": 0,
+  "game_starts": 0,
+  "network_requests": 0,
+  "tasks_deleted": 0,
+  "hours_claimed": null
+}

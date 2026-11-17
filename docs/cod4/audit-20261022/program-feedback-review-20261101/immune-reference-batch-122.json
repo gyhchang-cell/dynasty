@@ -1,0 +1,266 @@
+{
+  "status": "122-original-author-whole-research-conclusion-proposed-zero;Main-independent-review-pending",
+  "created_utc": "2026-11-09T22:56:06.747652+00:00",
+  "batch": 122,
+  "repo": "P3pp3rF1y/Reliquary",
+  "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+  "semantic_dedup_key": "reliquary-interdiction-torch-periodic-direct-velocity-field-config-blacklist-boundary-support-only",
+  "proposed_max_credit": 0,
+  "formal_credit": 0,
+  "prescreen_binding": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-122-reliquary-interdiction-complete-owner-prescreen-20261110.json",
+    "sha256": "59281068901686a2eabfe6046c8e4ed41d5a8c54c331d7ac5bc2cc68fcdcddd2",
+    "bytes": 57797
+  },
+  "source_progress": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-122-interdiction-actual-source-progress-20261110.json",
+    "sha256": "b13c71c0d620c9a1bdb4fb6b9c3cac2271cf2bf4f331b0632761edc9feb3cc23",
+    "bytes": 41077
+  },
+  "actual_source_ranges": [
+    {
+      "source": "src/main/java/reliquary/block/InterdictionTorchBlock.java",
+      "lines": [
+        1,
+        130
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/InterdictionTorchBlock.java",
+        "sha256": "7debffbc8d46b8fb15fd0263676237dfac63c35353d5ff57f45ca88542b9d84b",
+        "bytes": 5417
+      },
+      "git_blob_sha1": "23618a12d7c7840b086f0c3070526a179eb8e185",
+      "excerpt_sha256": "7debffbc8d46b8fb15fd0263676237dfac63c35353d5ff57f45ca88542b9d84b",
+      "excerpt": "package reliquary.block;\n\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.particles.ColorParticleOption;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.FastColor;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.FishingHook;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.SoundType;\nimport net.minecraft.world.level.block.TorchBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\nimport reliquary.entity.shot.ShotBase;\nimport reliquary.init.ModEntities;\nimport reliquary.item.ICreativeTabItemGenerator;\nimport reliquary.reference.Config;\n\nimport java.util.List;\nimport java.util.function.Consumer;\n\npublic class InterdictionTorchBlock extends TorchBlock implements ICreativeTabItemGenerator {\n\tprotected static final int TICK_RATE = 1;\n\n\tpublic InterdictionTorchBlock() {\n\t\tsuper(ParticleTypes.FLAME, Properties.of().strength(0).lightLevel(value -> 15).randomTicks().sound(SoundType.WOOD).noCollission());\n\t}\n\n\t@Override\n\tpublic void addCreativeTabItems(Consumer<ItemStack> itemConsumer) {\n\t\titemConsumer.accept(new ItemStack(this));\n\t}\n\n\t@Override\n\tpublic MutableComponent getName() {\n\t\treturn super.getName().withStyle(ChatFormatting.YELLOW);\n\t}\n\n\t@Override\n\tpublic void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {\n\t\tlevel.scheduleTick(pos, this, TICK_RATE);\n\t\tsuper.onPlace(state, level, pos, oldState, isMoving);\n\t}\n\n\t@Override\n\tpublic void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {\n\t\tsuper.tick(state, level, pos, random);\n\t\tlevel.scheduleTick(pos, this, TICK_RATE);\n\t\tif (level.isClientSide) {\n\t\t\treturn;\n\t\t}\n\t\tint radius = Config.COMMON.blocks.interdictionTorch.pushRadius.get();\n\n\t\tList<Entity> entities = level.getEntitiesOfClass(Entity.class, new AABB(pos).inflate(radius), e -> (e instanceof Mob || e instanceof Projectile));\n\t\tfor (Entity entity : entities) {\n\t\t\tif (entity instanceof Player || entity instanceof ShotBase || entity instanceof FishingHook || isBlacklistedEntity(entity)) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tdouble distance = Math.sqrt(entity.distanceToSqr(pos.getX(), pos.getY(), pos.getZ()));\n\t\t\tif (distance < radius && distance != 0) {\n\t\t\t\tmoveEntity(pos, entity, distance);\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate void moveEntity(BlockPos pos, Entity entity, double distance) {\n\t\t// the multiplier is based on a set rate added to an inverse\n\t\t// proportion to the distance.\n\t\t// we raise the distance to 1 if it's less than one, or it becomes a\n\t\t// crazy multiplier we don't want/need.\n\t\tif (distance < 1D) {\n\t\t\tdistance = 1D;\n\t\t}\n\t\tdouble knockbackMultiplier = 1D + (1D / distance);\n\n\t\t// we also need a reduction coefficient because the above force is\n\t\t// WAY TOO MUCH to apply every tick.\n\t\tdouble reductionCoefficient = 0.04D;\n\n\t\t// the resultant vector between the two 3d coordinates is the\n\t\t// difference of each coordinate pair\n\t\t// note that we do not add 0.5 to the y coord, if we wanted to be\n\t\t// SUPER accurate, we would be using\n\t\t// the entity height offset to find its \"center of mass\"\n\t\tVec3 angleOfAttack = entity.position().add(-(pos.getX() + 0.5D), -pos.getY(), -(pos.getZ() + 0.5D));\n\n\t\t// we use the resultant vector to determine the force to apply.\n\t\tdouble xForce = angleOfAttack.x * knockbackMultiplier * reductionCoefficient;\n\t\tdouble yForce = angleOfAttack.y * knockbackMultiplier * reductionCoefficient;\n\t\tdouble zForce = angleOfAttack.z * knockbackMultiplier * reductionCoefficient;\n\t\tentity.setDeltaMovement(entity.getDeltaMovement().add(xForce, yForce, zForce));\n\t}\n\n\tprivate boolean isBlacklistedEntity(Entity entity) {\n\t\tif (entity.getType().is(ModEntities.IGNORED_BY_INTERDICTION_TORCH_TAG)) {\n\t\t\treturn true;\n\t\t}\n\n\t\tString entityName = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString();\n\t\treturn isBlacklistedLivingEntity(entity, entityName)\n\t\t\t\t|| Config.COMMON.blocks.interdictionTorch.canPushProjectiles.get() && isBlacklistedProjectile(entity, entityName);\n\t}\n\n\tprivate boolean isBlacklistedProjectile(Entity entity, String entityName) {\n\t\treturn entity instanceof Projectile && Config.COMMON.blocks.interdictionTorch.pushableProjectilesBlacklist.get().contains(entityName);\n\t}\n\n\tprivate boolean isBlacklistedLivingEntity(Entity entity, String entityName) {\n\t\treturn entity instanceof Mob && Config.COMMON.blocks.interdictionTorch.pushableEntitiesBlacklist.get().contains(entityName);\n\t}\n\n\t@Override\n\tpublic void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {\n\t\tdouble xOffset = pos.getX() + 0.5F;\n\t\tdouble yOffset = pos.getY() + 0.7F;\n\t\tdouble zOffset = pos.getZ() + 0.5F;\n\t\tlevel.addParticle(ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, FastColor.ARGB32.opaque(0)), xOffset, yOffset, zOffset, 0.0D, 0.0D, 0.0D);\n\t\tlevel.addParticle(ParticleTypes.FLAME, xOffset, yOffset, zOffset, 0.0D, 0.0D, 0.0D);\n\t}\n}\n",
+      "whole_file": true
+    },
+    {
+      "source": "src/main/java/reliquary/block/WallInterdictionTorchBlock.java",
+      "lines": [
+        1,
+        90
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/WallInterdictionTorchBlock.java",
+        "sha256": "0a0cc04b98836c76a06320152ff1b8395a9874c1e04c17667aecbdd9ed84385a",
+        "bytes": 3626
+      },
+      "git_blob_sha1": "1cb326ddd64ad912b73bf477daf3f6676ab79c43",
+      "excerpt_sha256": "0a0cc04b98836c76a06320152ff1b8395a9874c1e04c17667aecbdd9ed84385a",
+      "excerpt": "package reliquary.block;\n\nimport com.google.common.collect.Maps;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.particles.ColorParticleOption;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.util.FastColor;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.item.context.BlockPlaceContext;\nimport net.minecraft.world.level.BlockGetter;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.StateDefinition;\nimport net.minecraft.world.phys.shapes.CollisionContext;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\nimport javax.annotation.Nullable;\n\nimport java.util.Map;\n\nimport static net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING;\n\npublic class WallInterdictionTorchBlock extends InterdictionTorchBlock {\n\tprivate static final Map<Direction, VoxelShape> SHAPES = Maps\n\t\t\t.newEnumMap(Map.of(Direction.NORTH, box(5.5D, 3.0D, 11.0D, 10.5D, 13.0D, 16.0D), Direction.SOUTH, box(5.5D, 3.0D, 0.0D, 10.5D, 13.0D, 5.0D),\n\t\t\t\t\tDirection.WEST, box(11.0D, 3.0D, 5.5D, 16.0D, 13.0D, 10.5D), Direction.EAST, box(0.0D, 3.0D, 5.5D, 5.0D, 13.0D, 10.5D)));\n\n\tpublic WallInterdictionTorchBlock() {\n\t\tsuper();\n\t\tregisterDefaultState(stateDefinition.any().setValue(HORIZONTAL_FACING, Direction.NORTH));\n\t}\n\n\t@Override\n\tprotected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {\n\t\tbuilder.add(HORIZONTAL_FACING);\n\t}\n\n\t@Override\n\tpublic void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {\n\t\tdouble xOffset = pos.getX() + 0.5F;\n\t\tdouble yOffset = pos.getY() + 0.7F;\n\t\tdouble zOffset = pos.getZ() + 0.5F;\n\n\t\tdouble verticalModifier = 0.22D;\n\t\tdouble horizontalModifier = 0.27D;\n\t\tDirection oppositeFacing = state.getValue(HORIZONTAL_FACING).getOpposite();\n\t\tlevel.addParticle(ColorParticleOption.create(ParticleTypes.ENTITY_EFFECT, FastColor.ARGB32.opaque(0)),\n\t\t\t\txOffset + horizontalModifier * oppositeFacing.getStepX(), yOffset + verticalModifier, zOffset + horizontalModifier * oppositeFacing.getStepZ(),\n\t\t\t\t0.0D, 0.0D, 0.0D);\n\t\tlevel.addParticle(ParticleTypes.FLAME, xOffset + horizontalModifier * oppositeFacing.getStepX(), yOffset + verticalModifier,\n\t\t\t\tzOffset + horizontalModifier * oppositeFacing.getStepZ(), 0.0D, 0.0D, 0.0D);\n\t}\n\n\t@Override\n\tpublic VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {\n\t\treturn SHAPES.get(state.getValue(HORIZONTAL_FACING));\n\t}\n\n\t@Override\n\tpublic boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {\n\t\tDirection direction = state.getValue(HORIZONTAL_FACING);\n\t\tBlockPos blockpos = pos.relative(direction.getOpposite());\n\t\tBlockState blockstate = level.getBlockState(blockpos);\n\t\treturn blockstate.isFaceSturdy(level, blockpos, direction);\n\t}\n\n\t@Nullable\n\t@Override\n\tpublic BlockState getStateForPlacement(BlockPlaceContext context) {\n\t\tBlockState blockstate = defaultBlockState();\n\t\tLevel level = context.getLevel();\n\t\tBlockPos blockpos = context.getClickedPos();\n\t\tDirection[] adirection = context.getNearestLookingDirections();\n\n\t\tfor (Direction direction : adirection) {\n\t\t\tif (direction.getAxis().isHorizontal()) {\n\t\t\t\tDirection direction1 = direction.getOpposite();\n\t\t\t\tblockstate = blockstate.setValue(HORIZONTAL_FACING, direction1);\n\t\t\t\tif (blockstate.canSurvive(level, blockpos)) {\n\t\t\t\t\treturn blockstate;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\treturn null;\n\t}\n}\n",
+      "whole_file": true
+    },
+    {
+      "source": "src/main/java/reliquary/item/block/InterdictionTorchItem.java",
+      "lines": [
+        1,
+        23
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/block/InterdictionTorchItem.java",
+        "sha256": "69f7f3fe50a3461297acdc34c9698c5f2efdd92fe0e7d66dac00a00a413df539",
+        "bytes": 831
+      },
+      "git_blob_sha1": "a7f540480fc4da8983820d2aad032d641afae2cd",
+      "excerpt_sha256": "69f7f3fe50a3461297acdc34c9698c5f2efdd92fe0e7d66dac00a00a413df539",
+      "excerpt": "package reliquary.item.block;\n\nimport net.minecraft.core.Direction;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.StandingAndWallBlockItem;\nimport reliquary.init.ModBlocks;\nimport reliquary.item.ICreativeTabItemGenerator;\n\nimport java.util.function.Consumer;\n\npublic class InterdictionTorchItem extends StandingAndWallBlockItem implements ICreativeTabItemGenerator {\n\tpublic InterdictionTorchItem() {\n\t\tsuper(ModBlocks.INTERDICTION_TORCH.get(), ModBlocks.WALL_INTERDICTION_TORCH.get(), new Item.Properties(), Direction.DOWN);\n\t}\n\n\t@Override\n\tpublic void addCreativeTabItems(Consumer<ItemStack> itemConsumer) {\n\t\tif (getBlock() instanceof ICreativeTabItemGenerator creativeTabItemGenerator) {\n\t\t\tcreativeTabItemGenerator.addCreativeTabItems(itemConsumer);\n\t\t}\n\t}\n}\n",
+      "whole_file": true
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1,
+        65
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "27d3d994e84243d5aa90e977adc6f6fd8e1b3bd3769fbe1c002e882ad7116b47",
+      "excerpt": "package reliquary.reference;\n\nimport com.google.common.collect.Lists;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Blocks;\nimport net.neoforged.fml.event.config.ModConfigEvent;\nimport net.neoforged.neoforge.common.ModConfigSpec;\nimport net.neoforged.neoforge.common.ModConfigSpec.*;\nimport org.apache.commons.lang3.tuple.Pair;\nimport reliquary.Reliquary;\nimport reliquary.client.gui.hud.HUDPosition;\nimport reliquary.util.potions.PotionMap;\n\nimport javax.annotation.Nullable;\n\nimport java.util.*;\nimport java.util.function.Predicate;\nimport java.util.regex.Pattern;\nimport java.util.stream.Collectors;\nimport java.util.stream.Stream;\n\nimport static reliquary.util.RegistryHelper.getItemRegistryName;\n\n@SuppressWarnings({\"java:S4968\", \"squid:S1192\"}) // ? extends String is the type parameter returned from defineList so it can't be just String here | no issue\n\t\t\t\t\t\t\t\t\t\t\t\t\t// repeating the same string literal as they are independent\npublic class Config {\n\tprivate Config() {\n\t}\n\n\tprivate static final int ITEM_CAP = 9999;\n\tprivate static final Pattern REGISTRY_NAME_PATTERN = Pattern.compile(\"([a-z0-9_.-]+:[a-z0-9_/.-]+)\");\n\tprivate static final Predicate<Object> REGISTRY_NAME_MATCHER = o -> o instanceof String s && REGISTRY_NAME_PATTERN.matcher(s).matches();\n\tprivate static final Predicate<Object> POTION_MAP_ENTRY_MATCHER = o -> o instanceof String s && s.matches(\"[a-z_:0-9]+=[a-z_0-9:.|;]+\");\n\n\tprivate static String translationKey(String path) {\n\t\treturn Reliquary.MOD_ID + \".configuration.\" + path;\n\t}\n\n\tpublic static <T> T getOrDefault(ModConfigSpec.ConfigValue<T> value, ModConfigSpec configSpec) {\n\t\treturn configSpec.isLoaded() ? value.get() : value.getDefault();\n\t}\n\n\t@SuppressWarnings(\"unused\")\n\t// parameter needs to stay for addListener logic to recognize what this method is listening to\n\tpublic static void onFileChange(ModConfigEvent.Reloading configEvent) {\n\t\tCOMMON.items.mobCharm.resetCache();\n\t\tCOMMON.items.sojournerStaff.resetCache();\n\t}\n\n\tpublic static class Client {\n\t\tpublic final HudPos hudPositions;\n\t\tpublic final BooleanValue wailaShiftForInfo;\n\n\t\tpublic static class HudPos {\n\t\t\tpublic final EnumValue<HUDPosition> sojournerStaff;\n\t\t\tpublic final EnumValue<HUDPosition> handgun;\n\t\t\tpublic final EnumValue<HUDPosition> alkahestryTome;\n\t\t\tpublic final EnumValue<HUDPosition> destructionCatalyst;\n\t\t\tpublic final EnumValue<HUDPosition> enderStaff;\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1128,
+        1159
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "efcf8bf2d599473fe5c4b74c6d92a7cf047051ddee1215472b14286da7a22092",
+      "excerpt": "\t\t\tpublic static class InterdictionTorchSettings {\n\t\t\t\tpublic final IntValue pushRadius;\n\t\t\t\tpublic final BooleanValue canPushProjectiles;\n\t\t\t\tpublic final ConfigValue<List<? extends String>> pushableEntitiesBlacklist;\n\t\t\t\tpublic final ConfigValue<List<? extends String>> pushableProjectilesBlacklist;\n\n\t\t\t\tInterdictionTorchSettings(ModConfigSpec.Builder builder) {\n\t\t\t\t\tbuilder.comment(\"Interdiction Torch settings\").translation(translationKey(\"blocks.interdictionTorch\")).push(\"interdictionTorch\");\n\n\t\t\t\t\tpushRadius = builder.comment(\"Radius in which the torch can push out mobs\").defineInRange(\"pushRadius\", 5, 1, 15);\n\n\t\t\t\t\tcanPushProjectiles = builder.comment(\"Whether the torch can push projectiles\").define(\"canPushProjectiles\", false);\n\n\t\t\t\t\tpushableEntitiesBlacklist = builder.comment(\"List of entities that are banned from being pushed by the torch\").defineListAllowEmpty(\n\t\t\t\t\t\t\t\"pushableEntitiesBlacklist\", ArrayList::new, () -> BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.ZOMBIE).toString(),\n\t\t\t\t\t\t\tREGISTRY_NAME_MATCHER);\n\n\t\t\t\t\tpushableProjectilesBlacklist = builder.comment(\"List of projectiles that are banned from being pushed by the torch\").defineListAllowEmpty(\n\t\t\t\t\t\t\t\"pushableProjectilesBlacklist\", ArrayList::new, () -> BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.ARROW).toString(),\n\t\t\t\t\t\t\tREGISTRY_NAME_MATCHER);\n\n\t\t\t\t\tbuilder.pop();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tpublic final PedestalSettings pedestal;\n\n\t\t\tpublic static class PedestalSettings {\n\t\t\t\tpublic final IntValue meleeWrapperRange;\n\t\t\t\tpublic final IntValue meleeWrapperCooldown;\n\t\t\t\tpublic final IntValue bucketWrapperRange;\n\t\t\t\tpublic final IntValue bucketWrapperCooldown;\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModEntities.java",
+      "lines": [
+        1,
+        32
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModEntities.java",
+        "sha256": "a9e41f03e541f35719a983c31382598d8ba6475ff25897274c50dcbc5ab706e1",
+        "bytes": 5276
+      },
+      "git_blob_sha1": "26259f39596c41aa9285ec26634256670cb102f4",
+      "excerpt_sha256": "4badb3e61ca3dc97b35f127cb9021f40e5da105dda0cce80dd3e45659ef6ab43",
+      "excerpt": "package reliquary.init;\n\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.tags.TagKey;\nimport net.minecraft.world.damagesource.DamageType;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.MobCategory;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.neoforge.registries.DeferredRegister;\nimport reliquary.Reliquary;\nimport reliquary.entity.*;\nimport reliquary.entity.potion.AphroditePotion;\nimport reliquary.entity.potion.FertilePotion;\nimport reliquary.entity.potion.ThrownPotion;\nimport reliquary.entity.shot.*;\n\nimport java.util.function.Supplier;\n\npublic class ModEntities {\n\tpublic static final TagKey<EntityType<?>> IGNORED_BY_INTERDICTION_TORCH_TAG = TagKey.create(Registries.ENTITY_TYPE,\n\t\t\tReliquary.getRL(\"ignored_by_interdiction_torch\"));\n\n\tprivate static final DeferredRegister<EntityType<?>> ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.ENTITY_TYPE, Reliquary.MOD_ID);\n\n\tpublic static final Supplier<EntityType<AphroditePotion>> APHRODITE_POTION = ENTITY_TYPES.register(\"aphrodite_potion\",\n\t\t\t() -> getDefaultSizeEntityType(AphroditePotion::new));\n\tpublic static final Supplier<EntityType<FertilePotion>> FERTILE_POTION = ENTITY_TYPES.register(\"fertile_potion\",\n\t\t\t() -> getDefaultSizeEntityType(FertilePotion::new));\n\tpublic static final Supplier<EntityType<ThrownPotion>> THROWN_POTION = ENTITY_TYPES.register(\"thrown_potion\",\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModBlocks.java",
+      "lines": [
+        29,
+        104
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModBlocks.java",
+        "sha256": "0667b2f96d84ef511e267acc8998d76b6c69147531f131a2f376fa81469116bf",
+        "bytes": 8845
+      },
+      "git_blob_sha1": "607602b75b0f05a01dadf9a3895ac485bd6e66d6",
+      "excerpt_sha256": "ffba4979348e8c9f2bdc6a600354cd9d304530ccb2f90b1bd4da0b04a7b8a437",
+      "excerpt": "\t}\n\n\tpublic static final DeferredRegister<Item> ITEMS = DeferredRegister.create(BuiltInRegistries.ITEM, Reliquary.MOD_ID);\n\tprivate static final DeferredRegister<Block> BLOCKS = DeferredRegister.create(BuiltInRegistries.BLOCK, Reliquary.MOD_ID);\n\tprivate static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.BLOCK_ENTITY_TYPE,\n\t\t\tReliquary.MOD_ID);\n\n\tprivate static final String ALKAHESTRY_ALTAR_REGISTRY_NAME = \"alkahestry_altar\";\n\tprivate static final String INTERDICTION_TORCH_REGISTRY_NAME = \"interdiction_torch\";\n\tprivate static final String APOTHECARY_CAULDRON_REGISTRY_NAME = \"apothecary_cauldron\";\n\tprivate static final String APOTHECARY_MORTAR_REGISTRY_NAME = \"apothecary_mortar\";\n\tprivate static final String FERTILE_LILY_PAD_REGISTRY_NAME = \"fertile_lily_pad\";\n\tprivate static final String WRAITH_NODE_REGISTRY_NAME = \"wraith_node\";\n\n\tpublic static final Supplier<AlkahestryAltarBlock> ALKAHESTRY_ALTAR = BLOCKS.register(ALKAHESTRY_ALTAR_REGISTRY_NAME, AlkahestryAltarBlock::new);\n\tpublic static final Supplier<ApothecaryCauldronBlock> APOTHECARY_CAULDRON = BLOCKS.register(APOTHECARY_CAULDRON_REGISTRY_NAME,\n\t\t\tApothecaryCauldronBlock::new);\n\tpublic static final Supplier<ApothecaryMortarBlock> APOTHECARY_MORTAR = BLOCKS.register(APOTHECARY_MORTAR_REGISTRY_NAME, ApothecaryMortarBlock::new);\n\tpublic static final Supplier<FertileLilyPadBlock> FERTILE_LILY_PAD = BLOCKS.register(FERTILE_LILY_PAD_REGISTRY_NAME, FertileLilyPadBlock::new);\n\tpublic static final Supplier<InterdictionTorchBlock> INTERDICTION_TORCH = BLOCKS.register(INTERDICTION_TORCH_REGISTRY_NAME, InterdictionTorchBlock::new);\n\tpublic static final Supplier<WallInterdictionTorchBlock> WALL_INTERDICTION_TORCH = BLOCKS.register(\"wall_interdiction_torch\",\n\t\t\tWallInterdictionTorchBlock::new);\n\tpublic static final Supplier<WraithNodeBlock> WRAITH_NODE = BLOCKS.register(WRAITH_NODE_REGISTRY_NAME, WraithNodeBlock::new);\n\n\tpublic static final Map<DyeColor, Supplier<PassivePedestalBlock>> PASSIVE_PEDESTALS;\n\tpublic static final Map<DyeColor, Supplier<PedestalBlock>> PEDESTALS;\n\n\tstatic {\n\t\tImmutableMap.Builder<DyeColor, Supplier<PassivePedestalBlock>> passiveBuilder = ImmutableMap.builder();\n\t\tImmutableMap.Builder<DyeColor, Supplier<PedestalBlock>> activeBuilder = ImmutableMap.builder();\n\t\tfor (DyeColor color : DyeColor.values()) {\n\t\t\tpassiveBuilder.put(color, BLOCKS.register(\"pedestals/passive/\" + color.getName() + \"_passive_pedestal\", PassivePedestalBlock::new));\n\t\t\tactiveBuilder.put(color, BLOCKS.register(\"pedestals/\" + color.getName() + \"_pedestal\", PedestalBlock::new));\n\t\t}\n\t\tPASSIVE_PEDESTALS = passiveBuilder.build();\n\t\tPEDESTALS = activeBuilder.build();\n\t}\n\n\tpublic static final Supplier<BlockEntityType<AlkahestryAltarBlockEntity>> ALKAHESTRY_ALTAR_TILE_TYPE = BLOCK_ENTITY_TYPES\n\t\t\t.register(ALKAHESTRY_ALTAR_REGISTRY_NAME, () -> getTileEntityType(AlkahestryAltarBlockEntity::new, ALKAHESTRY_ALTAR.get()));\n\tpublic static final Supplier<BlockEntityType<PedestalBlockEntity>> PEDESTAL_TILE_TYPE = BLOCK_ENTITY_TYPES.register(\"pedestal\",\n\t\t\t() -> getTileEntityType(PedestalBlockEntity::new, PEDESTALS.values().stream().map(Supplier::get).toArray(PedestalBlock[]::new)));\n\tpublic static final Supplier<BlockEntityType<PassivePedestalBlockEntity>> PASSIVE_PEDESTAL_TILE_TYPE = BLOCK_ENTITY_TYPES.register(\"passive_pedestal\",\n\t\t\t() -> getTileEntityType(PassivePedestalBlockEntity::new,\n\t\t\t\t\tPASSIVE_PEDESTALS.values().stream().map(Supplier::get).toArray(PassivePedestalBlock[]::new)));\n\tpublic static final Supplier<BlockEntityType<ApothecaryCauldronBlockEntity>> APOTHECARY_CAULDRON_TILE_TYPE = BLOCK_ENTITY_TYPES\n\t\t\t.register(APOTHECARY_CAULDRON_REGISTRY_NAME, () -> getTileEntityType(ApothecaryCauldronBlockEntity::new, APOTHECARY_CAULDRON.get()));\n\tpublic static final Supplier<BlockEntityType<ApothecaryMortarBlockEntity>> APOTHECARY_MORTAR_TILE_TYPE = BLOCK_ENTITY_TYPES\n\t\t\t.register(APOTHECARY_MORTAR_REGISTRY_NAME, () -> getTileEntityType(ApothecaryMortarBlockEntity::new, APOTHECARY_MORTAR.get()));\n\n\tpublic static final Supplier<BlockItemBase> ALKAHESTRY_ALTAR_ITEM = ITEMS.register(ALKAHESTRY_ALTAR_REGISTRY_NAME,\n\t\t\t() -> new BlockItemBase(ALKAHESTRY_ALTAR.get()));\n\tpublic static final Supplier<BlockItemBase> APOTHECARY_CAULDRON_ITEM = ITEMS.register(APOTHECARY_CAULDRON_REGISTRY_NAME,\n\t\t\t() -> new BlockItemBase(APOTHECARY_CAULDRON.get()));\n\tpublic static final Supplier<BlockItemBase> APOTHECARY_MORTAR_ITEM = ITEMS.register(APOTHECARY_MORTAR_REGISTRY_NAME,\n\t\t\t() -> new BlockItemBase(APOTHECARY_MORTAR.get()));\n\tpublic static final Supplier<BlockItemBase> FERTILE_LILY_PAD_ITEM = ITEMS.register(FERTILE_LILY_PAD_REGISTRY_NAME, FertileLilyPadItem::new);\n\tpublic static final Supplier<BlockItemBase> WRAITH_NODE_ITEM = ITEMS.register(WRAITH_NODE_REGISTRY_NAME, () -> new BlockItemBase(WRAITH_NODE.get()));\n\tpublic static final Supplier<InterdictionTorchItem> INTERDICTION_TORCH_ITEM = ITEMS.register(INTERDICTION_TORCH_REGISTRY_NAME, InterdictionTorchItem::new);\n\tpublic static final Map<DyeColor, Supplier<BlockItem>> PEDESTAL_ITEMS;\n\tpublic static final Map<DyeColor, Supplier<BlockItem>> PASSIVE_PEDESTAL_ITEMS;\n\n\tprivate static final String BLOCK_PREFIX = \"block.\";\n\n\tstatic {\n\t\tImmutableMap.Builder<DyeColor, Supplier<BlockItem>> passiveBuilder = ImmutableMap.builder();\n\t\tImmutableMap.Builder<DyeColor, Supplier<BlockItem>> activeBuilder = ImmutableMap.builder();\n\t\tfor (DyeColor color : DyeColor.values()) {\n\t\t\tpassiveBuilder.put(color, ITEMS.register(\"pedestals/passive/\" + color.getName() + \"_passive_pedestal\",\n\t\t\t\t\t() -> new BlockItemBase(PASSIVE_PEDESTALS.get(color).get(), new Item.Properties()) {\n\t\t\t\t\t\t@Override\n\t\t\t\t\t\tpublic Component getName(ItemStack stack) {\n\t\t\t\t\t\t\treturn Component.translatable(BLOCK_PREFIX + Reliquary.MOD_ID + \".passive_pedestal\");\n\t\t\t\t\t\t}\n\n\t\t\t\t\t\t@Override\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/Reliquary.java",
+      "lines": [
+        1,
+        86
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/Reliquary.java",
+        "sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+        "bytes": 3178
+      },
+      "git_blob_sha1": "1564c743bda7563d82c610640652a4d80f85abfe",
+      "excerpt_sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+      "excerpt": "package reliquary;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.neoforged.api.distmarker.Dist;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.fml.ModContainer;\nimport net.neoforged.fml.ModList;\nimport net.neoforged.fml.common.Mod;\nimport net.neoforged.fml.config.ModConfig;\nimport net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;\nimport net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;\nimport net.neoforged.neoforge.client.gui.ConfigurationScreen;\nimport net.neoforged.neoforge.client.gui.IConfigScreenFactory;\nimport net.neoforged.neoforge.common.NeoForge;\nimport net.neoforged.neoforge.common.NeoForgeMod;\nimport reliquary.client.init.ModParticles;\nimport reliquary.crafting.AlkahestryRecipeRegistry;\nimport reliquary.data.DataGenerators;\nimport reliquary.handler.ClientEventHandler;\nimport reliquary.handler.CommonEventHandler;\nimport reliquary.init.*;\nimport reliquary.item.MobCharmRegistry;\nimport reliquary.reference.Config;\nimport reliquary.util.potions.PotionMap;\n\n@Mod(Reliquary.MOD_ID)\npublic class Reliquary {\n\n\tpublic static final String MOD_ID = \"reliquary\";\n\tprivate static String networkProtocolVersion;\n\n\t@SuppressWarnings(\"java:S1118\") // needs to be public for mod to work\n\tpublic Reliquary(IEventBus modBus, Dist dist, ModContainer container) {\n\t\tnetworkProtocolVersion = container.getModInfo().getVersion().toString();\n\t\tNeoForgeMod.enableMilkFluid();\n\t\tif (dist == Dist.CLIENT && !ModList.get().isLoaded(\"configured\")) {\n\t\t\tcontainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);\n\t\t}\n\t\tif (dist == Dist.CLIENT) {\n\t\t\tClientEventHandler.registerHandlers(container);\n\t\t}\n\t\tmodBus.addListener(Reliquary::setup);\n\t\tmodBus.addListener(Reliquary::loadComplete);\n\t\tmodBus.addListener(Config::onFileChange);\n\t\tmodBus.addListener(DataGenerators::gatherData);\n\t\tmodBus.addListener(ModPayloads::registerPackets);\n\n\t\tModFluids.registerHandlers(modBus);\n\t\tModItems.registerListeners(modBus);\n\t\tModBlocks.registerListeners(modBus);\n\t\tModEntities.registerListeners(modBus);\n\t\tModEffects.registerListeners(modBus);\n\t\tModSounds.registerListeners(modBus);\n\t\tModParticles.registerListeners(modBus);\n\t\tModDataComponents.register(modBus);\n\n\t\tcontainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);\n\t\tcontainer.registerConfig(ModConfig.Type.COMMON, Config.COMMON_SPEC);\n\n\t\tIEventBus eventBus = NeoForge.EVENT_BUS;\n\t\tCommonEventHandler.registerEventBusListeners(eventBus);\n\t\teventBus.addListener(MobCharmRegistry::handleAddingFragmentDrops);\n\t\teventBus.addListener(AlkahestryRecipeRegistry::onResourceReload);\n\n\t\tModCompat.initCompats(modBus);\n\t}\n\n\tpublic static void setup(FMLCommonSetupEvent event) {\n\t\tevent.enqueueWork(ModItems::registerDispenseBehaviors);\n\t\tPotionMap.initPotionMap();\n\t\tModItems.registerHandgunMagazines();\n\t\tPedestalItems.init();\n\t}\n\n\tpublic static void loadComplete(FMLLoadCompleteEvent event) {\n\t\tMobCharmRegistry.registerDynamicCharmDefinitions();\n\t}\n\n\tpublic static ResourceLocation getRL(String regName) {\n\t\treturn ResourceLocation.fromNamespaceAndPath(MOD_ID, regName);\n\t}\n\n\tpublic static String getNetworkProtocolVersion() {\n\t\treturn networkProtocolVersion;\n\t}\n}\n",
+      "whole_file": true
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModBlocks.java",
+      "lines": [
+        126,
+        140
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModBlocks.java",
+        "sha256": "0667b2f96d84ef511e267acc8998d76b6c69147531f131a2f376fa81469116bf",
+        "bytes": 8845
+      },
+      "git_blob_sha1": "607602b75b0f05a01dadf9a3895ac485bd6e66d6",
+      "excerpt_sha256": "cbd1fbed47ab0baaa12ee693968b965fe39cec85009c11faddd1247cc8197d6e",
+      "excerpt": "\tpublic static void registerListeners(IEventBus modBus) {\n\t\tITEMS.register(modBus);\n\t\tBLOCKS.register(modBus);\n\t\tBLOCK_ENTITY_TYPES.register(modBus);\n\t\tmodBus.addListener(ModBlocks::registerCapabilities);\n\t}\n\n\t@SuppressWarnings({\"squid:S4449\", \"ConstantConditions\"}) // no datafixer is defined for any of the tile entities so this is moot\n\tprivate static <T extends BlockEntity> BlockEntityType<T> getTileEntityType(BlockEntityType.BlockEntitySupplier<T> tileFactory, Block... validBlocks) {\n\t\treturn BlockEntityType.Builder.of(tileFactory, validBlocks).build(null);\n\t}\n\n\tprivate static void registerCapabilities(RegisterCapabilitiesEvent event) {\n\t\tevent.registerBlockEntity(Capabilities.ItemHandler.BLOCK, APOTHECARY_MORTAR_TILE_TYPE.get(), (mortar, direction) -> mortar.getItems());\n\t\tevent.registerBlockEntity(Capabilities.ItemHandler.BLOCK, PASSIVE_PEDESTAL_TILE_TYPE.get(), (pedestal, direction) -> pedestal.getItemHandler());\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        116,
+        198
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "05e90f11695520b720b1d214e9204afa5c357773361d6b2934d70a9cffcdc66a",
+      "excerpt": "\tpublic static class Common {\n\t\tpublic final DisableSettings disable;\n\t\tpublic final PotionSettings potions;\n\t\tpublic final ItemSettings items;\n\t\tpublic final BlockSettings blocks;\n\t\tpublic final BooleanValue chestLootEnabled;\n\t\tpublic final BooleanValue dropCraftingRecipesEnabled;\n\t\tpublic final BooleanValue mobDropsEnabled;\n\n\t\tpublic static class DisableSettings {\n\t\t\tpublic final BooleanValue disableAlkahestry;\n\t\t\tpublic final BooleanValue disableHandgun;\n\t\t\tpublic final BooleanValue disablePotions;\n\t\t\tpublic final BooleanValue disablePedestal;\n\t\t\tpublic final BooleanValue disablePassivePedestal;\n\t\t\tpublic final BooleanValue disableSpawnEggRecipes;\n\t\t\tpublic final BooleanValue disableCharms;\n\n\t\t\tDisableSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.comment(\"Disable sections of the mod\").translation(translationKey(\"disable\")).push(\"disable\");\n\n\t\t\t\tdisableAlkahestry = builder.comment(\"Disable Alkahestry tome and its recipes\").translation(translationKey(\"disable.alkahestryTome\"))\n\t\t\t\t\t\t.worldRestart().define(\"alkahestryTome\", false);\n\n\t\t\t\tdisableHandgun = builder.comment(\"Disable the HANDGUN, bullets, magazines, and gun parts\").translation(translationKey(\"disable.handgun\"))\n\t\t\t\t\t\t.worldRestart().define(\"handgun\", false);\n\n\t\t\t\tdisablePotions = builder.comment(\"Disable the POTION system including mortar, altar, potions, tipped arrows, and powder\")\n\t\t\t\t\t\t.translation(translationKey(\"disable.potion\")).worldRestart().define(\"potion\", false);\n\n\t\t\t\tdisablePedestal = builder.comment(\"Disable all pedestals\").translation(translationKey(\"disable.pedestal\")).worldRestart().define(\"pedestal\",\n\t\t\t\t\t\tfalse);\n\n\t\t\t\tdisablePassivePedestal = builder.comment(\"Disable all display-only pedestals\").translation(translationKey(\"disable.passivePedestal\"))\n\t\t\t\t\t\t.worldRestart().define(\"passivePedestal\", false);\n\n\t\t\t\tdisableSpawnEggRecipes = builder.comment(\"Disable recipes to craft spawn eggs from fragments\")\n\t\t\t\t\t\t.translation(translationKey(\"disable.disableSpawnEggRecipes\")).worldRestart().define(\"disableSpawnEggRecipes\", false);\n\n\t\t\t\tdisableCharms = builder.comment(\"Disable all charms and their recipes\").translation(translationKey(\"disable.charms\")).worldRestart()\n\t\t\t\t\t\t.define(\"charms\", false);\n\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\t\t}\n\n\t\tCommon(ModConfigSpec.Builder builder) {\n\t\t\tchestLootEnabled = builder\n\t\t\t\t\t.comment(\"Determines whether Reliquary items will be generated in chest loot (mostly mob drops, very rarely some lower level items)\")\n\t\t\t\t\t.worldRestart().define(\"chestLootEnabled\", true);\n\n\t\t\tdropCraftingRecipesEnabled = builder.comment(\"Determines whether Reliquary mob drops have crafting recipes\").define(\"dropCraftingRecipesEnabled\",\n\t\t\t\t\tfalse);\n\n\t\t\tmobDropsEnabled = builder.comment(\n\t\t\t\t\t\"Whether mobs drop the Reliquary mob drops. This won't remove mob drop items from registry and replace them with something else, but allows to turn off the additional drops when mobs are killed by player. If this is turned off the mob drop crafting recipes turned on by the other setting can be used.\")\n\t\t\t\t\t.worldRestart().define(\"mobDropsEnabled\", true);\n\n\t\t\tdisable = new DisableSettings(builder);\n\t\t\tpotions = new PotionSettings(builder);\n\t\t\titems = new ItemSettings(builder);\n\t\t\tblocks = new BlockSettings(builder);\n\t\t}\n\n\t\tpublic static class PotionSettings {\n\t\t\tpublic final ConfigValue<List<? extends String>> potionMap;\n\t\t\tpublic final IntValue maxEffectCount;\n\t\t\tpublic final BooleanValue threeIngredients;\n\t\t\tpublic final BooleanValue differentDurations;\n\t\t\tpublic final BooleanValue redstoneAndGlowstone;\n\n\t\t\tPotionSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.comment(\"Potions related settings\").translation(translationKey(\"potions\")).push(\"potions\");\n\n\t\t\t\tpotionMap = builder.comment(\"Map of POTION ingredients and their effects\").defineList(\"potionMap\", PotionMap::getDefaultConfigPotionMap,\n\t\t\t\t\t\t() -> \"minecraft:sugar=speed|3|0;haste|3|0\", POTION_MAP_ENTRY_MATCHER);\n\n\t\t\t\tmaxEffectCount = builder.comment(\"Maximum number of effects a POTION can have to appear in creative tabs / JEI\").defineInRange(\"maxEffectCount\",\n\t\t\t\t\t\t1, 1, 6);\n\n\t\t\t\tthreeIngredients = builder.comment(\"Whether potions that are made out of three base ingredients appear in creative tabs / JEI\")\n\t\t\t\t\t\t.define(\"threeIngredients\", false);\n\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1037,
+        1055
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "43bf71947d1928481be0b9ff66fa381a383d4ffb5f95e3d7d0ff5e2d27bc0a04",
+      "excerpt": "\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tpublic static class BlockSettings {\n\t\t\tBlockSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.translation(translationKey(\"blocks\")).push(\"blocks\");\n\t\t\t\taltar = new AltarSettings(builder);\n\t\t\t\tapothecaryCauldron = new ApothecaryCauldronSettings(builder);\n\t\t\t\tfertileLilypad = new FertileLilypadSettings(builder);\n\t\t\t\tinterdictionTorch = new InterdictionTorchSettings(builder);\n\t\t\t\tpedestal = new PedestalSettings(builder);\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\n\t\t\tpublic final AltarSettings altar;\n\n\t\t\tpublic static class AltarSettings {\n\t\t\t\tpublic final IntValue redstoneCost;\n",
+      "whole_file": false
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1202,
+        1211
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "37b9728ac9e080c4e72ca7431e41c86cbf83f3dbeec8253669b8200a753ee179",
+      "excerpt": "\n\tpublic static final Common COMMON;\n\tpublic static final ModConfigSpec COMMON_SPEC;\n\n\tstatic {\n\t\tfinal Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);\n\t\tCOMMON_SPEC = specPair.getRight();\n\t\tCOMMON = specPair.getLeft();\n\t}\n}\n",
+      "whole_file": false
+    }
+  ],
+  "actual_read_summary": {
+    "actual_shown_ranges": 12,
+    "actual_shown_lines": 661,
+    "actual_distinct_lines": 661,
+    "actual_files": 7,
+    "whole_files": [
+      "src/main/java/reliquary/block/InterdictionTorchBlock.java",
+      "src/main/java/reliquary/block/WallInterdictionTorchBlock.java",
+      "src/main/java/reliquary/item/block/InterdictionTorchItem.java",
+      "src/main/java/reliquary/Reliquary.java"
+    ]
+  },
+  "full_chain_observation": [
+    "固定20de88066c41dcb19e50d1744d3edd3627064629；新12段661行7文件4全文实际读，tree/blob和rawexcerpt核验只证明来源，信用0。",
+    "实际@Mod构造注册ModBlocks listeners和COMMON_SPEC；实际registerListeners把ITEMS/BLOCKS/BLOCK_ENTITY_TYPES接到modbus。注册standing/wall block和同一StandingAndWallBlockItem构造，壁挂继承同一推力，不能分两个机制。",
+    "COMMON静态Builder configure(Common::new)→Common blocks→BlockSettings构造InterdictionTorchSettings；radius默认5范围1..15，canPushProjectiles默认false，两blacklist默认空并按registry-name pattern约束。未读取当前用户配置。",
+    "放置onPlace先scheduleTick1再super；tick先super再scheduleTick1才查side。参数ServerLevel与额外isClientSide门保留，没有自定义deadline、UUID回执或代次。未展开原生调度/卸载/移除链。",
+    "查询AABB(pos).inflate(radius)，初筛Mob或Projectile，不只是敌对Mob；随后排Player/ShotBase/FishingHook及isBlacklistedEntity。不额外判断owner、盟友、Boss、伤害或knockbackResistance。",
+    "ignore实体tag优先true；之后Mob精确registry-name blacklist OR canPushProjectiles && Projectile精确blacklist。flag只门控黑名单判定而非整体Projectile准入。默认false不在此方法阻止普通未tag Projectile，true只使名单生效；不是已证运行漏洞。",
+    "判距为实体位置到整数block corner的sqrt，严格distance<radius且!=0。推力角向量却以x/z+.5、y不加.5取差；两种参考点不同，不能声称严格球面法线或所有点向外。",
+    "移动callee把distance<1夹到1，用1+1/d乘angle和.04再加已有deltaMovement；这是增量速度不是清零、位置move、攻击拒绝或最终击退许可。没有本地hurt/addEffect/boss免疫/attempt結果检查。",
+    "实体球半径门、零距离保护、夹距与公式是同一周期场的支持细节，不按数学常量/分支拆数量。Projectile未写owner/acceleration/impactcallback，不证明安全反弹或改归属。",
+    "完整standing animateTick与wall override仅每次环境entityeffect/flame粒子，不是目标成功/拒绝回执，黄色名称也不是拒控红字，没有本类目标文字/提示声/S2C专包。",
+    "wall全文有facing shape/support/placement选择但没有改写ticker；站立Torch native support/removal继承未展开，形状/方向/particle variant都是0。",
+    "完整旧13migration保留charge quotient/remainder及重复子类0、XP/lava/template/paidrecipe/cleanup等whole，旧29sweep包含torch6199...excluded0保持；本轮补全moveEntity不追改或升格该旧项。",
+    "旧4Reliquary正式whole为hunger防御、Wither效果/0伤cue、charm资格与资源HUD、ambientlight拒敌，原有全范围保持。新Torch不是这些claim的扩大范围，不能据此称发现独立1。",
+    "旧Wizardry forcefield attack-policy及contact/directmotion家族、Betweenlands残余radius+postcontrolcost whole已完整读。Torch普通连续直接速度场无独立事务/拒绝身份/资源账本；config误门与坐标偏移只是此字段边界。作者因此提议support/related0，不凭新mod文件名计1。"
+  ],
+  "concrete_observation": "周期驱逐火炬的完整注册/配置/筛选/速度写入/ambient视觉链补读完毕。canPushProjectiles仅在黑名单子表达式中、corner判距与半格向量基点不同；这两静态边界不构成新研究单位。作者提议整体0，旧excluded0及已有场控制whole不动。",
+  "application_to_boss_immune": "控制资格应在真正速度写入前按策略裁决；配置名称、ambient粒子和物品外观不能当成功拒控或反馈回执。仅保存参考边界，不移植/修复生产。",
+  "limitations": [
+    "作者提议0，尚待Main独立whole判词；正式508/236/gap492/gatefalse不变，121仍ACK后待EA52再context。",
+    "没有翻转flag、执行示例或运行游戏；布尔表达式依Java短路源码阅读，不宣称已复现配置故障、全Projectile受影响或网络漏洞。",
+    "未展开native TorchBlock/ServerLevel scheduled tick、unload/remove/support生命周期，不能承诺只调度一次/无残留/所有版本一致。",
+    "没有第三方tag资源正文/实际config/currentdatapack，无法列出具体Boss/投射物当下是否被排除；ModEntities只读tag声明。",
+    "基类ShotBase/FishingHook/native deltaMovement消费/AI覆盖/碰撞/同步未展开，速度写入不是最终位移或保护对抗成功。",
+    "没有玩家/owner/ally blanket保护结论；Mob而非Monster predicate，但具体类集合不穷举。",
+    "四全文是standing130/wall90/item23/modentry86；Config/ModBlocks/ModEntities只读列明范围，不冒称全模块。",
+    "旧广泛sweep输出截断排除，后续29语义判词字段完整恢复实际读；引用旧保存whole不表示重读旧源链。prescreen29(?)原文疑问以其exact count29和本记录为准，不覆盖历史。",
+    "全部13migration、29sweep、4同项目正式与3跨项目field正式判词为保存判断，不声称全508语义全排。补读旧callee不能自动提升旧0。",
+    "无native客户端画面/声音/TCP/多人验收，无graytext/拒控reason实现，不按背景/贴图/UV/模型/建筑素材进行制作。",
+    "未联网/Java/编译/旧worker或proof或任何onceexecutor重跑；未更改生产/共享Jar/专业资产/原档/实例/Main清单/外部提示词。",
+    "无121context/plan/grant/marker/proof，旧120及其他grant永久消费；不声称全部任务/时长完成，不删任务。"
+  ],
+  "Main_whole_review": false,
+  "append_plan_created": false,
+  "append_authorization": false,
+  "production_changes": 0,
+  "network_requests": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "hours_claimed": false
+}

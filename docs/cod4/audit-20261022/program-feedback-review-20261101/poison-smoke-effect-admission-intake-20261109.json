@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-09T12:51:18.261910+00:00",
+  "worker_thread_id": "01a16392-312e-72f2-a4dd-56e184f9cb02",
+  "source_thread_id": "01a16364-cac0-7ca2-a042-a5312781ca34",
+  "status": "original_program_issue_intake_deferred_until_applicable_research_gate_not_fix",
+  "issue_key": "cinnabar-deferred-duration-shortening-added-before-native-merge-result",
+  "source_receipt": {
+    "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-poison-smoke-effect-admission-boundary-20261109.json",
+    "sha256": "55c1e0fc95362edca59db8f60d034c982ca27276ff1be9693a1f6ac45c281cde"
+  },
+  "Main_findings_preserved": [
+    "Mapped Forge47.4.10 LivingEntity.addEffect first calls virtual canBeAffected; rejection returns false before Added. Default canBeAffected posts Applicable (result ALLOW/DENY overrides default), then undead poison/regeneration fallback. It is not a cancelable Added event.",
+    "Added is posted with incoming unmerged instance and old instance before first insertion or update(). Thus merely observing Added is not proof of a changed active effect. The mapped method has no client guard of its own; local/source callers determine side.",
+    "MobEffectInstance.update with same type/amplifier, shorter finite duration, same ambient/visible/icon leaves old duration unchanged and returns false. A different presentation flag can independently make update return true; that still does not establish duration replacement.",
+    "EffectPresentation.added only marks statusDirty for its eight custom effects. Its later tick/tracking paths check actual hasEffect before sending. This source review does not accuse it of directly sending successful visual state from Added. Vanilla poison is not in its eight-effect list.",
+    "QiConstitution DENY concerns YIN/YANG with matching full day/night set, not generic poison. Warm-wine Applicable handler concerns custom FROST, not poison. Template CLOCKWORK_DOG refuses poison/wither/internal injury before super, so those branches bypass the superclass Applicable bus. CORPSE/SKULL return UNDEAD and ordinarily use superclass fallback.",
+    "EquipmentBehaviors.effect queues a new incoming duration*3/4 instance on any nonbeneficial finite Added event when ServerPlayer wears >=2cinnabar and shortening flag is false. It does not compare old instance or final native update result.",
+    "On END ServerPlayer tick, queued shortening compares only same amplifier and current duration>desired; requests removeEffect then addEffect(desired), ignores both results, under shortening=true to avoid recursive enqueue. It does not bind queued work to the originally observed old/new effect object.",
+    "Consequently a rejected shorter same-amplifier refresh can enqueue a much shorter replacement of an existing long effect, although addEffect returned false. This is a bounded source-level counterexample, subject to intervening state and Forge removal/admission hooks, not observed runtime behavior.",
+    "Fourcinnabar or active antidote additionally requests poison removal on the local tick; therefore isolated shortening diagnostics should use exactly2cinnabar and a harmful non-poison effect such as weakness to avoid conflating that separate cleanse.",
+    "A poison-smoke quest acquisition receipt should remain tied to actual paid full-identity item, while cloud creation, Added, actual effect-map change and subsequent damage/cleanse are distinct facts. None of these source observations creates an acquisition advancement or awards a reward."
+  ],
+  "Main_static_counterexample_not_executed": {
+    "assumptions": [
+      "ServerPlayer wearing exactly2registered Dynasty cinnabar pieces",
+      "SHORTEN empty and shortening=false",
+      "existing weakness amp0 duration1000 and incoming weakness amp0 duration80",
+      "same ambient/visible/showIcon, no intervening change or event modification",
+      "normal default Applicable admission and uncanceled effect removal, successful replacement admission"
+    ],
+    "trace": [
+      "addEffect: Applicable admits; old weakness exists; posts Added before update",
+      "local effect listener queues new weakness amp0 duration max(1,80*3/4)=60",
+      "native update sees same amp and shorter duration, same flags; returnsfalse, keeps1000",
+      "at nextEND tick current duration remains>60 and sameamp; queue is consumed; code requests removal of old effect and addition of new60",
+      "under the explicitly stated hook assumptions old long duration is replaced with60 despite the earlier refresh returningfalse; no native execution is claimed"
+    ],
+    "intervention_limits": [
+      "removal may be canceled; admission can change",
+      "another same-amplifier effect may replace current beforeEND and still pass the weak queued guard",
+      "hidden-effect lifecycle and full event subscriber ordering not proven"
+    ]
+  },
+  "current_local_source_hash_bindings": [
+    {
+      "path": "src/main/java/com/dynasty/expansion/QiConstitution.java",
+      "receipt_sha256": "c5fb3ab621aaa7642ca842c84ad4a2dd4aa277547bb22efb107e0b3edf5843b9",
+      "current_sha256": "c5fb3ab621aaa7642ca842c84ad4a2dd4aa277547bb22efb107e0b3edf5843b9",
+      "matches_receipt": true
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/EffectPresentation.java",
+      "receipt_sha256": "fd168a51e026f46bd0db556be0c6e4650cd70a9b3aa17df121c6f6bde89cd629",
+      "current_sha256": "fd168a51e026f46bd0db556be0c6e4650cd70a9b3aa17df121c6f6bde89cd629",
+      "matches_receipt": true
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/EquipmentBehaviors.java",
+      "receipt_sha256": "feb3324f6c4cf1df914e869235e8fe3cc49e5914e31f1b188f96838984ef38f4",
+      "current_sha256": "feb3324f6c4cf1df914e869235e8fe3cc49e5914e31f1b188f96838984ef38f4",
+      "matches_receipt": true
+    },
+    {
+      "path": "src/main/java/com/dynasty/blueprint/TemplateMob.java",
+      "receipt_sha256": "05c621d3919ac77eccc1c0016a1db0b02b7d7aba987aec0b92c2a99977faeb0c",
+      "current_sha256": "05c621d3919ac77eccc1c0016a1db0b02b7d7aba987aec0b92c2a99977faeb0c",
+      "matches_receipt": true
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionSupplies.java",
+      "receipt_sha256": "ae9dd058dc75e723c87b62d5c38c37bc30eeb9c1f7efcfaf1682791c51ab0fce",
+      "current_sha256": "ae9dd058dc75e723c87b62d5c38c37bc30eeb9c1f7efcfaf1682791c51ab0fce",
+      "matches_receipt": true
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastySetBonus.java",
+      "receipt_sha256": "0796732f7bc03a8614fd61ba7e5113b9681668d83e8f348bb558872ae5b5071c",
+      "current_sha256": "0796732f7bc03a8614fd61ba7e5113b9681668d83e8f348bb558872ae5b5071c",
+      "matches_receipt": true
+    }
+  ],
+  "review_boundary": "Intake of Main fixed Forge47.4.10/native and local source receipt. This worker read its complete findings/counterexample and source locator metadata, not claim rerunning Main native source audit, no new external semantic credit. Native archive/excerpts and earlier cloud receipt remain immutable authoritative links in source receipt.",
+  "required_future_work": [
+    "After applicable1000 gate and originalprogram scope authorizes actual patch, decide accepted authoritative effect identity contract; Added alone and sameamplifier are insufficient.",
+    "Preserve existing longduration on rejected sameamp shorter refresh; do not weaken intervening sameamp or stronger effect, hiddeneffect chain or presentationflags.",
+    "Keep cancellation of removeEffect, changed later applicability and failed replacement observable; no silent mutation bypassing other mod hooks or false successful visual claim.",
+    "EffectPresentation only marksdirty then filters actualhasEffect; do not patch it as if it sent direct fakegreen from Added.",
+    "When runtime/native validation is separately permitted, isolate exactly2cinnabar and weakness to avoid independent4piece/antidote poisoncleanse; cases include sameamp shorter rejected refresh, actual firstinsert, actual merge, interim replacement, canceledremove and rejectedreadd. These are deferred acceptance scenarios, no tests created/run.",
+    "Main alone edits master lists/rewards/quest acquisition. This intake neither repairs nor deletes any task or credits any acquisition."
+  ],
+  "research_credit_added": 0,
+  "new_native_acceptance": 0,
+  "formal_count_at_intake": 494,
+  "remaining": 506,
+  "applicable_gate_satisfied": false,
+  "pending_external_research": "089 saved max1 pending Main; do not interrupt/repeat it or autoappend. Next distinct fixedsource study090 may proceed.",
+  "production_changes": 0,
+  "test_changes": 0,
+  "background_changes": 0,
+  "shared_jar_changes": 0,
+  "master_edits": 0,
+  "game_starts": 0,
+  "network_requests": 0,
+  "hours_claimed": 0
+}

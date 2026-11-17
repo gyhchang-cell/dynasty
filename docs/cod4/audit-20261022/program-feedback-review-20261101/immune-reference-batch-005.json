@@ -1,0 +1,212 @@
+{
+  "recorded_utc": "2026-11-01T06:42:45.645157+00:00",
+  "accepted_observed": 442,
+  "research_credit": 0,
+  "proposed_semantic_units": 0,
+  "repo": "SlimeKnights/TinkersConstruct",
+  "commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "cases": [
+    {
+      "id": "tconstruct-self-destruct-key-release-versus-effect-countdown-support",
+      "status": "AUXILIARY_ZERO_CREDIT",
+      "research_credit": 0,
+      "full_chain_observation": "實際SelfDestructive與self_destructing效果註冊；client START tick讀原生頭盔按鍵上升/下降沿，呼叫本地InteractionHandler，再用已註冊PLAY_TO_SERVER的TinkerControlPacket enum送server；handler取context.sender而不接受目標UUID，再讀其目前armor/tag/詞條。SelfDestructive只在player.isShiftKeyDown時嘗試30tick效果並播primed聲。效果最後duration==1才server爆炸及hurt99999；stopInteract或onUnequip移除該effect。",
+      "observations": [
+        "startArmorInteract在任何ARMOR標籤裝備均回true，不等於某詞條成功；首次回true詞條只記slot→modifierId/startTick。SelfDestructive沒有以addEffect實際結果決定回true或聲音。",
+        "服務端以玩家實際shift判斷，不只信任packet所攜SHIFT enum；但start路徑沒有broken/cooldown/重複啟動或持續按鍵server watchdog。",
+        "stopArmorInteract只在非旁觀者且目前該槽仍ARMOR時取出map entry；通知目前裝備全部詞條，非只activeModifier；預設新版hook轉呼叫舊版，因此SelfDestructive的舊stop覆寫實際會被呼叫。",
+        "onUnequip無同物品/同詞條豁免且無changedSlot限定，直接移除效果；與StrongBones保留同類裝備的政策不同，但這個分支不另計。",
+        "NoMilkEffect返回空curative list；show=true由TinkerEffect原生client extension提供inventory/gui可見旗標。這不是自訂成功回執，並未驗證圖示資產或實機呈現。",
+        "capability僅內存，invalidate保留原Holder；client wasHelmetInteracting是static欄位，所讀本地來源無logout清零。不能宣稱切世界、重連或掉線皆安全解除。",
+        "效果倒數有界不等於安全取消：若stop未生效，倒數的終點是爆炸。爆炸和自傷不是整體交易，未依hurt回傳證明自殺成功。"
+      ],
+      "dedup": [
+        {
+          "against": "simplyswords-native-timed-parry-stack-identity-and-charge-receipt",
+          "decision": "support only",
+          "reason": "使用態/停止清理已有完整案例；本例缺同stack/world驗證而依有限效果續行，作控制解除邊界對照，未證成另一免疫拒控單位。"
+        },
+        {
+          "against": "simplyswords-native-charge-absorb-counter-mode-qualified-refusal",
+          "decision": "support only",
+          "reason": "不要將蓄力輸入和結束效果不同即算新控制機制；此例不主張吸傷/拒控信用。"
+        }
+      ],
+      "limitations": [
+        "Mantle IThreadsafePacket/NetworkWrapper本地來源缺失，已核對本模組註冊方向及handleThreadsafe入口；不聲稱底層排程、封包順序、斷線清理或TCP通過。",
+        "未運行遊戲或Java；沒有跨維度/旁觀者切換復現。",
+        "共享裝備Watcher、enum變體、curative空列表、忽略bool均不另計；爆炸傷害類型標籤不擴展成新的免傷研究。"
+      ],
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/modifiers/traits/skull/SelfDestructiveModifier.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/modifiers/traits/skull/SelfDestructiveModifier.java",
+          "lines": [
+            1,
+            77
+          ],
+          "file_sha256": "63a89e021410d587e6956f13287d250a82e34ba1da2cf1378782151879b28abf",
+          "git_blob_sha1": "00d54360477288ab1b72abc45aaf4b3000a6045d",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modifiers/traits/skull/SelfDestructiveModifier.java#L1-L77"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/modifiers/effect/NoMilkEffect.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/modifiers/effect/NoMilkEffect.java",
+          "lines": [
+            1,
+            23
+          ],
+          "file_sha256": "4147a71101dc878c9294f26597c2afe5814277d0479c082d209c9c56831f3a78",
+          "git_blob_sha1": "41268a0abf1afff8272fc05c98b055be9c723f95",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modifiers/effect/NoMilkEffect.java#L1-L23"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/common/TinkerEffect.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/common/TinkerEffect.java",
+          "lines": [
+            15,
+            49
+          ],
+          "file_sha256": "9538c335f2ec50b56a727ced119c7707228406f1f89d108501f5bd2f99843239",
+          "git_blob_sha1": "bf63516c04bea197901e56d5c4545fd257998eae",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/common/TinkerEffect.java#L15-L49"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/InteractionHandler.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/logic/InteractionHandler.java",
+          "lines": [
+            277,
+            343
+          ],
+          "file_sha256": "10bfa6ecc102220a6d9119176b0caf259889dd99c2a2f071063c804792c1fa0b",
+          "git_blob_sha1": "a4facd01a02dd04421484900298bee41ecf8afe2",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/InteractionHandler.java#L277-L343"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/network/TinkerControlPacket.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/network/TinkerControlPacket.java",
+          "lines": [
+            1,
+            85
+          ],
+          "file_sha256": "ad4cadb750dc85cb23fcd8c3a3a257bd2eeaa761f2eb37f99148acf472ac58bd",
+          "git_blob_sha1": "4ed5927b307fe664320317c423e3027c33d3b017",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/network/TinkerControlPacket.java#L1-L85"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/hook/interaction/KeybindInteractModifierHook.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/modifiers/hook/interaction/KeybindInteractModifierHook.java",
+          "lines": [
+            1,
+            79
+          ],
+          "file_sha256": "48e2edde80135b049ab9ddef003dcbbe54ecee3c8e8cac51154869732de694d2",
+          "git_blob_sha1": "6247b45c4b66f4322c4f19a74821227ed784991d",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/interaction/KeybindInteractModifierHook.java#L1-L79"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java",
+          "lines": [
+            96,
+            103
+          ],
+          "file_sha256": "5a96f4437c0f79f56cdc7b137d8c0ba4b4a123afa3126a78115ecfc3ee6dfcca",
+          "git_blob_sha1": "83550146e59d89c95e3ecb18000b2afb102e7a45",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java#L96-L103"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java",
+          "lines": [
+            158,
+            169
+          ],
+          "file_sha256": "5a96f4437c0f79f56cdc7b137d8c0ba4b4a123afa3126a78115ecfc3ee6dfcca",
+          "git_blob_sha1": "83550146e59d89c95e3ecb18000b2afb102e7a45",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java#L158-L169"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java",
+          "lines": [
+            294,
+            351
+          ],
+          "file_sha256": "5a96f4437c0f79f56cdc7b137d8c0ba4b4a123afa3126a78115ecfc3ee6dfcca",
+          "git_blob_sha1": "83550146e59d89c95e3ecb18000b2afb102e7a45",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/ToolClientEvents.java#L294-L351"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java",
+          "lines": [
+            49,
+            122
+          ],
+          "file_sha256": "451d49625eaec0b501e445adafc9be80924550303cc52a625eed4fb8ce8f2ada",
+          "git_blob_sha1": "4853967e759e982487fc96bb48da6e26cd821c63",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/common/network/TinkerNetwork.java#L49-L122"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/shared/TinkerEffects.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/shared/TinkerEffects.java",
+          "lines": [
+            39,
+            59
+          ],
+          "file_sha256": "c155938a2f49fcee34a0409257eb31c925e0e43555606eb2b61645ee1472d02b",
+          "git_blob_sha1": "e89b91f08000c23915a36545a96bf82d293d7ee4",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/shared/TinkerEffects.java#L39-L59"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "lines": [
+            420,
+            423
+          ],
+          "file_sha256": "d26e071f4dca3a9e9bbf8c928d0f9e472653ff062d061307bab0a7d956b099e9",
+          "git_blob_sha1": "1192eff86994f97a027d03990e134e985c5a19b3",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java#L420-L423"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "lines": [
+            1103,
+            1112
+          ],
+          "file_sha256": "d26e071f4dca3a9e9bbf8c928d0f9e472653ff062d061307bab0a7d956b099e9",
+          "git_blob_sha1": "1192eff86994f97a027d03990e134e985c5a19b3",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java#L1103-L1112"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/tools/capability/TinkerDataCapability.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/tools/capability/TinkerDataCapability.java",
+          "lines": [
+            1,
+            208
+          ],
+          "file_sha256": "00c4a44580bc73d583c4b95899828bebc703d75f030edd23cfc56eb38b1e1868",
+          "git_blob_sha1": "a8ee91349635effe1749e0b14ff91b7ee5c48398",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/capability/TinkerDataCapability.java#L1-L208"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/EquipmentChangeWatcher.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/logic/EquipmentChangeWatcher.java",
+          "lines": [
+            1,
+            173
+          ],
+          "file_sha256": "a3131dd8e6b86c404c97e6f552de1b2b77e62cd2d9c041552c144a1684569001",
+          "git_blob_sha1": "e7cb575d94ba5637f0d011c8cf501059ee558565",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/EquipmentChangeWatcher.java#L1-L173"
+        }
+      ]
+    }
+  ],
+  "production_changes": false,
+  "master_ledger_writes": false,
+  "game_java_launches": 0
+}

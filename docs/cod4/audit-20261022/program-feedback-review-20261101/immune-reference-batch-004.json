@@ -1,0 +1,222 @@
+{
+  "recorded_utc": "2026-11-01T06:38:36.611609+00:00",
+  "scope": "固定本地來源；純程序的狀態資格、解除和結果邊界。候選不自行入帳。",
+  "accepted_observed": 442,
+  "target": 1000,
+  "research_credit": 0,
+  "proposed_semantic_units": 1,
+  "repo": "SlimeKnights/TinkersConstruct",
+  "commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "cases": [
+    {
+      "id": "tconstruct-native-milk-resistance-item-type-curative-key-and-equipment-replacement-release",
+      "status": "PROPOSED_PENDING_INDEPENDENT_SCOPE_AND_SEMANTIC_REVIEW",
+      "research_credit": 0,
+      "proposed_semantic_units": 1,
+      "full_chain_observation": "實際註冊StrongBones建構子→Forge Finish事件只接受MILK_BUCKET→讀取HEAD MODIFIABLE物品NBT詞條等級→建立600+600*level tick、預設amp0的Resistance→將可治療物品清空並改為頭盔item type→實際addEffect；同詞條註冊CureOnRemovalModule.HELMET，原生裝備事件由Watcher分派onUnequip→替換非modifiable、失去詞條或不同item時以舊物品類型curePotionEffects。",
+      "concrete_observation": [
+        "同物品類型且仍有詞條的替換不解除；比較的是Item identity，不是stack UUID、NBT或特定施法來源。治療key可匹配其他效果，不是只remove Resistance。",
+        "主技能讀原始modifier NBT等級；Watcher對original的onUnequip路徑只檢查合法裝備槽，不檢查broken。不能把其他module的未broken條件套進本鏈。",
+        "主入口沒有顯式server-only判斷；Watcher在Forge裝備事件雙端分派，另以client END tick比較ItemStack.matches副本。沒有5tick或10tick節流，源碼註釋與實作不同。",
+        "Resistance是傷害減免，不是全免疫或Boss免控。副支CALCIFIABLE提供額外Calcified，流體SIMULATE/EXECUTE封裝不另計數。",
+        "同一效果自然到期及更換裝備解除共用原版效果系統；此鏈無專用網路成功回執、世界灰字或自訂清理管理器。"
+      ],
+      "dedup": [
+        {
+          "against": "tconstruct-native-equipped-effect-immunity-multiset-threshold",
+          "decision": "proposed distinct",
+          "reason": "舊項聚合裝備等級並在Applicable否決新狀態，不清理既有狀態；本項是實際奶觸發的有限效果、item-type cure key與替換時選擇解除政策。共享Watcher/enum不計。"
+        },
+        {
+          "against": "ars-dispel-pre-deny-allow-and-post-order",
+          "decision": "proposed distinct",
+          "reason": "Dispel是主動清除帶前後事件與效果allow/deny；此處由原裝備與替換資格決定持續效果是否解除，不是換一個清除對象。"
+        },
+        {
+          "against": "artifacts-native-antidote-finite-status-cap-with-shared-item-cooldown",
+          "decision": "proposed distinct",
+          "reason": "Antidote限制負面剩餘時長並共享物品冷卻；此處以裝備類型維持/解除有益效果，不依負面tag或反覆tick截短。"
+        }
+      ],
+      "application": "程序P08/P10/P11可借鑑：保留/解除要對應真正狀態資格，換同類物品是否續存必須明定；效果申請、音效和實際接納不可混為一談。相關性及能否計入免疫研究仍待主協調審核。",
+      "limitations": [
+        "未讀Forge/Minecraft本體的curePotionEffects與addEffect底層，故只證明實際呼叫及選擇政策，不聲稱取消事件下必能清除或網路同步已驗。",
+        "未啟動Java、遊戲或伺服器；無實機、視覺品質、TCP、跨維度、斷線、死亡清理保證。",
+        "實際詞條已註冊，未把未取得的generated material JSON說成正常遊戲合成可達證明。",
+        "不以四種裝備enum、兩個奶入口、共享Watcher或忽略bool另增研究信用。"
+      ],
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/TConstruct.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/TConstruct.java",
+          "lines": [
+            107,
+            140
+          ],
+          "file_sha256": "2e18e427ec40a852470e2f0038d7aaa5bb189ace5dd2c0058b18c1c0ec607b42",
+          "git_blob_sha1": "fdafb468ad88d9f31b512a80621b673919732fb8",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/TConstruct.java#L107-L140"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "lines": [
+            352,
+            366
+          ],
+          "file_sha256": "d26e071f4dca3a9e9bbf8c928d0f9e472653ff062d061307bab0a7d956b099e9",
+          "git_blob_sha1": "1192eff86994f97a027d03990e134e985c5a19b3",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java#L352-L366"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java",
+          "lines": [
+            416,
+            425
+          ],
+          "file_sha256": "d26e071f4dca3a9e9bbf8c928d0f9e472653ff062d061307bab0a7d956b099e9",
+          "git_blob_sha1": "1192eff86994f97a027d03990e134e985c5a19b3",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerModifiers.java#L416-L425"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/modifiers/traits/skull/StrongBonesModifier.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/modifiers/traits/skull/StrongBonesModifier.java",
+          "lines": [
+            1,
+            88
+          ],
+          "file_sha256": "6b26e04f45f6120393e551d221fe91799953f802a33ab9e5cf81a524aefaddfa",
+          "git_blob_sha1": "887e1d00f99ecaf73d897d0dc21e76c9bf792494",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modifiers/traits/skull/StrongBonesModifier.java#L1-L88"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/modules/technical/CureOnRemovalModule.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/modifiers/modules/technical/CureOnRemovalModule.java",
+          "lines": [
+            1,
+            43
+          ],
+          "file_sha256": "c95b565a5c88508ec19c10878e76694cb5b8a3ae2c6960f62cece7707da03582",
+          "git_blob_sha1": "ed9e77ff00e7551ab8bfe445f1581bda1ac5ff9f",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/technical/CureOnRemovalModule.java#L1-L43"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/EquipmentChangeWatcher.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/logic/EquipmentChangeWatcher.java",
+          "lines": [
+            1,
+            173
+          ],
+          "file_sha256": "a3131dd8e6b86c404c97e6f552de1b2b77e62cd2d9c041552c144a1684569001",
+          "git_blob_sha1": "e7cb575d94ba5637f0d011c8cf501059ee558565",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/EquipmentChangeWatcher.java#L1-L173"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/TinkerTools.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/TinkerTools.java",
+          "lines": [
+            289,
+            300
+          ],
+          "file_sha256": "39202ffdcbf61abd981243adf78be88a50aa089c6bd697f1708c6e579b2d8419",
+          "git_blob_sha1": "7a19092fb28738a99018419dd1d573a49ad1143c",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerTools.java#L289-L300"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/tools/context/EquipmentChangeContext.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/tools/context/EquipmentChangeContext.java",
+          "lines": [
+            1,
+            45
+          ],
+          "file_sha256": "787a453355b682137cb455c0916b08b05e38379dfe959ceb834c5ff3324e29c5",
+          "git_blob_sha1": "541ad9310d1ad421fb86031de7a5f183a6f81dfe",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/context/EquipmentChangeContext.java#L1-L45"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/tools/context/EquipmentContext.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/tools/context/EquipmentContext.java",
+          "lines": [
+            38,
+            59
+          ],
+          "file_sha256": "0a42f0362a3a2a0a02da2cbe593e7d8615fc84f4e878904e7a7f8bad5ff24b4b",
+          "git_blob_sha1": "747f1e14de068f452a55ba9da9cb2954168bb880",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/context/EquipmentContext.java#L38-L59"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/tools/helper/ModifierUtil.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/tools/helper/ModifierUtil.java",
+          "lines": [
+            108,
+            151
+          ],
+          "file_sha256": "4284b5c95f2c2e3d5844ab8756061a0644a100a7cbbd840212e1633cc859dac5",
+          "git_blob_sha1": "2e486383c89a6316da2bb813bd77b3307fdaf021",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/helper/ModifierUtil.java#L108-L151"
+        }
+      ]
+    },
+    {
+      "id": "tconstruct-teleport-dodge-support-only-existing-success-gate",
+      "status": "AUXILIARY_ZERO_CREDIT",
+      "research_credit": 0,
+      "proposed_semantic_units": 0,
+      "full_chain_observation": "MODIFY_HURT模組要求無Enderference及defender/source predicate和機率；服務端TeleportHelper最多16次實際randomTeleport成功才回true，成功後申請Enderference冷卻、按原傷害整數扣耐久並回0；失敗維持amount。",
+      "dedup": [
+        {
+          "against": "goety-voidrobe-actual-teleport-success-gates-dodge",
+          "decision": "merge/support only",
+          "reason": "實際傳送成功才免此次傷害的核心已計；後續扣耐久與冷卻不足以另計一個案例。"
+        },
+        {
+          "against": "tconstruct-native-ender-fluid-partial-sequence-consumption-survives-final-teleport-denial",
+          "decision": "shared helper zero",
+          "reason": "stopRiding/GameEvent先於可取消teleport、僅實際成功後聲音的helper已讀已計相關完整鏈，不能重算。"
+        }
+      ],
+      "limitations": [
+        "helper在client直接true，本module沒有統一server-only門。",
+        "condition欄位有序列化，modifyDamageTaken本體未呼叫condition.matches，不能聲稱這裡執行了該條件。",
+        "缺本地同pin generated enderdodging定義，不另抓取；deprecated EnderdodgingModifier不是當前dynamic詞條的實作證明。"
+      ],
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/modules/armor/TeleportDodgeModule.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/modules/armor/TeleportDodgeModule.java",
+          "lines": [
+            1,
+            101
+          ],
+          "file_sha256": "2141d0d6a278d15ba986b5738def43c178ffbc44e08de2317212a2cafe4ad862",
+          "git_blob_sha1": "8b51fc91234adb198aa48a7971ff1b5fd17d3241",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modules/armor/TeleportDodgeModule.java#L1-L101"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/utils/TeleportHelper.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/utils/TeleportHelper.java",
+          "lines": [
+            1,
+            105
+          ],
+          "file_sha256": "3697f919de0d6ed7b3eb925943b06ebc23495a1b2d573ad301e788b9c828c350",
+          "git_blob_sha1": "6ebdb96e193bce826833a32b0772a96908c3d59f",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/utils/TeleportHelper.java#L1-L105"
+        }
+      ]
+    }
+  ],
+  "ledger_errata_proposal": {
+    "id": "tconstruct-native-equipped-effect-immunity-multiset-threshold",
+    "field": "full_chain_observation",
+    "old_claim": "client每5tick比較副本",
+    "correction": "固定pin的EquipmentChangeWatcher 83–88每client END tick呼叫update；146–158未實作模5/模10節流。註釋不是執行條件。",
+    "count_change": 0,
+    "master_edited": false
+  },
+  "production_changes": false,
+  "master_ledger_writes": false,
+  "game_java_launches": 0,
+  "integrity_note": "全部引用範圍、SHA256及Git blob SHA1已與固定本地source.json比對；未重新聯網核對Git tree。哈希檢查不等同語義驗收。"
+}

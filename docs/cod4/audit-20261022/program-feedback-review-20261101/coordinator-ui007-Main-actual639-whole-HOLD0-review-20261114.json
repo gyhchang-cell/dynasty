@@ -1,0 +1,600 @@
+{
+  "schema": "Main-UI007-actual639-whole-HOLD0-v1",
+  "recorded_at": "2026-11-14T06:22:29.633109+00:00",
+  "decision": "HOLD0_UPSTREAM_IDENTITY_AND_TARGET_APPLICABILITY_UNCLOSED",
+  "source_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch007-aether-title-button-replacement-callback-alpha-layout-whole-HOLD0-20261114.json",
+    "sha256": "8ed13c1075b930f5a15bf7f0c654738f5f86065d4bf74360a744e4380a4ffc73",
+    "bytes": 61728
+  },
+  "complete_candidate_preserved": {
+    "semantic_dedup_key": "The-Aether-Team/The-Aether::main-title-intercept-original-callback-narration-alpha-compatible-layout-family",
+    "repo": "The-Aether-Team/The-Aether",
+    "revision_from_cached_metadata": "e07d30e16fbd0f09cc067b39594035e395dcf996",
+    "manifest": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/source.json",
+      "sha256": "8b61de358461ee816bbea6400f9ac5ef1b86c934e9b0134439276c5fc0020690",
+      "bytes": 243
+    },
+    "manifest_content": {
+      "repo": "The-Aether-Team/The-Aether",
+      "sha": "e07d30e16fbd0f09cc067b39594035e395dcf996",
+      "java_files": 133,
+      "candidate_files": 139,
+      "fetch_mode": "Pinned recursive tree plus candidate raw Java only; no textures/models downloaded"
+    },
+    "formal_id": null,
+    "research_credit": 0,
+    "max_proposed_whole": 1,
+    "Main_review": "NOT_YET_READ",
+    "actual_source_members": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java",
+        "sha256": "c0fd8c0bead059f5be4a10ca2734c71d9020b3bf75c40b04b6940c324a88bd07",
+        "bytes": 9717,
+        "repo_path": "src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java",
+        "whole_file_actual_read": true,
+        "total_lines": 197,
+        "ranges": [
+          [
+            1,
+            197
+          ]
+        ],
+        "selected_unique_lines": 197,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 197,
+            "text": "package com.aetherteam.aether.client.gui.screen.menu;\n\nimport com.aetherteam.aether.AetherConfig;\nimport com.aetherteam.aether.client.AetherSoundEvents;\nimport com.aetherteam.aether.client.gui.component.menu.AetherMenuButton;\nimport com.aetherteam.aether.client.gui.screen.menu.logo.AetherLogoRenderer;\nimport com.aetherteam.aether.client.gui.screen.menu.splash.AetherSplashRenderer;\nimport com.aetherteam.aether.mixin.mixins.client.accessor.TitleScreenAccessor;\nimport com.aetherteam.cumulus.CumulusConfig;\nimport com.aetherteam.cumulus.client.gui.screen.DynamicMenuButton;\nimport com.aetherteam.cumulus.mixin.mixins.client.accessor.SplashRendererAccessor;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.AbstractWidget;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.Renderable;\nimport net.minecraft.client.gui.components.Tooltip;\nimport net.minecraft.client.gui.components.events.GuiEventListener;\nimport net.minecraft.client.gui.narration.NarratableEntry;\nimport net.minecraft.client.gui.screens.ConnectScreen;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.client.multiplayer.ServerData;\nimport net.minecraft.client.multiplayer.resolver.ServerAddress;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.sounds.Music;\nimport net.neoforged.neoforge.internal.BrandingControl;\n\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.function.BiConsumer;\nimport java.util.function.Predicate;\nimport java.util.stream.Collectors;\n\npublic class AetherTitleScreen extends TitleScreen implements TitleScreenBehavior, CustomBranding {\n    public static final Music MENU = new Music(AetherSoundEvents.MUSIC_MENU, 20, 600, true);\n    private final boolean alignedLeft;\n    private Map<Component, AbstractWidget> widgetsByName = new HashMap<>();\n\n    public int buttonRows = 0;\n    public int lastY = 0;\n\n    public AetherTitleScreen() {\n        this(false);\n    }\n\n    public AetherTitleScreen(boolean alignedLeft) {\n        super();\n        this.alignedLeft = alignedLeft;\n        TitleScreenAccessor accessor = ((TitleScreenAccessor) this);\n        accessor.aether$setFading(true);\n        accessor.aether$setLogoRenderer(new AetherLogoRenderer(false, this.alignedLeft));\n    }\n\n    @Override\n    protected void init() {\n        TitleScreenAccessor accessor = (TitleScreenAccessor) this;\n        this.buttonRows = 0;\n        this.lastY = 0;\n        super.init();\n        if (this.minecraft != null) {\n            accessor.aether$setSplash(new AetherSplashRenderer(this.alignedLeft, ((SplashRendererAccessor) ((TitleScreenAccessor) this).aether$getSplash()).cumulus$getSplash()));\n        }\n        this.setupButtons();\n        this.widgetsByName = this.children().stream().filter(e -> e instanceof AbstractWidget).map(e -> (AbstractWidget) e)\n            .collect(Collectors.toMap(AbstractWidget::getMessage, e -> e));\n    }\n\n    public void setupButtons() {\n        if (AetherConfig.CLIENT.enable_server_button.get()) {\n            Component component = ((TitleScreenAccessor) this).callGetMultiplayerDisabledReason();\n            boolean flag = component == null;\n            Tooltip tooltip = component != null ? Tooltip.create(component) : null;\n            Button serverButton = this.addRenderableWidget(Button.builder(Component.translatable(\"gui.aether.menu.server\"), (button) -> {\n                ServerData serverData = new ServerData(\"OATS\", \"oats.aether-mod.net\", ServerData.Type.OTHER);\n                ConnectScreen.startConnecting(this, this.minecraft, ServerAddress.parseString(serverData.ip), serverData, false, null);\n            }).bounds(this.width / 2 - 100, (this.height / 4 + 48) + 24 * 3, 200, 20).tooltip(tooltip).build());\n            serverButton.active = flag;\n            Predicate<AbstractWidget> predicate = (abstractWidget) -> (abstractWidget.getMessage().equals(Component.translatable(\"menu.multiplayer\")) || abstractWidget.getMessage().equals(Component.translatable(\"menu.online\")));\n            this.children().removeIf(button -> button instanceof AbstractWidget abstractWidget && predicate.test(abstractWidget));\n            this.renderables.removeIf(button -> button instanceof AbstractWidget abstractWidget && predicate.test(abstractWidget));\n        }\n        for (Renderable renderable : this.renderables) {\n            if (renderable instanceof AbstractWidget abstractWidget) {\n                Component buttonText = abstractWidget.getMessage();\n                if (TitleScreenBehavior.isImageButton(buttonText)) {\n                    abstractWidget.visible = false; // The visibility handling is necessary here to avoid a bug where the buttons will render in the center of the screen before they have a specified offset.\n                }\n            }\n        }\n    }\n\n    @Override\n    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {\n        super.render(guiGraphics, mouseX, mouseY, partialTicks);\n        int xOffset = CumulusConfig.CLIENT.enable_menu_api.get() && CumulusConfig.CLIENT.enable_menu_list_button.get() ? -62 : 0;\n        for (GuiEventListener child : this.children()) {\n            if (child instanceof AetherMenuButton aetherButton) { // Smoothly shifts the Aether-styled buttons to the right slightly when hovered over.\n                if (aetherButton.isMouseOver(mouseX, mouseY)) {\n                    if (aetherButton.hoverOffset < 15) {\n                        aetherButton.hoverOffset += 2;\n                    }\n                } else {\n                    if (aetherButton.hoverOffset > 0) {\n                        aetherButton.hoverOffset -= 2;\n                    }\n                }\n            }\n            if (child instanceof DynamicMenuButton dynamicMenuButton) {  // Increases the x-offset to the left for image buttons if there are menu buttons on the screen.\n                if (dynamicMenuButton.enabled) {\n                    xOffset -= 24;\n                }\n            }\n        }\n        TitleScreenBehavior.super.handleImageButtons(this, xOffset);\n        if (this.alignedLeft) {\n            TitleScreenBehavior.super.handleEssentialButtonsForLeftMenu(this);\n        }\n    }\n\n    @Override\n    public boolean forEachLineBranding(boolean includeMC, boolean reverse, BiConsumer<Integer, String> lineConsumer, GuiGraphics guiGraphics, int i) {\n        if (this.alignedLeft) {\n            BrandingControl.forEachLine(true, true, (brandingLine, branding) ->\n                guiGraphics.drawString(font, branding, this.width - font.width(branding) - 1, this.height - (10 + (brandingLine + 1) * (font.lineHeight + 1)), 16777215 | i)\n            );\n            return true;\n        } else {\n            return false;\n        }\n    }\n\n    @Override\n    public boolean forEachAboveCopyrightLineBranding(BiConsumer<Integer, String> lineConsumer, GuiGraphics guiGraphics, int i) {\n        if (this.alignedLeft) {\n            BrandingControl.forEachAboveCopyrightLine((brandingLine, branding) ->\n                guiGraphics.drawString(font, branding, 1, this.height - (brandingLine + 1) * (font.lineHeight + 1), 16777215 | i)\n            );\n            return true;\n        } else {\n            return false;\n        }\n    }\n\n    /**\n     * Changes main menu buttons into Aether-styled main menu buttons.<br><br>\n     * Warning for \"unchecked\" is suppressed because the buttons should always be able to be cast.\n     *\n     * @param renderable A renderable widget.\n     * @return A new renderable widget.\n     */\n    @Override\n    @SuppressWarnings(\"unchecked\")\n    protected <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T renderable) {\n        if (renderable instanceof Button button) {\n            if (TitleScreenBehavior.isMainButton(button.getMessage())) {\n                AetherMenuButton aetherButton = new AetherMenuButton(this, button);\n                Component buttonText = aetherButton.getMessage();\n\n                // Sets button values that determine their positioning on the screen.\n                if (this.isAlignedLeft()) {\n                    this.buttonRows++;\n                } else {\n                    if (this.lastY < aetherButton.originalY) {\n                        this.lastY = aetherButton.originalY;\n                        this.buttonRows++;\n                    }\n                }\n                if (buttonText.equals(Component.translatable(\"gui.aether.menu.server\"))) {\n                    aetherButton.serverButton = true;\n                    aetherButton.buttonCountOffset = 2;\n                } else {\n                    aetherButton.buttonCountOffset = this.buttonRows;\n                }\n                if (AetherConfig.CLIENT.enable_server_button.get() && buttonText.equals(Component.translatable(\"menu.singleplayer\"))) {\n                    this.buttonRows++;\n                }\n                if (this.isAlignedLeft()) { // Changes button positioning dependent on whether the parent title screen is aligned left or not.\n                    aetherButton.setX(16);\n                    aetherButton.setY(50 + aetherButton.buttonCountOffset * 25);\n                    aetherButton.setWidth(200);\n                } else {\n                    aetherButton.setY(this.height / 4 + 31 + 25 * (aetherButton.buttonCountOffset - 1));\n                }\n                return (T) super.addRenderableWidget(aetherButton);\n            }\n        }\n        return super.addRenderableWidget(renderable);\n    }\n\n    public boolean isAlignedLeft() {\n        return this.alignedLeft;\n    }\n\n    @Override\n    public Map<Component, AbstractWidget> getWidgetsByName() {\n        return this.widgetsByName;\n    }\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java",
+        "sha256": "1354653a45c880267502cf72ab8cfe2ebb44d9f188293ffc8115dcc7560a4a6e",
+        "bytes": 6259,
+        "repo_path": "src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java",
+        "whole_file_actual_read": true,
+        "total_lines": 115,
+        "ranges": [
+          [
+            1,
+            115
+          ]
+        ],
+        "selected_unique_lines": 115,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 115,
+            "text": "package com.aetherteam.aether.client.gui.screen.menu;\n\nimport com.aetherteam.aether.mixin.mixins.client.accessor.AbstractWidgetAccessor;\nimport net.minecraft.client.gui.components.AbstractWidget;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.events.GuiEventListener;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.network.chat.Component;\n\nimport java.util.HashMap;\nimport java.util.Map;\n\npublic interface TitleScreenBehavior {\n    /**\n     * Handles whether image buttons should be visible and handles their positioning offset in the top right corner of the screen.\n     * The visibility handling is necessary here to avoid a bug where the buttons will render in the center of the screen before they have a specified offset.\n     *\n     * @param titleScreen The parent {@link TitleScreen}.\n     * @param xOffset     The {@link Integer} x-offset for the buttons.\n     */\n    default void handleImageButtons(TitleScreen titleScreen, int xOffset) {\n        for (GuiEventListener renderable : titleScreen.children()) {\n            if (renderable instanceof Button button) {\n                Component buttonText = button.getMessage();\n                if (buttonText.equals(Component.translatable(\"options.accessibility\"))) {\n                    button.setX(titleScreen.width - 48 + xOffset);\n                    button.setY(4);\n                } else if (buttonText.equals(Component.translatable(\"options.language\"))) {\n                    button.setX(titleScreen.width - 24 + xOffset);\n                    button.setY(4);\n                } else if (buttonText.equals(Component.literal(\"<essential_partner_integration_button>\"))) {\n                    button.setX(titleScreen.width - 72 + xOffset);\n                    button.setY(4);\n                }\n                if (TitleScreenBehavior.isImageButton(buttonText) && ((AbstractWidgetAccessor) button).aether$getAlpha() > 0.01) { // Alpha check fixes button offset bug when menu first opens.\n                    button.visible = true;\n                }\n            }\n        }\n    }\n\n    /**\n     * Handles the positioning offset of widgets belonging to Essential.\n     *\n     * @param titleScreen The parent {@link TitleScreen}.\n     */\n    default void handleEssentialButtonsForLeftMenu(TitleScreen titleScreen) {\n        for (GuiEventListener child : titleScreen.children()) {\n            if (child instanceof AbstractWidget widget) {\n                Component message = widget.getMessage();\n                if (message.getString().contains(\"<essential_\")) {\n                    AbstractWidget languageButton = this.getWidgetsByName().get(Component.translatable(\"options.language\"));\n                    if (languageButton != null) {\n                        widget.visible = ((AbstractWidgetAccessor) languageButton).aether$getAlpha() > 0.01; // Alpha check fixes button offset bug when menu first opens.\n                    }\n                    if (message.equals(Component.literal(\"<essential_player>\"))) {\n                        AbstractWidget wardrobeButton = this.getWidgetsByName().get(Component.literal(\"<essential_wardrobe_2>\"));\n                        if (wardrobeButton != null) {\n                            widget.setX(wardrobeButton.getX() - (widget.getWidth() / 2) + 10);\n                        }\n                    } else if (message.equals(Component.literal(\"<essential_wardrobe_2>\"))) {\n                        AbstractWidget accountButton = this.getWidgetsByName().get(Component.literal(\"<essential_account>\"));\n                        if (accountButton != null) {\n                            widget.setX(accountButton.getX() - widget.getWidth() - 55);\n                        }\n                    } else if (message.equals(Component.literal(\"<essential_reserved_0>\"))\n                        || message.equals(Component.literal(\"<essential_invite_host>\"))\n                        || message.equals(Component.literal(\"<essential_world_host>\"))\n                        || message.equals(Component.literal(\"<essential_social>\"))\n                        || message.equals(Component.literal(\"<essential_pictures>\"))\n                        || message.equals(Component.literal(\"<essential_settings>\"))\n                        || message.equals(Component.literal(\"<essential_account>\"))\n                        || message.equals(Component.literal(\"<essential_reserved_10>\"))\n                        || message.equals(Component.literal(\"<essential_beta>\"))\n                        || message.equals(Component.literal(\"<essential_update>\"))\n                        || message.equals(Component.literal(\"<essential_message>\"))\n                        || message.equals(Component.literal(\"<essential_wardrobe>\"))) {\n                        widget.setX(titleScreen.width - widget.getWidth() - 4);\n                    }\n                }\n            }\n        }\n    }\n\n    /**\n     * Checks whether a button is one of the title screen image buttons.\n     *\n     * @param buttonText The button text {@link Component}.\n     * @return The {@link Boolean} result.\n     */\n    static boolean isImageButton(Component buttonText) {\n        return buttonText.equals(Component.translatable(\"options.accessibility\"))\n                || buttonText.equals(Component.translatable(\"options.language\"));\n    }\n\n    /**\n     * Checks whether a button belongs to the main set of title screen buttons.\n     *\n     * @param buttonText The button text {@link Component}.\n     * @return The {@link Boolean} result.\n     */\n    static boolean isMainButton(Component buttonText) {\n        return buttonText.equals(Component.translatable(\"menu.singleplayer\"))\n                || buttonText.equals(Component.translatable(\"menu.multiplayer\"))\n                || buttonText.equals(Component.translatable(\"gui.aether.menu.server\"))\n                || buttonText.equals(Component.translatable(\"menu.online\"))\n                || buttonText.equals(Component.translatable(\"fml.menu.mods\"))\n                || buttonText.equals(Component.translatable(\"menu.options\"))\n                || buttonText.equals(Component.translatable(\"menu.quit\"));\n    }\n\n    default Map<Component, AbstractWidget> getWidgetsByName() {\n        return new HashMap<>();\n    }\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java",
+        "sha256": "2feb0dad7637b2f395dc8b1c16df5d9192cee555ee20174a3d1d1f42e1a879ad",
+        "bytes": 3582,
+        "repo_path": "src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java",
+        "whole_file_actual_read": true,
+        "total_lines": 73,
+        "ranges": [
+          [
+            1,
+            73
+          ]
+        ],
+        "selected_unique_lines": 73,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 73,
+            "text": "package com.aetherteam.aether.client.gui.component.menu;\n\nimport com.aetherteam.aether.Aether;\nimport com.aetherteam.aether.client.gui.screen.menu.AetherTitleScreen;\nimport com.aetherteam.aether.mixin.mixins.client.accessor.ButtonAccessor;\nimport com.mojang.blaze3d.systems.RenderSystem;\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.gui.Font;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.WidgetSprites;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.Mth;\n\npublic class AetherMenuButton extends Button {\n    private static final WidgetSprites AETHER_WIDGETS = new WidgetSprites(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"title/button\"), ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"title/button_highlighted\"));\n    private static final WidgetSprites AETHER_WIDGETS_SMALL = new WidgetSprites(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"title/button\"), ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"title/button_highlighted_small\"));\n    public final int originalX;\n    public final int originalY;\n    public int hoverOffset;\n    public int buttonCountOffset;\n    public boolean serverButton;\n\n    public AetherMenuButton(AetherTitleScreen screen, Builder builder) {\n        super(builder);\n        this.originalX = this.getX();\n        this.originalY = this.getY();\n        this.hoverOffset = 0;\n    }\n\n    public AetherMenuButton(AetherTitleScreen screen, Button oldButton) {\n        this(screen, new Builder(oldButton.getMessage(), (button) -> oldButton.onPress()).bounds(oldButton.getX(), oldButton.getY(), oldButton.getWidth(), oldButton.getHeight()).createNarration((button) -> ((ButtonAccessor) oldButton).callCreateNarrationMessage()));\n        oldButton.visible = false;\n        oldButton.active = false;\n    }\n\n    @Override\n    public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {\n        PoseStack poseStack = guiGraphics.pose();\n        Minecraft minecraft = Minecraft.getInstance();\n        Font font = minecraft.font;\n\n        ResourceLocation location = this.getWidth() < 100 ? AETHER_WIDGETS_SMALL.get(this.isActive(), this.isHoveredOrFocused()) : AETHER_WIDGETS.get(this.isActive(), this.isHoveredOrFocused());\n\n        RenderSystem.enableBlend();\n        guiGraphics.setColor(1.0F, 1.0F, 1.0F, this.alpha);\n        guiGraphics.blitSprite(location, 200, 20, 0, 0, this.getX() + this.hoverOffset, this.getY(), 200, 20);\n        RenderSystem.disableBlend();\n\n        poseStack.pushPose();\n        float textX = this.getX() + 35 + this.hoverOffset;\n        float textY = this.getY() + (this.height - 8) / 2.0F;\n        poseStack.translate(textX, textY, 0.0F);\n        guiGraphics.drawString(font, this.getMessage(), 0, 0, this.getTextColor(mouseX, mouseY) | Mth.ceil(this.alpha * 255.0F) << 24);\n        poseStack.popPose();\n    }\n\n    /**\n     * Determines the color for the button text depending on if its hovered over.\n     *\n     * @param mouseX The {@link Integer} for the mouse's x-position.\n     * @param mouseY The {@link Integer} for the mouse's y-position.\n     * @return The decimal {@link Integer} for the color.\n     */\n    public int getTextColor(int mouseX, int mouseY) {\n        if (!this.serverButton) {\n            return this.isMouseOver(mouseX, mouseY) ? 11842776 : 13948116;\n        } else {\n            return this.isMouseOver(mouseX, mouseY) ? 13746759 : 15457113;\n        }\n    }\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java",
+        "sha256": "2086860461ccc3fc60bc5a39c4ea8c816ec76bb947320d1f494dc17b488d33a1",
+        "bytes": 5220,
+        "repo_path": "src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java",
+        "whole_file_actual_read": true,
+        "total_lines": 113,
+        "ranges": [
+          [
+            1,
+            113
+          ]
+        ],
+        "selected_unique_lines": 113,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 113,
+            "text": "package com.aetherteam.aether.client.gui.screen.menu;\n\nimport com.aetherteam.aether.client.gui.screen.menu.logo.LeftLogoRenderer;\nimport com.aetherteam.aether.client.gui.screen.menu.splash.LeftSplashRenderer;\nimport com.aetherteam.aether.mixin.mixins.client.accessor.TitleScreenAccessor;\nimport com.aetherteam.cumulus.CumulusConfig;\nimport com.aetherteam.cumulus.client.gui.screen.DynamicMenuButton;\nimport com.aetherteam.cumulus.mixin.mixins.client.accessor.SplashRendererAccessor;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.AbstractWidget;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.Renderable;\nimport net.minecraft.client.gui.components.events.GuiEventListener;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.network.chat.Component;\nimport net.neoforged.neoforge.internal.BrandingControl;\n\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.function.BiConsumer;\nimport java.util.stream.Collectors;\n\n/**\n * A left-aligned variant of Minecraft's title screen.\n */\npublic class VanillaLeftTitleScreen extends TitleScreen implements TitleScreenBehavior, CustomBranding {\n    private Map<Component, AbstractWidget> widgetsByName = new HashMap<>();\n\n    public VanillaLeftTitleScreen() {\n        super();\n        TitleScreenAccessor accessor = ((TitleScreenAccessor) this);\n        accessor.aether$setFading(true);\n        accessor.aether$setLogoRenderer(new LeftLogoRenderer(false));\n    }\n\n    @Override\n    protected void init() {\n        TitleScreenAccessor accessor = (TitleScreenAccessor) this;\n        if (accessor.aether$getLogoRenderer() instanceof LeftLogoRenderer leftLogoRenderer) {\n            leftLogoRenderer.screenWidth = this.width;\n        }\n        super.init();\n        if (this.minecraft != null) {\n            accessor.aether$setSplash(new LeftSplashRenderer(((SplashRendererAccessor) ((TitleScreenAccessor) this).aether$getSplash()).cumulus$getSplash()));\n        }\n        this.setupButtons();\n        this.widgetsByName = this.children().stream().filter(e -> e instanceof AbstractWidget).map(e -> (AbstractWidget) e)\n            .collect(Collectors.toMap(AbstractWidget::getMessage, e -> e));\n    }\n\n    /**\n     * Aligns all buttons to the left.\n     */\n    public void setupButtons() {\n        int buttonCount = 0;\n        for (Renderable renderable : this.renderables) {\n            if (renderable instanceof AbstractWidget abstractWidget) {\n                if (TitleScreenBehavior.isImageButton(abstractWidget.getMessage())) {\n                    abstractWidget.visible = false; // The visibility handling is necessary here to avoid a bug where the buttons will render in the center of the screen before they have a specified offset.\n                }\n                if (abstractWidget instanceof Button button) { // Left alignment.\n                    Component buttonText = button.getMessage();\n                    if (TitleScreenBehavior.isMainButton(buttonText)) {\n                        button.setX(47);\n                        button.setY(80 + buttonCount * 25);\n                        button.setWidth(200);\n                        buttonCount++;\n                    }\n                }\n            }\n        }\n    }\n\n    /**\n     * [CODE COPY] - {@link TitleScreen#render(GuiGraphics, int, int, float)}.<br><br>\n     * Modified and abstracted using {@link TitleScreenBehavior}.\n     */\n    @Override\n    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTicks) {\n        super.render(guiGraphics, mouseX, mouseY, partialTicks);\n        int xOffset = CumulusConfig.CLIENT.enable_menu_api.get() && CumulusConfig.CLIENT.enable_menu_list_button.get() ? -62 : 0;\n        for (GuiEventListener child : this.children()) { // Increases the x-offset to the left for image buttons if there are menu buttons on the screen.\n            if (child instanceof DynamicMenuButton dynamicMenuButton) {\n                if (dynamicMenuButton.enabled) {\n                    xOffset -= 24;\n                }\n            }\n        }\n        TitleScreenBehavior.super.handleImageButtons(this, xOffset);\n        TitleScreenBehavior.super.handleEssentialButtonsForLeftMenu(this);\n    }\n\n    @Override\n    public boolean forEachLineBranding(boolean includeMC, boolean reverse, BiConsumer<Integer, String> lineConsumer, GuiGraphics guiGraphics, int i) {\n        BrandingControl.forEachLine(true, true, (brandingLine, branding) ->\n            guiGraphics.drawString(font, branding, this.width - font.width(branding) - 1, this.height - (10 + (brandingLine + 1) * (font.lineHeight + 1)), 16777215 | i)\n        );\n        return true;\n    }\n\n    @Override\n    public boolean forEachAboveCopyrightLineBranding(BiConsumer<Integer, String> lineConsumer, GuiGraphics guiGraphics, int i) {\n        BrandingControl.forEachAboveCopyrightLine((brandingLine, branding) ->\n            guiGraphics.drawString(font, branding, 1, this.height - (brandingLine + 1) * (font.lineHeight + 1), 16777215 | i)\n        );\n        return true;\n    }\n\n    @Override\n    public Map<Component, AbstractWidget> getWidgetsByName() {\n        return this.widgetsByName;\n    }\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java",
+        "sha256": "f3dc42a5705645a5788dbfab188c7a8da86ff39c8bbee5b72cf13bdb0d0bfd7f",
+        "bytes": 981,
+        "repo_path": "src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java",
+        "whole_file_actual_read": true,
+        "total_lines": 33,
+        "ranges": [
+          [
+            1,
+            33
+          ]
+        ],
+        "selected_unique_lines": 33,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 33,
+            "text": "package com.aetherteam.aether.mixin.mixins.client.accessor;\n\nimport net.minecraft.client.gui.components.LogoRenderer;\nimport net.minecraft.client.gui.components.SplashRenderer;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.network.chat.Component;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.Mutable;\nimport org.spongepowered.asm.mixin.gen.Accessor;\nimport org.spongepowered.asm.mixin.gen.Invoker;\n\n@Mixin(TitleScreen.class)\npublic interface TitleScreenAccessor {\n    @Accessor(\"splash\")\n    SplashRenderer aether$getSplash();\n\n    @Accessor(\"splash\")\n    void aether$setSplash(SplashRenderer splash);\n\n    @Mutable\n    @Accessor(\"fading\")\n    void aether$setFading(boolean fading);\n\n    @Accessor(\"logoRenderer\")\n    LogoRenderer aether$getLogoRenderer();\n\n    @Mutable\n    @Accessor(\"logoRenderer\")\n    void aether$setLogoRenderer(LogoRenderer splash);\n\n    @Invoker\n    Component callGetMultiplayerDisabledReason();\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java",
+        "sha256": "07dd4e62f68e0a798c34f357df095083641046c22ab025c616d3389c94681e2e",
+        "bytes": 337,
+        "repo_path": "src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java",
+        "whole_file_actual_read": true,
+        "total_lines": 11,
+        "ranges": [
+          [
+            1,
+            11
+          ]
+        ],
+        "selected_unique_lines": 11,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 11,
+            "text": "package com.aetherteam.aether.mixin.mixins.client.accessor;\n\nimport net.minecraft.client.gui.components.AbstractWidget;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.gen.Accessor;\n\n@Mixin(AbstractWidget.class)\npublic interface AbstractWidgetAccessor {\n    @Accessor(\"alpha\")\n    float aether$getAlpha();\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/api/AetherMenus.java",
+        "sha256": "bb50657e60e3ad76dc3022b399f5bfadece2eb76d9d31d9c14d9f6d60ff01399",
+        "bytes": 2199,
+        "repo_path": "src/main/java/com/aetherteam/aether/api/AetherMenus.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/api/AetherMenus.java",
+        "whole_file_actual_read": true,
+        "total_lines": 32,
+        "ranges": [
+          [
+            1,
+            32
+          ]
+        ],
+        "selected_unique_lines": 32,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 32,
+            "text": "package com.aetherteam.aether.api;\n\nimport com.aetherteam.aether.Aether;\nimport com.aetherteam.aether.client.gui.screen.menu.AetherTitleScreen;\nimport com.aetherteam.aether.client.gui.screen.menu.VanillaLeftTitleScreen;\nimport com.aetherteam.cumulus.api.*;\nimport net.minecraft.client.renderer.CubeMap;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceLocation;\n\n@CumulusEntrypoint\npublic class AetherMenus implements MenuInitializer {\n    // Icons\n    private static final ResourceLocation THE_AETHER_ICON = ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"textures/gui/menu_api/menu_icon_aether.png\");\n\n    // Names\n    private static final Component MINECRAFT_LEFT_NAME = Component.translatable(\"aether.menu_title.minecraft_left\");\n    private static final Component THE_AETHER_NAME = Component.translatable(\"aether.menu_title.the_aether\");\n    private static final Component THE_AETHER_LEFT_NAME = Component.translatable(\"aether.menu_title.the_aether_left\");\n\n    // Menus\n    public static final Menu MINECRAFT_LEFT = new Menu(Menus.MINECRAFT_ICON, MINECRAFT_LEFT_NAME, new VanillaLeftTitleScreen());\n    public static final Menu THE_AETHER = new Menu(THE_AETHER_ICON, THE_AETHER_NAME, new AetherTitleScreen(), new Menu.Properties().music(AetherTitleScreen.MENU).panorama(new CubeMap(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"textures/gui/title/panorama/panorama\"))));\n    public static final Menu THE_AETHER_LEFT = new Menu(THE_AETHER_ICON, THE_AETHER_LEFT_NAME, new AetherTitleScreen(true), new Menu.Properties().music(AetherTitleScreen.MENU).panorama(new CubeMap(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"textures/gui/title/panorama/panorama\"))));\n\n    @Override\n    public void registerMenus(MenuRegisterCallback menuRegisterCallback) {\n        menuRegisterCallback.registerMenu(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"minecraft_left\"), MINECRAFT_LEFT);\n        menuRegisterCallback.registerMenu(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"the_aether\"), THE_AETHER);\n        menuRegisterCallback.registerMenu(ResourceLocation.fromNamespaceAndPath(Aether.MODID, \"the_aether_left\"), THE_AETHER_LEFT);\n    }\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java",
+        "sha256": "ef7dbc93d7d249f7075724c967c4df2d61e7cf202994b0fa3d84b0f8b667a066",
+        "bytes": 375,
+        "repo_path": "src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java",
+        "whole_file_actual_read": true,
+        "total_lines": 12,
+        "ranges": [
+          [
+            1,
+            12
+          ]
+        ],
+        "selected_unique_lines": 12,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 12,
+            "text": "package com.aetherteam.aether.mixin.mixins.client.accessor;\n\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.network.chat.MutableComponent;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.gen.Invoker;\n\n@Mixin(Button.class)\npublic interface ButtonAccessor {\n    @Invoker\n    MutableComponent callCreateNarrationMessage();\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java",
+        "sha256": "d58c28d7e00b2687e939e76cc7ac882e65bd8adc6142a7035d0fe16d90154e99",
+        "bytes": 441,
+        "repo_path": "src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java",
+        "whole_file_actual_read": true,
+        "total_lines": 11,
+        "ranges": [
+          [
+            1,
+            11
+          ]
+        ],
+        "selected_unique_lines": 11,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 11,
+            "text": "package com.aetherteam.aether.client.gui.screen.menu;\n\nimport net.minecraft.client.gui.GuiGraphics;\n\nimport java.util.function.BiConsumer;\n\npublic interface CustomBranding {\n    boolean forEachLineBranding(boolean includeMC, boolean reverse, BiConsumer<Integer, String> lineConsumer, GuiGraphics guiGraphics, int i);\n\n    boolean forEachAboveCopyrightLineBranding(BiConsumer<Integer, String> lineConsumer, GuiGraphics guiGraphics, int i);\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java",
+        "sha256": "f7fb69cc38dd8aaf595deced240da67a4c5e2e9ae4a5e36d2aef5e471e34de72",
+        "bytes": 2004,
+        "repo_path": "src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java",
+        "whole_file_actual_read": true,
+        "total_lines": 31,
+        "ranges": [
+          [
+            1,
+            31
+          ]
+        ],
+        "selected_unique_lines": 31,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 31,
+            "text": "package com.aetherteam.aether.mixin.mixins.client;\n\nimport com.aetherteam.aether.client.gui.screen.menu.CustomBranding;\nimport com.llamalad7.mixinextras.injector.wrapoperation.Operation;\nimport com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;\nimport com.llamalad7.mixinextras.sugar.Local;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport org.spongepowered.asm.mixin.Mixin;\nimport org.spongepowered.asm.mixin.injection.At;\n\nimport java.util.function.BiConsumer;\n\n@Mixin(TitleScreen.class)\npublic class TitleScreenMixin {\n    @WrapOperation(method = \"render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V\", at = @At(value = \"INVOKE\", target = \"Lnet/neoforged/neoforge/internal/BrandingControl;forEachLine(ZZLjava/util/function/BiConsumer;)V\"))\n    private void forEachLine(boolean includeMC, boolean reverse, BiConsumer<Integer, String> lineConsumer, Operation<Void> original, @Local(argsOnly = true) GuiGraphics guiGraphics, @Local(ordinal = 2) int i) {\n        TitleScreen titleScreen = (TitleScreen) (Object) this;\n        if (!(titleScreen instanceof CustomBranding customBranding) || !customBranding.forEachLineBranding(includeMC, reverse, lineConsumer, guiGraphics, i)) {\n            original.call(includeMC, reverse, lineConsumer);\n        }\n    }\n\n    @WrapOperation(method = \"render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V\", at = @At(value = \"INVOKE\", target = \"Lnet/neoforged/neoforge/internal/BrandingControl;forEachAboveCopyrightLine(Ljava/util/function/BiConsumer;)V\"))\n    private void forEachLine(BiConsumer<Integer, String> lineConsumer, Operation<Void> original, @Local(argsOnly = true) GuiGraphics guiGraphics, @Local(ordinal = 2) int i) {\n        TitleScreen titleScreen = (TitleScreen) (Object) this;\n        if (!(titleScreen instanceof CustomBranding customBranding) || !customBranding.forEachAboveCopyrightLineBranding(lineConsumer, guiGraphics, i)) {\n            original.call(lineConsumer);\n        }\n    }\n}"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/AetherConfig.java",
+        "sha256": "65de16950ae56796c7c1af61c3eae96e2f9ddbeaed5b042288d71aab3c2254f9",
+        "bytes": 28333,
+        "repo_path": "src/main/java/com/aetherteam/aether/AetherConfig.java",
+        "source_url": "https://github.com/The-Aether-Team/The-Aether/blob/e07d30e16fbd0f09cc067b39594035e395dcf996/src/main/java/com/aetherteam/aether/AetherConfig.java",
+        "whole_file_actual_read": false,
+        "total_lines": 437,
+        "ranges": [
+          [
+            396,
+            406
+          ]
+        ],
+        "selected_unique_lines": 11,
+        "actual_source": [
+          {
+            "from": 396,
+            "to": 406,
+            "text": "                    .define(\"Disables Aether world preview menu music\", false);\n            builder.pop();\n\n            builder.push(\"Miscellaneous\");\n            enable_server_button = builder\n                    .comment(\"Enables a direct join button for the official server\")\n                    .translation(\"config.aether.client.miscellaneous.enable_server_button\")\n                    .define(\"Enables server button\", false);\n            builder.pop();\n        }\n    }"
+          }
+        ],
+        "identity": "Pinned cached source metadata plus raw SHA; no independently verified Git tree/blob or per-file upstream hash assertion."
+      }
+    ],
+    "whole_files": 10,
+    "selected_unique_lines": 639,
+    "full_chain_observation": [
+      {
+        "id": "F01",
+        "owner": "AetherMenus whole;AetherTitle41-65",
+        "finding": "Cumulus registration supplies retained VanillaLeft/Aether centered/Aether left screen instances with translated menu names. Aether constructor sets fading/logo through accessors; init resets buttonRows/lastY then super.init builds native actions before setup and widget-name map. External Cumulus selection/init machinery not read. All three variants one family maximum."
+      },
+      {
+        "id": "F02",
+        "owner": "AetherTitle150-187;Behavior102-109",
+        "finding": "addRenderableWidget replaces only Button whose Component equals explicit whitelist (singleplayer/multiplayer/server/Realms/Mods/options/quit). Other widgets follow super unchanged. Localized component identity, not translated display string, chooses native main actions."
+      },
+      {
+        "id": "F03",
+        "owner": "AetherMenuButton25-36;ButtonAccessor whole",
+        "finding": "Wrapper builder retains old message, bounds, original.onPress callback and old narration invoker, then disables/hides old control. It does not explicitly transfer old active/visible/tooltip in this constructor. Engine builder defaults/interception in this newer version are not traced; do not treat it as guaranteed disabled-state preservation or runtime bypass proof."
+      },
+      {
+        "id": "F04",
+        "owner": "AetherTitle158-182",
+        "finding": "During button addition left layout increments per button; center counts changing originalY rows. Server gets special offset2; optional server option adds a row after singleplayer. New controls derive x/y from host current dimensions or fixed left offsets. Shared bookkeeping is one layout strategy, no per row credit."
+      },
+      {
+        "id": "F05",
+        "owner": "AetherTitle67-89;AetherConfig396-406",
+        "finding": "Optional server button (defaultfalse) obtains multiplayer-disabled reason, sets translated caption/tooltip, invokes ConnectScreen from source and explicitly applies active flag to added result. If enabled, removes multiplayer and Realms matching controls from children/renderables. These are code observations only: no connection or endpoint validation performed."
+      },
+      {
+        "id": "F06",
+        "owner": "AetherTitle63-64;VanillaLeft47-48",
+        "finding": "After setup collect children AbstractWidget keyed by Component with Collectors.toMap and no merge function; identical messages could collide absent upstream uniqueness. No runtime duplicate-label failure is established, and this map is for retained widget lookup, not stable server/model IDs."
+      },
+      {
+        "id": "F07",
+        "owner": "AetherTitle81-89;Behavior21-40",
+        "finding": "Image controls start hidden, then helper uses current host width plus xOffset, fixedY4 to position accessibility/language/partner. Visibility for image captions becomes true only after alpha>0.01. This is rendering/layout admission, not service eligibility or request lifecycle."
+      },
+      {
+        "id": "F08",
+        "owner": "AetherTitle91-117;AetherMenuButton39-57",
+        "finding": "Host super.render runs before loop updates hoverOffset and calls layout helpers. HoverOffset advances/retracts by2 conditional on <15/>0; it may reach16, so no strict max15 claim. Visual sprite/text translate by offset while no hit-test override occurs in complete wrapper. Source does not prove visual/input bounds coincide."
+      },
+      {
+        "id": "F09",
+        "owner": "AetherMenuButton39-71",
+        "finding": "Sprite selection distinguishes width<100 and isActive/hovered/focused; code draws blitSprite fixed200x20 and text at x+35+hoverOffset with alpha. Caption color uses isMouseOver separately and special server palette. Without actual sprites/native hit bounds, no exact corner/disabled/keyboard/size visual quality pass claimed."
+      },
+      {
+        "id": "F10",
+        "owner": "AetherTitle94-113;Behavior21-83",
+        "finding": "Base xOffset reserves menu-list area when both Cumulus flags true; every enabled DynamicMenuButton reserves another24. Essential marker widgets align relative to current language/account/wardrobe widgets and current screen width. These adapters are shared compatibility work, not independent menu examples."
+      },
+      {
+        "id": "F11",
+        "owner": "Behavior47-83",
+        "finding": "Essential text marker detection uses rendered message.getString contains plus explicit literal markers; alpha can follow language widget, some x positions follow previous widget geometry. No implementation/control over external Essential invitation/update services was read."
+      },
+      {
+        "id": "F12",
+        "owner": "VanillaLeft whole",
+        "finding": "Sibling left variant preserves native buttons and repositions them in place, retaining native object identity, whereas styled Aether variant constructs replacements. Both share image/compatibility helpers and branding family; count merge0 sibling, not second/third layout reference."
+      },
+      {
+        "id": "F13",
+        "owner": "CustomBranding whole;TitleScreenMixin whole;AetherTitle119-141",
+        "finding": "Branding mixin delegates to custom implementation only if it returns true, otherwise calls original. Left layout moves branding to host current edges. No claim actual mixin application succeeds against any target runtime; logo/panorama/music declarations are context only, no Dynasty background/audio changes."
+      },
+      {
+        "id": "F14",
+        "owner": "whole-family comparison",
+        "finding": "Historical UI5 were settings translation/rebuild/save/navigation; PNC model/widget refresh,Home owned async status,mel font mutation/reload navigation,005/006 native dependencies. This whole is actual main-title button interception/replacement retaining callback/narration with alpha/layout/compatibility lifecycle. At most one proposed relevant whole, pending provenance/applicability/semantic Main review; may SUPPORT0/MERGE0."
+      },
+      {
+        "id": "F15",
+        "owner": "current Dynasty prior verified source and full family",
+        "finding": "Dynasty already copies original active/visible/tooltip and delegates callback. Preserve these safeguards; Aether constructor omissions must not regress accepted original work. Its per-render geometry and external layout are principles to compare, not code to copy or permission for new texture/background."
+      }
+    ],
+    "application": [
+      {
+        "target": "main button original delivery",
+        "principle": "Keep original callback/narration with current active/visible/tooltips; retain current approved background/corner implementation."
+      },
+      {
+        "target": "UI01/02",
+        "principle": "Use Component identity/translations and active host dimensions, while preserving tiny-window/first-frame/input constraints."
+      },
+      {
+        "target": "UI03/04",
+        "principle": "Original-instance vs replacement distinction matters for final notification anchors; alpha visibility/layout is not Realms/Forge service ownership proof."
+      }
+    ],
+    "limitations": [
+      "HOLD0 only, formal0/max proposed1. Main has not independently read this639-line whole. No new certified UI count or1000 gate assertion.",
+      "Provenance is cached source.json repo+sha with raw current file SHA. No tree/per-file upstream manifest/hash in this cache; metadata fetch-mode claim is not independent verification. No Git object/hash fabricated. Main may hold/reject identity.",
+      "This is a large mod actual title-menu implementation, not an entire100-pack comparison. All centered/left/native siblings,accessors,branding androwvariants count at most one whole.",
+      "Cumulus Menu API,DynamicMenuButton,Essential implementations,newer native Button/TitleScreen internals are not read; registration boundary and inherited action destinations are source calls, not end-to-end external service/runtime proof.",
+      "Read ten full classes/interfaces and one selected config396-406 only. Logo/splash implementations,assets and menu textures were not read/downloaded/copied; no palette/corner pixel quality or1000 asset reference credit.",
+      "No explicit wrapper active/tooltip copy or hit-test override shown. Visual translation/fixed sprite draw can diverge from logical bounds; do not label actual runtime bypass/overlap/invisible input without engine/interaction evidence.",
+      "Frame-based hover and post-super-render layout are not elapsed-time animation guarantees or first-frame/input correctness. Alpha condition is not Realms currentTitle subscription/service closure.",
+      "Newer ResourceLocation/WidgetSprites/NeoForge/Cumulus APIs not direct Forge1.20.1 patch. No compilation or upstream execution.",
+      "No connection, resourcepack/font mutation, music/screen wake,production/background/sharedJar/formal ledger/session/active/pending/ownership/task cleanup. Four own Hub issues remain open.",
+      "Existing full prior whole comparisons reused, not reset per batch. rg no Aether match in prior reference artifacts is locator-only and not sole semantic dedup proof; no broad program-ledger comparison or imported program credit claimed.",
+      "003 partial-version-result correction,004 serialization/tinyviewport limits,005 requiredpack/failurecallback limits preserved in separate author ACKs; old receipts immutable. Historical reported5 not Main independently certified."
+    ]
+  },
+  "complete_prior_comparison_preserved": {
+    "prior_baseline002003004005006": {
+      "baseline_and002003004_reuse": {
+        "baseline_binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/menu-20261022/bug-review-20261101/reference-batch-001.json",
+          "sha256": "369b3f5911105e37223e21797a9b6758f1571fdd1c19b1935ced202d85f86022",
+          "bytes": 11548
+        },
+        "reported_historical_examples": 5,
+        "baseline_independently_Main_certified": false,
+        "prior_bindings": [
+          {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch002-pnc-current-screen-refresh-and-nested-editor-whole-HOLD0-20261114.json",
+            "sha256": "33e58ee7c8cac62036a26d1d019aad66de996e0b0dca632039df700d52f6d6e9",
+            "bytes": 150025
+          },
+          {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+            "sha256": "cf358f1de89f059c4264babcadabf4fbea39df90542064e1c8cb4a783bbefdba",
+            "bytes": 88833
+          },
+          {
+            "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-mel-font-config-mutation-resource-reload-and-parent-refresh-HOLD0-20261114.json",
+            "sha256": "e44213ae4aa29f824d0d06feafcf1afed44d8747dd75f942e216f00402183369",
+            "bytes": 119019
+          }
+        ],
+        "Main002_support0_binding": {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-PNC-Main-actual1745-complete-flow-SUPPORT0-review-20261114.json",
+          "sha256": "30121b53dab694e46ec3a65f1b369293e499cbac7cc926e35c56ddb60e63ca6d",
+          "bytes": 174213
+        },
+        "complete_comparison_reused_from": "batch004.prior_comparison_before_source and previous successful actual whole readings; this turn bounded metadata/hash/feature check does not replace those",
+        "whole_judgment": "Retained parent/translation/current dimensions shared support0; native language/overlay/failure completion is dependency expansion. Merge with existing supporting native lifecycle and004, no new whole candidate."
+      },
+      "native005_binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch005-native-language-reload-failure-current-screen-refresh-SUPPORT0-20261114.json",
+        "sha256": "731abb009cffb9dbf6e05e4795e56c9f225d5cce572f6477ab9d4797f419de0b",
+        "bytes": 77968
+      },
+      "comparison": "Compare entire prior settings/PNC/Home/font reload/005 before this new primary; retained parents/translation/current dimensions are overlapping. Native host/factory boundary is exact dependency support0, not new semantic gate credit.",
+      "corrections": [
+        {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-author-ACK-F05-partial-result-retained-addendum-20261114.json",
+          "sha256": "33ba22e99a44ecfe2f7c909afc0d519ff4e8cd0987d4c3eee6c92861d3aa678b",
+          "bytes": 7128
+        },
+        {
+          "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-author-ACK-Main24-serialization-reload-navigation-limits-20261114.json",
+          "sha256": "817cee9ca2836405b37b3b4e1ad02c491cd800c3c10182899e3a47fea4fa2975",
+          "bytes": 22122
+        }
+      ]
+    },
+    "native006_binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch006-forge-mod-list-config-host-return-status-anchor-SUPPORT0-20261114.json",
+      "sha256": "fdac36c20c82be05d98f2770b52a34ce3e7a8d49a8c594e53e102164294be6af",
+      "bytes": 58706
+    },
+    "author_qualification_bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-author-ACK-F05-partial-result-retained-addendum-20261114.json",
+        "sha256": "33ba22e99a44ecfe2f7c909afc0d519ff4e8cd0987d4c3eee6c92861d3aa678b",
+        "bytes": 7128
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-author-ACK-Main24-serialization-reload-navigation-limits-20261114.json",
+        "sha256": "817cee9ca2836405b37b3b4e1ad02c491cd800c3c10182899e3a47fea4fa2975",
+        "bytes": 22122
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch005-author-ACK-required-pack-and-throwing-failure-callback-limits-20261114.json",
+        "sha256": "637417a6885a3b7ba78464d33b5c50311dd428f45aafca56d8bd6ace65853654",
+        "bytes": 4083
+      }
+    ],
+    "old_whole_before_source": "Previous valid complete baseline/002/003/004 business comparisons and005/006 dependency studies already read before007. Current no-match search is metadata locator only0; source counts do not earn credit."
+  },
+  "Main_actual_findings": [
+    "Main read complete prior comparison before new primary, reusing valid prior002/003/004/005/native006 readings and correction ACKs. Two initial metadata probes guessed study then source_members, KeyError before writes/primary credit; corrected actual candidate.actual_source_members schema before source reading. Neither a source fault nor extra credit. Historical baseline5 remains independently uncertified.",
+    "Actual primary reading was two bounded unclipped outputs: AetherTitle197+Behavior115, then other327 including config11. Ten whole classes/interfaces plus config396..406 only =639unique selected source lines. Full15/11/3 business actually read afterward; this is coverage not eleven or639 references.",
+    "Cached source.json names The-Aether-Team/The-Aether and e07d30e16fbd0f09cc067b39594035e395dcf996 with selected raw acquisition metadata; local actual bytes/excerpts bind. No independently authenticated upstream tree or per-file Git blob binding. Raw local hash cannot cure this provenance gap. HOLD0 formally, no fabricated source credit.",
+    "Imports are NeoForge plus newer ResourceLocation.fromNamespaceAndPath, WidgetSprites and Button forms. Do not claim Forge1.20.1 native compatibility or reuse selected implementation as a drop-in fix.",
+    "AetherMenus registers three retained screen objects at static initialization. Cumulus API selection/reinit implementation unread, so retention is a registration-source observation, not actual navigation/cache/renderer lifecycle proof. Centered/left/native siblings share one family maximum.",
+    "Constructor sets fading/logo through accessor declarations and final alignedLeft. Init resets rows/lastY before super.init, then splash/setup and child lookup map. Collectors.toMap lacks merge function: duplicate Component keys could throw, but no actual installed collision, packet or user defect is proved.",
+    "Override intercepts only Button with one of seven Component identities. It delegates nonmatches unchanged. Component identity is relevant to localization; not registry identity or literal translated-string matching. No inherited callback destination bodies were read in this source family.",
+    "AetherMenuButton retains original callback via original.onPress and custom narration via accessor invoker, then disables/hides original. It does not explicitly copy original active/visible/tooltip. Native builder defaults are unread, therefore neither eligibility preservation nor concrete bypass is established. Preserve Dynasty explicit copies.",
+    "Styled wrapper stores originalX yet selected class never consumes it. Left rows count each added button; centered rows depend on strictly changing originalY; server special offset2 and enabled-server spare row after singleplayer. This is one placement algorithm, no credit per row/button.",
+    "Optional server config defaultsfalse. Explicit disabled-reason test, tooltip and ConnectScreen callback exist; importantly setup assigns active to the returned wrapper, so generic-constructor omission must not be wrongly applied to this server path. No connect/endpoint/network behavior executed.",
+    "When enabled, removal predicate matches multiplayer/online in children and renderables. No explicit narratables removal appears. Screen internals unread, so do not label a lingering focus/narration defect without further dependency evidence.",
+    "Init hides only the identified image controls; render calls super.render before updating hover offsets and recalculating image/compatibility positions. Source ordering does not certify first-frame visual/input alignment and may defer displayed position until later render. No actual frame experiment was performed.",
+    "Hover increments2 while below15 from0, hence can reach16; it retracts2 while positive. It is frame dependent, not timed animation. Paint shifts x by hoverOffset; complete wrapper has no hit-test override. Native bounds/base dispatch unread, no actual misclick or pixel/input match assertion.",
+    "Blit uses fixed200x20 although sprite choice tests width<100; label x+35+offset, alpha multiplication, server palette and mouseover/focus differ. Without sprite/native inspection no small-width/corner/keyboard/disabled visual-quality acceptance.",
+    "Image helper aligns known image captions to host width and fixedY4. It only sets visibletrue when alpha>.01, no per-frame elsefalse here. Init reset and Essential visibility are separate paths, not universal current-alpha visibility equality.",
+    "Cumulus menu/list flags reserve -62, each enabled DynamicMenuButton reserves another24. External implementations unread, no one-reference-per-adapter nor correctness under their runtime mutations.",
+    "Essential compatibility finds literal/rendered-text markers; some x depends on account/wardrobe widgets, language alpha can gate visibility. Widget map built once perinit does not prove dynamic external additions/removals handled. No Essential request/status producer was read.",
+    "VanillaLeft moves original native objects in place at x47/y80+25row, contrasted with styled wrapper replacement. This meaningful object-ownership difference belongs to the same Aether whole, not a second or third independent reference.",
+    "Branding delegation suppresses original only when custom implementation returnstrue, else falls back. Accessors and mixin callsites prove intended integration only; no config-registration/runtime-transform success. Panorama/music declarations were source-only, no sound/assets/game downloaded, copied or executed.",
+    "Compared with prior settings mutation/reload navigation, owned async Home and native host dependencies, title interception/replacement→callback/narration preservation→row layout/alpha/adapters is at most one relevant source-family candidate. Shared parents/currentdimensions/translation/wrappers alone remain support0. Broad semantic ledger certification is not claimed.",
+    "Decision HOLD0 pending independent upstream identity and applicability; possible wholemaximum1 is not source acceptance/formal/reference increment. Author15 reviewed against actual source; no new author acknowledgment requested merely to repeat matching observations. UI004source1formal0/native006SUPPORT0/005two-limit qualifications remain intact.",
+    "Four existing Dynasty UI followups remain open. No production change/game/native acceptance/masterlist deletion, source music playback, display/ps/wake/audio/brightness/focus/userworld/sharedJar/proasset modification. Hoursnull, tenhourunverified."
+  ],
+  "checks": [
+    "fixed007",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/source.json",
+    "cached source metadata exact",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java",
+    "linecount src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java1",
+    "whole src/main/java/com/aetherteam/aether/client/gui/screen/menu/AetherTitleScreen.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java",
+    "linecount src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java1",
+    "whole src/main/java/com/aetherteam/aether/client/gui/screen/menu/TitleScreenBehavior.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java",
+    "linecount src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java1",
+    "whole src/main/java/com/aetherteam/aether/client/gui/component/menu/AetherMenuButton.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java",
+    "linecount src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java1",
+    "whole src/main/java/com/aetherteam/aether/client/gui/screen/menu/VanillaLeftTitleScreen.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java",
+    "linecount src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java1",
+    "whole src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/TitleScreenAccessor.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java",
+    "linecount src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java1",
+    "whole src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/AbstractWidgetAccessor.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/api/AetherMenus.java",
+    "linecount src/main/java/com/aetherteam/aether/api/AetherMenus.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/api/AetherMenus.java1",
+    "whole src/main/java/com/aetherteam/aether/api/AetherMenus.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java",
+    "linecount src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java1",
+    "whole src/main/java/com/aetherteam/aether/mixin/mixins/client/accessor/ButtonAccessor.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java",
+    "linecount src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java1",
+    "whole src/main/java/com/aetherteam/aether/client/gui/screen/menu/CustomBranding.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java",
+    "linecount src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java1",
+    "whole src/main/java/com/aetherteam/aether/mixin/mixins/client/TitleScreenMixin.java",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/The-Aether-Team__The-Aether/src/main/java/com/aetherteam/aether/AetherConfig.java",
+    "linecount src/main/java/com/aetherteam/aether/AetherConfig.java",
+    "literal excerpt src/main/java/com/aetherteam/aether/AetherConfig.java396",
+    "coverage only",
+    "business15limits11applications3",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/menu-20261022/bug-review-20261101/reference-batch-001.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch002-pnc-current-screen-refresh-and-nested-editor-whole-HOLD0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-mel-font-config-mutation-resource-reload-and-parent-refresh-HOLD0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-PNC-Main-actual1745-complete-flow-SUPPORT0-review-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch005-native-language-reload-failure-current-screen-refresh-SUPPORT0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-author-ACK-F05-partial-result-retained-addendum-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-author-ACK-Main24-serialization-reload-navigation-limits-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch006-forge-mod-list-config-host-return-status-anchor-SUPPORT0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-author-ACK-F05-partial-result-retained-addendum-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-author-ACK-Main24-serialization-reload-navigation-limits-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch005-author-ACK-required-pack-and-throwing-failure-callback-limits-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod1.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod2.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod3.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod4.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod6.txt",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json"
+  ],
+  "checks_count": 76,
+  "coverage_evidence_only": {
+    "members": 11,
+    "whole_files": 10,
+    "selected_unique_lines": 639
+  },
+  "maximum_possible_related_wholes": 1,
+  "source_wholes_accepted": 0,
+  "new_formal_credit": 0,
+  "baseline_independently_certified": false,
+  "gate_met": false,
+  "production_changes": 0,
+  "game_starts": 0,
+  "task_deletions": 0,
+  "actual_active_hours_claimed": null,
+  "ten_hours_verified": false,
+  "all_tasks_complete": false
+}

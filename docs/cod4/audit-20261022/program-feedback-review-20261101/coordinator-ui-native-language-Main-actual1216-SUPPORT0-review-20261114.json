@@ -1,0 +1,775 @@
+{
+  "schema": "Main-UI-native-language-reload-selected-complete-support0-v1",
+  "recorded_at": "2026-11-14T05:58:53.835769+00:00",
+  "decision": "SUPPORT0_EXISTING_NATIVE_LANGUAGE_AND_RESOURCE_DEPENDENCY_EXPANSION",
+  "source_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch005-native-language-reload-failure-current-screen-refresh-SUPPORT0-20261114.json",
+    "sha256": "731abb009cffb9dbf6e05e4795e56c9f225d5cce572f6477ab9d4797f419de0b",
+    "bytes": 77968
+  },
+  "complete_study_preserved": {
+    "formal_id": null,
+    "research_credit": 0,
+    "max_proposed_whole": 0,
+    "whole_files": 9,
+    "selected_unique_lines": 1216,
+    "source_members": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/LanguageSelectScreen.java",
+        "archive_member": "net/minecraft/client/gui/screens/LanguageSelectScreen.java",
+        "sha256": "1bb98e341069f2d541c77793d41e14b3374ccffe5343f9e433cfa1c072c0f873",
+        "bytes": 6368,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 141,
+        "ranges": [
+          [
+            1,
+            141
+          ]
+        ],
+        "selected_unique_lines": 141,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 141,
+            "text": "package net.minecraft.client.gui.screens;\n\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.Util;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.Options;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.ObjectSelectionList;\nimport net.minecraft.client.gui.navigation.CommonInputs;\nimport net.minecraft.client.resources.language.LanguageInfo;\nimport net.minecraft.client.resources.language.LanguageManager;\nimport net.minecraft.network.chat.CommonComponents;\nimport net.minecraft.network.chat.Component;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class LanguageSelectScreen extends OptionsSubScreen {\n   private static final Component WARNING_LABEL = Component.literal(\"(\").append(Component.translatable(\"options.languageWarning\")).append(\")\").withStyle(ChatFormatting.GRAY);\n   private LanguageSelectScreen.LanguageSelectionList packSelectionList;\n   final LanguageManager languageManager;\n\n   public LanguageSelectScreen(Screen p_96085_, Options p_96086_, LanguageManager p_96087_) {\n      super(p_96085_, p_96086_, Component.translatable(\"options.language\"));\n      this.languageManager = p_96087_;\n   }\n\n   protected void init() {\n      this.packSelectionList = new LanguageSelectScreen.LanguageSelectionList(this.minecraft);\n      this.addWidget(this.packSelectionList);\n      this.addRenderableWidget(this.options.forceUnicodeFont().createButton(this.options, this.width / 2 - 155, this.height - 38, 150));\n      this.addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, (p_288243_) -> {\n         this.onDone();\n      }).bounds(this.width / 2 - 155 + 160, this.height - 38, 150, 20).build());\n      super.init();\n   }\n\n   void onDone() {\n      LanguageSelectScreen.LanguageSelectionList.Entry languageselectscreen$languageselectionlist$entry = this.packSelectionList.getSelected();\n      if (languageselectscreen$languageselectionlist$entry != null && !languageselectscreen$languageselectionlist$entry.code.equals(this.languageManager.getSelected())) {\n         this.languageManager.setSelected(languageselectscreen$languageselectionlist$entry.code);\n         this.options.languageCode = languageselectscreen$languageselectionlist$entry.code;\n         this.minecraft.reloadResourcePacks();\n         this.options.save();\n      }\n\n      this.minecraft.setScreen(this.lastScreen);\n   }\n\n   public boolean keyPressed(int p_289001_, int p_288978_, int p_289021_) {\n      if (CommonInputs.selected(p_289001_)) {\n         LanguageSelectScreen.LanguageSelectionList.Entry languageselectscreen$languageselectionlist$entry = this.packSelectionList.getSelected();\n         if (languageselectscreen$languageselectionlist$entry != null) {\n            languageselectscreen$languageselectionlist$entry.select();\n            this.onDone();\n            return true;\n         }\n      }\n\n      return super.keyPressed(p_289001_, p_288978_, p_289021_);\n   }\n\n   public void render(GuiGraphics p_283397_, int p_96090_, int p_96091_, float p_96092_) {\n      this.packSelectionList.render(p_283397_, p_96090_, p_96091_, p_96092_);\n      p_283397_.drawCenteredString(this.font, this.title, this.width / 2, 16, 16777215);\n      p_283397_.drawCenteredString(this.font, WARNING_LABEL, this.width / 2, this.height - 56, 8421504);\n      super.render(p_283397_, p_96090_, p_96091_, p_96092_);\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   class LanguageSelectionList extends ObjectSelectionList<LanguageSelectScreen.LanguageSelectionList.Entry> {\n      public LanguageSelectionList(Minecraft p_96103_) {\n         super(p_96103_, LanguageSelectScreen.this.width, LanguageSelectScreen.this.height, 32, LanguageSelectScreen.this.height - 65 + 4, 18);\n         String s = LanguageSelectScreen.this.languageManager.getSelected();\n         LanguageSelectScreen.this.languageManager.getLanguages().forEach((p_265492_, p_265377_) -> {\n            LanguageSelectScreen.LanguageSelectionList.Entry languageselectscreen$languageselectionlist$entry = new LanguageSelectScreen.LanguageSelectionList.Entry(p_265492_, p_265377_);\n            this.addEntry(languageselectscreen$languageselectionlist$entry);\n            if (s.equals(p_265492_)) {\n               this.setSelected(languageselectscreen$languageselectionlist$entry);\n            }\n\n         });\n         if (this.getSelected() != null) {\n            this.centerScrollOn(this.getSelected());\n         }\n\n      }\n\n      protected int getScrollbarPosition() {\n         return super.getScrollbarPosition() + 20;\n      }\n\n      public int getRowWidth() {\n         return super.getRowWidth() + 50;\n      }\n\n      protected void renderBackground(GuiGraphics p_282399_) {\n         LanguageSelectScreen.this.renderBackground(p_282399_);\n      }\n\n      @OnlyIn(Dist.CLIENT)\n      public class Entry extends ObjectSelectionList.Entry<LanguageSelectScreen.LanguageSelectionList.Entry> {\n         final String code;\n         private final Component language;\n         private long lastClickTime;\n\n         public Entry(String p_265319_, LanguageInfo p_265357_) {\n            this.code = p_265319_;\n            this.language = p_265357_.toComponent();\n         }\n\n         public void render(GuiGraphics p_282025_, int p_283548_, int p_282485_, int p_282109_, int p_283314_, int p_283303_, int p_281337_, int p_283527_, boolean p_283295_, float p_282169_) {\n            p_282025_.drawCenteredString(LanguageSelectScreen.this.font, this.language, LanguageSelectionList.this.width / 2, p_282485_ + 1, 16777215);\n         }\n\n         public boolean mouseClicked(double p_96122_, double p_96123_, int p_96124_) {\n            if (p_96124_ == 0) {\n               this.select();\n               if (Util.getMillis() - this.lastClickTime < 250L) {\n                  LanguageSelectScreen.this.onDone();\n               }\n\n               this.lastClickTime = Util.getMillis();\n               return true;\n            } else {\n               this.lastClickTime = Util.getMillis();\n               return false;\n            }\n         }\n\n         void select() {\n            LanguageSelectionList.this.setSelected(this);\n         }\n\n         public Component getNarration() {\n            return Component.translatable(\"narrator.select\", this.language);\n         }\n      }\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/OptionsScreen.java",
+        "archive_member": "net/minecraft/client/gui/screens/OptionsScreen.java",
+        "sha256": "c116a65eb322947ba25eefa441199f0947b4b97862bda2300e8e9e3c15179627",
+        "bytes": 8906,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 167,
+        "ranges": [
+          [
+            1,
+            167
+          ]
+        ],
+        "selected_unique_lines": 167,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 167,
+            "text": "package net.minecraft.client.gui.screens;\n\nimport java.util.function.Supplier;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.Options;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.Button;\nimport net.minecraft.client.gui.components.CycleButton;\nimport net.minecraft.client.gui.components.LockIconButton;\nimport net.minecraft.client.gui.layouts.FrameLayout;\nimport net.minecraft.client.gui.layouts.GridLayout;\nimport net.minecraft.client.gui.layouts.LayoutElement;\nimport net.minecraft.client.gui.layouts.LinearLayout;\nimport net.minecraft.client.gui.layouts.SpacerElement;\nimport net.minecraft.client.gui.screens.controls.ControlsScreen;\nimport net.minecraft.client.gui.screens.packs.PackSelectionScreen;\nimport net.minecraft.client.gui.screens.telemetry.TelemetryInfoScreen;\nimport net.minecraft.network.chat.CommonComponents;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.protocol.game.ServerboundChangeDifficultyPacket;\nimport net.minecraft.network.protocol.game.ServerboundLockDifficultyPacket;\nimport net.minecraft.server.packs.repository.PackRepository;\nimport net.minecraft.world.Difficulty;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class OptionsScreen extends Screen {\n   private static final Component SKIN_CUSTOMIZATION = Component.translatable(\"options.skinCustomisation\");\n   private static final Component SOUNDS = Component.translatable(\"options.sounds\");\n   private static final Component VIDEO = Component.translatable(\"options.video\");\n   private static final Component CONTROLS = Component.translatable(\"options.controls\");\n   private static final Component LANGUAGE = Component.translatable(\"options.language\");\n   private static final Component CHAT = Component.translatable(\"options.chat.title\");\n   private static final Component RESOURCEPACK = Component.translatable(\"options.resourcepack\");\n   private static final Component ACCESSIBILITY = Component.translatable(\"options.accessibility.title\");\n   private static final Component TELEMETRY = Component.translatable(\"options.telemetry\");\n   private static final Component CREDITS_AND_ATTRIBUTION = Component.translatable(\"options.credits_and_attribution\");\n   private static final int COLUMNS = 2;\n   private final Screen lastScreen;\n   private final Options options;\n   private CycleButton<Difficulty> difficultyButton;\n   private LockIconButton lockButton;\n\n   public OptionsScreen(Screen p_96242_, Options p_96243_) {\n      super(Component.translatable(\"options.title\"));\n      this.lastScreen = p_96242_;\n      this.options = p_96243_;\n   }\n\n   protected void init() {\n      GridLayout gridlayout = new GridLayout();\n      gridlayout.defaultCellSetting().paddingHorizontal(5).paddingBottom(4).alignHorizontallyCenter();\n      GridLayout.RowHelper gridlayout$rowhelper = gridlayout.createRowHelper(2);\n      gridlayout$rowhelper.addChild(this.options.fov().createButton(this.minecraft.options, 0, 0, 150));\n      gridlayout$rowhelper.addChild(this.createOnlineButton());\n      gridlayout$rowhelper.addChild(SpacerElement.height(26), 2);\n      gridlayout$rowhelper.addChild(this.openScreenButton(SKIN_CUSTOMIZATION, () -> {\n         return new SkinCustomizationScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(SOUNDS, () -> {\n         return new SoundOptionsScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(VIDEO, () -> {\n         return new VideoSettingsScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(CONTROLS, () -> {\n         return new ControlsScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(LANGUAGE, () -> {\n         return new LanguageSelectScreen(this, this.options, this.minecraft.getLanguageManager());\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(CHAT, () -> {\n         return new ChatOptionsScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(RESOURCEPACK, () -> {\n         return new PackSelectionScreen(this.minecraft.getResourcePackRepository(), this::applyPacks, this.minecraft.getResourcePackDirectory(), Component.translatable(\"resourcePack.title\"));\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(ACCESSIBILITY, () -> {\n         return new AccessibilityOptionsScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(TELEMETRY, () -> {\n         return new TelemetryInfoScreen(this, this.options);\n      }));\n      gridlayout$rowhelper.addChild(this.openScreenButton(CREDITS_AND_ATTRIBUTION, () -> {\n         return new CreditsAndAttributionScreen(this);\n      }));\n      gridlayout$rowhelper.addChild(Button.builder(CommonComponents.GUI_DONE, (p_280809_) -> {\n         this.minecraft.setScreen(this.lastScreen);\n      }).width(200).build(), 2, gridlayout$rowhelper.newCellSettings().paddingTop(6));\n      gridlayout.arrangeElements();\n      FrameLayout.alignInRectangle(gridlayout, 0, this.height / 6 - 12, this.width, this.height, 0.5F, 0.0F);\n      gridlayout.visitWidgets(this::addRenderableWidget);\n   }\n\n   private void applyPacks(PackRepository p_275714_) {\n      this.options.updateResourcePacks(p_275714_);\n      this.minecraft.setScreen(this);\n   }\n\n   private LayoutElement createOnlineButton() {\n      if (this.minecraft.level != null && this.minecraft.hasSingleplayerServer()) {\n         this.difficultyButton = createDifficultyButton(0, 0, \"options.difficulty\", this.minecraft);\n         if (!this.minecraft.level.getLevelData().isHardcore()) {\n            this.lockButton = new LockIconButton(0, 0, (p_280806_) -> {\n               this.minecraft.setScreen(new ConfirmScreen(this::lockCallback, Component.translatable(\"difficulty.lock.title\"), Component.translatable(\"difficulty.lock.question\", this.minecraft.level.getLevelData().getDifficulty().getDisplayName())));\n            });\n            this.difficultyButton.setWidth(this.difficultyButton.getWidth() - this.lockButton.getWidth());\n            this.lockButton.setLocked(this.minecraft.level.getLevelData().isDifficultyLocked());\n            this.lockButton.active = !this.lockButton.isLocked();\n            this.difficultyButton.active = !this.lockButton.isLocked();\n            LinearLayout linearlayout = new LinearLayout(150, 0, LinearLayout.Orientation.HORIZONTAL);\n            linearlayout.addChild(this.difficultyButton);\n            linearlayout.addChild(this.lockButton);\n            return linearlayout;\n         } else {\n            this.difficultyButton.active = false;\n            return this.difficultyButton;\n         }\n      } else {\n         return Button.builder(Component.translatable(\"options.online\"), (p_280805_) -> {\n            this.minecraft.setScreen(OnlineOptionsScreen.createOnlineOptionsScreen(this.minecraft, this, this.options));\n         }).bounds(this.width / 2 + 5, this.height / 6 - 12 + 24, 150, 20).build();\n      }\n   }\n\n   public static CycleButton<Difficulty> createDifficultyButton(int p_262051_, int p_261805_, String p_261598_, Minecraft p_261922_) {\n      return CycleButton.builder(Difficulty::getDisplayName).withValues(Difficulty.values()).withInitialValue(p_261922_.level.getDifficulty()).create(p_262051_, p_261805_, 150, 20, Component.translatable(p_261598_), (p_193854_, p_193855_) -> {\n         p_261922_.getConnection().send(new ServerboundChangeDifficultyPacket(p_193855_));\n      });\n   }\n\n   private void lockCallback(boolean p_96261_) {\n      this.minecraft.setScreen(this);\n      if (p_96261_ && this.minecraft.level != null) {\n         this.minecraft.getConnection().send(new ServerboundLockDifficultyPacket(true));\n         this.lockButton.setLocked(true);\n         this.lockButton.active = false;\n         this.difficultyButton.active = false;\n      }\n\n   }\n\n   public void removed() {\n      this.options.save();\n   }\n\n   public void render(GuiGraphics p_283520_, int p_281826_, int p_283378_, float p_281975_) {\n      this.renderBackground(p_283520_);\n      p_283520_.drawCenteredString(this.font, this.title, this.width / 2, 15, 16777215);\n      super.render(p_283520_, p_281826_, p_283378_, p_281975_);\n   }\n\n    @Override\n    public void onClose() {\n        // We need to consider 2 potential parent screens here:\n        // 1. From the main menu, in which case display the main menu\n        // 2. From the pause menu, in which case exit back to game\n        this.minecraft.setScreen(this.lastScreen instanceof PauseScreen ? null : this.lastScreen);\n    }\n\n   private Button openScreenButton(Component p_261565_, Supplier<Screen> p_262119_) {\n      return Button.builder(p_261565_, (p_280808_) -> {\n         this.minecraft.setScreen(p_262119_.get());\n      }).build();\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/OptionsSubScreen.java",
+        "archive_member": "net/minecraft/client/gui/screens/OptionsSubScreen.java",
+        "sha256": "361ee23390045712cf5293a1071b84f3227e6dabbcf7053c9fbbc3a16bae4cee",
+        "bytes": 1192,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 35,
+        "ranges": [
+          [
+            1,
+            35
+          ]
+        ],
+        "selected_unique_lines": 35,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 35,
+            "text": "package net.minecraft.client.gui.screens;\n\nimport net.minecraft.client.Options;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.gui.components.OptionsList;\nimport net.minecraft.network.chat.Component;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class OptionsSubScreen extends Screen {\n   protected final Screen lastScreen;\n   protected final Options options;\n\n   public OptionsSubScreen(Screen p_96284_, Options p_96285_, Component p_96286_) {\n      super(p_96286_);\n      this.lastScreen = p_96284_;\n      this.options = p_96285_;\n   }\n\n   public void removed() {\n      this.minecraft.options.save();\n   }\n\n   public void onClose() {\n      this.minecraft.setScreen(this.lastScreen);\n   }\n\n   protected void basicListRender(GuiGraphics p_282011_, OptionsList p_281793_, int p_281640_, int p_281598_, float p_281558_) {\n      this.renderBackground(p_282011_);\n      p_281793_.render(p_282011_, p_281640_, p_281598_, p_281558_);\n      p_282011_.drawCenteredString(this.font, this.title, this.width / 2, 20, 16777215);\n      super.render(p_282011_, p_281640_, p_281598_, p_281558_);\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/resources/language/LanguageManager.java",
+        "archive_member": "net/minecraft/client/resources/language/LanguageManager.java",
+        "sha256": "aaff62b44768c8e562a87f0bed227dbdb89dd1d1ec4a26d51c616cecab6c79cf",
+        "bytes": 3508,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 89,
+        "ranges": [
+          [
+            1,
+            89
+          ]
+        ],
+        "selected_unique_lines": 89,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 89,
+            "text": "package net.minecraft.client.resources.language;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.Maps;\nimport com.mojang.logging.LogUtils;\nimport java.io.IOException;\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.SortedMap;\nimport java.util.TreeMap;\nimport java.util.stream.Stream;\nimport javax.annotation.Nullable;\nimport net.minecraft.client.resources.metadata.language.LanguageMetadataSection;\nimport net.minecraft.locale.Language;\nimport net.minecraft.server.packs.PackResources;\nimport net.minecraft.server.packs.resources.ResourceManager;\nimport net.minecraft.server.packs.resources.ResourceManagerReloadListener;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport org.slf4j.Logger;\n\n@OnlyIn(Dist.CLIENT)\npublic class LanguageManager implements ResourceManagerReloadListener {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   public static final String DEFAULT_LANGUAGE_CODE = \"en_us\";\n   private static final LanguageInfo DEFAULT_LANGUAGE = new LanguageInfo(\"US\", \"English\", false);\n   private Map<String, LanguageInfo> languages = ImmutableMap.of(\"en_us\", DEFAULT_LANGUAGE);\n   private String currentCode;\n\n   public LanguageManager(String p_118971_) {\n      setSelected(p_118971_);\n   }\n\n   private static Map<String, LanguageInfo> extractLanguages(Stream<PackResources> p_118982_) {\n      Map<String, LanguageInfo> map = Maps.newHashMap();\n      p_118982_.forEach((p_264712_) -> {\n         try {\n            LanguageMetadataSection languagemetadatasection = p_264712_.getMetadataSection(LanguageMetadataSection.TYPE);\n            if (languagemetadatasection != null) {\n               languagemetadatasection.languages().forEach(map::putIfAbsent);\n            }\n         } catch (IOException | RuntimeException runtimeexception) {\n            LOGGER.warn(\"Unable to parse language metadata section of resourcepack: {}\", p_264712_.packId(), runtimeexception);\n         }\n\n      });\n      return ImmutableMap.copyOf(map);\n   }\n\n   public void onResourceManagerReload(ResourceManager p_118973_) {\n      this.languages = extractLanguages(p_118973_.listPacks());\n      List<String> list = new ArrayList<>(2);\n      boolean flag = DEFAULT_LANGUAGE.bidirectional();\n      list.add(\"en_us\");\n      if (!this.currentCode.equals(\"en_us\")) {\n         LanguageInfo languageinfo = this.languages.get(this.currentCode);\n         if (languageinfo != null) {\n            list.add(this.currentCode);\n            flag = languageinfo.bidirectional();\n         }\n      }\n\n      ClientLanguage clientlanguage = ClientLanguage.loadFrom(p_118973_, list, flag);\n      I18n.setLanguage(clientlanguage);\n      Language.inject(clientlanguage);\n   }\n\n   private java.util.Locale javaLocale; // Forge: add locale information for modders\n   public java.util.Locale getJavaLocale() { return javaLocale; }\n   public void setSelected(String p_265224_) {\n      this.currentCode = p_265224_;\n      final String[] langSplit = p_265224_.split(\"_\", 2);\n      this.javaLocale = langSplit.length == 1 ? new java.util.Locale(langSplit[0]) : new java.util.Locale(langSplit[0], langSplit[1]);\n   }\n\n   public String getSelected() {\n      return this.currentCode;\n   }\n\n   public SortedMap<String, LanguageInfo> getLanguages() {\n      return new TreeMap<>(this.languages);\n   }\n\n   @Nullable\n   public LanguageInfo getLanguage(String p_118977_) {\n      return this.languages.get(p_118977_);\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/ResourceLoadStateTracker.java",
+        "archive_member": "net/minecraft/client/ResourceLoadStateTracker.java",
+        "sha256": "d4ccd66d436336e500cb5c5b5e3325a2421ac7133c6b99038d658f6dcb9cb0bb",
+        "bytes": 3819,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 115,
+        "ranges": [
+          [
+            1,
+            115
+          ]
+        ],
+        "selected_unique_lines": 115,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 115,
+            "text": "package net.minecraft.client;\n\nimport com.google.common.collect.ImmutableList;\nimport com.mojang.logging.LogUtils;\nimport java.io.PrintWriter;\nimport java.io.StringWriter;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.CrashReport;\nimport net.minecraft.CrashReportCategory;\nimport net.minecraft.server.packs.PackResources;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport org.slf4j.Logger;\n\n@OnlyIn(Dist.CLIENT)\npublic class ResourceLoadStateTracker {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   @Nullable\n   private ResourceLoadStateTracker.ReloadState reloadState;\n   private int reloadCount;\n\n   public void startReload(ResourceLoadStateTracker.ReloadReason p_168558_, List<PackResources> p_168559_) {\n      ++this.reloadCount;\n      if (this.reloadState != null && !this.reloadState.finished) {\n         LOGGER.warn(\"Reload already ongoing, replacing\");\n      }\n\n      this.reloadState = new ResourceLoadStateTracker.ReloadState(p_168558_, p_168559_.stream().map(PackResources::packId).collect(ImmutableList.toImmutableList()));\n   }\n\n   public void startRecovery(Throwable p_168561_) {\n      if (this.reloadState == null) {\n         LOGGER.warn(\"Trying to signal reload recovery, but nothing was started\");\n         this.reloadState = new ResourceLoadStateTracker.ReloadState(ResourceLoadStateTracker.ReloadReason.UNKNOWN, ImmutableList.of());\n      }\n\n      this.reloadState.recoveryReloadInfo = new ResourceLoadStateTracker.RecoveryInfo(p_168561_);\n   }\n\n   public void finishReload() {\n      if (this.reloadState == null) {\n         LOGGER.warn(\"Trying to finish reload, but nothing was started\");\n      } else {\n         this.reloadState.finished = true;\n      }\n\n   }\n\n   public void fillCrashReport(CrashReport p_168563_) {\n      CrashReportCategory crashreportcategory = p_168563_.addCategory(\"Last reload\");\n      crashreportcategory.setDetail(\"Reload number\", this.reloadCount);\n      if (this.reloadState != null) {\n         this.reloadState.fillCrashInfo(crashreportcategory);\n      }\n\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   static class RecoveryInfo {\n      private final Throwable error;\n\n      RecoveryInfo(Throwable p_168566_) {\n         this.error = p_168566_;\n      }\n\n      public void fillCrashInfo(CrashReportCategory p_168569_) {\n         p_168569_.setDetail(\"Recovery\", \"Yes\");\n         p_168569_.setDetail(\"Recovery reason\", () -> {\n            StringWriter stringwriter = new StringWriter();\n            this.error.printStackTrace(new PrintWriter(stringwriter));\n            return stringwriter.toString();\n         });\n      }\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   public static enum ReloadReason {\n      INITIAL(\"initial\"),\n      MANUAL(\"manual\"),\n      UNKNOWN(\"unknown\");\n\n      final String name;\n\n      private ReloadReason(String p_168579_) {\n         this.name = p_168579_;\n      }\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   static class ReloadState {\n      private final ResourceLoadStateTracker.ReloadReason reloadReason;\n      private final List<String> packs;\n      @Nullable\n      ResourceLoadStateTracker.RecoveryInfo recoveryReloadInfo;\n      boolean finished;\n\n      ReloadState(ResourceLoadStateTracker.ReloadReason p_168589_, List<String> p_168590_) {\n         this.reloadReason = p_168589_;\n         this.packs = p_168590_;\n      }\n\n      public void fillCrashInfo(CrashReportCategory p_168593_) {\n         p_168593_.setDetail(\"Reload reason\", this.reloadReason.name);\n         p_168593_.setDetail(\"Finished\", this.finished ? \"Yes\" : \"No\");\n         p_168593_.setDetail(\"Packs\", () -> {\n            return String.join(\", \", this.packs);\n         });\n         if (this.recoveryReloadInfo != null) {\n            this.recoveryReloadInfo.fillCrashInfo(p_168593_);\n         }\n\n      }\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/LoadingOverlay.java",
+        "archive_member": "net/minecraft/client/gui/screens/LoadingOverlay.java",
+        "sha256": "9141d7289a6a58dbd79c0c7ec31eff4efcc9a28d626c2c27031ab16a548ded68",
+        "bytes": 8429,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 185,
+        "ranges": [
+          [
+            1,
+            185
+          ]
+        ],
+        "selected_unique_lines": 185,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 185,
+            "text": "package net.minecraft.client.gui.screens;\n\nimport com.mojang.blaze3d.platform.GlStateManager;\nimport com.mojang.blaze3d.platform.NativeImage;\nimport com.mojang.blaze3d.systems.RenderSystem;\nimport java.io.FileNotFoundException;\nimport java.io.IOException;\nimport java.io.InputStream;\nimport java.util.Optional;\nimport java.util.function.Consumer;\nimport java.util.function.IntSupplier;\nimport net.minecraft.Util;\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.gui.GuiGraphics;\nimport net.minecraft.client.renderer.RenderType;\nimport net.minecraft.client.renderer.texture.SimpleTexture;\nimport net.minecraft.client.resources.metadata.texture.TextureMetadataSection;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.packs.PackType;\nimport net.minecraft.server.packs.VanillaPackResources;\nimport net.minecraft.server.packs.resources.IoSupplier;\nimport net.minecraft.server.packs.resources.ReloadInstance;\nimport net.minecraft.server.packs.resources.ResourceManager;\nimport net.minecraft.util.FastColor;\nimport net.minecraft.util.Mth;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class LoadingOverlay extends Overlay {\n   static final ResourceLocation MOJANG_STUDIOS_LOGO_LOCATION = new ResourceLocation(\"textures/gui/title/mojangstudios.png\");\n   private static final int LOGO_BACKGROUND_COLOR = FastColor.ARGB32.color(255, 239, 50, 61);\n   private static final int LOGO_BACKGROUND_COLOR_DARK = FastColor.ARGB32.color(255, 0, 0, 0);\n   private static final IntSupplier BRAND_BACKGROUND = () -> {\n      return Minecraft.getInstance().options.darkMojangStudiosBackground().get() ? LOGO_BACKGROUND_COLOR_DARK : LOGO_BACKGROUND_COLOR;\n   };\n   private static final int LOGO_SCALE = 240;\n   private static final float LOGO_QUARTER_FLOAT = 60.0F;\n   private static final int LOGO_QUARTER = 60;\n   private static final int LOGO_HALF = 120;\n   private static final float LOGO_OVERLAP = 0.0625F;\n   private static final float SMOOTHING = 0.95F;\n   public static final long FADE_OUT_TIME = 1000L;\n   public static final long FADE_IN_TIME = 500L;\n   private final Minecraft minecraft;\n   private final ReloadInstance reload;\n   private final Consumer<Optional<Throwable>> onFinish;\n   private final boolean fadeIn;\n   private float currentProgress;\n   private long fadeOutStart = -1L;\n   private long fadeInStart = -1L;\n\n   public LoadingOverlay(Minecraft p_96172_, ReloadInstance p_96173_, Consumer<Optional<Throwable>> p_96174_, boolean p_96175_) {\n      this.minecraft = p_96172_;\n      this.reload = p_96173_;\n      this.onFinish = p_96174_;\n      this.fadeIn = p_96175_;\n   }\n\n   public static void registerTextures(Minecraft p_96190_) {\n      p_96190_.getTextureManager().register(MOJANG_STUDIOS_LOGO_LOCATION, new LoadingOverlay.LogoTexture());\n   }\n\n   private static int replaceAlpha(int p_169325_, int p_169326_) {\n      return p_169325_ & 16777215 | p_169326_ << 24;\n   }\n\n   public void render(GuiGraphics p_281839_, int p_282704_, int p_283650_, float p_283394_) {\n      int i = p_281839_.guiWidth();\n      int j = p_281839_.guiHeight();\n      long k = Util.getMillis();\n      if (this.fadeIn && this.fadeInStart == -1L) {\n         this.fadeInStart = k;\n      }\n\n      float f = this.fadeOutStart > -1L ? (float)(k - this.fadeOutStart) / 1000.0F : -1.0F;\n      float f1 = this.fadeInStart > -1L ? (float)(k - this.fadeInStart) / 500.0F : -1.0F;\n      float f2;\n      if (f >= 1.0F) {\n         if (this.minecraft.screen != null) {\n            this.minecraft.screen.render(p_281839_, 0, 0, p_283394_);\n         }\n\n         int l = Mth.ceil((1.0F - Mth.clamp(f - 1.0F, 0.0F, 1.0F)) * 255.0F);\n         p_281839_.fill(RenderType.guiOverlay(), 0, 0, i, j, replaceAlpha(BRAND_BACKGROUND.getAsInt(), l));\n         f2 = 1.0F - Mth.clamp(f - 1.0F, 0.0F, 1.0F);\n      } else if (this.fadeIn) {\n         if (this.minecraft.screen != null && f1 < 1.0F) {\n            this.minecraft.screen.render(p_281839_, p_282704_, p_283650_, p_283394_);\n         }\n\n         int l1 = Mth.ceil(Mth.clamp((double)f1, 0.15D, 1.0D) * 255.0D);\n         p_281839_.fill(RenderType.guiOverlay(), 0, 0, i, j, replaceAlpha(BRAND_BACKGROUND.getAsInt(), l1));\n         f2 = Mth.clamp(f1, 0.0F, 1.0F);\n      } else {\n         int i2 = BRAND_BACKGROUND.getAsInt();\n         float f3 = (float)(i2 >> 16 & 255) / 255.0F;\n         float f4 = (float)(i2 >> 8 & 255) / 255.0F;\n         float f5 = (float)(i2 & 255) / 255.0F;\n         GlStateManager._clearColor(f3, f4, f5, 1.0F);\n         GlStateManager._clear(16384, Minecraft.ON_OSX);\n         f2 = 1.0F;\n      }\n\n      int j2 = (int)((double)p_281839_.guiWidth() * 0.5D);\n      int k2 = (int)((double)p_281839_.guiHeight() * 0.5D);\n      double d1 = Math.min((double)p_281839_.guiWidth() * 0.75D, (double)p_281839_.guiHeight()) * 0.25D;\n      int i1 = (int)(d1 * 0.5D);\n      double d0 = d1 * 4.0D;\n      int j1 = (int)(d0 * 0.5D);\n      RenderSystem.disableDepthTest();\n      RenderSystem.depthMask(false);\n      RenderSystem.enableBlend();\n      RenderSystem.blendFunc(770, 1);\n      p_281839_.setColor(1.0F, 1.0F, 1.0F, f2);\n      p_281839_.blit(MOJANG_STUDIOS_LOGO_LOCATION, j2 - j1, k2 - i1, j1, (int)d1, -0.0625F, 0.0F, 120, 60, 120, 120);\n      p_281839_.blit(MOJANG_STUDIOS_LOGO_LOCATION, j2, k2 - i1, j1, (int)d1, 0.0625F, 60.0F, 120, 60, 120, 120);\n      p_281839_.setColor(1.0F, 1.0F, 1.0F, 1.0F);\n      RenderSystem.defaultBlendFunc();\n      RenderSystem.disableBlend();\n      RenderSystem.depthMask(true);\n      RenderSystem.enableDepthTest();\n      int k1 = (int)((double)p_281839_.guiHeight() * 0.8325D);\n      float f6 = this.reload.getActualProgress();\n      this.currentProgress = Mth.clamp(this.currentProgress * 0.95F + f6 * 0.050000012F, 0.0F, 1.0F);\n      if (f < 1.0F) {\n         this.drawProgressBar(p_281839_, i / 2 - j1, k1 - 5, i / 2 + j1, k1 + 5, 1.0F - Mth.clamp(f, 0.0F, 1.0F));\n      }\n\n      if (f >= 2.0F) {\n         this.minecraft.setOverlay((Overlay)null);\n      }\n\n      if (this.fadeOutStart == -1L && this.reload.isDone() && (!this.fadeIn || f1 >= 2.0F)) {\n         this.fadeOutStart = Util.getMillis(); // Moved up to guard against inf loops caused by callback\n         try {\n            this.reload.checkExceptions();\n            this.onFinish.accept(Optional.empty());\n         } catch (Throwable throwable) {\n            this.onFinish.accept(Optional.of(throwable));\n         }\n\n         if (this.minecraft.screen != null) {\n            this.minecraft.screen.init(this.minecraft, p_281839_.guiWidth(), p_281839_.guiHeight());\n         }\n      }\n\n   }\n\n   private void drawProgressBar(GuiGraphics p_283125_, int p_96184_, int p_96185_, int p_96186_, int p_96187_, float p_96188_) {\n      int i = Mth.ceil((float)(p_96186_ - p_96184_ - 2) * this.currentProgress);\n      int j = Math.round(p_96188_ * 255.0F);\n      int k = FastColor.ARGB32.color(j, 255, 255, 255);\n      p_283125_.fill(p_96184_ + 2, p_96185_ + 2, p_96184_ + i, p_96187_ - 2, k);\n      p_283125_.fill(p_96184_ + 1, p_96185_, p_96186_ - 1, p_96185_ + 1, k);\n      p_283125_.fill(p_96184_ + 1, p_96187_, p_96186_ - 1, p_96187_ - 1, k);\n      p_283125_.fill(p_96184_, p_96185_, p_96184_ + 1, p_96187_, k);\n      p_283125_.fill(p_96186_, p_96185_, p_96186_ - 1, p_96187_, k);\n   }\n\n   public boolean isPauseScreen() {\n      return true;\n   }\n\n   @OnlyIn(Dist.CLIENT)\n   static class LogoTexture extends SimpleTexture {\n      public LogoTexture() {\n         super(LoadingOverlay.MOJANG_STUDIOS_LOGO_LOCATION);\n      }\n\n      protected SimpleTexture.TextureImage getTextureImage(ResourceManager p_96194_) {\n         VanillaPackResources vanillapackresources = Minecraft.getInstance().getVanillaPackResources();\n         IoSupplier<InputStream> iosupplier = vanillapackresources.getResource(PackType.CLIENT_RESOURCES, LoadingOverlay.MOJANG_STUDIOS_LOGO_LOCATION);\n         if (iosupplier == null) {\n            return new SimpleTexture.TextureImage(new FileNotFoundException(LoadingOverlay.MOJANG_STUDIOS_LOGO_LOCATION.toString()));\n         } else {\n            try (InputStream inputstream = iosupplier.get()) {\n               return new SimpleTexture.TextureImage(new TextureMetadataSection(true, true), NativeImage.read(inputstream));\n            } catch (IOException ioexception) {\n               return new SimpleTexture.TextureImage(ioexception);\n            }\n         }\n      }\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/resources/language/ClientLanguage.java",
+        "archive_member": "net/minecraft/client/resources/language/ClientLanguage.java",
+        "sha256": "f8be99aa06487d257a5d993858911a873e8f6bd37ba70ce6b88e475617797086",
+        "bytes": 2897,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 82,
+        "ranges": [
+          [
+            1,
+            82
+          ]
+        ],
+        "selected_unique_lines": 82,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 82,
+            "text": "package net.minecraft.client.resources.language;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.Maps;\nimport com.mojang.logging.LogUtils;\nimport java.io.IOException;\nimport java.io.InputStream;\nimport java.util.List;\nimport java.util.Locale;\nimport java.util.Map;\nimport net.minecraft.locale.Language;\nimport net.minecraft.network.chat.FormattedText;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.packs.resources.Resource;\nimport net.minecraft.server.packs.resources.ResourceManager;\nimport net.minecraft.util.FormattedCharSequence;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport org.slf4j.Logger;\n\n@OnlyIn(Dist.CLIENT)\npublic class ClientLanguage extends Language {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private final Map<String, String> storage;\n   private final boolean defaultRightToLeft;\n\n   private ClientLanguage(Map<String, String> p_118914_, boolean p_118915_) {\n      this.storage = p_118914_;\n      this.defaultRightToLeft = p_118915_;\n   }\n\n   public static ClientLanguage loadFrom(ResourceManager p_265765_, List<String> p_265743_, boolean p_265470_) {\n      Map<String, String> map = Maps.newHashMap();\n\n      for(String s : p_265743_) {\n         String s1 = String.format(Locale.ROOT, \"lang/%s.json\", s);\n\n         for(String s2 : p_265765_.getNamespaces()) {\n            try {\n               ResourceLocation resourcelocation = new ResourceLocation(s2, s1);\n               appendFrom(s, p_265765_.getResourceStack(resourcelocation), map);\n            } catch (Exception exception) {\n               LOGGER.warn(\"Skipped language file: {}:{} ({})\", s2, s1, exception.toString());\n            }\n         }\n      }\n\n      return new ClientLanguage(ImmutableMap.copyOf(map), p_265470_);\n   }\n\n   private static void appendFrom(String p_235036_, List<Resource> p_235037_, Map<String, String> p_235038_) {\n      for(Resource resource : p_235037_) {\n         try (InputStream inputstream = resource.open()) {\n            Language.loadFromJson(inputstream, p_235038_::put);\n         } catch (IOException ioexception) {\n            LOGGER.warn(\"Failed to load translations for {} from pack {}\", p_235036_, resource.sourcePackId(), ioexception);\n         }\n      }\n\n   }\n\n   public String getOrDefault(String p_118920_, String p_265273_) {\n      return this.storage.getOrDefault(p_118920_, p_265273_);\n   }\n\n   public boolean has(String p_118928_) {\n      return this.storage.containsKey(p_118928_);\n   }\n\n   public boolean isDefaultRightToLeft() {\n      return this.defaultRightToLeft;\n   }\n\n   public FormattedCharSequence getVisualOrder(FormattedText p_118925_) {\n      return FormattedBidiReorder.reorder(p_118925_, this.defaultRightToLeft);\n   }\n\n   @Override\n   public Map<String, String> getLanguageData() {\n      return storage;\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/resources/language/I18n.java",
+        "archive_member": "net/minecraft/client/resources/language/I18n.java",
+        "sha256": "5d709b8a6f9a05ea08f6e60302bd8d88f49fb1580389eb9c28058efc59263bcf",
+        "bytes": 928,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 33,
+        "ranges": [
+          [
+            1,
+            33
+          ]
+        ],
+        "selected_unique_lines": 33,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 33,
+            "text": "package net.minecraft.client.resources.language;\n\nimport java.util.IllegalFormatException;\nimport net.minecraft.locale.Language;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class I18n {\n   private static volatile Language language = Language.getInstance();\n\n   private I18n() {\n   }\n\n   static void setLanguage(Language p_118942_) {\n      language = p_118942_;\n      net.minecraftforge.common.ForgeI18n.loadLanguageData(p_118942_.getLanguageData());\n   }\n\n   public static String get(String p_118939_, Object... p_118940_) {\n      String s = language.getOrDefault(p_118939_);\n\n      try {\n         return String.format(s, p_118940_);\n      } catch (IllegalFormatException illegalformatexception) {\n         return \"Format error: \" + s;\n      }\n   }\n\n   public static boolean exists(String p_118937_) {\n      return language.has(p_118937_);\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/navigation/CommonInputs.java",
+        "archive_member": "net/minecraft/client/gui/navigation/CommonInputs.java",
+        "sha256": "f057f973bbbbb246dc94df18efe88759b6a705e08b4a20e593ce2f92e97a1ff9",
+        "bytes": 319,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": true,
+        "total_file_lines": 11,
+        "ranges": [
+          [
+            1,
+            11
+          ]
+        ],
+        "selected_unique_lines": 11,
+        "actual_source": [
+          {
+            "from": 1,
+            "to": 11,
+            "text": "package net.minecraft.client.gui.navigation;\n\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\n\n@OnlyIn(Dist.CLIENT)\npublic class CommonInputs {\n   public static boolean selected(int p_279282_) {\n      return p_279282_ == 257 || p_279282_ == 32 || p_279282_ == 335;\n   }\n}"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/Minecraft.java",
+        "archive_member": "net/minecraft/client/Minecraft.java",
+        "sha256": "92ebe926f67bb8b4a706349a4af397d5f4b2f6d054aee1a5ac70c0697632c59a",
+        "bytes": 118880,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": false,
+        "total_file_lines": 2897,
+        "ranges": [
+          [
+            660,
+            695
+          ],
+          [
+            860,
+            896
+          ],
+          [
+            970,
+            1015
+          ],
+          [
+            1090,
+            1096
+          ],
+          [
+            1268,
+            1281
+          ]
+        ],
+        "selected_unique_lines": 140,
+        "actual_source": [
+          {
+            "from": 660,
+            "to": 695,
+            "text": "   private void rollbackResourcePacks(Throwable p_91240_) {\n      if (this.resourcePackRepository.getSelectedPacks().stream().anyMatch(e -> !e.isRequired())) { //Forge: This caused infinite loop if any resource packs are forced. Such as mod resources. So check if we can disable any.\n         this.clearResourcePacksOnError(p_91240_, (Component)null);\n      } else {\n         Util.throwAsRuntime(p_91240_);\n      }\n\n   }\n\n   public void clearResourcePacksOnError(Throwable p_91242_, @Nullable Component p_91243_) {\n      LOGGER.info(\"Caught error loading resourcepacks, removing all selected resourcepacks\", p_91242_);\n      this.reloadStateTracker.startRecovery(p_91242_);\n      this.resourcePackRepository.setSelected(Collections.emptyList());\n      this.options.resourcePacks.clear();\n      this.options.incompatibleResourcePacks.clear();\n      this.options.save();\n      this.reloadResourcePacks(true).thenRun(() -> {\n         this.addResourcePackLoadFailToast(p_91243_);\n      });\n   }\n\n   private void abortResourcePackRecovery() {\n      this.setOverlay((Overlay)null);\n      if (this.level != null) {\n         this.level.disconnect();\n         this.clearLevel();\n      }\n\n      this.setScreen(new TitleScreen());\n      this.addResourcePackLoadFailToast((Component)null);\n   }\n\n   private void addResourcePackLoadFailToast(@Nullable Component p_273566_) {\n      ToastComponent toastcomponent = this.getToasts();\n      SystemToast.addOrUpdate(toastcomponent, SystemToast.SystemToastIds.PACK_LOAD_FAILURE, Component.translatable(\"resourcePack.load_fail\"), p_273566_);\n   }"
+          },
+          {
+            "from": 860,
+            "to": 896,
+            "text": "   public CompletableFuture<Void> reloadResourcePacks() {\n      return this.reloadResourcePacks(false);\n   }\n\n   private CompletableFuture<Void> reloadResourcePacks(boolean p_168020_) {\n      if (this.pendingReload != null) {\n         return this.pendingReload;\n      } else {\n         CompletableFuture<Void> completablefuture = new CompletableFuture<>();\n         if (!p_168020_ && this.overlay instanceof LoadingOverlay) {\n            this.pendingReload = completablefuture;\n            return completablefuture;\n         } else {\n            this.resourcePackRepository.reload();\n            List<PackResources> list = this.resourcePackRepository.openAllSelected();\n            if (!p_168020_) {\n               this.reloadStateTracker.startReload(ResourceLoadStateTracker.ReloadReason.MANUAL, list);\n            }\n\n            this.setOverlay(new LoadingOverlay(this, this.resourceManager.createReload(Util.backgroundExecutor(), this, RESOURCE_RELOAD_INITIAL_TASK, list), (p_272299_) -> {\n               Util.ifElse(p_272299_, (p_272301_) -> {\n                  if (p_168020_) {\n                     this.abortResourcePackRecovery();\n                  } else {\n                     this.rollbackResourcePacks(p_272301_);\n                  }\n\n               }, () -> {\n                  this.levelRenderer.allChanged();\n                  this.reloadStateTracker.finishReload();\n                  completablefuture.complete((Void)null);\n               });\n            }, true));\n            return completablefuture;\n         }\n      }\n   }"
+          },
+          {
+            "from": 970,
+            "to": 1015,
+            "text": "   public void setScreen(@Nullable Screen p_91153_) {\n      if (SharedConstants.IS_RUNNING_IN_IDE && Thread.currentThread() != this.gameThread) {\n         LOGGER.error(\"setScreen called from non-game thread\");\n      }\n\n      if (p_91153_ == null && this.level == null) {\n         p_91153_ = new TitleScreen();\n      } else if (p_91153_ == null && this.player.isDeadOrDying()) {\n         if (this.player.shouldShowDeathScreen()) {\n            p_91153_ = new DeathScreen((Component)null, this.level.getLevelData().isHardcore());\n         } else {\n            this.player.respawn();\n         }\n      }\n\n      net.minecraftforge.client.ForgeHooksClient.clearGuiLayers(this);\n      Screen old = this.screen;\n      if (p_91153_ != null) {\n         var event = new net.minecraftforge.client.event.ScreenEvent.Opening(old, p_91153_);\n         if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event)) return;\n         p_91153_ = event.getNewScreen();\n      }\n\n      if (old != null && p_91153_ != old) {\n         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Closing(old));\n         old.removed();\n      }\n\n      this.screen = p_91153_;\n      if (this.screen != null) {\n         this.screen.added();\n      }\n\n      BufferUploader.reset();\n      if (p_91153_ != null) {\n         this.mouseHandler.releaseMouse();\n         KeyMapping.releaseAll();\n         p_91153_.init(this, this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());\n         this.noRender = false;\n      } else {\n         this.soundManager.resume();\n         this.mouseHandler.grabMouse();\n      }\n\n      this.updateTitle();\n   }"
+          },
+          {
+            "from": 1090,
+            "to": 1096,
+            "text": "      if (this.pendingReload != null && !(this.overlay instanceof LoadingOverlay)) {\n         CompletableFuture<Void> completablefuture = this.pendingReload;\n         this.pendingReload = null;\n         this.reloadResourcePacks().thenRun(() -> {\n            completablefuture.complete((Void)null);\n         });\n      }"
+          },
+          {
+            "from": 1268,
+            "to": 1281,
+            "text": "   public void resizeDisplay() {\n      int i = this.window.calculateScale(this.options.guiScale().get(), this.isEnforceUnicode());\n      this.window.setGuiScale((double)i);\n      if (this.screen != null) {\n         this.screen.resize(this, this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());\n         net.minecraftforge.client.ForgeHooksClient.resizeGuiLayers(this, this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());\n      }\n\n      RenderTarget rendertarget = this.getMainRenderTarget();\n      rendertarget.resize(this.window.getWidth(), this.window.getHeight(), ON_OSX);\n      if (this.gameRenderer != null)\n      this.gameRenderer.resize(this.window.getWidth(), this.window.getHeight());\n      this.mouseHandler.setIgnoreFirstMove();\n   }"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/Screen.java",
+        "archive_member": "net/minecraft/client/gui/screens/Screen.java",
+        "sha256": "f3aacbf124f8ecb15296ff9ab6e6665b6294b16977059c285a05ff19cfc91c56",
+        "bytes": 24392,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": false,
+        "total_file_lines": 646,
+        "ranges": [
+          [
+            124,
+            130
+          ],
+          [
+            314,
+            357
+          ],
+          [
+            425,
+            433
+          ]
+        ],
+        "selected_unique_lines": 60,
+        "actual_source": [
+          {
+            "from": 124,
+            "to": 130,
+            "text": "   public boolean keyPressed(int p_96552_, int p_96553_, int p_96554_) {\n      if (p_96552_ == 256 && this.shouldCloseOnEsc()) {\n         this.onClose();\n         return true;\n      } else if (super.keyPressed(p_96552_, p_96553_, p_96554_)) {\n         return true;\n      } else {"
+          },
+          {
+            "from": 314,
+            "to": 357,
+            "text": "   public final void init(Minecraft p_96607_, int p_96608_, int p_96609_) {\n      this.minecraft = p_96607_;\n      this.font = p_96607_.font;\n      this.width = p_96608_;\n      this.height = p_96609_;\n      if (!this.initialized) {\n         if (!net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Pre(this, this.children, this::addEventWidget, this::removeWidget))) {\n         this.init();\n         }\n         net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Post(this, this.children, this::addEventWidget, this::removeWidget));\n      } else {\n         this.repositionElements();\n      }\n\n      this.initialized = true;\n      this.triggerImmediateNarration(false);\n      this.suppressNarration(NARRATE_SUPPRESS_AFTER_INIT_TIME);\n   }\n\n   protected void rebuildWidgets() {\n      this.clearWidgets();\n      this.clearFocus();\n      if (!net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Pre(this, this.children, this::addEventWidget, this::removeWidget))) {\n      this.init();\n      }\n      net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.client.event.ScreenEvent.Init.Post(this, this.children, this::addEventWidget, this::removeWidget));\n   }\n\n   public List<? extends GuiEventListener> children() {\n      return this.children;\n   }\n\n   protected void init() {\n   }\n\n   public void tick() {\n   }\n\n   public void removed() {\n   }\n\n   public void added() {\n   }\n"
+          },
+          {
+            "from": 425,
+            "to": 433,
+            "text": "   protected void repositionElements() {\n      this.rebuildWidgets();\n   }\n\n   public void resize(Minecraft p_96575_, int p_96576_, int p_96577_) {\n      this.width = p_96576_;\n      this.height = p_96577_;\n      this.repositionElements();\n   }"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/network/chat/contents/TranslatableContents.java",
+        "archive_member": "net/minecraft/network/chat/contents/TranslatableContents.java",
+        "sha256": "04675d2690e17b5de14b6aed1bf28a8eaed7dfc0a664c84118b0e30dfbae5210",
+        "bytes": 7072,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": false,
+        "total_file_lines": 204,
+        "ranges": [
+          [
+            24,
+            58
+          ],
+          [
+            126,
+            150
+          ]
+        ],
+        "selected_unique_lines": 60,
+        "actual_source": [
+          {
+            "from": 24,
+            "to": 58,
+            "text": "   public static final Object[] NO_ARGS = new Object[0];\n   private static final FormattedText TEXT_PERCENT = FormattedText.of(\"%\");\n   private static final FormattedText TEXT_NULL = FormattedText.of(\"null\");\n   private final String key;\n   @Nullable\n   private final String fallback;\n   private final Object[] args;\n   @Nullable\n   private Language decomposedWith;\n   private List<FormattedText> decomposedParts = ImmutableList.of();\n   private static final Pattern FORMAT_PATTERN = Pattern.compile(\"%(?:(\\\\d+)\\\\$)?([A-Za-z%]|$)\");\n\n   public TranslatableContents(String p_265775_, @Nullable String p_265204_, Object[] p_265752_) {\n      this.key = p_265775_;\n      this.fallback = p_265204_;\n      this.args = p_265752_;\n   }\n\n   private void decompose() {\n      Language language = Language.getInstance();\n      if (language != this.decomposedWith) {\n         this.decomposedWith = language;\n         String s = this.fallback != null ? language.getOrDefault(this.key, this.fallback) : language.getOrDefault(this.key);\n\n         try {\n            ImmutableList.Builder<FormattedText> builder = ImmutableList.builder();\n            this.decomposeTemplate(s, builder::add);\n            this.decomposedParts = builder.build();\n         } catch (TranslatableFormatException translatableformatexception) {\n            this.decomposedParts = ImmutableList.of(FormattedText.of(s));\n         }\n\n      }\n   }\n"
+          },
+          {
+            "from": 126,
+            "to": 150,
+            "text": "   public <T> Optional<T> visit(FormattedText.StyledContentConsumer<T> p_237521_, Style p_237522_) {\n      this.decompose();\n\n      for(FormattedText formattedtext : this.decomposedParts) {\n         Optional<T> optional = formattedtext.visit(p_237521_, p_237522_);\n         if (optional.isPresent()) {\n            return optional;\n         }\n      }\n\n      return Optional.empty();\n   }\n\n   public <T> Optional<T> visit(FormattedText.ContentConsumer<T> p_237519_) {\n      this.decompose();\n\n      for(FormattedText formattedtext : this.decomposedParts) {\n         Optional<T> optional = formattedtext.visit(p_237519_);\n         if (optional.isPresent()) {\n            return optional;\n         }\n      }\n\n      return Optional.empty();\n   }"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/Options.java",
+        "archive_member": "net/minecraft/client/Options.java",
+        "sha256": "b2465ba4cc21b86421b9faa15e6700f0c751ab0fc10e2570feaedb93c0f4138e",
+        "bytes": 71878,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": false,
+        "total_file_lines": 1369,
+        "ranges": [
+          [
+            602,
+            622
+          ],
+          [
+            949,
+            959
+          ],
+          [
+            1162,
+            1220
+          ]
+        ],
+        "selected_unique_lines": 91,
+        "actual_source": [
+          {
+            "from": 602,
+            "to": 622,
+            "text": "   public void updateResourcePacks(PackRepository p_275268_) {\n      List<String> list = ImmutableList.copyOf(this.resourcePacks);\n      this.resourcePacks.clear();\n      this.incompatibleResourcePacks.clear();\n\n      for(Pack pack : p_275268_.getSelectedPacks()) {\n         if (!pack.isFixedPosition()) {\n            this.resourcePacks.add(pack.getId());\n            if (!pack.getCompatibility().isCompatible()) {\n               this.incompatibleResourcePacks.add(pack.getId());\n            }\n         }\n      }\n\n      this.save();\n      List<String> list1 = ImmutableList.copyOf(this.resourcePacks);\n      if (!list1.equals(list)) {\n         this.minecraft.reloadResourcePacks();\n      }\n\n   }"
+          },
+          {
+            "from": 949,
+            "to": 959,
+            "text": "      p_168428_.process(\"prioritizeChunkUpdates\", this.prioritizeChunkUpdates);\n      p_168428_.process(\"biomeBlendRadius\", this.biomeBlendRadius);\n      p_168428_.process(\"renderClouds\", this.cloudStatus);\n      this.resourcePacks = p_168428_.process(\"resourcePacks\", this.resourcePacks, Options::readPackList, GSON::toJson);\n      this.incompatibleResourcePacks = p_168428_.process(\"incompatibleResourcePacks\", this.incompatibleResourcePacks, Options::readPackList, GSON::toJson);\n      this.lastMpIp = p_168428_.process(\"lastServer\", this.lastMpIp);\n      this.languageCode = p_168428_.process(\"lang\", this.languageCode);\n      p_168428_.process(\"soundDevice\", this.soundDevice);\n      p_168428_.process(\"chatVisibility\", this.chatVisibility);\n      p_168428_.process(\"chatOpacity\", this.chatOpacity);\n      p_168428_.process(\"chatLineSpacing\", this.chatLineSpacing);"
+          },
+          {
+            "from": 1162,
+            "to": 1220,
+            "text": "   public void save() {\n      try (final PrintWriter printwriter = new PrintWriter(new OutputStreamWriter(new FileOutputStream(this.optionsFile), StandardCharsets.UTF_8))) {\n         printwriter.println(\"version:\" + SharedConstants.getCurrentVersion().getDataVersion().getVersion());\n         this.processOptions(new Options.FieldAccess() {\n            public void writePrefix(String p_168491_) {\n               printwriter.print(p_168491_);\n               printwriter.print(':');\n            }\n\n            public <T> void process(String p_232135_, OptionInstance<T> p_232136_) {\n               DataResult<JsonElement> dataresult = p_232136_.codec().encodeStart(JsonOps.INSTANCE, p_232136_.get());\n               dataresult.error().ifPresent((p_232133_) -> {\n                  Options.LOGGER.error(\"Error saving option \" + p_232136_ + \": \" + p_232133_);\n               });\n               dataresult.result().ifPresent((p_232140_) -> {\n                  this.writePrefix(p_232135_);\n                  printwriter.println(Options.GSON.toJson(p_232140_));\n               });\n            }\n\n            public int process(String p_168499_, int p_168500_) {\n               this.writePrefix(p_168499_);\n               printwriter.println(p_168500_);\n               return p_168500_;\n            }\n\n            public boolean process(String p_168515_, boolean p_168516_) {\n               this.writePrefix(p_168515_);\n               printwriter.println(p_168516_);\n               return p_168516_;\n            }\n\n            public String process(String p_168512_, String p_168513_) {\n               this.writePrefix(p_168512_);\n               printwriter.println(p_168513_);\n               return p_168513_;\n            }\n\n            public float process(String p_168496_, float p_168497_) {\n               this.writePrefix(p_168496_);\n               printwriter.println(p_168497_);\n               return p_168497_;\n            }\n\n            public <T> T process(String p_168502_, T p_168503_, Function<String, T> p_168504_, Function<T, String> p_168505_) {\n               this.writePrefix(p_168502_);\n               printwriter.println(p_168505_.apply(p_168503_));\n               return p_168503_;\n            }\n         });\n         if (this.minecraft.getWindow().getPreferredFullscreenVideoMode().isPresent()) {\n            printwriter.println(\"fullscreenResolution:\" + this.minecraft.getWindow().getPreferredFullscreenVideoMode().get().write());\n         }\n      } catch (Exception exception) {\n         LOGGER.error(\"Failed to save options\", (Throwable)exception);\n      }\n\n      this.broadcastOptions();\n   }"
+          }
+        ]
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/locale/Language.java",
+        "archive_member": "net/minecraft/locale/Language.java",
+        "sha256": "0abeea7a0d1957010f138e1b12767cbe083c2bb0d172bdb10a2da348d66ce757",
+        "bytes": 4180,
+        "matches_fixed_archive": true,
+        "whole_file_actual_read": false,
+        "total_file_lines": 112,
+        "ranges": [
+          [
+            86,
+            92
+          ]
+        ],
+        "selected_unique_lines": 7,
+        "actual_source": [
+          {
+            "from": 86,
+            "to": 92,
+            "text": "   public static Language getInstance() {\n      return instance;\n   }\n\n   public static void inject(Language p_128115_) {\n      instance = p_128115_;\n   }"
+          }
+        ]
+      }
+    ],
+    "full_chain_observation": [
+      {
+        "id": "F01",
+        "owner": "OptionsScreen45-98,162-165; OptionsSubScreen whole",
+        "finding": "Options creates LanguageSelectScreen with itself as lastScreen. Language child retains Options and shared Options/LanguageManager; Options in turn retains original Hub parent. Other settings buttons are containing-class context, not extra examples."
+      },
+      {
+        "id": "F02",
+        "owner": "LanguageSelectScreen29-37,71-96",
+        "finding": "Init builds list and controls using child current width/height. List reconstructs available languages and selected code, centers selection. Same initialized instance can be rebuilt; this does not prove unsaved list selection survives resize."
+      },
+      {
+        "id": "F03",
+        "owner": "LanguageSelectScreen39-62,117-134; CommonInputs whole",
+        "finding": "Done, selected keyboard activation, or left doubleclick may call same onDone. On changed nonnull selection, set LanguageManager selected code and options.languageCode before requesting resource reload, then save. No selected change skips reload/save in onDone but still requests lastScreen. Multiple inputs remain one flow."
+      },
+      {
+        "id": "F04",
+        "owner": "LanguageSelectScreen39-49; OptionsSubScreen21-27; Screen124-130",
+        "finding": "onDone ignores reload future and immediately calls setScreen(lastScreen); it does not wait for resource success. Escape inherited close requests lastScreen without applying pending list selection. Removed saves options; source call ordering does not certify persistence."
+      },
+      {
+        "id": "F05",
+        "owner": "LanguageManager35-83; ClientLanguage whole; I18n whole; Language86-92",
+        "finding": "Reload collects language metadata, logs metadata IO/runtime errors, builds English first then selected language only if present, loads namespace stacks and injects new ClientLanguage into I18n and Language. File errors may be logged/skipped rather than fatal; missing selected pack language does not itself reset currentCode here."
+      },
+      {
+        "id": "F06",
+        "owner": "TranslatableContents24-58,126-150",
+        "finding": "Translatable content recomputes its decomposed parts when Language instance identity changes. Retained Component.translatable can follow injected language without replacing final component; literal text cannot obtain translation by page init alone. Formatting fallback behavior shown is not proof every translation key exists."
+      },
+      {
+        "id": "F07",
+        "owner": "Minecraft860-896,1090-1096",
+        "finding": "reloadResourcePacks returns pendingReload if one exists. During a LoadingOverlay, nonrecovery request is queued as pending future. Later nonloading-overlay frame clears pendingReload, starts reload and completes queued future only through thenRun success. No per-UI-service request dedup is established."
+      },
+      {
+        "id": "F08",
+        "owner": "Minecraft873-892; ResourceLoadStateTracker whole",
+        "finding": "Reload refreshes repository, opens selected packs, starts MANUAL tracker for nonrecovery, installs LoadingOverlay. Success allChanged/finishReload/complete future. Tracker records count, packs, recovery reason/finished for diagnostics only; count is not new UI credit or runtime verification."
+      },
+      {
+        "id": "F09",
+        "owner": "LoadingOverlay130-146",
+        "finding": "Overlay waits for reload done/fade threshold, sets fadeOutStart before callback, checks exceptions, calls onFinish empty or Throwable. Afterwards it initializes whichever minecraft.screen is current, using current graphics GUI dimensions; it never captures LanguageSelectScreen.lastScreen as delayed destination."
+      },
+      {
+        "id": "F10",
+        "owner": "Minecraft970-1015; Screen314-357,425-433",
+        "finding": "Forge setScreen opening event can cancel or replace requested screen. Normal path calls old removed only if different, adds destination and init with current window dimensions. Screen init on initialized object uses repositionElements; default reposition rebuilds widgets under Forge init events. It is not always direct child init nor unconditional transition."
+      },
+      {
+        "id": "F11",
+        "owner": "Minecraft1268-1281; Screen429-433; LoadingOverlay143-145",
+        "finding": "Resize updates current screen and GUI layers, not arbitrary retained parent fields. Completion reinitializes current screen rather than stale captured parent. This directly supports avoiding Dynasty Hub parent.width/height for Hub artwork geometry. It does not resolve title-owned notification eligibility."
+      },
+      {
+        "id": "F12",
+        "owner": "Minecraft660-679",
+        "finding": "Normal resource failure rolls back only if at least one selected pack is nonrequired; otherwise throws runtime. Recovery clears selected nonrequired selection through repository/options, saves, starts recovery reload and attaches success toast. No languageCode/currentCode rollback is shown in these handlers."
+      },
+      {
+        "id": "F13",
+        "owner": "Minecraft681-695,879-891",
+        "finding": "Recovery failure removes overlay, disconnects/clears level if present, requests new TitleScreen and toast. Original normal/recovery failure branches do not explicitly complete their original completablefuture exceptionally; do not assume whenComplete caller always receives error or a terminating failure future. No runtime deadlock claim."
+      },
+      {
+        "id": "F14",
+        "owner": "LoadingOverlay134-145; Minecraft879-891",
+        "finding": "onFinish and reload.checkExceptions share a try/catch; exception thrown by success callback also reaches failure callback. Callback can replace overlay/screen during recovery, then current screen init applies to resulting active page. No exactly-once network/service guarantee follows from this overlay guard."
+      },
+      {
+        "id": "F15",
+        "owner": "Options602-622,949-959,1162-1220; OptionsScreen144-160",
+        "finding": "Options process includes lang key; save catches Exception and broadcasts afterward, no atomic/save-success contract. Resources update compares old/new pack selection before reload. Options Escape special-cases PauseScreen to null while Done uses lastScreen; only relevant menu route is counted as support."
+      },
+      {
+        "id": "F16",
+        "owner": "prior whole comparisons",
+        "finding": "Basic translation/retained parent/current viewport overlap historical UI001-005. Native language/overlay flow also supports mel004 resource reload and Home003 retained callback comparison, but is one native dependency flow SUPPORT0; not a new independent large-pack/mod settings design and not Realms/Forge notification closure."
+      }
+    ],
+    "application": [
+      {
+        "finding": "UI-20261101-01",
+        "rule": "Use retained translatable components for Hub title/back and verified lang keys; no literal snapshot. Native language injection updates translatable contents."
+      },
+      {
+        "finding": "UI-20261101-02",
+        "rule": "Compute artwork geometry from active Hub viewport or explicit dimensions. Never reinit hidden Title merely for geometry; services have separate lifecycle."
+      },
+      {
+        "finding": "UI-20261101-03/04",
+        "rule": "Resource reload completion is no notification eligibility/anchor fix. Keep Realms/Forge owner/flag/init/visibility requirements from earlier complete native support."
+      }
+    ],
+    "limitations": [
+      "SUPPORT0 only. No new formal ID, proposed whole credit0, reported historical5 not Main independently certified. Main002 SUPPORT0 remains0;003/004 pending unchanged.",
+      "Nine complete classes plus five selected containing files. Minecraft,Screen,TranslatableContents,Options and Language are not claimed whole; incidental siblings only support0.",
+      "This native language flow extends prior selected LanguageSelectScreen29-68 and OptionsScreen51-165 evidence. Completion/dependency expansion is not semantic novelty or new reference credit.",
+      "Native client resource manager/reload executor internals, Forge event handlers, font renderer caches, all option serialization codecs, full resource repository and crash handling are not exhaustively traced.",
+      "Source-only future failure completion observation. No reload executed, no actual hang, recovery, screen return, display resize, focus behavior or language persistence tested.",
+      "LoadingOverlay current-screen init is source behavior and has Forge event/override boundaries. It cannot be substituted for current-screen identity guards in arbitrary delayed plugin callbacks.",
+      "Existing Hub literal-title, stale-parent-geometry, Realms eligibility/tick/draw and Forge indicator anchor four findings remain unfixed. This native case directly supports first two; notification services not repaired.",
+      "No background or texture redesign and no font imports/resource edits; native overlay branding is containing-class context only, user background stays unchanged.",
+      "This turn one repeated broad old002/003/004 output clipped; zero new full-reading credit for that reread. Prior successful whole comparisons persisted in003/004 are reused, not re-certified. One earlier startup invocation output wholly lost similarly zero; bounded native source shown successfully separately.",
+      "No production/game/sharedJar/formal count/session/active/pending/ownership/external prompt changes, Java/Gradle/game start, network, native acceptance or task cleanup."
+    ]
+  },
+  "prior_comparison_preserved": {
+    "baseline_binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/menu-20261022/bug-review-20261101/reference-batch-001.json",
+      "sha256": "369b3f5911105e37223e21797a9b6758f1571fdd1c19b1935ced202d85f86022",
+      "bytes": 11548
+    },
+    "reported_historical_examples": 5,
+    "baseline_independently_Main_certified": false,
+    "prior_bindings": [
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch002-pnc-current-screen-refresh-and-nested-editor-whole-HOLD0-20261114.json",
+        "sha256": "33e58ee7c8cac62036a26d1d019aad66de996e0b0dca632039df700d52f6d6e9",
+        "bytes": 150025
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+        "sha256": "cf358f1de89f059c4264babcadabf4fbea39df90542064e1c8cb4a783bbefdba",
+        "bytes": 88833
+      },
+      {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-mel-font-config-mutation-resource-reload-and-parent-refresh-HOLD0-20261114.json",
+        "sha256": "e44213ae4aa29f824d0d06feafcf1afed44d8747dd75f942e216f00402183369",
+        "bytes": 119019
+      }
+    ],
+    "Main002_support0_binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-PNC-Main-actual1745-complete-flow-SUPPORT0-review-20261114.json",
+      "sha256": "30121b53dab694e46ec3a65f1b369293e499cbac7cc926e35c56ddb60e63ca6d",
+      "bytes": 174213
+    },
+    "complete_comparison_reused_from": "batch004.prior_comparison_before_source and previous successful actual whole readings; this turn bounded metadata/hash/feature check does not replace those",
+    "whole_judgment": "Retained parent/translation/current dimensions shared support0; native language/overlay/failure completion is dependency expansion. Merge with existing supporting native lifecycle and004, no new whole candidate."
+  },
+  "fixed_archive": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "Main_actual_findings": [
+    "Main reused its complete actual oldUI5/Create/002/003/004 source/business reading before005 and read current prior-comparison whole decision. No re-certification of historical5. First schema inspection incorrectly looked for candidate instead of actual study and raised KeyError before writes; recovered by explicit schema/member discovery,0credit/no source fault.",
+    "Main then actually read all14 selected sources in three bounded unclipped outputs:9whole classes and1216unique lines plus full16/10/3 author business. Prior partial Language/Options expansion is support0, not an additional whole reference.",
+    "Options captures its own lastScreen and builds Language child with THIS Options and shared options/manager. Options Done always requests lastScreen, while its Escape maps PauseScreen parent to null; these routes are not interchangeable hidden-parent behavior.",
+    "Language init builds list/control geometry from current child width/height and selected manager code. List selection may be reconstructed from committed manager selection during resize, not necessarily unsaved list edits. Available-language display and selected state are distinct.",
+    "Changed selection onDone writes manager/current locale and options languageCode before reload request/save, ignores returned future and immediately requests lastScreen. Unchanged/no selection skips these explicit onDone mutations but still requests lastScreen. Esc inherited close does not commit highlighted selection; removed separately saves.",
+    "Done, Enter/Space/keypadEnter and left doubleclick feed same action. No separate per-input credit, no native event/focus correctness inferred.",
+    "Manager metadata extraction catches IO/runtime per pack, then loads en_us first plus selected language only if metadata exists; missing selection does not reset code here. ClientLanguage namespaces/resource stacks can log/skip errors and still produce a new immutable language map.",
+    "I18n language replacement plus ForgeI18n update occurs before Language.inject in shown manager sequence. Unread ForgeI18n body/no event delivery contract; currentCode/javaLocale being selected is not successful language resource loading.",
+    "TranslatableContents lazily recomposes on Language INSTANCE identity change; format failure uses source fallback. This lets retained translated Components refresh, while saved literal snapshots do not automatically acquire translations. No proof every key exists.",
+    "reloadResourcePacks returns existing pending future, or queues a new nonrecovery request while overlay is LoadingOverlay. Later run loop clears pending and attaches success thenRun. This does not deduplicate arbitrary UI services or ensure every failure future terminates.",
+    "Normal reload installs overlay with resource reload instance; success requests allChanged, tracker finish and original future.complete(null). Failure callback initiates rollback/recovery or abort, with no explicit original-future completeExceptionally in selected code. Do not claim universal whenComplete error delivery or runtime hang.",
+    "LoadingOverlay sets fadeOutStart before checking exceptions/onFinish to guard repeated entry. It catches Throwable from BOTH checkExceptions and success callback and calls failure callback; if that failure callback itself throws, later current-screen init need not occur. No unconditional always-reinit claim.",
+    "When execution reaches post-callback init it selects THEN-CURRENT minecraft.screen and current GuiGraphics dimensions, not a captured Language lastScreen. Callback recovery may itself replace screen/overlay before that check. No forced old-parent capture here.",
+    "Forge setScreen can cancel/replace Opening target; it posts Closing/removed only for different old screen, then calls added/init. Screen.init writes current width/height and uses first init or repositionElements on already initialized object; default reposition rebuilds under cancellable Forge Pre and Post events.",
+    "Resize targets current screen and GUI layers, not arbitrary retained parent geometry. Directly supports fixing active-Hub geometry independently of hidden Title init/service lifecycle, still not a native Dynasty visual acceptance.",
+    "Rollback path checks whether ANY selected pack is nonrequired, otherwise throws runtime; recovery requests repository.setSelected(empty), clears options lists, saves then requests recovery reload/toast. Full repository required-pack handling is unread, so do not assert exactly which required packs survive or are removed.",
+    "Recovery failure source removes overlay, clears connected level when present and requests TitleScreen/toast. LanguageCode/currentCode are not rolled back in these selected methods. This is source-only, no actual world/game action performed.",
+    "Options.save catches Exception then broadcasts; codec encode can log individual option failure and PrintWriter details remain unclosed. Normal return/requested save is not atomic persistence. updateResourcePacks reloads only when old/new nonfixed-position selection differs.",
+    "ResourceLoadStateTracker diagnostics record count/current packs/recovery/finished, not application completion or semantic credit. Native client resource reload backend/executors/screens overrides and full rendering caches remain unclosed.",
+    "Decision SUPPORT0 dependency expansion. No new formal UI reference; historical5 remains NOT_YET_REVIEWED,002support0/003correctedsource/004preACK separate. Realms eligibility/tick/render and Forge notification switches/anchors remain open.",
+    "Main also read complete003 F05 author correction ACK/source range and all3 case analyses; exact raw/source/old003/Main bindings verified. Partial-result correction closed, author explicitly did not claim reading all24 Main findings. No false full-author24 acknowledgment or formal UI increment.",
+    "No production/font/resource/background/task/sharedJar/user game/world mutations, network, runtime or10hour claim. Current16 research/protected files unchanged. Dependency reads and integrity checks add0reference credit."
+  ],
+  "checks_count": 75,
+  "checks": [
+    "fixed005",
+    "binding /Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/menu-20261022/bug-review-20261101/reference-batch-001.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-PNC-Main-actual1745-complete-flow-SUPPORT0-review-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch002-pnc-current-screen-refresh-and-nested-editor-whole-HOLD0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch004-mel-font-config-mutation-resource-reload-and-parent-refresh-HOLD0-20261114.json",
+    "raw file and archive net/minecraft/client/gui/screens/LanguageSelectScreen.java",
+    "excerpt net/minecraft/client/gui/screens/LanguageSelectScreen.java1",
+    "whole net/minecraft/client/gui/screens/LanguageSelectScreen.java",
+    "raw file and archive net/minecraft/client/gui/screens/OptionsScreen.java",
+    "excerpt net/minecraft/client/gui/screens/OptionsScreen.java1",
+    "whole net/minecraft/client/gui/screens/OptionsScreen.java",
+    "raw file and archive net/minecraft/client/gui/screens/OptionsSubScreen.java",
+    "excerpt net/minecraft/client/gui/screens/OptionsSubScreen.java1",
+    "whole net/minecraft/client/gui/screens/OptionsSubScreen.java",
+    "raw file and archive net/minecraft/client/resources/language/LanguageManager.java",
+    "excerpt net/minecraft/client/resources/language/LanguageManager.java1",
+    "whole net/minecraft/client/resources/language/LanguageManager.java",
+    "raw file and archive net/minecraft/client/ResourceLoadStateTracker.java",
+    "excerpt net/minecraft/client/ResourceLoadStateTracker.java1",
+    "whole net/minecraft/client/ResourceLoadStateTracker.java",
+    "raw file and archive net/minecraft/client/gui/screens/LoadingOverlay.java",
+    "excerpt net/minecraft/client/gui/screens/LoadingOverlay.java1",
+    "whole net/minecraft/client/gui/screens/LoadingOverlay.java",
+    "raw file and archive net/minecraft/client/resources/language/ClientLanguage.java",
+    "excerpt net/minecraft/client/resources/language/ClientLanguage.java1",
+    "whole net/minecraft/client/resources/language/ClientLanguage.java",
+    "raw file and archive net/minecraft/client/resources/language/I18n.java",
+    "excerpt net/minecraft/client/resources/language/I18n.java1",
+    "whole net/minecraft/client/resources/language/I18n.java",
+    "raw file and archive net/minecraft/client/gui/navigation/CommonInputs.java",
+    "excerpt net/minecraft/client/gui/navigation/CommonInputs.java1",
+    "whole net/minecraft/client/gui/navigation/CommonInputs.java",
+    "raw file and archive net/minecraft/client/Minecraft.java",
+    "excerpt net/minecraft/client/Minecraft.java660",
+    "excerpt net/minecraft/client/Minecraft.java860",
+    "excerpt net/minecraft/client/Minecraft.java970",
+    "excerpt net/minecraft/client/Minecraft.java1090",
+    "excerpt net/minecraft/client/Minecraft.java1268",
+    "raw file and archive net/minecraft/client/gui/screens/Screen.java",
+    "excerpt net/minecraft/client/gui/screens/Screen.java124",
+    "excerpt net/minecraft/client/gui/screens/Screen.java314",
+    "excerpt net/minecraft/client/gui/screens/Screen.java425",
+    "raw file and archive net/minecraft/network/chat/contents/TranslatableContents.java",
+    "excerpt net/minecraft/network/chat/contents/TranslatableContents.java24",
+    "excerpt net/minecraft/network/chat/contents/TranslatableContents.java126",
+    "raw file and archive net/minecraft/client/Options.java",
+    "excerpt net/minecraft/client/Options.java602",
+    "excerpt net/minecraft/client/Options.java949",
+    "excerpt net/minecraft/client/Options.java1162",
+    "raw file and archive net/minecraft/locale/Language.java",
+    "excerpt net/minecraft/locale/Language.java86",
+    "evidence coverage not counts",
+    "complete business16/10/3",
+    "binding /Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod1.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod2.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod3.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod4.txt",
+    "binding /Users/a15356015027/Desktop/code x提示词/cod6.txt",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/receipt-validation.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/source-index-001.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/continuation.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/delivery-inspection.json",
+    "actual003 correction ACK",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+    "binding /Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-DamageHome-Main-actual998-whole-preACK-review-20261114.json",
+    "actual correction source"
+  ],
+  "source_coverage_only": {
+    "members": 14,
+    "whole_files": 9,
+    "selected_unique_lines": 1216
+  },
+  "UI003_correction_ACK_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-author-ACK-F05-partial-result-retained-addendum-20261114.json",
+    "sha256": "33ba22e99a44ecfe2f7c909afc0d519ff4e8cd0987d4c3eee6c92861d3aa678b",
+    "bytes": 7128
+  },
+  "complete_UI003_correction_ACK_preserved": {
+    "schema": "dynasty.ui-reference.author-correction.v1",
+    "recorded_utc": "2026-11-14T05:53:31.753771+00:00",
+    "status": "ACK_MAIN003_F05_CORRECTED_IMMUTABLE_ADDENDUM",
+    "original_003_binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch003-damage-engine-home-owned-async-update-return-and-viewport-HOLD0-20261114.json",
+      "sha256": "cf358f1de89f059c4264babcadabf4fbea39df90542064e1c8cb4a783bbefdba",
+      "bytes": 88833
+    },
+    "Main_preACK_review_binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-ui-DamageHome-Main-actual998-whole-preACK-review-20261114.json",
+      "sha256": "4399dfee01886ebbb405753ba556e47e07acdc4d04b9e96bc58ac2547d56e5d8",
+      "bytes": 101623
+    },
+    "Main_review_read_boundary": "Binding,56check count and required correction metadata checked; no claim to re-read all24 Main judgments or entire998 source this turn.",
+    "original_claim": {
+      "id": "F05",
+      "source": "HomeScreen97-117",
+      "observation": "Only HTTP200 response enters JSON array processing. Iterate entries, apply hasLoader predicate and choose greatest version under local comparator among nonnull version_number entries. Exceptions caught as Exception are ignored and converge to no found result."
+    },
+    "replacement_F05": {
+      "id": "F05",
+      "source": "HomeScreen84-129 (especially89,103-116,119-128)",
+      "observation": "Only HTTP200 enters JSON-array iteration. latest starts null before try and is assigned progressively when eligible nonnull version strings are found. catch(Exception) ignores failure without resetting latest. An exception before any nonempty candidate leaves null/possibly empty and callback ERROR; if a nonempty candidate was already selected before a later entry throws, found retains that partial result and callback can still produce LATEST or OUTDATED under the local comparator. It is therefore false that every network/parse/entry exception converges to no-found/ERROR."
+    },
+    "source_evidence": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/Ovear-Mitama__Damage-Engine/common/src/client/java/damage/engine/client/gui/HomeScreen.java",
+      "sha256": "4ace48715c40c8b6507166661332b50cec0044df725290529a2a98feb1eed7cd",
+      "bytes": 12945,
+      "source_url": "https://github.com/Ovear-Mitama/Damage-Engine/blob/3bcb595a681729c3a9ab18c4e3d052f2a9958a74/common/src/client/java/damage/engine/client/gui/HomeScreen.java",
+      "matches_fixed_manifest": true,
+      "range_reread_this_turn": [
+        84,
+        132
+      ],
+      "text": "    private void checkForUpdates() {\n        if (updateState == UpdateState.CHECKING) return;\n        updateState = UpdateState.CHECKING;\n\n        Thread thread = new Thread(() -> {\n            String latest = null;\n            try {\n                HttpRequest request = HttpRequest.newBuilder(URI.create(updateUrl()))\n                    .timeout(Duration.ofSeconds(10))\n                    .header(\"User-Agent\", \"damage-engine/\" + DamageEngineMeta.VERSION)\n                    .GET()\n                    .build();\n                HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());\n                if (response.statusCode() == 200) {\n                    JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();\n                    if (!array.isEmpty()) {\n                        // Only consider versions for the current loader platform (Fabric/NeoForge\n                        // releases share the same project on Modrinth). The URL already filters by\n                        // loaders; this is a defensive second check.\n                        for (int i = 0; i < array.size(); i++) {\n                            JsonObject entry = array.get(i).getAsJsonObject();\n                            if (!hasLoader(entry, DamageEngineMeta.PLATFORM)) continue;\n                            if (entry.has(\"version_number\") && !entry.get(\"version_number\").isJsonNull()) {\n                                String v = entry.get(\"version_number\").getAsString();\n                                if (latest == null || compareVersions(v, latest) > 0) {\n                                    latest = v;\n                                }\n                            }\n                        }\n                    }\n                }\n            } catch (Exception ignored) {\n                // network / parse failure -> error state\n            }\n\n            String found = latest;\n            Minecraft.getInstance().execute(() -> {\n                if (found == null || found.isEmpty()) {\n                    updateState = UpdateState.ERROR;\n                } else if (compareVersions(found, DamageEngineMeta.VERSION) > 0) {\n                    updateFoundVersion = found;\n                    updateState = UpdateState.OUTDATED;\n                } else {\n                    updateState = UpdateState.LATEST;\n                }\n            });\n        });\n        thread.setDaemon(true);\n        thread.start();",
+      "whole998_reread": false,
+      "gitblob_or_tree_claim": null,
+      "identity_limit": "Fixed source.json and raw SHA only; no cached Git tree object or synthetic gitblob proof claimed."
+    },
+    "case_analysis": [
+      {
+        "branch": "non200, empty array, or exception before assignment",
+        "result": "latest remains null, so found null and callback ERROR unless other assignment happened; no assignment shown in these branches."
+      },
+      {
+        "branch": "valid nonempty candidate then later malformed entry/hasLoader/comparison exception",
+        "result": "catch leaves earlier nonempty latest; found captures it; result may LATEST or OUTDATED, not necessarily ERROR."
+      },
+      {
+        "branch": "empty version string retained",
+        "result": "found empty yields ERROR by callback guard; nonnull alone does not imply success."
+      }
+    ],
+    "unchanged_scope": [
+      "F08 callback result classification and no active-screen/generation guard remain source observations.",
+      "Per-instance updateChecked still suppresses ordinary same-instance reinit retry, including ERROR.",
+      "Local comparator is not fully verified SemVer; candidate results not checked against network data.",
+      "At most one related whole remains source-only; no formal append/Main ledger update authorized.",
+      "Reported historical5 remains not independently Main certified. Four UI issues remain open."
+    ],
+    "checks": {
+      "original_003_sha_unchanged": true,
+      "Main_hash_exact": true,
+      "source_raw_sha_matches_manifest": true,
+      "correction_preserves_partial_result": true,
+      "no_998_retest_or_reread_claim": true,
+      "formal_credit_zero": true,
+      "no_gitblob_fabricated": true
+    },
+    "actions": {
+      "new_pure_JSON": 1,
+      "production_edits": 0,
+      "formal_state_edits": 0,
+      "network_requests": 0,
+      "game_or_Java_starts": 0,
+      "task_deletions": 0,
+      "new_formal_credit": 0
+    },
+    "all_tasks_complete": false
+  },
+  "UI003_F05_correction_closed": true,
+  "UI003_all24_original_author_ACK_claimed": false,
+  "reported_UI_baseline_unchanged": 5,
+  "baseline5_independently_certified": false,
+  "new_formal_credit": 0,
+  "private_authorization": false,
+  "gate_met": false,
+  "production_changes": 0,
+  "game_starts": 0,
+  "task_deletions": 0,
+  "native_credit": 0,
+  "actual_active_hours_claimed": null,
+  "ten_hours_verified": false,
+  "all_tasks_complete": false
+}
