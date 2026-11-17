@@ -1,0 +1,212 @@
+{
+  "recorded_at": "2026-11-01T10:35:53.100710+00:00",
+  "status": "INDEPENDENT_DESIGN_REVIEW_CHANGES_REQUIRED",
+  "contract": "docs/cod4/audit-20261022/legacy-migration-acceptance/coordinator-typed-root-clone-contract-20261101.json",
+  "contract_sha256": "3e3c1e234d4a91a97b96e1b746192fe511e24a8d0b0cd60dbe01d8c025d0d7db",
+  "finite_keys": 107,
+  "findings": [
+    {
+      "id": "CLONE-ALIAS-ORDER",
+      "priority": "P1",
+      "problem": "In-place new nested writes are not order independent. Native restore shares old nested Tag; snapshot does not detach output. ContentProgress and SecretTracker default-priority handlers replace entire new nested from old.copy.",
+      "counterexamples": [
+        "Alias before deep-copy modifies original old nested object.",
+        "Detach new nested then alias before a whole-container copier: later old.copy loses alias."
+      ],
+      "revision": "Raw finite typed root copy first, then typed true OR from OLD root and OLD nested into new ROOT for ten known keys. Do not write nested. Otherwise separately guarantee detached ownership and ordering after both whole-container copiers.",
+      "edge": "rootfalse/nestedtrue ends true; no item inference or grant callback."
+    },
+    {
+      "id": "CLONE-CAP-PARTIAL",
+      "priority": "P1",
+      "problem": "Diagnostic and skip of partial/wrongtype pair leaves new window/earned missing. Current getLong/getInt zero fallback resets zero window and can grant a fresh up-to120 allowance.",
+      "revision": "Guarantee preservation only for BOTH exact Long/Int copied raw without rebase. Malformed/partial policy requires separate explicit review; diagnostic-only must be excluded from anti-reset guarantee. Do not manufacture timestamp now, earned120, reward or silent sanitation.",
+      "typed_negative": "Preserve raw existing typed values; consumer semantics not repaired by this migration."
+    }
+  ],
+  "accepted_constraints": [
+    "107 bounded keys and exact NBT types; UUID uses native hasUUID length4. All eight source hashes remain matched.",
+    "Same UUID distinct server players; preserve both death and End-return Clone; ordinary dimension event does not rerun copier.",
+    "tag.copy sufficient for admitted mutable tags; immutable primitive Tag sharing is legal and should not fail blanket identity test.",
+    "No whole root copy or duplicated School/Army/cod3/nested copier; guide/warm resets remain intentional.",
+    "Firstkill receipt does not prove successful item delivery; never regrant. Quest progress/claimed remain distinct; no claim/notify/award as restore."
+  ],
+  "future_tests_not_executed": [
+    "Listener permutations, original old immutability and unrelated nested keys; typed true OR matrix and repeat idempotence.",
+    "Valid economic pair120 still denies next trash award inside same window; ordinary elapsed-window renewal only in consumer.",
+    "Partial/malformed branch behavior, not log-only assertion.",
+    "Coordinator compile and native two-player death/relog/End-return copied-world verification."
+  ],
+  "source_hash_checks": [
+    {
+      "path": "src/main/java/com/dynasty/DynastyBossCombat.java",
+      "sha256": "1c7bed37e85f85f29cf5c3cbb8a6ae7859f19ea75e053c8061a2a37840921850",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastyManual.java",
+      "sha256": "89568cca2710803348e6b849f97cc3833757dc9f9795a4121fae9b05565c6ee2",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastyMerit.java",
+      "sha256": "e39984e630fc8dab78a97ad196a89e04baa532e9605d622426b015a8cc5a14fe",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastyStats.java",
+      "sha256": "3cffd583d361bc5a8c56bcc001df18316cde70135621df0d410e57ab6ee53ac8",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastyWeaponGifts.java",
+      "sha256": "683aea37c53b1dc93b843494c7cacbc80dd55b95b8b1dc8efbb6464a2d2ab187",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastyWorldEvents.java",
+      "sha256": "d1a9fd8a162f532a12140cb89078bd30efe1afb059f8cbbd5c432592c5c320cd",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    },
+    {
+      "path": "src/main/java/com/dynasty/worldevent/DynastyWorldEventManager.java",
+      "sha256": "2c0e266d104fad45366324648d74c051e0ffc045f434aa8bc90448d98244bf92",
+      "matches": true,
+      "scope": "hash only unless excerpt listed"
+    }
+  ],
+  "source_evidence": [
+    {
+      "path": "src/main/java/com/dynasty/DynastyMerit.java",
+      "file_sha256": "e39984e630fc8dab78a97ad196a89e04baa532e9605d622426b015a8cc5a14fe",
+      "start": 1,
+      "end": 125,
+      "range_sha256": "dbcc534952e719de4df6ac155110eeeeaee7367d5806ccc8597269afac198884",
+      "excerpt": "package com.dynasty;\n\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraftforge.registries.ForgeRegistries;\n\n/**\n * 功名来源（任务只给一点点，主要靠打怪 / 与 NPC 交互 / 第一次获得新物品）。\n *\n * Merit sources: fights, NPC interaction and first-time item pickups. Quest rewards\n * only give a small amount, so ranks are earned by actually playing.\n */\n@SuppressWarnings(\"null\")\npublic final class DynastyMerit {\n\n    private DynastyMerit() {\n    }\n\n    // ---- 与 NPC / 事件交互：每个事件只给一次 / one-off rewards\n    private static final String FLAG = \"dynasty_merit_evt_\";\n\n    public static void onEvent(ServerPlayer player, String key) {\n        int amount = switch (key) {\n            case \"keju\" -> 30;              // 科举答对\n            case \"minister\" -> 15;          // 与大臣交谈\n            case \"army\" -> 12;              // 虎符列阵\n            case \"qilin\" -> 10;             // 喂麒麟\n            case \"dim_celestial\" -> 40;     // 第一次到天朝\n            case \"dim_underworld\" -> 40;    // 第一次到地府\n            default -> 0;\n        };\n        if (amount <= 0 || player.getPersistentData().getBoolean(FLAG + key)) {\n            return;\n        }\n        player.getPersistentData().putBoolean(FLAG + key, true);\n        if (key.equals(\"minister\") && com.dynasty.expansion.EquipmentBehaviors.pieces(player,\"brocade\")>=2) amount+=5;\n        var ornaments=DynastyTrinkets.activeIds(player);\n        if(ornaments.contains(\"gold_seal_charm\") && !ornaments.contains(\"merit_badge\")) amount=(int)Math.ceil(amount*1.2);\n        DynastyStats.addMerit(player, amount);\n        player.displayClientMessage(Component.literal(\"§6[功名] §r+\" + amount + \"（\" + reason(key) + \"）\"), true);\n    }\n\n    private static String reason(String key) {\n        return switch (key) {\n            case \"keju\" -> \"科举中第\";\n            case \"minister\" -> \"拜见大臣\";\n            case \"army\" -> \"列阵点兵\";\n            case \"qilin\" -> \"祥瑞麒麟\";\n            case \"dim_celestial\" -> \"登临天朝\";\n            case \"dim_underworld\" -> \"初入地府\";\n            default -> \"功勋\";\n        };\n    }\n\n    // ---- 击杀：滚怪也有功名，但每 10 分钟封顶，避免刷分 / kill merit, capped per 10 minutes\n    private static final String KILL_WINDOW = \"dynasty_merit_kill_window\";\n    private static final String KILL_EARNED = \"dynasty_merit_kill_earned\";\n    private static final int KILL_CAP = 120;\n\n    public static void onMobKill(ServerPlayer player, EntityType<?> type) {\n        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(type);\n        if (id == null || !id.getNamespace().equals(Dynasty.MODID)) {\n            return;\n        }\n        int amount = switch (id.getPath()) {\n            case \"dragon_emperor\" -> 300;\n            case \"nine_heaven_general\" -> 260;\n            case \"rebel_general\", \"eunuch_mastermind\" -> 220;\n            case \"undead_first_emperor\" -> 240;\n            case \"phoenix\", \"qilin\" -> 60;\n            case \"nian_beast\", \"nine_tailed_fox\" -> 40;\n            case \"assassin\", \"royal_guard\" -> 12;\n            case \"archer\", \"imperial_soldier\", \"rebel_soldier\", \"terracotta_warrior\" -> 5;\n            default -> 0;\n        };\n        if (amount <= 0) {\n            return;\n        }\n        // 小怪部分有 10 分钟上限（Boss 不受限）/ trash merit is capped\n        if (amount < 100) {\n            long now = System.currentTimeMillis();\n            long window = player.getPersistentData().getLong(KILL_WINDOW);\n            int earned = player.getPersistentData().getInt(KILL_EARNED);\n            if (now - window > 10 * 60 * 1000L) {\n                player.getPersistentData().putLong(KILL_WINDOW, now);\n                earned = 0;\n            }\n            if (earned >= KILL_CAP) {\n                return;\n            }\n            amount = Math.min(amount, KILL_CAP - earned);\n            player.getPersistentData().putInt(KILL_EARNED, earned + amount);\n        }\n        DynastyStats.addMerit(player, amount);\n    }\n\n    // ---- 第一次获得某件王朝物品：每种一次 / first-time pickup merit\n    private static final String SEEN = \"dynasty_merit_seen_\";\n\n    public static void onFirstObtain(ServerPlayer player, String itemPath) {\n        int amount = switch (itemPath) {\n            case \"dragon_crystal\", \"xuantian_jade\", \"dragon_emperor_seal\", \"emperor_bone\" -> 25;\n            case \"jade\", \"phoenix_feather\", \"rebel_head\", \"eunuch_token\", \"sky_token\" -> 12;\n            case \"jade_seal\", \"official_seal\", \"edict\", \"tiger_tally\", \"blueprint\" -> 8;\n            case \"bronze_ingot\", \"silver_ingot\", \"refined_steel\", \"cinnabar\" -> 5;\n            default -> 0;\n        };\n        if (amount <= 0 || player.getPersistentData().getBoolean(SEEN + itemPath)) {\n            return;\n        }\n        player.getPersistentData().putBoolean(SEEN + itemPath, true);\n        amount=firstObtainAmount(DynastyTrinkets.activeIds(player),amount);\n        DynastyStats.addMerit(player, amount);\n        if(DynastyTrinkets.activeIds(player).contains(\"gold_seal_charm\") && !DynastyTrinkets.activeIds(player).contains(\"merit_badge\"))\n            {com.dynasty.cod3.Cod3Vfx.send(player.serverLevel(),15,player.position(),player.getLookAngle(),16,.12,0xE7C866);com.dynasty.cod3.EquipmentFeedback.accessory(player,\"gold_seal_charm\");}\n        player.displayClientMessage(Component.literal(\n                \"§6[功名] §r+\" + amount + \"（初次获得 \" + itemPath + \"）\"), true);\n    }\n    /** First-pickup bonus is separate from the pre-existing global merit multiplier. */\n    public static int firstObtainAmount(java.util.Set<String> active,int base){\n        return active.contains(\"gold_seal_charm\")&&!active.contains(\"merit_badge\")?(int)Math.ceil(base*1.2):base;\n    }\n}"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastyBossCombat.java",
+      "file_sha256": "1c7bed37e85f85f29cf5c3cbb8a6ae7859f19ea75e053c8061a2a37840921850",
+      "start": 90,
+      "end": 154,
+      "range_sha256": "0047b4b85c74aa6a9fd8a1c6fa740e702096708ecba9c1afc4a56e31949cac1d",
+      "excerpt": "    static {\n        FIRST_KILL.put(\"dragon_emperor\",\n                new FirstKill(400, \"dragon_emperor_seal\", 1, \"龙帝玉玺到手：终盘装备的唯一凭据\"));\n        FIRST_KILL.put(\"undead_first_emperor\",\n                new FirstKill(300, \"emperor_bone\", 1, \"帝骸骨到手：玄天 / 太乙系的强化材料\"));\n        FIRST_KILL.put(\"nine_heaven_general\",\n                new FirstKill(300, \"sky_token\", 1, \"天界令牌到手：九霄的通行证\"));\n        FIRST_KILL.put(\"dragon_king\",\n                new FirstKill(320, \"sea_token\", 1, \"龙宫令牌到手：龙鳞甲的前置\"));\n        FIRST_KILL.put(\"rebel_general\",\n                new FirstKill(240, \"rebel_head\", 1, \"叛将首级到手：破军系兵器的前置\"));\n        FIRST_KILL.put(\"eunuch_mastermind\",\n                new FirstKill(240, \"eunuch_token\", 1, \"内廷令牌到手：内造兵器的前置\"));\n        FIRST_KILL.put(\"phoenix\", new FirstKill(120, \"dragon_scale\", 2, \"凤凰羽落：龙鳞系材料\"));\n        FIRST_KILL.put(\"qilin\", new FirstKill(120, \"jade\", 4, \"麒麟献玉：玉料不愁\"));\n        FIRST_KILL.put(\"nian_beast\", new FirstKill(100, \"refined_steel\", 3, \"年兽镇宅：精钢入手\"));\n        FIRST_KILL.put(\"nine_tailed_fox\", new FirstKill(100, \"silk\", 4, \"狐尾丝线：织造材料\"));\n    }\n\n    @SubscribeEvent\n    public static void onDeath(LivingDeathEvent event) {\n        if(com.dynasty.cod3.BossDeathState.managed(event.getEntity())\n                && !event.getEntity().getPersistentData().getBoolean(\"dynasty_reward_granted\"))return;\n        if (event.getEntity().level().isClientSide()) {\n            return;\n        }\n        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(event.getEntity().getType());\n        if (id == null || !id.getNamespace().equals(Dynasty.MODID)) {\n            return;\n        }\n        if(event.getEntity().getPersistentData().hasUUID(\"ArmyEncounter\"))return;\n        LivingEntity credit = event.getEntity().getKillCredit();\n        if (credit instanceof ServerPlayer player) grantFirstKill(player, id.getPath());\n    }\n\n    public static void awardFirstKill(ServerPlayer player, String bossId) { grantFirstKill(player, bossId); }\n\n    public static void grantFirstKill(ServerPlayer player, String bossId) {\n        FirstKill reward = FIRST_KILL.get(bossId);\n        if (reward == null) return;\n        String flag = \"dynasty_firstkill_\" + bossId;\n        var persisted=player.getPersistentData().getCompound(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG);\n        player.getPersistentData().put(net.minecraft.world.entity.player.Player.PERSISTED_NBT_TAG,persisted);\n        if (player.getPersistentData().getBoolean(flag)||persisted.getBoolean(flag)) {\n            persisted.putBoolean(flag,true); // Migrate legacy receipts on their next check.\n            return;                                        // 一种只给一次 / once per player\n        }\n        persisted.putBoolean(flag,true);\n        player.getPersistentData().putBoolean(flag, true);\n\n        DynastyStats.addMerit(player, reward.merit());\n        ResourceLocation key = ResourceLocation.tryBuild(Dynasty.MODID, reward.item());\n        Item item = key == null ? null : ForgeRegistries.ITEMS.getValue(key);\n        if (item != null) {\n            ItemStack stack = new ItemStack(item, reward.count());\n            if (!player.getInventory().add(stack)) {\n                player.drop(stack, false);\n            }\n        }\n        player.displayClientMessage(Component.literal(\"§6[首杀] §r\" + reward.note()\n                + \" §7(功名 +\" + reward.merit() + \")\"), false);\n        player.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, net.minecraft.sounds.SoundSource.MASTER,\n                0.8F, 1.0F);\n    }\n}"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ContentProgress.java",
+      "file_sha256": "d576bf782e8f430714afd3c1e821457b593c753ff0c7e98ed813f845adfd56e0",
+      "start": 65,
+      "end": 72,
+      "range_sha256": "8ef26eeaeb2fb9ec028a1e6729eb91a3a4d5ce0d5f705f2d7723beabbacccc02",
+      "excerpt": "            if(ExpansionContent.SUPPLIES.containsKey(id))DynastyAdvancements.award(p,\"cod4_obtain_\"+id);\n        }\n    }\n    @SubscribeEvent public static void login(PlayerEvent.PlayerLoggedInEvent e) {if(e.getEntity() instanceof ServerPlayer p)reconcile(p);}\n    @SubscribeEvent public static void clone(PlayerEvent.Clone e) {\n        if(e.getOriginal().getPersistentData().contains(Player.PERSISTED_NBT_TAG))e.getEntity().getPersistentData().put(Player.PERSISTED_NBT_TAG,e.getOriginal().getPersistentData().getCompound(Player.PERSISTED_NBT_TAG).copy());\n    }\n    /** Unseen outcomes until every accessory has appeared; only then return to the legacy weighted pool. */"
+    },
+    {
+      "path": "src/main/java/com/dynasty/cod3/SecretTracker.java",
+      "file_sha256": "02190c76c3b5d93bdde05f0c6997bdd759a7345d8b5db74897f0c4604103f43e",
+      "start": 270,
+      "end": 277,
+      "range_sha256": "689fdc0b28b9db3538a747c49b828b4dd4640e6adde4a2d0abad2cf28963f5e8",
+      "excerpt": "    @SubscribeEvent public static void clone(PlayerEvent.Clone e){\n        var original=e.getOriginal().getPersistentData();var copied=e.getEntity().getPersistentData();\n        copied.put(Player.PERSISTED_NBT_TAG,original.getCompound(Player.PERSISTED_NBT_TAG).copy());\n        // Discrete paid deliveries and lock steps survive death. Continuous posture,\n        // underwater and timed equipment challenges deliberately keep their reset.\n        for(int n:new int[]{8,30}){String key=\"cod3_progress_\"+n;if(original.contains(key))copied.put(key,original.getCompound(key).copy());}\n    }\n}"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastySlotProgression.java",
+      "file_sha256": "3aa9dedec520f587668b8be57d71dd9443e9e7721bbd68c5283f47d08672a9f9",
+      "start": 155,
+      "end": 166,
+      "range_sha256": "4244f6543001e955867fc2b60cb6f1961c341bb85c09d40f0286e68d9de06434",
+      "excerpt": "        sync(player);\n    }\n\n    @SubscribeEvent\n    public static void onClone(PlayerEvent.Clone event) {\n        CompoundTag old = progress(event.getOriginal());\n        CompoundTag saved = event.getEntity().getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);\n        saved.put(KEY, old.copy());\n        event.getEntity().getPersistentData().put(Player.PERSISTED_NBT_TAG, saved);\n        DynastyTrinkets.forget(event.getEntity());\n    }\n}"
+    },
+    {
+      "path": "src/main/java/com/dynasty/DynastySchoolProgression.java",
+      "file_sha256": "76be3b03ca13cdfae62bf6689eaa792ff47343c9fa7207427c859796dc729618",
+      "start": 250,
+      "end": 262,
+      "range_sha256": "a3115311cd7e2c7d6716472e26e199628ae1176558c7d579923aa6e073686154",
+      "excerpt": "        DynastyWeaponProgression.reward(player, event.getSource(), path, practicePoints(event.getEntity().getMaxHealth()));\n        var advancement = player.server.getAdvancements().getAdvancement(\n                new ResourceLocation(Dynasty.MODID, \"build_\" + path + \"_trial\"));\n        if (advancement != null) player.getAdvancements().award(advancement, \"performed\");\n    }\n\n    @SubscribeEvent\n    public static void onClone(PlayerEvent.Clone event) {\n        CompoundTag previous = event.getOriginal().getPersistentData();\n        if (previous.contains(SAVE_KEY))\n            event.getEntity().getPersistentData().put(SAVE_KEY, previous.getCompound(SAVE_KEY).copy());\n    }\n}"
+    },
+    {
+      "path": "src/main/java/com/dynasty/army/ArmyRoster.java",
+      "file_sha256": "d44419decb84a5bbceaf8bcb2de5be5265c6ae999b95e1ada374a96cac748f5b",
+      "start": 174,
+      "end": 188,
+      "range_sha256": "a134646e12c0245250085070024d8b9142e8ea4ce86f1e466060f8902fa771d6",
+      "excerpt": "                &&r!=null&&r.getString(\"State\").equals(\"DEPLOYED\")&&r.hasUUID(\"Entity\")&&r.getUUID(\"Entity\").equals(s.getUUID())\n                &&r.getLong(\"Generation\")==s.getPersistentData().getLong(\"ArmyGeneration\")\n                &&(!r.contains(\"Dimension\",8)||r.getString(\"Dimension\").equals(s.level().dimension().location().toString()));\n    }\n    @SubscribeEvent public static void death(LivingDeathEvent event) {\n        if(event.getEntity() instanceof ServerPlayer owner&&!ArmyEncounters.inside(owner))recallNow(owner,true);\n        if(event.getEntity() instanceof ImperialSoldier s&&s.getOwner() instanceof ServerPlayer p&&valid(s,p)) {\n            var r=find(p,s.getPersistentData().getUUID(\"ArmySoldier\"));snapshot(r,s);r.putString(\"State\",\"WOUNDED\");r.remove(\"Entity\");clearRecall(r);changed(p);\n            s.setDropChance(EquipmentSlot.MAINHAND,0);s.setDropChance(EquipmentSlot.OFFHAND,0);\n        }\n    }\n    @SubscribeEvent public static void clone(PlayerEvent.Clone e) {if(e.getOriginal().getPersistentData().contains(KEY))e.getEntity().getPersistentData().put(KEY,data(e.getOriginal()).copy());}\n    @SubscribeEvent public static void dimension(PlayerEvent.PlayerChangedDimensionEvent e) {if(e.getEntity() instanceof ServerPlayer p&&!ArmyEncounters.inside(p))recallNow(p,true);}\n    @SubscribeEvent public static void logout(PlayerEvent.PlayerLoggedOutEvent e) {if(e.getEntity() instanceof ServerPlayer p&&!ArmyEncounters.inside(p))recallNow(p,true);}\n    private ArmyRoster(){}"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionSupplies.java",
+      "file_sha256": "ae9dd058dc75e723c87b62d5c38c37bc30eeb9c1f7efcfaf1682791c51ab0fce",
+      "start": 91,
+      "end": 101,
+      "range_sha256": "4a825c523d739e41701fa39beeb38af180a751c280aaafea991d636ff59ac962",
+      "excerpt": "    @net.minecraftforge.fml.common.Mod.EventBusSubscriber(modid=\"dynasty\")\n    public static final class Guidance {\n        @net.minecraftforge.eventbus.api.SubscribeEvent public static void tick(net.minecraftforge.event.TickEvent.PlayerTickEvent e){\n            if(e.phase==net.minecraftforge.event.TickEvent.Phase.END && e.player instanceof ServerPlayer p && p.tickCount%20==0){updateGuide(p);if(p.getPersistentData().contains(WARM)&&!warm(p))clearWarm(p);}\n        }\n        @net.minecraftforge.eventbus.api.SubscribeEvent public static void dimension(net.minecraftforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent e){e.getEntity().getPersistentData().remove(GUIDE);clearWarm(e.getEntity());}\n        @net.minecraftforge.eventbus.api.SubscribeEvent public static void clone(net.minecraftforge.event.entity.player.PlayerEvent.Clone e){e.getEntity().getPersistentData().remove(GUIDE);clearWarm(e.getEntity());}\n        @net.minecraftforge.eventbus.api.SubscribeEvent public static void frost(net.minecraftforge.event.entity.living.MobEffectEvent.Applicable e){\n            if(e.getEntity() instanceof Player p&&!p.level().isClientSide&&e.getEffectInstance().getEffect()==ExpansionEffects.FROST.get()&&warm(p))e.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);\n        }\n    }"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerPlayer.java",
+      "file_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "start": 1151,
+      "end": 1162,
+      "range_sha256": "8c94ed5a45349f9eb7a08c6bb69b142f111f0b9560a5e4c5c15cae6b2872b8df",
+      "excerpt": "      this.setShoulderEntityRight(p_9016_.getShoulderEntityRight());\n      this.setLastDeathLocation(p_9016_.getLastDeathLocation());\n\n      //Copy over a section of the Entity Data from the old player.\n      //Allows mods to specify data that persists after players respawn.\n      CompoundTag old = p_9016_.getPersistentData();\n      if (old.contains(PERSISTED_NBT_TAG))\n          getPersistentData().put(PERSISTED_NBT_TAG, old.get(PERSISTED_NBT_TAG));\n      net.minecraftforge.event.ForgeEventFactory.onPlayerClone(this, p_9016_, !p_9017_);\n      this.tabListHeader = p_9016_.tabListHeader;\n      this.tabListFooter = p_9016_.tabListFooter;\n   }"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+      "file_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "start": 535,
+      "end": 541,
+      "range_sha256": "ea46e032742c20cc404197d96e828054f06445d9ed11c1b6e74fc6bc1bc59af9",
+      "excerpt": "        return MinecraftForge.EVENT_BUS.post(new PlayerSetSpawnEvent(player, levelKey, pos, forced));\n    }\n\n    public static void onPlayerClone(Player player, Player oldPlayer, boolean wasDeath)\n    {\n        MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.player.PlayerEvent.Clone(player, oldPlayer, wasDeath));\n    }"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/player/PlayerEvent.java",
+      "file_sha256": "6c0faf19acb3d8579a5de9fbcdd12f02cf2253ab80b28855f30a2903d88d5198",
+      "start": 205,
+      "end": 243,
+      "range_sha256": "7f6900a67eb26d0b2d0c8f3316cf66cc736336263904ae0e95ff99d718a55a26",
+      "excerpt": "        public void setDisplayName(@Nullable Component displayName)\n        {\n            this.displayName = displayName;\n        }\n    }\n\n    /**\n     * Fired when the EntityPlayer is cloned, typically caused by the impl sending a RESPAWN_PLAYER event.\n     * Either caused by death, or by traveling from the End to the overworld.\n     */\n    public static class Clone extends PlayerEvent\n    {\n        private final Player original;\n        private final boolean wasDeath;\n\n        public Clone(Player _new, Player oldPlayer, boolean wasDeath)\n        {\n            super(_new);\n            this.original = oldPlayer;\n            this.wasDeath = wasDeath;\n        }\n\n        /**\n         * The old EntityPlayer that this new entity is a clone of.\n         */\n        public Player getOriginal()\n        {\n            return original;\n        }\n\n        /**\n         * True if this event was fired because the player died.\n         * False if it was fired because the entity switched dimensions.\n         */\n        public boolean isWasDeath()\n        {\n            return wasDeath;\n        }\n    }"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/nbt/CompoundTag.java",
+      "file_sha256": "15316266077dd84480a4884576bde8d9e8842ffab6d92469c9af8700f52243ca",
+      "start": 166,
+      "end": 174,
+      "range_sha256": "f9ea32007b68c349fe0b83b98273a766833297d1ab0d987c1b49f7d0363bdbf3",
+      "excerpt": "      return this.tags.size();\n   }\n\n   @Nullable\n   public Tag put(String p_128366_, Tag p_128367_) {\n      if (p_128367_ == null) throw new IllegalArgumentException(\"Invalid null NBT value with key \" + p_128366_);\n      return this.tags.put(p_128366_, p_128367_);\n   }\n"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/nbt/CompoundTag.java",
+      "file_sha256": "15316266077dd84480a4884576bde8d9e8842ffab6d92469c9af8700f52243ca",
+      "start": 195,
+      "end": 202,
+      "range_sha256": "58ebfd2c9188801c885b471fdcedd963164ab6c2262f2d504f2fbfd263d0df68",
+      "excerpt": "   public UUID getUUID(String p_128343_) {\n      return NbtUtils.loadUUID(this.get(p_128343_));\n   }\n\n   public boolean hasUUID(String p_128404_) {\n      Tag tag = this.get(p_128404_);\n      return tag != null && tag.getType() == IntArrayTag.TYPE && ((IntArrayTag)tag).getAsIntArray().length == 4;\n   }"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/nbt/CompoundTag.java",
+      "file_sha256": "15316266077dd84480a4884576bde8d9e8842ffab6d92469c9af8700f52243ca",
+      "start": 407,
+      "end": 415,
+      "range_sha256": "7b5916ece435c7bd22c0d7b0616dec1e96d4a6c844292314eb6d1906e9ee6f59",
+      "excerpt": "\n      return new ListTag();\n   }\n\n   public boolean getBoolean(String p_128472_) {\n      return this.getByte(p_128472_) != 0;\n   }\n\n   public void remove(String p_128474_) {"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/nbt/CompoundTag.java",
+      "file_sha256": "15316266077dd84480a4884576bde8d9e8842ffab6d92469c9af8700f52243ca",
+      "start": 434,
+      "end": 441,
+      "range_sha256": "197bfb72a69ae4a924a652b04446716560aa9dfe6af47f0d58a9ff67d80a729f",
+      "excerpt": "      crashreportcategory.setDetail(\"Tag name\", p_128373_);\n      return crashreport;\n   }\n\n   public CompoundTag copy() {\n      Map<String, Tag> map = Maps.newHashMap(Maps.transformValues(this.tags, Tag::copy));\n      return new CompoundTag(map);\n   }"
+    }
+  ],
+  "production_changes": 0,
+  "checklist_deletions": 0,
+  "runtime_credit": 0,
+  "additional_reference_credit": 0,
+  "shared_ledger_changes": 0,
+  "authoring_note": "Two initial generation attempts aborted before creation due guessed end lines School263(actual262), Merit128(actual125). Final ranges use actual ends; no receipt overwritten."
+}

@@ -1,0 +1,455 @@
+{
+  "kind": "specialist-original-candidate-complete-owner-proposal",
+  "date": "2026-11-01",
+  "proposal": 46,
+  "credit_requested": 1,
+  "status": "proposed_pending_coordinator_semantic_review_not_counted",
+  "candidate_id": "d1a64b52d6b7ed5a8a7d",
+  "candidate": {
+    "candidate_id": "d1a64b52d6b7ed5a8a7d",
+    "status": "candidate_not_reviewed",
+    "repo": "klikli-dev/occultism",
+    "revision": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+    "path": "src/main/java/com/klikli_dev/occultism/common/entity/job/ManageMachineJob.java",
+    "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/job/ManageMachineJob.java",
+    "method": "readJobFromNBT",
+    "start_line": 188,
+    "end_line": 209,
+    "file_sha256": "d2337c996d0ebd1914cdf7c2a982e94f1978b4d41165ecd013e22eec49a3ed69",
+    "method_sha256": "5acbb7cea0d678e8f7a547c13ddc80ab6671afb1d59c83563a4e259052293a04",
+    "structural_fingerprint": "887e312ff03af349242f0e8d4aba5d91ee0c292237bd158e1a27a3c31f5de30a",
+    "source_url_or_coordinate": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/job/ManageMachineJob.java#L188-L209",
+    "ast_calls": [
+      "contains",
+      "from",
+      "getCompoundOrEmpty",
+      "contains",
+      "getFirst",
+      "getOrThrow",
+      "decode",
+      "createSerializationContext",
+      "get",
+      "contains",
+      "setCurrentDepositOrder",
+      "from",
+      "getCompoundOrEmpty",
+      "contains",
+      "orElse",
+      "getList",
+      "size",
+      "from",
+      "getCompoundOrEmpty",
+      "add",
+      "readJobFromNBT"
+    ],
+    "ast_guards": [
+      "(compound.contains(\"storageControllerPosition\"))",
+      "(compound.contains(\"managedMachine\"))",
+      "(compound.contains(\"currentDepositOrder\"))",
+      "(compound.contains(\"depositOrders\"))"
+    ],
+    "context": "@Override\n    public void readJobFromNBT(CompoundTag compound, Provider provider) {\n        if (compound.contains(\"storageControllerPosition\"))\n            this.storageControllerPosition = GlobalBlockPos.from(provider, compound.getCompoundOrEmpty(\"storageControllerPosition\"));\n\n        if (compound.contains(\"managedMachine\"))\n            this.managedMachine = MachineReference.CODEC.decode(provider.createSerializationContext(NbtOps.INSTANCE), compound.get(\"managedMachine\")).getOrThrow().getFirst();\n\n        if (compound.contains(\"currentDepositOrder\"))\n            this.setCurrentDepositOrder(DepositOrder.from(compound.getCompoundOrEmpty(\"currentDepositOrder\"), provider));\n\n        this.depositOrderQueue = new ArrayDeque<>();\n        if (compound.contains(\"depositOrders\")) {\n            ListTag nbtOrderList = compound.getList(\"depositOrders\").orElse(new ListTag());\n            for (int i = 0; i < nbtOrderList.size(); i++) {\n                DepositOrder depositOrder = DepositOrder.from(nbtOrderList.getCompoundOrEmpty(i), provider);\n                this.depositOrderQueue.add(depositOrder);\n            }\n        }\n\n        super.readJobFromNBT(compound, provider);\n    }",
+    "class_has_migration_marker": false,
+    "parse_has_error": false
+  },
+  "family": "occultism-world-authored-machine-operator-order-fifo-and-reload-self-registration",
+  "source_pin": {
+    "repo": "klikli-dev/occultism",
+    "sha": "2373141325d6bcfabf1a03b28eb647e19ab745ee",
+    "archive_sha256": "e39caab21ad739215873c853639c2e2de75222e19c28445fc9be6dac90f90312",
+    "java_files": 997
+  },
+  "source_pin_file_sha256": "ce63df6540b3f9e0430a5a100c67e347338de101dc18732864b7789dbf99c151",
+  "ledger_basis_sha256": "99de4005c33fed400b0ed8eb60f048c5faa2f301dbc38f26e1d0078a7bb99eac",
+  "accepted_basis": 991,
+  "gate_met": false,
+  "trigger": "Book configures real linked machine/controller; registered request_order server payload queues concrete worker orders; entity save/load and first server aiStep restore/rebind before resumed AI.",
+  "input": "ManageMachineJob controller GlobalBlockPos, full MachineReference distinct extraction/insertion endpoints+facing; currentDepositOrder and ordered pending DepositOrder comparator (filter ItemStack codec+matchComponents flag) plus amount.",
+  "output": "Real payload MessageRequestOrder validates loaded controller, returns actual open order slot contents then calls addDepositOrder with client requested stack exact-components comparator. Controller simulates availability only nonempty (not full amount), finds live worker UUID and concrete job then enqueues. Writer retains controller+machine+current+FIFO plus factoryId in actual SpiritEntity nested job. Reader assigns endpoints directly rather than invoking reconfiguration setters which clear orders, reconstructs current and fresh ArrayDeque in saved order. First entity init job.onInit installs goals and registers controller->machine->workerUUID; controller linkedMachines/depositOrderSpirits are runtime maps not saved to disk, refreshed when controller object changes. Actual update polls FIFO only when current empty and both endpoints present. AI simulates current availability and machine insertion, walks to local linked proxy, extracts real controller resources, inserts worker inventory, sets machine deposit target and clears current; next goals transfer physical hand(slot0) with remainder retained, can collect machine outputs and return to closest controller proxy.",
+  "preservation": "One complete authored machine order continuation owner, not credit per order/member/helper/shared carrier. Configuration setters intentionally clear all orders on rebinding; deserializer uses direct assignment preserving queued intent. Authoritative future intent separated from disposable controller reverse index/navigation caches. No current Dynasty runtime/loading acceptance claim.",
+  "limitations": [
+    "Orders are NOT paid, escrowed or reserved. At request only a simulated nonempty subset is checked; multiple queued jobs can oversubscribe. Arrival may fetch less than requested yet current order is cleared with no balance/remainder order. This is durable unreserved intention, not retained paid progression.",
+    "Real extraction, entity insertion, target assignment and queue clearing are separate operations without shared root transaction or ACK. insert remainder ignored in ManageMachineGoal after simulation; race/failure or save boundary can lose/duplicate state. No exactly-once/durable-commit guarantee.",
+    "Empty decoded comparator returns null; update drops null comparator current after polling one per tick. No amount bounds/count validation; invalid MachineReference/globalpos decode getOrThrow can abort load. Missing factoryId parse/lookup can abort. No schema/version migration is claimed.",
+    "Existing current missing key on reused job leaves old current; FIFO always recreated. Fresh registry factory construction normal case. isInitialized false is runtime only. No source claim that all malformed records load losslessly.",
+    "Controller indexes rebuild only live self-registration. register refresh compares controller object; missed unregister can leave stale records. One machine->UUID value overwrites previous worker. configure either endpoint clears queued tasks without accounting, even repeated controller assignment.",
+    "GlobalBlockPos records dimensions and helpers resolve loaded dimensions; ManageMachineGoal uses worker local level for walking/proxy/target positions and discards dimension in target assignment, so do NOT claim cross-dimensional walking/transfer. Cached machine refs may remain stale across replacements.",
+    "ManageMachineGoal line-of-sight returns true; inventory capabilities checked at reset but no strong registry identity revalidation. New machine config updates record; null resets orders. No offline retry timer guarantee; retries/pause and target caches are unsaved.",
+    "Native current modern NeoForge resource handler/transaction internals not in this fixed source cache audit. Modern API reference, not compatible Java drop-in for Forge1.20.1. Shared SpiritEntity hand maps actual inventory slot0; helpers/parent loader no extra credit.",
+    "Payload always sends order_received after addDepositOrder even if no order enqueued; source handler does not establish controller access/ownership authentication or guarantee fulfilled message. clearOpenOrderSlot acts on player currently open storage menu, not necessarily packet target; cannot claim receipt bound to payment."
+  ],
+  "application": "For future Dynasty task migration study only: restore authoritative pending/current commands directly, rebuild disposable reverse indexes after world availability, preserve physical cargo independently, explicitly distinguish intent admission from material reservation and delivery acknowledgment. No production changes before coordinated research gate and actual task implementation validation.",
+  "dedup": {
+    "all_statuses_and_no_family_rows_scanned": true,
+    "candidate_method_sha_and_structural_fingerprint_collisions": [],
+    "complete_records_read": [
+      {
+        "candidate_id": "eae023e4a014fb438155",
+        "status": "accepted",
+        "family": "occult-worker-spirit-job-inventory-and-old-reference-reader",
+        "complete_record_sha256": "441040d389ea8906f4ba04e881b4867be688fa87019033b2ae8a2a12f67d254d",
+        "decision": "Existing whole SpiritEntity carrier/old-owner/inventory/brain restoration, retained whole credit; does not inspect independently authored machine job FIFO/comparator/order lifecycle. Shared entity and cargo bridge support0 here, not split credit for any of its existing fields."
+      },
+      {
+        "candidate_id": "06cc39baef0eac79fda5",
+        "status": "accepted",
+        "family": "occult-map-storage-resource-count-slot-and-derived-cache-reader",
+        "complete_record_sha256": "75d4483d44894f351811c7a50680eea2f0396d83cbb0addd606ecdd88baa5557",
+        "decision": "Existing whole resource-to-count/slot/index consistency owner remains whole. Controller inventory, insert/extract and GUI bridge support0; proposed state owner is queued machine tasks carried by concrete ManageMachineJob, not stored item counts."
+      },
+      {
+        "candidate_id": "fee3fc5e58153bc090e0",
+        "status": "accepted",
+        "family": "create-factory-panel-network-promises-and-recipe-reader",
+        "complete_record_sha256": "e3e3c45a7d53c02f9fffc7a8d9df610fa6abfe870edbe92354bab02450ae128b",
+        "decision": "Create stationary factory-panel graph and restocker promise ledger remains whole; this concrete worker has explicit current+pending FIFO and own two machine global endpoints, load self-registration to transient controller->UUID reverse map and physical fetching/return AI. Not one credit per order or helper. If reviewer judges same whole promise owner abstraction, retain proposal0."
+      },
+      {
+        "candidate_id": "85c21aa1c7e4f76b8156",
+        "status": "accepted",
+        "family": "mekanism-transporter-owned-inflight-stack-disk-reroute-and-transactional-return",
+        "complete_record_sha256": "94a67b9d2359f07249efcae7320e414c859ab060257ef97bd24269df60440cfa",
+        "decision": "Mekanism already-removed inflight owned cargo regenerated paths/rollback/return owner is intact. This concrete machine worker stores unreserved authored future orders before extraction, consumes each on fetching and re-registers job after load; no transactional routed cargo guarantee borrowed."
+      },
+      {
+        "candidate_id": "23797827e30526442a98",
+        "status": "accepted",
+        "family": "pnc-controller-owner-sized-drone-inventory-reader",
+        "complete_record_sha256": "cd1b48d86c1fadcd59d7ec2dc1e892328775661c57d85c59d1fa9561455d6c7d",
+        "decision": "PNC controller drone-slot capacity/owner/machine inventory reader remains whole; no prior order FIFO consumer evidence in that row. Not new credit for carrier inventory or UUID alone."
+      },
+      {
+        "candidate_id": "3a16872faab94fb7d8ca",
+        "status": "accepted",
+        "family": "create-station-owned-postbox-offline-buffer-primed-reconciliation",
+        "complete_record_sha256": "1f684cfeacb8f7ed30b324cfff7072e60c4fcee5443b9e0c9cc1b833e24d35e1",
+        "decision": "Create unloaded station-owned offline mailbuffer/primed reattachment whole credit retained. Here controller index deliberately unsaved and job self-registers; no offline ownership handback/primed journal."
+      }
+    ],
+    "whole_existing_owners_preserved": true,
+    "helpers_and_shared_parent_credit": 0
+  },
+  "evidence_ranges": [
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/job/ManageMachineJob.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/job/ManageMachineJob.java",
+      "start_line": 1,
+      "end_line": 274,
+      "file_sha256": "d2337c996d0ebd1914cdf7c2a982e94f1978b4d41165ecd013e22eec49a3ed69",
+      "range_sha256": "f82d876bb53d9dcb229cb07b9191128c74c0eec009e89388c7806e1a074ea8e0",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/job/ManageMachineJob.java#L1-L274"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/misc/DepositOrder.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/misc/DepositOrder.java",
+      "start_line": 1,
+      "end_line": 69,
+      "file_sha256": "7a62358491b3ce8194fc78021540c80a7636130b45714b6b211d49043c593ad6",
+      "range_sha256": "18144e606e1c1d7d481893a7f347a473d3b8d10ee921bd4a5fd57f4af86b220f",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/misc/DepositOrder.java#L1-L69"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/api/common/data/MachineReference.java",
+      "path": "src/main/java/com/klikli_dev/occultism/api/common/data/MachineReference.java",
+      "start_line": 1,
+      "end_line": 245,
+      "file_sha256": "672a1b5c116db53c9919c41cde870e710e493e7566a2c7650be7109e2ff034b5",
+      "range_sha256": "af06c44cc377a6b44d7378a9cc527b14a9941e1591de0f9e74604e0172111152",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/api/common/data/MachineReference.java#L1-L245"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/ManageMachineGoal.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/ManageMachineGoal.java",
+      "start_line": 1,
+      "end_line": 318,
+      "file_sha256": "0516bf45daf2cddd305ba54a1204b2996a1b62acf106cec3612945d578e94be7",
+      "range_sha256": "49fc9738c2151012ad0a1fd50fd4a2b8b720d1bb5378ced7d9a0284580c4f67f",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/ManageMachineGoal.java#L1-L318"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/FallbackDepositToControllerGoal.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/FallbackDepositToControllerGoal.java",
+      "start_line": 1,
+      "end_line": 127,
+      "file_sha256": "a16c81980a10adf49650691b891777d91539f832fb32a09e53000d6cdb1d40a7",
+      "range_sha256": "2abafc7477a4d7bf2bc7666bf64bba6dc0dc820dbb8e609c3dad6d5bed0daaae",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/FallbackDepositToControllerGoal.java#L1-L127"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/DepositItemsGoal.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/DepositItemsGoal.java",
+      "start_line": 1,
+      "end_line": 212,
+      "file_sha256": "62f612d946a0f96121234037d89adbcfe7fce1c615e40ea9f065f614a7f432e0",
+      "range_sha256": "08e85906287f1e48cfbab412c39a5e26354c9a2e36d4ebd9e41d60e13f30b398",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/ai/goal/DepositItemsGoal.java#L1-L212"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/misc/ItemStackComparator.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/misc/ItemStackComparator.java",
+      "start_line": 1,
+      "end_line": 109,
+      "file_sha256": "54399224262b618ec8252ffa4f00f1f021bd35caa9dc76d46552d2f1cad5f73c",
+      "range_sha256": "1604f8aa138b10bd1788278cb0127f79dedd5f5d3de2658745e53139ae17e30a",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/misc/ItemStackComparator.java#L1-L109"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/network/messages/MessageRequestOrder.java",
+      "path": "src/main/java/com/klikli_dev/occultism/network/messages/MessageRequestOrder.java",
+      "start_line": 1,
+      "end_line": 107,
+      "file_sha256": "46daa5d4d06f2b47fc24f1c1d51640b0f38dac572293e094d7669b84b29300e5",
+      "range_sha256": "1fc6e4b6b4343cd29e3d48bb5b42960416165327c79adff96226a71f78622856",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/network/messages/MessageRequestOrder.java#L1-L107"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/network/messages/MessageSetManagedMachine.java",
+      "path": "src/main/java/com/klikli_dev/occultism/network/messages/MessageSetManagedMachine.java",
+      "start_line": 1,
+      "end_line": 94,
+      "file_sha256": "9334ee49345f36b45310c70dae85e0a9a5132cb6b650d9029048d023175af030",
+      "range_sha256": "292c99b8948f91a4d82f7a87abd6b3d9d92ba0a4de00cbe6f26dbcf65a3a7b03",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/network/messages/MessageSetManagedMachine.java#L1-L94"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/ai/target/BlockPosMoveTarget.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/ai/target/BlockPosMoveTarget.java",
+      "start_line": 1,
+      "end_line": 62,
+      "file_sha256": "d674416fd5baad20af8e929c7f80bf9e3f50a52ebd94c27fdd43f98fe560feaf",
+      "range_sha256": "b48500e168d510e5a532634082b167eac425719898074ad2c4b833eca39ba99d",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/ai/target/BlockPosMoveTarget.java#L1-L62"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/client/gui/storage/logic/StorageScreenActions.java",
+      "path": "src/main/java/com/klikli_dev/occultism/client/gui/storage/logic/StorageScreenActions.java",
+      "start_line": 1,
+      "end_line": 73,
+      "file_sha256": "ea5034d584942304cffddfa76feb34dc71371e56975d6c73c2482dc7c1949815",
+      "range_sha256": "c5295d3ab31af864abb015767c373f39f0e83f5c911d0027c44e090834b76421",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/client/gui/storage/logic/StorageScreenActions.java#L1-L73"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/spirit/BookOfCallingManageMachineItem.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/item/spirit/BookOfCallingManageMachineItem.java",
+      "start_line": 1,
+      "end_line": 143,
+      "file_sha256": "8d750f156d2f9674b437fe9eabc0ad8a40888922c0b4b5ef69cc191de88d0875",
+      "range_sha256": "dea205e6e17de4e5a205ab7f2dc834c094c560697c81f19935dd4d18dcb1aef2",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/item/spirit/BookOfCallingManageMachineItem.java#L1-L143"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/spirit/calling/SetStorageLocationMode.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/item/spirit/calling/SetStorageLocationMode.java",
+      "start_line": 1,
+      "end_line": 76,
+      "file_sha256": "8569a32cf782ace822129ac7647d072307b306aa5f21be718b744d66d6d0ffcd",
+      "range_sha256": "22b680fbe1333e45382f7c9068262887d9f9333f777c2934c4ef0a41cf7c6b4e",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/item/spirit/calling/SetStorageLocationMode.java#L1-L76"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/item/spirit/calling/SetManagedMachineMode.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/item/spirit/calling/SetManagedMachineMode.java",
+      "start_line": 1,
+      "end_line": 81,
+      "file_sha256": "406a489ce3363d94a852f1ec90c29ac890ff608411ffbe60c62dd630a7c15dbf",
+      "range_sha256": "c6f47d01f7764c87945232cc9c78ef2eaf1b2b415d3abe70be25ca03cbdff311",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/item/spirit/calling/SetManagedMachineMode.java#L1-L81"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/job/SpiritJobFactory.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/job/SpiritJobFactory.java",
+      "start_line": 1,
+      "end_line": 51,
+      "file_sha256": "b67eb75eae2c7747a80f6d59e10614ad15ba694e6764f4e13f97911834457a88",
+      "range_sha256": "ec926bd32a489eb2d096c470b207f5db85a5a6007bc1f1f63f3bd9810ce77bc8",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/job/SpiritJobFactory.java#L1-L51"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/api/common/data/GlobalBlockPos.java",
+      "path": "src/main/java/com/klikli_dev/occultism/api/common/data/GlobalBlockPos.java",
+      "start_line": 1,
+      "end_line": 126,
+      "file_sha256": "9211519240d738e9cdf34976cc4dfcffde5ad77f650dce7674310f9ac6f27845",
+      "range_sha256": "5ba00d70bdaaf44efb0e208f754241497f144ca6240ab4a174e526ed88d32b0a",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/api/common/data/GlobalBlockPos.java#L1-L126"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/network/MessageHandler.java",
+      "path": "src/main/java/com/klikli_dev/occultism/network/MessageHandler.java",
+      "start_line": 1,
+      "end_line": 38,
+      "file_sha256": "8fe177ec0081f33bf165b295a47e22d025910106aea8a2f744916b1a0e2573d5",
+      "range_sha256": "f280127fb1c94f0cc063e3263f14dc49bb419bf05f853bfed943b19f414c3434",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/network/MessageHandler.java#L1-L38"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/util/BlockEntityUtil.java",
+      "path": "src/main/java/com/klikli_dev/occultism/util/BlockEntityUtil.java",
+      "start_line": 1,
+      "end_line": 149,
+      "file_sha256": "fdbea81b0bf6f1b09c295e25c62560d5432939bc9d2192bd411fd142c3fafc9c",
+      "range_sha256": "5ab71168b351f56e00976af5f1220c060075a995714f017c84d5386fbbf91e8d",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/util/BlockEntityUtil.java#L1-L149"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java",
+      "start_line": 70,
+      "end_line": 170,
+      "file_sha256": "a303bbabfe5c2cb9707b08065149a1bb8cf40d1aa31c77c92b2afd8184a85e16",
+      "range_sha256": "614a647dda829a6b47c6f1b3d386095b2a414b02bc4c405adeee571c7f7b6ac6",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java#L70-L170"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java",
+      "start_line": 320,
+      "end_line": 435,
+      "file_sha256": "a303bbabfe5c2cb9707b08065149a1bb8cf40d1aa31c77c92b2afd8184a85e16",
+      "range_sha256": "fe5965ed04c6f1471807576d75405c55cef88cb9400ea9e3536df2489197d7cc",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java#L320-L435"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java",
+      "start_line": 455,
+      "end_line": 595,
+      "file_sha256": "a303bbabfe5c2cb9707b08065149a1bb8cf40d1aa31c77c92b2afd8184a85e16",
+      "range_sha256": "f974cebf6dbc4ead771bc2cc4bec5d6a71a7a12768d834abc8a928749af3836c",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/blockentity/StorageControllerBlockEntity.java#L455-L595"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/job/SpiritJob.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/job/SpiritJob.java",
+      "start_line": 45,
+      "end_line": 153,
+      "file_sha256": "e387152262171ba3e0a7c1968411f70669850f5988bc15dfc52e73e483e87da5",
+      "range_sha256": "7f9e4f72c2b1a5c5cba1c69cea1165ff6ef5e30e70eb0f6cfb86619a19eaae62",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/job/SpiritJob.java#L45-L153"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "start_line": 116,
+      "end_line": 148,
+      "file_sha256": "7b80ea0e5b8aa55ff4c06e3479b799b149a76ad079ca65edf7804b9b6e69e571",
+      "range_sha256": "cd2b057176d937611b948b6c116a5f0e57e212e270e1f57ce3ad1f354454e036",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java#L116-L148"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "start_line": 353,
+      "end_line": 379,
+      "file_sha256": "7b80ea0e5b8aa55ff4c06e3479b799b149a76ad079ca65edf7804b9b6e69e571",
+      "range_sha256": "0e93c75894042c23ab4c217e513eb688ef4a6cacfe6079f12e7ec6701eefd309",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java#L353-L379"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "start_line": 420,
+      "end_line": 439,
+      "file_sha256": "7b80ea0e5b8aa55ff4c06e3479b799b149a76ad079ca65edf7804b9b6e69e571",
+      "range_sha256": "840e05719dcc7cd664a5fec9c2afc13c2e60916faa011b74756f0d229e177296",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java#L420-L439"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "start_line": 464,
+      "end_line": 484,
+      "file_sha256": "7b80ea0e5b8aa55ff4c06e3479b799b149a76ad079ca65edf7804b9b6e69e571",
+      "range_sha256": "3568f3d52cfd920b875b11c236848bc282df55b6e2109605df1650076e31cb11",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java#L464-L484"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "start_line": 501,
+      "end_line": 580,
+      "file_sha256": "7b80ea0e5b8aa55ff4c06e3479b799b149a76ad079ca65edf7804b9b6e69e571",
+      "range_sha256": "01edbc47073a77dc2978f6cc2b14a355a61d2a13bfdaa3808b0aab9e637f9119",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java#L501-L580"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "path": "src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java",
+      "start_line": 654,
+      "end_line": 670,
+      "file_sha256": "7b80ea0e5b8aa55ff4c06e3479b799b149a76ad079ca65edf7804b9b6e69e571",
+      "range_sha256": "65207179ca43de4e5fd171810579f990c9c0d7ce91af4df25f17db22406d31b0",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/common/entity/spirit/SpiritEntity.java#L654-L670"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/registry/OccultismCapabilities.java",
+      "path": "src/main/java/com/klikli_dev/occultism/registry/OccultismCapabilities.java",
+      "start_line": 115,
+      "end_line": 159,
+      "file_sha256": "7297a60908daaf578dd23f965b202c14f5cb0a36f7e55b51cf08f99a9eeedd59",
+      "range_sha256": "56b57e366e4378ae292f0caf07f163badeb28d661fd4a4c630f6bf5527950d82",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/registry/OccultismCapabilities.java#L115-L159"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/registry/OccultismSpiritJobs.java",
+      "path": "src/main/java/com/klikli_dev/occultism/registry/OccultismSpiritJobs.java",
+      "start_line": 30,
+      "end_line": 55,
+      "file_sha256": "a83ca0dda7ad734aaffd70f7063c18a11474eb86ef0e458bca0141b37a965a2a",
+      "range_sha256": "32126dcac964f11e6f37d893f47758a4d78c119d1baa7f610cf46d84a826c56c",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/registry/OccultismSpiritJobs.java#L30-L55"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/network/Networking.java",
+      "path": "src/main/java/com/klikli_dev/occultism/network/Networking.java",
+      "start_line": 31,
+      "end_line": 58,
+      "file_sha256": "66eaa27e022fdad6bf8d6210133601d8763528f0b2976e3b30665aa06f34f63b",
+      "range_sha256": "e3eb27f9e21c5fd50e86bb264f8b2e219f0b54d639ec6a0d95729eaf0b443d73",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/network/Networking.java#L31-L58"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/Occultism.java",
+      "path": "src/main/java/com/klikli_dev/occultism/Occultism.java",
+      "start_line": 110,
+      "end_line": 140,
+      "file_sha256": "22c60370660d9082956c7a8f65ebaa1ee58de53c35f87e77eed8a471734d9808",
+      "range_sha256": "d3a31a4d0127b4799bb448c1830417b2cce3c7135f1bad6b3bc41ac748e35222",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/Occultism.java#L110-L140"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/util/ItemTransferUtil.java",
+      "path": "src/main/java/com/klikli_dev/occultism/util/ItemTransferUtil.java",
+      "start_line": 1,
+      "end_line": 108,
+      "file_sha256": "457a5148d797965357d6db4d86cf0d47daf8950dc556f8f9db7e422d0d49ed87",
+      "range_sha256": "56eb278f68181c2063635712a6fea2755d29f14b0463b41e0c3e80a99c0231c1",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/util/ItemTransferUtil.java#L1-L108"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/klikli-dev__occultism/src/main/java/com/klikli_dev/occultism/util/StorageUtil.java",
+      "path": "src/main/java/com/klikli_dev/occultism/util/StorageUtil.java",
+      "start_line": 108,
+      "end_line": 143,
+      "file_sha256": "2fa3ccdad5b48ae8a823c54142bb1fad7601925f376ea288bbe7e330470174b9",
+      "range_sha256": "378217a831e2041b3588d850a467049f14b8308529e9d6e8eedddbd31f35a04b",
+      "source_url": "https://github.com/klikli-dev/occultism/blob/2373141325d6bcfabf1a03b28eb647e19ab745ee/src/main/java/com/klikli_dev/occultism/util/StorageUtil.java#L108-L143"
+    }
+  ],
+  "actual_evidence_range_count": 34,
+  "actual_evidence_line_count": 3293,
+  "scope": {
+    "network": false,
+    "java_or_game": false,
+    "production_writes": false,
+    "shared_ledger_edits": false,
+    "prompt_deletions": false
+  },
+  "read_notes": [
+    "Earlier erroneous lookup common/misc/MachineReference.java corrected to imported api/common/data/MachineReference.java; no read or credit for missing file.",
+    "Earlier erroneous common/entity/SpiritJobFactory.java lookup corrected to common/entity/job/SpiritJobFactory.java.",
+    "Additional full DjinniEntity135 lines read as comparator context but not part of required evidence total; it adds0.",
+    "StorageUtil1-110 previously read too; evidence total only includes required108-143, not inflated supplemental lines."
+  ]
+}

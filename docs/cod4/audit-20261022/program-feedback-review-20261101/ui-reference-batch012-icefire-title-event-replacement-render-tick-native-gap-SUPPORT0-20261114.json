@@ -1,0 +1,251 @@
+{
+  "schema": "dynasty.ui-source-whole-review.v1",
+  "recorded_utc": "2026-11-14T07:15:27.634384+00:00",
+  "status": "SUPPORT0_MATCHING_NATIVE_LIFECYCLE_GAP",
+  "scope": "本轮最多2个UI实现范围的第1项：IceAndFire继承TitleScreen事件替换/自绘生命周期辅助，不授完整整体。",
+  "skill": {
+    "path": "/Users/a15356015027/.codex/skills/find-skills/SKILL.md",
+    "read_applied": true,
+    "selection": "固定本地文本研究足够，无网络/安装"
+  },
+  "prior_comparison": {
+    "closest": {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/ui-reference-batch007-aether-title-button-replacement-callback-alpha-layout-whole-HOLD0-20261114.json",
+      "sha256": "8ed13c1075b930f5a15bf7f0c654738f5f86065d4bf74360a744e4380a4ffc73",
+      "bytes": 61728
+    },
+    "actual_before_new_source": "已成功重读007原作者15观察/11限制，并复用001–011实际旧整体对照；003/004/005更正继续有效。",
+    "judgment": "TitleScreen定制共有机制不拆计；本源匹配native缺口阻止新whole，SUPPORT0。"
+  },
+  "study": {
+    "repo": "AlexModGuy/Ice_and_Fire",
+    "revision_from_metadata": "02b2922003cbce3c67dad55dfea79acf1721e0db",
+    "manifest": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__Ice_and_Fire/source.json",
+      "sha256": "d6b0fc6bd181ae22ec174d72d32c4bf4f82842555e771146e9456b5d46d3ccc7",
+      "bytes": 238
+    },
+    "manifest_content": {
+      "repo": "AlexModGuy/Ice_and_Fire",
+      "sha": "02b2922003cbce3c67dad55dfea79acf1721e0db",
+      "java_files": 88,
+      "candidate_files": 88,
+      "fetch_mode": "Pinned recursive tree plus candidate raw Java only; no textures/models downloaded"
+    },
+    "source_members": [
+      {
+        "id": "title",
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__Ice_and_Fire/src/main/java/com/github/alexthe666/iceandfire/client/gui/IceAndFireMainMenu.java",
+        "sha256": "d366250f9ffab08396619070645b43905edb6e0a2c920b7d19fd4008fddd3614",
+        "bytes": 10508,
+        "total_lines": 248,
+        "whole_file": true,
+        "selected_unique_lines": 248,
+        "ranges": [
+          {
+            "start": 1,
+            "end": 248,
+            "text": "package com.github.alexthe666.iceandfire.client.gui;\n\nimport com.github.alexthe666.iceandfire.IceAndFire;\nimport com.mojang.blaze3d.platform.GlStateManager;\nimport com.mojang.blaze3d.systems.RenderSystem;\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.math.Vector3f;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.Util;\nimport net.minecraft.client.gui.Font;\nimport net.minecraft.client.gui.GuiComponent;\nimport net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.Mth;\nimport net.minecraftforge.client.ForgeHooksClient;\nimport org.apache.commons.io.IOUtils;\nimport org.jetbrains.annotations.NotNull;\n\nimport java.io.BufferedReader;\nimport java.io.IOException;\nimport java.io.InputStream;\nimport java.io.InputStreamReader;\nimport java.net.MalformedURLException;\nimport java.net.URL;\nimport java.net.URLConnection;\nimport java.nio.charset.StandardCharsets;\nimport java.util.List;\nimport java.util.Random;\nimport java.util.concurrent.ThreadLocalRandom;\n\npublic class IceAndFireMainMenu extends TitleScreen {\n    public static final int LAYER_COUNT = 2;\n    public static final ResourceLocation splash = new ResourceLocation(IceAndFire.MODID, \"splashes.txt\");\n    private static final ResourceLocation MINECRAFT_TITLE_TEXTURES = new ResourceLocation(\"textures/gui/title/minecraft.png\");\n    private static final ResourceLocation BESTIARY_TEXTURE = new ResourceLocation(\"iceandfire:textures/gui/main_menu/bestiary_menu.png\");\n    private static final ResourceLocation TABLE_TEXTURE = new ResourceLocation(\"iceandfire:textures/gui/main_menu/table.png\");\n    public static ResourceLocation[] pageFlipTextures;\n    public static ResourceLocation[] drawingTextures = new ResourceLocation[22];\n    private int layerTick;\n    private String splashText;\n    private boolean isFlippingPage = false;\n    private int pageFlip = 0;\n    private Picture[] drawnPictures;\n    private Enscription[] drawnEnscriptions;\n    private float globalAlpha = 1F;\n\n    public IceAndFireMainMenu() {\n        pageFlipTextures = new ResourceLocation[]{new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/page_1.png\"),\n            new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/page_2.png\"),\n            new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/page_3.png\"),\n            new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/page_4.png\"),\n            new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/page_5.png\"),\n            new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/page_6.png\")};\n        for (int i = 0; i < drawingTextures.length; i++) {\n            drawingTextures[i] = new ResourceLocation(IceAndFire.MODID, \"textures/gui/main_menu/drawing_\" + (i + 1) + \".png\");\n        }\n        resetDrawnImages();\n        final String branch = \"1.17\";\n        try (final BufferedReader reader = getURLContents(\"https://raw.githubusercontent.com/Alex-the-666/Ice_and_Fire/\"\n            + branch + \"/src/main/resources/assets/iceandfire/splashes.txt\", \"assets/iceandfire/splashes.txt\")) {\n            List<String> list = IOUtils.readLines(reader);\n\n            if (!list.isEmpty()) {\n                do {\n                    this.splashText = list.get(ThreadLocalRandom.current().nextInt(list.size()));\n                } while (this.splashText.hashCode() == 125780783);\n            }\n        } catch (IOException e) {\n            IceAndFire.LOGGER.error(\"Exception trying to collect splash screen lines: \", e);\n        }\n    }\n\n    public static BufferedReader getURLContents(String urlString, String backupFileLoc) {\n        BufferedReader reader = null;\n        boolean useBackup = false;\n        URL url;\n        try {\n            url = new URL(urlString);\n        } catch (MalformedURLException e) {\n            url = null;\n            useBackup = true;\n        }\n        if (url != null) {\n            URLConnection connection = null;\n            try {\n                connection = url.openConnection();\n                connection.setConnectTimeout(200);\n                InputStream is = connection.getInputStream();\n                reader = new BufferedReader(new InputStreamReader(is));\n            } catch (IOException e) {\n                IceAndFire.LOGGER.warn(\"Ice and Fire couldn't download splash texts for main menu\");\n                useBackup = true;\n            }\n        }\n        if (useBackup) {\n            InputStream is = IceAndFireMainMenu.class.getClassLoader().getResourceAsStream(backupFileLoc);\n            if (is != null) {\n                reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));\n            }\n        }\n        return reader;\n    }\n\n\n    private void resetDrawnImages() {\n        globalAlpha = 0;\n        Random random = java.util.concurrent.ThreadLocalRandom.current();\n        drawnPictures = new Picture[1 + random.nextInt(2)];\n        boolean left = random.nextBoolean();\n        for (int i = 0; i < drawnPictures.length; i++) {\n            left = !left;\n            int x;\n            int y = random.nextInt(25);\n            if (left) {\n                x = -15 - random.nextInt(20) - 128;\n            } else {\n                x = 30 + random.nextInt(20);\n            }\n            drawnPictures[i] = new Picture(random.nextInt(drawingTextures.length - 1), x, y, 0.5F, random.nextFloat() * 0.5F + 0.5F);\n        }\n        drawnEnscriptions = new Enscription[4 + random.nextInt(8)];\n        for (int i = 0; i < drawnEnscriptions.length; i++) {\n            left = !left;\n            int x;\n            int y = 10 + random.nextInt(130);\n            if (left) {\n                x = -30 - random.nextInt(30) - 50;\n            } else {\n                x = 30 + random.nextInt(30);\n            }\n            String s1 = \"missingno\";\n            drawnEnscriptions[i] = new Enscription(s1, x, y, random.nextFloat() * 0.5F + 0.5F, 0X9C8B7B);\n        }\n    }\n\n    @Override\n    public void tick() {\n        super.tick();\n        float flipTick = layerTick % 40;\n        if (globalAlpha < 1 && !isFlippingPage && flipTick < 30) {\n            globalAlpha += 0.1F;\n        }\n\n        if (globalAlpha > 0 && flipTick > 30) {\n            globalAlpha -= 0.1F;\n        }\n        if (flipTick == 0 && !isFlippingPage) {\n            isFlippingPage = true;\n        }\n        if (isFlippingPage) {\n            if (layerTick % 2 == 0) {\n                pageFlip++;\n            }\n            if (pageFlip == 6) {\n                pageFlip = 0;\n                isFlippingPage = false;\n                resetDrawnImages();\n            }\n        }\n\n        this.layerTick++;\n    }\n\n    @Override\n    public void render(@NotNull PoseStack ms, int mouseX, int mouseY, float partialTicks) {\n        RenderSystem.enableTexture();\n        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);\n        RenderSystem.enableBlend();\n        RenderSystem.setShaderTexture(0, TABLE_TEXTURE);\n        int width = this.width;\n        int height = this.height;\n        blit(ms, 0, 0, 0, 0, width, height, width, height);\n        RenderSystem.setShaderTexture(0, BESTIARY_TEXTURE);\n        blit(ms, 50, 0, 0, 0, width - 100, height, width - 100, height);\n        float f11 = 1.0F;\n        int l = Mth.ceil(f11 * 255.0F) << 24;\n        if (this.isFlippingPage) {\n            RenderSystem.setShaderTexture(0, pageFlipTextures[Math.min(5, pageFlip)]);\n            blit(ms, 50, 0, 0, 0, width - 100, height, width - 100, height);\n        } else {\n            int middleX = width / 2;\n            int middleY = height / 5;\n            float widthScale = width / 427F;\n            float heightScale = height / 427F;\n            float imageScale = Math.min(widthScale, heightScale) * 192;\n            for (Picture picture : drawnPictures) {\n                float alpha = (picture.alpha * globalAlpha + 0.01F);\n                RenderSystem.enableBlend();\n                RenderSystem.setShaderTexture(0, drawingTextures[picture.image]);\n                RenderSystem.setShaderColor(1, 1, 1, 1);\n                GUIColoredBlit.blit(ms, (int) ((picture.x * widthScale) + middleX), (int) ((picture.y * heightScale) + middleY), 0, 0, (int) imageScale, (int) imageScale, (int) imageScale, (int) imageScale, alpha);\n                RenderSystem.disableBlend();\n            }\n        }\n        GlStateManager._enableTexture();\n        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);\n        GlStateManager._enableBlend();\n        this.getMinecraft().font.draw(ms, \"Ice and Fire \" + ChatFormatting.YELLOW + IceAndFire.VERSION, 2, height - 10, 0xFFFFFFFF);\n        RenderSystem.setShaderTexture(0, MINECRAFT_TITLE_TEXTURES);\n        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);\n        blit(ms, width / 2 - 274 / 2, 10, 0, 0, 155, 44);\n        blit(ms, width / 2 - 274 / 2 + 155, 10, 0, 45, 155, 44);\n\n        ForgeHooksClient.renderMainMenu(this, ms, this.getMinecraft().font, width, height, l);\n        if (this.splashText != null) {\n            ms.pushPose();\n            ms.translate((this.width / 2 + 90), 70.0D, 0.0D);\n            ms.mulPose(Vector3f.ZP.rotationDegrees(-20.0F));\n            float f2 = 1.8F - Mth.abs(Mth.sin((float) (Util.getMillis() % 1000L) / 1000.0F * ((float) Math.PI * 2F)) * 0.1F);\n            f2 = f2 * 100.0F / (float) (this.font.width(this.splashText) + 32);\n            ms.scale(f2, f2, f2);\n            drawCenteredString(ms, this.font, this.splashText, 0, -8, 16776960 | l);\n            ms.popPose();\n        }\n\n\n        String s1 = \"Copyright Mojang AB. Do not distribute!\";\n        Font font = this.getMinecraft().font;\n        GuiComponent.drawString(ms, font, s1, width - this.getMinecraft().font.width(s1) - 2,\n            height - 10, 0xFFFFFFFF);\n        for (int i = 0; i < this.renderables.size(); ++i) {\n            this.renderables.get(i).render(ms, mouseX, mouseY, partialTicks);\n        }\n        for (int i = 0; i < this.renderables.size(); i++) {\n            renderables.get(i).render(ms, mouseX, mouseY, getMinecraft().getFrameTime());\n        }\n    }\n\n    private class Picture {\n        int image;\n        int x;\n        int y;\n        float alpha;\n\n        public Picture(int image, int x, int y, float alpha, float scale) {\n            this.image = image;\n            this.x = x;\n            this.y = y;\n            this.alpha = alpha;\n        }\n    }\n\n    private class Enscription {\n        public Enscription(String text, int x, int y, float alpha, int color) {\n        }\n    }\n}\n\n"
+          }
+        ]
+      },
+      {
+        "id": "event",
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__Ice_and_Fire/src/main/java/com/github/alexthe666/iceandfire/event/ClientEvents.java",
+        "sha256": "c25632221685191c613ca4f7bbea05e5e6a3d28e6f3a3ec624c9b93bb224ed39",
+        "bytes": 12755,
+        "total_lines": 255,
+        "whole_file": false,
+        "selected_unique_lines": 34,
+        "ranges": [
+          {
+            "start": 24,
+            "end": 51,
+            "text": "import net.minecraft.client.gui.screens.TitleScreen;\nimport net.minecraft.client.model.HumanoidModel;\nimport net.minecraft.client.model.PlayerModel;\nimport net.minecraft.client.renderer.GameRenderer;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ArmorItem;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport net.minecraftforge.client.event.EntityViewRenderEvent;\nimport net.minecraftforge.client.event.RenderLevelLastEvent;\nimport net.minecraftforge.client.event.RenderLivingEvent;\nimport net.minecraftforge.client.event.ScreenOpenEvent;\nimport net.minecraftforge.event.entity.EntityMountEvent;\nimport net.minecraftforge.event.entity.living.LivingEvent;\nimport net.minecraftforge.eventbus.api.SubscribeEvent;\nimport net.minecraftforge.fml.common.Mod;\n\nimport java.util.List;\nimport java.util.Random;\n\n@OnlyIn(Dist.CLIENT)\n@Mod.EventBusSubscriber(modid = IceAndFire.MODID, value = Dist.CLIENT)\npublic class ClientEvents {\n"
+          },
+          {
+            "start": 224,
+            "end": 229,
+            "text": "    @SubscribeEvent\n    public void onGuiOpened(ScreenOpenEvent event) {\n        if (IafConfig.customMainMenu && event.getScreen() instanceof TitleScreen && !(event.getScreen() instanceof IceAndFireMainMenu)) {\n            event.setScreen(new IceAndFireMainMenu());\n        }\n    }\n"
+          }
+        ]
+      },
+      {
+        "id": "registration",
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__Ice_and_Fire/src/main/java/com/github/alexthe666/iceandfire/client/ClientProxy.java",
+        "sha256": "0c6974bbf80ee1a58866f4ba5d3d137280fe16a744f27d454567309467a0c1d2",
+        "bytes": 7460,
+        "total_lines": 218,
+        "whole_file": false,
+        "selected_unique_lines": 6,
+        "ranges": [
+          {
+            "start": 52,
+            "end": 57,
+            "text": "    @Override\n    public void init() {\n        IafKeybindRegistry.init();\n        MinecraftForge.EVENT_BUS.register(new PlayerRenderEvents());\n        MinecraftForge.EVENT_BUS.register(new ClientEvents());\n    }\n"
+          }
+        ]
+      },
+      {
+        "id": "config",
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__Ice_and_Fire/src/main/java/com/github/alexthe666/iceandfire/IafConfig.java",
+        "sha256": "d02aa125405b4c75f1086db3108a88a69c9f77ec3fd73d7db5010ff908774ec2",
+        "bytes": 22270,
+        "total_lines": 344,
+        "whole_file": false,
+        "selected_unique_lines": 14,
+        "ranges": [
+          {
+            "start": 9,
+            "end": 11,
+            "text": "public class IafConfig {\n    public static boolean customMainMenu = true;\n    public static boolean useVanillaFont = false;\n"
+          },
+          {
+            "start": 173,
+            "end": 183,
+            "text": "    public static void bakeClient(final ModConfig config) {\n        try {\n            customMainMenu = ConfigHolder.CLIENT.customMainMenu.get();\n            useVanillaFont = ConfigHolder.CLIENT.useVanillaFont.get();\n         dragonAuto3rdPerson = ConfigHolder.CLIENT.dragonAuto3rdPerson.get();\n        } catch (Exception e) {\n            IceAndFire.LOGGER.warn(\"An exception was caused trying to load the client config for Ice and Fire.\");\n            e.printStackTrace();\n        }\n    }\n\n"
+          }
+        ]
+      }
+    ],
+    "whole_files": 1,
+    "selected_unique_lines": 302,
+    "observations": [
+      {
+        "id": "F01",
+        "evidence": [
+          "registration52-57",
+          "event24-51,224-229",
+          "config9-11,173-183"
+        ],
+        "observation": "ClientProxy.init实际向Forge EVENT_BUS注册new ClientEvents实例；onGuiOpened在customMainMenu && event.screen instanceof TitleScreen且非本子类时替换新IceAndFireMainMenu。类上也有EventBusSubscriber标记但方法非static，不能只据标记当该方法注册成功；这里有显式实例注册。config默认true且bakeClient读取ConfigHolder，外部配置建立/ClientProxy.init调用点未闭。"
+      },
+      {
+        "id": "F02",
+        "evidence": [
+          "title31-71"
+        ],
+        "observation": "完整类继承TitleScreen，没有自己的init/按钮构建/close/输入转发方法。动作、父子回退、尺寸重建、按键消费者依赖该来源匹配native TitleScreen/Screen；本地当前映射1.20.1不能替代较早ScreenOpenEvent/Vector3f/enableTexture接口来源的原生闭环。因此max whole0、SUPPORT0，不授新的完整生命周期实例。"
+      },
+      {
+        "id": "F03",
+        "evidence": [
+          "title47-71,73-102"
+        ],
+        "observation": "构造时同步getURLContents并IOUtils.readLines；网络仅connectTimeout200，无readTimeout。异常/坏URL尝试classpath fallback，fallback不存在时可能返回null；构造catch只IOException，不能说全部失败安全回退。只读代码，没有网络请求或实际卡顿/异常证明。来源branch字面1.17是资源URL，不单凭它认证整个项目Minecraft版本。"
+      },
+      {
+        "id": "F04",
+        "evidence": [
+          "title63-67"
+        ],
+        "observation": "有数据时循环随机选splash直到hash不为125780783；没有先过滤或次数上限，不能称任意输入均有终止保证。没有提供实际资源内容，不能报实际无限循环。"
+      },
+      {
+        "id": "F05",
+        "evidence": [
+          "title105-134"
+        ],
+        "observation": "随机内容重置globalAlpha与Picture/Enscription；22张drawingTextures却nextInt(length-1)选图。Picture构造scale参数未赋值、Enscription构造为空。只作可见源码边界，不能用图片/数组/随机变体补参考数量，也不研究/改制贴图。"
+      },
+      {
+        "id": "F06",
+        "evidence": [
+          "title136-162"
+        ],
+        "observation": "tick显式先super.tick再推进翻页/alpha，layerTick在本对象延续，不在init重置。本类无init不能据计时延续认定尺寸bug；浮点+=0.1未严格clamp，不能保证alpha始终[0,1]。没有实机动画质量结论。"
+      },
+      {
+        "id": "F07",
+        "evidence": [
+          "title164-204"
+        ],
+        "observation": "render直接使用本screen.width/height摆放纹理、图画、Logo与ForgeHooksClient.renderMainMenu，未调用super.render。没有隐藏parent.renderArtwork桥接，因此可与Dynasty Hub隐藏父页旧几何问题作对照；绘制/缩放存在不证明极小窗口width-100或所有命中正确。原背景/图画不借用不接入。"
+      },
+      {
+        "id": "F08",
+        "evidence": [
+          "title204-226"
+        ],
+        "observation": "完整render含两个相邻renderables遍历，分别传partialTicks与getFrameTime；本方法每个元素确实各调用一次render，不依赖未知superforeground。仅源级两次遍历，不推导用户运行画面重影、实际服务执行次数或原生Realms提示绘制通过。区别于008未知外部基类，不能用本例证明Create double render。"
+      },
+      {
+        "id": "F09",
+        "evidence": [
+          "title31,136-138,164-227"
+        ],
+        "observation": "保留TitleScreen类型和super.tick并不足以证明全部Title附属服务。此类自定义render没有原生render调用；Realms/Forge指标在其原生版本的init、tick、render、current-screen条件未读。不能拿当前1.20.1原生通知行跨版本宣布服务完整。"
+      },
+      {
+        "id": "F10",
+        "evidence": [
+          "title198-220"
+        ],
+        "observation": "版本、版权为literal字符串，splash来自网络/资源，未构造翻译键；原生继承按钮是否翻译需要匹配版本源。不能标全页本地化，也不能把文字和Logo当UI独立实例。"
+      },
+      {
+        "id": "F11",
+        "evidence": [
+          "titlewhole",
+          "007 old whole15/limits11 reused"
+        ],
+        "observation": "与007 Aether同属TitleScreen定制整体：Aether在super.init后包装/重排按钮并super.render，本例继承init并完全自绘/显式super.tick。窗口/翻译/按钮/渲染辅助仍不拆计；因原生链缺口仅SUPPORT0，未证明足够新的完整整体，不强行新增max1。"
+      },
+      {
+        "id": "F12",
+        "evidence": [
+          "current Dynasty readback"
+        ],
+        "observation": "不修改Dynasty当前背景/原按钮active-visible-tooltip复制/刷怪蛋短提示过滤，4项Hub问题仍开；本例仅提醒明确几何、tick/render、附属服务与事件消费者各自所有者，不是修复许可。"
+      }
+    ],
+    "limitations": [
+      "较早事件/渲染API匹配原生源码未固定；父子页面回退、提交取消（本类无独立编辑业务）、动态重建和输入消费者不闭，SUPPORT0/max0。",
+      "源缓存source.json只有repo/sha/java_files/candidate_files/fetch_mode，未提供逐成员upstream SHA/归档；raw本地SHA只固定观察，未伪造身份。",
+      "完整标题248，其他3成员只选54行；未读ClientEvents/ClientProxy/IafConfig全类，GUIColoredBlit/Font/ForgeHooks实现/图画资源均不闭。",
+      "URLConnection/IOUtils/Minecraft/GLFW/OpenGL/source方法均未执行；没有下载、游戏、音效、光标、背景/素材制作或生产修改。",
+      "007当前Main实际HOLD0状态沿用最新可信消息；本轮重读原作者15观察11限制，不重宣称全部Main22判断ACK；原007限制中当时未审状态为历史，不倒退最新Main审查状态。",
+      "008Catnip缺口无新来源不重搜；不拿此类的已见双遍历推定008未知superforeground；009/010/011仍按最新Main消息未实际原源审。",
+      "旧基线5未Main独立认证，适用1000未证实，正式新增0；布局/文件/引用/行数不等于语义信用。"
+    ],
+    "maximum_new_wholes": 0,
+    "formal_credit": 0,
+    "Main_review": "NOT_YET_REVIEWED"
+  },
+  "protected_delivery_hashes": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/client/RoundedUi.java",
+      "sha256": "8804e746986a90348719975727906b51d33bfb8168133930c8d3b75c30e5c979"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/client/DynastyTitleScreen.java",
+      "sha256": "75c0e5dd432f5e01eea794df50fe28e97eb9ce39c5adbdc8a9d4a83954f4f5f5"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/client/DynastyItemInfo.java",
+      "sha256": "bbcfec0b8768d4fa0ba2ee8fbbd75ccb1937b3fb5e0f14a2bf4b861817fe1886"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/java/com/dynasty/client/DynastyWorldMenus.java",
+      "sha256": "50afa1609d90e472c2d9c7074b9316b0256742da0e8867e3d3c00c5a53ee42d5"
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/assets/dynasty/textures/gui/title/imperial-dawn.png",
+      "sha256": "e5464c3606b3f0770d1b1bd143bf1b59b41ded64eda77d335bc18ab6e54c1fed"
+    }
+  ],
+  "known_four_Hub_issues_open": true,
+  "gate_1000_passed": false,
+  "actions": {
+    "new_pure_JSON": 1,
+    "production_changes": 0,
+    "formal_state_changes": 0,
+    "game_or_Java_starts": 0,
+    "network_requests": 0,
+    "upstream_methods_executed": 0,
+    "task_deletions": 0,
+    "formal_credit": 0,
+    "hours_claimed": null
+  },
+  "all_tasks_complete": false
+}

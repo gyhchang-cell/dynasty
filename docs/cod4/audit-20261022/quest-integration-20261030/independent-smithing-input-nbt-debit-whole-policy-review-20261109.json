@@ -1,0 +1,739 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-09T14:58:23.193862+00:00",
+  "reviewer_thread": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "proposal_author_thread": "01a16364-cac0-7ca2-a042-a5312781ca34",
+  "status": "INDEPENDENT_ACTUAL_SOURCE_REVIEW_SUPPORTS_AT_MOST_ONE_SCOPED_NBT_WHOLE_PENDING_MAIN_REGISTRATION",
+  "proposal": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-smithing-input-nbt-debit-whole-policy-proposal-20261109.json",
+  "proposal_sha256": "e53fe8b0c611ea840f6dc6b5a4ab70d535012274cfb37880c643d9cedf9ac8fa",
+  "original_proposal_unchanged": true,
+  "semantic_family": "three-slot-smithing-result-input-tag-dominance-preview-extraction-before-three-unit-debit",
+  "formal_candidate_id": null,
+  "candidate_id_not_invented": true,
+  "source_identity": {
+    "kind": "fixed_mapped_native_source_artifact",
+    "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+    "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "no_git_commit_invented": true,
+    "fresh_remote_verification": false
+  },
+  "actual_independent_reading": {
+    "whole_classes": 6,
+    "whole_class_lines": 546,
+    "additional_displayed_lines": 251,
+    "additional_classes_partial": true,
+    "complete_moveItemStackTo": [
+      599,
+      681
+    ],
+    "all_six_archive_entry_excerpt_raw_text_bindings_match": true,
+    "file_line_helpers_are_not_credit": true
+  },
+  "source_refs": [
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/crafting/SmithingTransformRecipe.java",
+      "entry_sha256": "02ab375fd3f58e716ca77728a2ff698de1653b72552a27d98e69a902a84beef1",
+      "lines": [
+        1,
+        95
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "02ab375fd3f58e716ca77728a2ff698de1653b72552a27d98e69a902a84beef1",
+      "raw_excerpt_utf8": "package net.minecraft.world.item.crafting;\n\nimport com.google.gson.JsonObject;\nimport java.util.stream.Stream;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.GsonHelper;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\n\npublic class SmithingTransformRecipe implements SmithingRecipe {\n   private final ResourceLocation id;\n   final Ingredient template;\n   final Ingredient base;\n   final Ingredient addition;\n   final ItemStack result;\n\n   public SmithingTransformRecipe(ResourceLocation p_267143_, Ingredient p_266750_, Ingredient p_266787_, Ingredient p_267292_, ItemStack p_267031_) {\n      this.id = p_267143_;\n      this.template = p_266750_;\n      this.base = p_266787_;\n      this.addition = p_267292_;\n      this.result = p_267031_;\n   }\n\n   public boolean matches(Container p_266855_, Level p_266781_) {\n      return this.template.test(p_266855_.getItem(0)) && this.base.test(p_266855_.getItem(1)) && this.addition.test(p_266855_.getItem(2));\n   }\n\n   public ItemStack assemble(Container p_267036_, RegistryAccess p_266699_) {\n      ItemStack itemstack = this.result.copy();\n      CompoundTag compoundtag = p_267036_.getItem(1).getTag();\n      if (compoundtag != null) {\n         itemstack.setTag(compoundtag.copy());\n      }\n\n      return itemstack;\n   }\n\n   public ItemStack getResultItem(RegistryAccess p_267209_) {\n      return this.result;\n   }\n\n   public boolean isTemplateIngredient(ItemStack p_267113_) {\n      return this.template.test(p_267113_);\n   }\n\n   public boolean isBaseIngredient(ItemStack p_267276_) {\n      return this.base.test(p_267276_);\n   }\n\n   public boolean isAdditionIngredient(ItemStack p_267260_) {\n      return this.addition.test(p_267260_);\n   }\n\n   public ResourceLocation getId() {\n      return this.id;\n   }\n\n   public RecipeSerializer<?> getSerializer() {\n      return RecipeSerializer.SMITHING_TRANSFORM;\n   }\n\n   public boolean isIncomplete() {\n      return Stream.of(this.template, this.base, this.addition).anyMatch(net.minecraftforge.common.ForgeHooks::hasNoElements);\n   }\n\n   public static class Serializer implements RecipeSerializer<SmithingTransformRecipe> {\n      public SmithingTransformRecipe fromJson(ResourceLocation p_266953_, JsonObject p_266720_) {\n         Ingredient ingredient = Ingredient.fromJson(GsonHelper.getNonNull(p_266720_, \"template\"));\n         Ingredient ingredient1 = Ingredient.fromJson(GsonHelper.getNonNull(p_266720_, \"base\"));\n         Ingredient ingredient2 = Ingredient.fromJson(GsonHelper.getNonNull(p_266720_, \"addition\"));\n         ItemStack itemstack = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(p_266720_, \"result\"));\n         return new SmithingTransformRecipe(p_266953_, ingredient, ingredient1, ingredient2, itemstack);\n      }\n\n      public SmithingTransformRecipe fromNetwork(ResourceLocation p_267117_, FriendlyByteBuf p_267316_) {\n         Ingredient ingredient = Ingredient.fromNetwork(p_267316_);\n         Ingredient ingredient1 = Ingredient.fromNetwork(p_267316_);\n         Ingredient ingredient2 = Ingredient.fromNetwork(p_267316_);\n         ItemStack itemstack = p_267316_.readItem();\n         return new SmithingTransformRecipe(p_267117_, ingredient, ingredient1, ingredient2, itemstack);\n      }\n\n      public void toNetwork(FriendlyByteBuf p_266746_, SmithingTransformRecipe p_266927_) {\n         p_266927_.template.toNetwork(p_266746_);\n         p_266927_.base.toNetwork(p_266746_);\n         p_266927_.addition.toNetwork(p_266746_);\n         p_266746_.writeItem(p_266927_.result);\n      }\n   }\n}\n",
+      "source_file_or_line_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/SmithingMenu.java",
+      "entry_sha256": "a9fbe0cf278206d83a20accd7bc4dba3100223bbc4fbd66149cf240f837b003e",
+      "lines": [
+        1,
+        129
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a9fbe0cf278206d83a20accd7bc4dba3100223bbc4fbd66149cf240f837b003e",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport java.util.List;\nimport java.util.Optional;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.entity.player.Inventory;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.RecipeType;\nimport net.minecraft.world.item.crafting.SmithingRecipe;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class SmithingMenu extends ItemCombinerMenu {\n   public static final int TEMPLATE_SLOT = 0;\n   public static final int BASE_SLOT = 1;\n   public static final int ADDITIONAL_SLOT = 2;\n   public static final int RESULT_SLOT = 3;\n   public static final int TEMPLATE_SLOT_X_PLACEMENT = 8;\n   public static final int BASE_SLOT_X_PLACEMENT = 26;\n   public static final int ADDITIONAL_SLOT_X_PLACEMENT = 44;\n   private static final int RESULT_SLOT_X_PLACEMENT = 98;\n   public static final int SLOT_Y_PLACEMENT = 48;\n   private final Level level;\n   @Nullable\n   private SmithingRecipe selectedRecipe;\n   private final List<SmithingRecipe> recipes;\n\n   public SmithingMenu(int p_40245_, Inventory p_40246_) {\n      this(p_40245_, p_40246_, ContainerLevelAccess.NULL);\n   }\n\n   public SmithingMenu(int p_40248_, Inventory p_40249_, ContainerLevelAccess p_40250_) {\n      super(MenuType.SMITHING, p_40248_, p_40249_, p_40250_);\n      this.level = p_40249_.player.level();\n      this.recipes = this.level.getRecipeManager().getAllRecipesFor(RecipeType.SMITHING);\n   }\n\n   protected ItemCombinerMenuSlotDefinition createInputSlotDefinitions() {\n      return ItemCombinerMenuSlotDefinition.create().withSlot(0, 8, 48, (p_266643_) -> {\n         return this.recipes.stream().anyMatch((p_266642_) -> {\n            return p_266642_.isTemplateIngredient(p_266643_);\n         });\n      }).withSlot(1, 26, 48, (p_286208_) -> {\n         return this.recipes.stream().anyMatch((p_286206_) -> {\n            return p_286206_.isBaseIngredient(p_286208_);\n         });\n      }).withSlot(2, 44, 48, (p_286207_) -> {\n         return this.recipes.stream().anyMatch((p_286204_) -> {\n            return p_286204_.isAdditionIngredient(p_286207_);\n         });\n      }).withResultSlot(3, 98, 48).build();\n   }\n\n   protected boolean isValidBlock(BlockState p_40266_) {\n      return p_40266_.is(Blocks.SMITHING_TABLE);\n   }\n\n   protected boolean mayPickup(Player p_40268_, boolean p_40269_) {\n      return this.selectedRecipe != null && this.selectedRecipe.matches(this.inputSlots, this.level);\n   }\n\n   protected void onTake(Player p_150663_, ItemStack p_150664_) {\n      p_150664_.onCraftedBy(p_150663_.level(), p_150663_, p_150664_.getCount());\n      this.resultSlots.awardUsedRecipes(p_150663_, this.getRelevantItems());\n      this.shrinkStackInSlot(0);\n      this.shrinkStackInSlot(1);\n      this.shrinkStackInSlot(2);\n      this.access.execute((p_40263_, p_40264_) -> {\n         p_40263_.levelEvent(1044, p_40264_, 0);\n      });\n   }\n\n   private List<ItemStack> getRelevantItems() {\n      return List.of(this.inputSlots.getItem(0), this.inputSlots.getItem(1), this.inputSlots.getItem(2));\n   }\n\n   private void shrinkStackInSlot(int p_40271_) {\n      ItemStack itemstack = this.inputSlots.getItem(p_40271_);\n      if (!itemstack.isEmpty()) {\n         itemstack.shrink(1);\n         this.inputSlots.setItem(p_40271_, itemstack);\n      }\n\n   }\n\n   public void createResult() {\n      List<SmithingRecipe> list = this.level.getRecipeManager().getRecipesFor(RecipeType.SMITHING, this.inputSlots, this.level);\n      if (list.isEmpty()) {\n         this.resultSlots.setItem(0, ItemStack.EMPTY);\n      } else {\n         SmithingRecipe smithingrecipe = list.get(0);\n         ItemStack itemstack = smithingrecipe.assemble(this.inputSlots, this.level.registryAccess());\n         if (itemstack.isItemEnabled(this.level.enabledFeatures())) {\n            this.selectedRecipe = smithingrecipe;\n            this.resultSlots.setRecipeUsed(smithingrecipe);\n            this.resultSlots.setItem(0, itemstack);\n         }\n      }\n\n   }\n\n   public int getSlotToQuickMoveTo(ItemStack p_266739_) {\n      return this.recipes.stream().map((p_266640_) -> {\n         return findSlotMatchingIngredient(p_266640_, p_266739_);\n      }).filter(Optional::isPresent).findFirst().orElse(Optional.of(0)).get();\n   }\n\n   private static Optional<Integer> findSlotMatchingIngredient(SmithingRecipe p_266790_, ItemStack p_266818_) {\n      if (p_266790_.isTemplateIngredient(p_266818_)) {\n         return Optional.of(0);\n      } else if (p_266790_.isBaseIngredient(p_266818_)) {\n         return Optional.of(1);\n      } else {\n         return p_266790_.isAdditionIngredient(p_266818_) ? Optional.of(2) : Optional.empty();\n      }\n   }\n\n   public boolean canTakeItemForPickAll(ItemStack p_40257_, Slot p_40258_) {\n      return p_40258_.container != this.resultSlots && super.canTakeItemForPickAll(p_40257_, p_40258_);\n   }\n\n   public boolean canMoveIntoInputSlots(ItemStack p_266846_) {\n      return this.recipes.stream().map((p_266647_) -> {\n         return findSlotMatchingIngredient(p_266647_, p_266846_);\n      }).anyMatch(Optional::isPresent);\n   }\n}",
+      "source_file_or_line_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/ItemCombinerMenu.java",
+      "entry_sha256": "183831494fc7a9b34a45220c0a8833750e12a687564f1a9c0b62c8fcde08995b",
+      "lines": [
+        1,
+        193
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "183831494fc7a9b34a45220c0a8833750e12a687564f1a9c0b62c8fcde08995b",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.player.Inventory;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic abstract class ItemCombinerMenu extends AbstractContainerMenu {\n   private static final int INVENTORY_SLOTS_PER_ROW = 9;\n   private static final int INVENTORY_SLOTS_PER_COLUMN = 3;\n   protected final ContainerLevelAccess access;\n   protected final Player player;\n   protected final Container inputSlots;\n   private final List<Integer> inputSlotIndexes;\n   protected final ResultContainer resultSlots = new ResultContainer();\n   private final int resultSlotIndex;\n\n   protected abstract boolean mayPickup(Player p_39798_, boolean p_39799_);\n\n   protected abstract void onTake(Player p_150601_, ItemStack p_150602_);\n\n   protected abstract boolean isValidBlock(BlockState p_39788_);\n\n   public ItemCombinerMenu(@Nullable MenuType<?> p_39773_, int p_39774_, Inventory p_39775_, ContainerLevelAccess p_39776_) {\n      super(p_39773_, p_39774_);\n      this.access = p_39776_;\n      this.player = p_39775_.player;\n      ItemCombinerMenuSlotDefinition itemcombinermenuslotdefinition = this.createInputSlotDefinitions();\n      this.inputSlots = this.createContainer(itemcombinermenuslotdefinition.getNumOfInputSlots());\n      this.inputSlotIndexes = itemcombinermenuslotdefinition.getInputSlotIndexes();\n      this.resultSlotIndex = itemcombinermenuslotdefinition.getResultSlotIndex();\n      this.createInputSlots(itemcombinermenuslotdefinition);\n      this.createResultSlot(itemcombinermenuslotdefinition);\n      this.createInventorySlots(p_39775_);\n   }\n\n   private void createInputSlots(ItemCombinerMenuSlotDefinition p_267172_) {\n      for(final ItemCombinerMenuSlotDefinition.SlotDefinition itemcombinermenuslotdefinition$slotdefinition : p_267172_.getSlots()) {\n         this.addSlot(new Slot(this.inputSlots, itemcombinermenuslotdefinition$slotdefinition.slotIndex(), itemcombinermenuslotdefinition$slotdefinition.x(), itemcombinermenuslotdefinition$slotdefinition.y()) {\n            public boolean mayPlace(ItemStack p_267156_) {\n               return itemcombinermenuslotdefinition$slotdefinition.mayPlace().test(p_267156_);\n            }\n         });\n      }\n\n   }\n\n   private void createResultSlot(ItemCombinerMenuSlotDefinition p_267000_) {\n      this.addSlot(new Slot(this.resultSlots, p_267000_.getResultSlot().slotIndex(), p_267000_.getResultSlot().x(), p_267000_.getResultSlot().y()) {\n         public boolean mayPlace(ItemStack p_39818_) {\n            return false;\n         }\n\n         public boolean mayPickup(Player p_39813_) {\n            return ItemCombinerMenu.this.mayPickup(p_39813_, this.hasItem());\n         }\n\n         public void onTake(Player p_150604_, ItemStack p_150605_) {\n            ItemCombinerMenu.this.onTake(p_150604_, p_150605_);\n         }\n      });\n   }\n\n   private void createInventorySlots(Inventory p_267325_) {\n      for(int i = 0; i < 3; ++i) {\n         for(int j = 0; j < 9; ++j) {\n            this.addSlot(new Slot(p_267325_, j + i * 9 + 9, 8 + j * 18, 84 + i * 18));\n         }\n      }\n\n      for(int k = 0; k < 9; ++k) {\n         this.addSlot(new Slot(p_267325_, k, 8 + k * 18, 142));\n      }\n\n   }\n\n   public abstract void createResult();\n\n   protected abstract ItemCombinerMenuSlotDefinition createInputSlotDefinitions();\n\n   private SimpleContainer createContainer(int p_267204_) {\n      return new SimpleContainer(p_267204_) {\n         public void setChanged() {\n            super.setChanged();\n            ItemCombinerMenu.this.slotsChanged(this);\n         }\n      };\n   }\n\n   public void slotsChanged(Container p_39778_) {\n      super.slotsChanged(p_39778_);\n      if (p_39778_ == this.inputSlots) {\n         this.createResult();\n      }\n\n   }\n\n   public void removed(Player p_39790_) {\n      super.removed(p_39790_);\n      this.access.execute((p_39796_, p_39797_) -> {\n         this.clearContainer(p_39790_, this.inputSlots);\n      });\n   }\n\n   public boolean stillValid(Player p_39780_) {\n      return this.access.evaluate((p_39785_, p_39786_) -> {\n         // Vanilla uses 64 which is 8*8. Default reach is 4.5 so add 3.5 padding\n         // magic number so required Mixins can still target here\n         double reachOld = 64.0;\n         double reach = p_39780_.getAttributeValue(net.minecraftforge.common.ForgeMod.BLOCK_REACH.get()) + 3.5;\n         return !this.isValidBlock(p_39785_.getBlockState(p_39786_)) ? false : p_39780_.distanceToSqr((double)p_39786_.getX() + 0.5D, (double)p_39786_.getY() + 0.5D, (double)p_39786_.getZ() + 0.5D) <= reach * reach;\n      }, true);\n   }\n\n   public ItemStack quickMoveStack(Player p_39792_, int p_39793_) {\n      ItemStack itemstack = ItemStack.EMPTY;\n      Slot slot = this.slots.get(p_39793_);\n      if (slot != null && slot.hasItem()) {\n         ItemStack itemstack1 = slot.getItem();\n         itemstack = itemstack1.copy();\n         int i = this.getInventorySlotStart();\n         int j = this.getUseRowEnd();\n         if (p_39793_ == this.getResultSlot()) {\n            if (!this.moveItemStackTo(itemstack1, i, j, true)) {\n               return ItemStack.EMPTY;\n            }\n\n            slot.onQuickCraft(itemstack1, itemstack);\n         } else if (this.inputSlotIndexes.contains(p_39793_)) {\n            if (!this.moveItemStackTo(itemstack1, i, j, false)) {\n               return ItemStack.EMPTY;\n            }\n         } else if (this.canMoveIntoInputSlots(itemstack1) && p_39793_ >= this.getInventorySlotStart() && p_39793_ < this.getUseRowEnd()) {\n            int k = this.getSlotToQuickMoveTo(itemstack);\n            if (!this.moveItemStackTo(itemstack1, k, this.getResultSlot(), false)) {\n               return ItemStack.EMPTY;\n            }\n         } else if (p_39793_ >= this.getInventorySlotStart() && p_39793_ < this.getInventorySlotEnd()) {\n            if (!this.moveItemStackTo(itemstack1, this.getUseRowStart(), this.getUseRowEnd(), false)) {\n               return ItemStack.EMPTY;\n            }\n         } else if (p_39793_ >= this.getUseRowStart() && p_39793_ < this.getUseRowEnd() && !this.moveItemStackTo(itemstack1, this.getInventorySlotStart(), this.getInventorySlotEnd(), false)) {\n            return ItemStack.EMPTY;\n         }\n\n         if (itemstack1.isEmpty()) {\n            slot.setByPlayer(ItemStack.EMPTY);\n         } else {\n            slot.setChanged();\n         }\n\n         if (itemstack1.getCount() == itemstack.getCount()) {\n            return ItemStack.EMPTY;\n         }\n\n         slot.onTake(p_39792_, itemstack1);\n      }\n\n      return itemstack;\n   }\n\n   protected boolean canMoveIntoInputSlots(ItemStack p_39787_) {\n      return true;\n   }\n\n   public int getSlotToQuickMoveTo(ItemStack p_267159_) {\n      return this.inputSlots.isEmpty() ? 0 : this.inputSlotIndexes.get(0);\n   }\n\n   public int getResultSlot() {\n      return this.resultSlotIndex;\n   }\n\n   private int getInventorySlotStart() {\n      return this.getResultSlot() + 1;\n   }\n\n   private int getInventorySlotEnd() {\n      return this.getInventorySlotStart() + 27;\n   }\n\n   private int getUseRowStart() {\n      return this.getInventorySlotEnd();\n   }\n\n   private int getUseRowEnd() {\n      return this.getUseRowStart() + 9;\n   }\n}\n",
+      "source_file_or_line_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/ResultContainer.java",
+      "entry_sha256": "6ca35cc53103fd0697fdaedd968d37b5f1414328708dd5209e7352466238a7b2",
+      "lines": [
+        1,
+        65
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "6ca35cc53103fd0697fdaedd968d37b5f1414328708dd5209e7352466238a7b2",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.ContainerHelper;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.Recipe;\n\npublic class ResultContainer implements Container, RecipeHolder {\n   private final NonNullList<ItemStack> itemStacks = NonNullList.withSize(1, ItemStack.EMPTY);\n   @Nullable\n   private Recipe<?> recipeUsed;\n\n   public int getContainerSize() {\n      return 1;\n   }\n\n   public boolean isEmpty() {\n      for(ItemStack itemstack : this.itemStacks) {\n         if (!itemstack.isEmpty()) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public ItemStack getItem(int p_40147_) {\n      return this.itemStacks.get(0);\n   }\n\n   public ItemStack removeItem(int p_40149_, int p_40150_) {\n      return ContainerHelper.takeItem(this.itemStacks, 0);\n   }\n\n   public ItemStack removeItemNoUpdate(int p_40160_) {\n      return ContainerHelper.takeItem(this.itemStacks, 0);\n   }\n\n   public void setItem(int p_40152_, ItemStack p_40153_) {\n      this.itemStacks.set(0, p_40153_);\n   }\n\n   public void setChanged() {\n   }\n\n   public boolean stillValid(Player p_40155_) {\n      return true;\n   }\n\n   public void clearContent() {\n      this.itemStacks.clear();\n   }\n\n   public void setRecipeUsed(@Nullable Recipe<?> p_40157_) {\n      this.recipeUsed = p_40157_;\n   }\n\n   @Nullable\n   public Recipe<?> getRecipeUsed() {\n      return this.recipeUsed;\n   }\n}",
+      "source_file_or_line_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/crafting/SmithingRecipe.java",
+      "entry_sha256": "b19e609603bda648159fe5609e666503021791b10a369c9a340edac4f318e036",
+      "lines": [
+        1,
+        25
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b19e609603bda648159fe5609e666503021791b10a369c9a340edac4f318e036",
+      "raw_excerpt_utf8": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.world.Container;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.block.Blocks;\n\npublic interface SmithingRecipe extends Recipe<Container> {\n   default RecipeType<?> getType() {\n      return RecipeType.SMITHING;\n   }\n\n   default boolean canCraftInDimensions(int p_266835_, int p_266829_) {\n      return p_266835_ >= 3 && p_266829_ >= 1;\n   }\n\n   default ItemStack getToastSymbol() {\n      return new ItemStack(Blocks.SMITHING_TABLE);\n   }\n\n   boolean isTemplateIngredient(ItemStack p_266982_);\n\n   boolean isBaseIngredient(ItemStack p_266962_);\n\n   boolean isAdditionIngredient(ItemStack p_267132_);\n}",
+      "source_file_or_line_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/RecipeHolder.java",
+      "entry_sha256": "e275871137fdb3662b69e08a7802b775ffb4c4dd6b15696e2dd99cef78860b30",
+      "lines": [
+        1,
+        39
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "e275871137fdb3662b69e08a7802b775ffb4c4dd6b15696e2dd99cef78860b30",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport java.util.Collections;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.Recipe;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\n\npublic interface RecipeHolder {\n   void setRecipeUsed(@Nullable Recipe<?> p_40134_);\n\n   @Nullable\n   Recipe<?> getRecipeUsed();\n\n   default void awardUsedRecipes(Player p_281647_, List<ItemStack> p_282578_) {\n      Recipe<?> recipe = this.getRecipeUsed();\n      if (recipe != null) {\n         p_281647_.triggerRecipeCrafted(recipe, p_282578_);\n         if (!recipe.isSpecial()) {\n            p_281647_.awardRecipes(Collections.singleton(recipe));\n            this.setRecipeUsed((Recipe<?>)null);\n         }\n      }\n\n   }\n\n   default boolean setRecipeUsed(Level p_40136_, ServerPlayer p_40137_, Recipe<?> p_40138_) {\n      if (!p_40138_.isSpecial() && p_40136_.getGameRules().getBoolean(GameRules.RULE_LIMITED_CRAFTING) && !p_40137_.getRecipeBook().contains(p_40138_)) {\n         return false;\n      } else {\n         this.setRecipeUsed(p_40138_);\n         return true;\n      }\n   }\n}",
+      "source_file_or_line_credit": 0
+    }
+  ],
+  "additional_native_refs": [
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        553,
+        563
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9e5c8764242adaf77a4021ae2a23fc9d4bf427dc336208386f4886a3f2d72956",
+      "raw_excerpt_utf8": "   public void setTag(@Nullable CompoundTag p_41752_) {\n      this.tag = p_41752_;\n      if (this.getItem().isDamageable(this)) {\n         this.setDamageValue(this.getDamageValue());\n      }\n\n      if (p_41752_ != null) {\n         this.getItem().verifyTagAfterLoad(p_41752_);\n      }\n\n   }\n",
+      "actual_read_scope": "Full setTag including normalization and verify hook.",
+      "additional_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/SimpleContainer.java",
+      "entry_sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+      "lines": [
+        151,
+        171
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "baac57490588c5f1a4126e573f7ab588897047703f42764df4852acb5230e3a2",
+      "raw_excerpt_utf8": "   public void setChanged() {\n      if (this.listeners != null) {\n         for(ContainerListener containerlistener : this.listeners) {\n            containerlistener.containerChanged(this);\n         }\n      }\n\n   }\n\n   public boolean stillValid(Player p_19167_) {\n      return true;\n   }\n\n   public void clearContent() {\n      this.items.clear();\n      this.setChanged();\n   }\n\n   public void fillStackedContents(StackedContents p_19169_) {\n      for(ItemStack itemstack : this.items) {\n         p_19169_.accountStack(itemstack);\n",
+      "actual_read_scope": "setChanged/clearContent complete; fillStackedContents beginning only.",
+      "additional_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/AbstractContainerMenu.java",
+      "entry_sha256": "7f9383eebb7ada88bbe96eb8b788a22ddaa8f8adfc3e237198e3da19b384ff01",
+      "lines": [
+        599,
+        690
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e75c029ed26ccf12c370f87ee9949996b92a40f435972ee49cfe0f5e2760ae23",
+      "raw_excerpt_utf8": "   protected boolean moveItemStackTo(ItemStack p_38904_, int p_38905_, int p_38906_, boolean p_38907_) {\n      boolean flag = false;\n      int i = p_38905_;\n      if (p_38907_) {\n         i = p_38906_ - 1;\n      }\n\n      if (p_38904_.isStackable()) {\n         while(!p_38904_.isEmpty()) {\n            if (p_38907_) {\n               if (i < p_38905_) {\n                  break;\n               }\n            } else if (i >= p_38906_) {\n               break;\n            }\n\n            Slot slot = this.slots.get(i);\n            ItemStack itemstack = slot.getItem();\n            if (!itemstack.isEmpty() && ItemStack.isSameItemSameTags(p_38904_, itemstack)) {\n               int j = itemstack.getCount() + p_38904_.getCount();\n               int maxSize = Math.min(slot.getMaxStackSize(), p_38904_.getMaxStackSize());\n               if (j <= maxSize) {\n                  p_38904_.setCount(0);\n                  itemstack.setCount(j);\n                  slot.setChanged();\n                  flag = true;\n               } else if (itemstack.getCount() < maxSize) {\n                  p_38904_.shrink(maxSize - itemstack.getCount());\n                  itemstack.setCount(maxSize);\n                  slot.setChanged();\n                  flag = true;\n               }\n            }\n\n            if (p_38907_) {\n               --i;\n            } else {\n               ++i;\n            }\n         }\n      }\n\n      if (!p_38904_.isEmpty()) {\n         if (p_38907_) {\n            i = p_38906_ - 1;\n         } else {\n            i = p_38905_;\n         }\n\n         while(true) {\n            if (p_38907_) {\n               if (i < p_38905_) {\n                  break;\n               }\n            } else if (i >= p_38906_) {\n               break;\n            }\n\n            Slot slot1 = this.slots.get(i);\n            ItemStack itemstack1 = slot1.getItem();\n            if (itemstack1.isEmpty() && slot1.mayPlace(p_38904_)) {\n               if (p_38904_.getCount() > slot1.getMaxStackSize()) {\n                  slot1.setByPlayer(p_38904_.split(slot1.getMaxStackSize()));\n               } else {\n                  slot1.setByPlayer(p_38904_.split(p_38904_.getCount()));\n               }\n\n               slot1.setChanged();\n               flag = true;\n               break;\n            }\n\n            if (p_38907_) {\n               --i;\n            } else {\n               ++i;\n            }\n         }\n      }\n\n      return flag;\n   }\n\n   public static int getQuickcraftType(int p_38929_) {\n      return p_38929_ >> 2 & 3;\n   }\n\n   public static int getQuickcraftHeader(int p_38948_) {\n      return p_38948_ & 3;\n   }\n\n",
+      "actual_read_scope": "Full moveItemStackTo599..681; following quickcraft helpers incidental.",
+      "additional_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/AbstractContainerMenu.java",
+      "entry_sha256": "7f9383eebb7ada88bbe96eb8b788a22ddaa8f8adfc3e237198e3da19b384ff01",
+      "lines": [
+        377,
+        408
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c16fee3882c83a26327871c12a6596a1d6d6783ea39d6142ca6bf80ef3a63707",
+      "raw_excerpt_utf8": "      } else if ((p_150433_ == ClickType.PICKUP || p_150433_ == ClickType.QUICK_MOVE) && (p_150432_ == 0 || p_150432_ == 1)) {\n         ClickAction clickaction = p_150432_ == 0 ? ClickAction.PRIMARY : ClickAction.SECONDARY;\n         if (p_150431_ == -999) {\n            if (!this.getCarried().isEmpty()) {\n               if (clickaction == ClickAction.PRIMARY) {\n                  p_150434_.drop(this.getCarried(), true);\n                  this.setCarried(ItemStack.EMPTY);\n               } else {\n                  p_150434_.drop(this.getCarried().split(1), true);\n               }\n            }\n         } else if (p_150433_ == ClickType.QUICK_MOVE) {\n            if (p_150431_ < 0) {\n               return;\n            }\n\n            Slot slot6 = this.slots.get(p_150431_);\n            if (!slot6.mayPickup(p_150434_)) {\n               return;\n            }\n\n            for(ItemStack itemstack8 = this.quickMoveStack(p_150434_, p_150431_); !itemstack8.isEmpty() && ItemStack.isSameItem(slot6.getItem(), itemstack8); itemstack8 = this.quickMoveStack(p_150434_, p_150431_)) {\n            }\n         } else {\n            if (p_150431_ < 0) {\n               return;\n            }\n\n            Slot slot7 = this.slots.get(p_150431_);\n            ItemStack itemstack9 = slot7.getItem();\n            ItemStack itemstack10 = this.getCarried();\n            p_150434_.updateTutorialInventoryAction(itemstack10, slot7.getItem(), clickaction);\n",
+      "actual_read_scope": "Partial doClick, full displayed QUICK_MOVE branch388..399.",
+      "additional_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/inventory/Slot.java",
+      "entry_sha256": "732289b438dfa6784b55809578ec0bbbd4c25a651ca4f8c6dfa6827022053268",
+      "lines": [
+        1,
+        78
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8ce3e632a835ec2c4714b13cef96c9940dea9244d6f4cef8acbb0c66b8faff42",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport com.mojang.datafixers.util.Pair;\nimport java.util.Optional;\nimport javax.annotation.Nullable;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\n\npublic class Slot {\n   private final int slot;\n   public final Container container;\n   public int index;\n   public final int x;\n   public final int y;\n\n   public Slot(Container p_40223_, int p_40224_, int p_40225_, int p_40226_) {\n      this.container = p_40223_;\n      this.slot = p_40224_;\n      this.x = p_40225_;\n      this.y = p_40226_;\n   }\n\n   public void onQuickCraft(ItemStack p_40235_, ItemStack p_40236_) {\n      int i = p_40236_.getCount() - p_40235_.getCount();\n      if (i > 0) {\n         this.onQuickCraft(p_40236_, i);\n      }\n\n   }\n\n   protected void onQuickCraft(ItemStack p_40232_, int p_40233_) {\n   }\n\n   protected void onSwapCraft(int p_40237_) {\n   }\n\n   protected void checkTakeAchievements(ItemStack p_40239_) {\n   }\n\n   public void onTake(Player p_150645_, ItemStack p_150646_) {\n      this.setChanged();\n   }\n\n   public boolean mayPlace(ItemStack p_40231_) {\n      return true;\n   }\n\n   public ItemStack getItem() {\n      return this.container.getItem(this.slot);\n   }\n\n   public boolean hasItem() {\n      return !this.getItem().isEmpty();\n   }\n\n   public void setByPlayer(ItemStack p_270152_) {\n      this.set(p_270152_);\n   }\n\n   public void set(ItemStack p_40240_) {\n      this.container.setItem(this.slot, p_40240_);\n      this.setChanged();\n   }\n\n   public void setChanged() {\n      this.container.setChanged();\n   }\n\n   public int getMaxStackSize() {\n      return this.container.getMaxStackSize();\n   }\n\n   public int getMaxStackSize(ItemStack p_40238_) {\n      return Math.min(this.getMaxStackSize(), p_40238_.getMaxStackSize());\n   }\n\n",
+      "actual_read_scope": "Partial class, complete onQuickCraft/onTake/setters in displayed range.",
+      "additional_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        486,
+        490
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "bdf0723fe25e1fa390cf4e0395ac75f065cd4383b6e960c63ef9fc9cf07b39a4",
+      "raw_excerpt_utf8": "   public void onCraftedBy(Level p_41679_, Player p_41680_, int p_41681_) {\n      p_41680_.awardStat(Stats.ITEM_CRAFTED.get(this.getItem()), p_41681_);\n      this.getItem().onCraftedBy(this, p_41679_, p_41680_);\n   }\n\n",
+      "actual_read_scope": "Full onCraftedBy.",
+      "additional_credit": 0
+    },
+    {
+      "source_kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/SimpleContainer.java",
+      "entry_sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+      "lines": [
+        128,
+        139
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "bec56e7b1796e1b836473a3d9c20788eb2002354f73fbe6ac40775d54748da6a",
+      "raw_excerpt_utf8": "   public void setItem(int p_19162_, ItemStack p_19163_) {\n      this.items.set(p_19162_, p_19163_);\n      if (!p_19163_.isEmpty() && p_19163_.getCount() > this.getMaxStackSize()) {\n         p_19163_.setCount(this.getMaxStackSize());\n      }\n\n      this.setChanged();\n   }\n\n   public int getContainerSize() {\n      return this.size;\n   }\n",
+      "actual_read_scope": "Full setItem/getContainerSize.",
+      "additional_credit": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "SM01",
+      "source": "SmithingTransformRecipe1..95; SmithingRecipe1..25",
+      "finding": "One transform policy, three fixed role Ingredient tests and copied declared result. Matching and placement are not payment, prerequisites or acquisition."
+    },
+    {
+      "id": "SM02",
+      "source": "SmithingTransformRecipe33..45; ItemStack553..563",
+      "finding": "Result.copy then conditional nonnull BASE getTag replacement, never tag merge; template/addition tag not selected here. Result item/count originate configured result. setTag does not by itself prove input capability migration."
+    },
+    {
+      "id": "SM03",
+      "source": "SmithingTransformRecipe33..41; ItemStack553..563",
+      "finding": "Mandatory correction: nonnull empty base tag takes replacement branch, but exact final {} is unproved. setTag then normalizes damage and invokes item verifyTagAfterLoad; arbitrary item hooks can modify tag. Null base skips explicit replacement, without certifying all result.copy/capability hook behavior."
+    },
+    {
+      "id": "SM04",
+      "source": "SmithingTransformRecipe43..57,71..95",
+      "finding": "getResultItem exposes live configured template, not current assembled input-derived tag. Serializer uses three ingredient and result helpers; nested network/helper implementation and current loaded recipes unexpanded."
+    },
+    {
+      "id": "SM05",
+      "source": "SmithingMenu30..54,88..102",
+      "finding": "Slot predicates use constructor-cached recipes, createResult current manager first match, then enabled-item gate. Reload/current registration/competing matches are not executed."
+    },
+    {
+      "id": "SM06",
+      "source": "SmithingMenu60..86; RecipeHolder19..29",
+      "finding": "onTake invokes onCraftedBy then recipe award/trigger BEFORE one-unit shrink of each slot0,1,2 and world event. No after-payment receipt, rollback, durable transaction or exact-once promise; no exploit claim."
+    },
+    {
+      "id": "SM07",
+      "source": "SmithingMenu75..86; SimpleContainer128..139,151..171; ItemCombinerMenu input callbacks",
+      "finding": "Relevant items List.of retains live stack references AFTER output hook, not pre-take deep snapshots. Each shrink calls setItem/setChanged, potentially recomputing preview with partially debited inputs; custom callback outcomes/atomicity untested."
+    },
+    {
+      "id": "SM08",
+      "source": "SmithingMenu88..102; ResultContainer1..65",
+      "finding": "No-match clears result but not explicitly selectedRecipe/recipeUsed; matching-disabled output branch does not explicitly clear old preview/selection. Do not claim this local callback is universally stale-free or a proven reachable exploit."
+    },
+    {
+      "id": "SM09",
+      "source": "RecipeHolder1..39; SmithingMenu88..102",
+      "finding": "Special recipes also trigger; only non-special branch awards recipe knowledge and clears used recipe. Limited-crafting checking overload differs from direct setter used by SmithingMenu; no inference all outer access/network controls absent."
+    },
+    {
+      "id": "SM10",
+      "source": "ItemCombinerMenu119..164; AbstractContainerMenu599..681",
+      "finding": "Quickmove copies original output then moveItemStackTo mutates it into REMAINING stack, passes that remainder to onTake, and returns original copy. Full move helper merges/splits to destinations; success may be partial, original copy is not actual moved count/final receipt."
+    },
+    {
+      "id": "SM11",
+      "source": "Slot1..78; ItemCombinerMenu52..66,119..164; ItemStack486..490",
+      "finding": "Slot.onQuickCraft computes count delta but protected callback is empty, not overridden by shown result anonymous Slot. No automatic moved-count reconciliation here. onTake receives remaining count (possibly0); ItemStack.onCraftedBy awards stat then item hook, neither proves payment/acquisition."
+    },
+    {
+      "id": "SM12",
+      "source": "AbstractContainerMenu377..408; ItemCombinerMenu119..164",
+      "finding": "Displayed QUICK_MOVE checks mayPickup before repeated quickMoveStack while item matches. Bounded doClick branch is not whole server packet/all-click validation; no bypass or native bug asserted."
+    },
+    {
+      "id": "SM13",
+      "source": "ItemCombinerMenu1..193; SmithingMenu60..62",
+      "finding": "Inventory supplies player, selected current matching recipe gates pickup; parent handles slot/level/removal/validity. No Dynasty task-specific prerequisite/output functional identity in shown native chain. Helpers/file counts remain support0."
+    },
+    {
+      "id": "SM14",
+      "source": "Complete fixed-result Botania and composite/split judgments; current three migration owners",
+      "finding": "Conditional base-tag dominance at three-slot transform differs from fixed template replacement at reload and ordered nested composite/inverse split. Shared copy/serializer/award-before-debit callbacks0. Old flags, paid Brewery inventory/mana and Altar rune refund persistence remain distinct migration owners. At most1 scoped NBT whole, pending Main registration; not full global semantic dedup."
+    },
+    {
+      "id": "SM15",
+      "source": "Four-variant functional identity and installed FTB attribution complete judgments",
+      "finding": "Keep existing shapeless variants and functional predicates. Do not assume smithing preserves configured output tag. Deferred checks/team progress and recipe callback do not prove personal paid variant receipt. Preserve old IDs/progress/rewards; no duplicate material/XP cost or reward."
+    }
+  ],
+  "mandatory_proposal_corrections": [
+    {
+      "proposal_field": "static_symbolic_cases_not_executed[0].inferred_assembled_tag",
+      "original": {},
+      "corrected_scope": "Replacement-stage symbolic value only. Final exact {} depends on damage normalization/item verifyTagAfterLoad. Configured marker replacement is not unconditional proof of final marker absence under arbitrary hooks.",
+      "native_test": false
+    },
+    {
+      "proposal_field": "static_symbolic_cases_not_executed[1].inferred_assembled_tag",
+      "original": {
+        "cod4WarmWine": true
+      },
+      "corrected_scope": "Null base skips recipe override; result copy policy retains configured ordinary data, arbitrary hooks and current output not runtime-certified.",
+      "native_test": false
+    }
+  ],
+  "prior_complete_judgments_reused": [
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-botania-fixed-nbt-result-independent-review-closure-20261104.json",
+      "sha256": "64750b4d0d0cd5dd72ec031fec2c0675b13834b2d0e5daa26ebf5074c52c29cd",
+      "actual_complete_judgment_fields_read": {
+        "decision": "ACCEPT_INDEPENDENT_SOURCE_REVIEW_AS_ONE_SCOPED_NBT_WHOLE_MECHANISM_WITH_FORMAL_GATE_PENDING",
+        "semantic_family": "fixed NBT result decoration of an existing recipe, preserving recipe identity and native inner serializer across sync",
+        "scoped_research_judgment": "One parameterized datagen fixed-result SNBT replacement/reload/inner-serializer/variant-consumer lifecycle. Same base input item does not preserve old variant/name/enchant/caps. setTag does not initialize tag-embedded ForgeCaps, unlike native Forge JSON helper. Fixed wrapper returns inner recipe; ordinary Forge47.4.10 already accepts output NBT. Eight variant parameters and petal-head template helper are not separate implementations. Distinct from selected-input composite/split, not a new global migration owner.",
+        "whole_independent_findings": [
+          {
+            "id": "NO01",
+            "source": "NbtOutputResult24..66",
+            "finding": "Datagen wrapper stores inner FinishedRecipe and shared tag reference, embeds inner complete recipe+SNBT, retains inner recipe/advancement IDs and JSON, changes outer serializer type only. with creates a tag once per consumer, not one immutable copy per emitted recipe; no concurrent mutation safety claim."
+          },
+          {
+            "id": "NO02",
+            "source": "NbtOutputRecipe34..49; RecipeManager53..85,161..172; IForgeRecipeSerializer1..25",
+            "finding": "Load parses nested recipe with same ID via deprecated two-arg fromJson, then replaces live result tag and returns INNER recipe. Outer reload checks conditions/context first; wrapper default three-arg serializer discards context and nested parser uses EMPTY. No guarantee nested conditional custom recipes retain outer context or avoid null. Missing tag/invalid SNBT reject; null/EMPTY/computed-result edge paths are not certified."
+          },
+          {
+            "id": "NO03",
+            "source": "NbtOutputRecipe43..49; ShapelessRecipe25..31,50..77; ItemStack553..563",
+            "finding": "Shown shapeless result is a live template usable with RegistryAccess.EMPTY. setTag assigns supplied compound (then damage/tag verification), not merge. Later assemble copies this template; consumes no input inside assemble and preserves no arbitrary input name/enchant/damage/variant/caps. Different dynamic/copy-return/registry-dependent inner getters need separate review."
+          },
+          {
+            "id": "NO04",
+            "source": "ItemStack423..445 reused; CraftingHelper183..204; ItemStack553..563",
+            "finding": "Template copy preserves its ordinary tag and serialized capabilities. Botania setTag alone does NOT extract ForgeCaps into capability initialization; native Forge JSON helper separately extracts ForgeCaps and reconstructs with ItemStack.of. An ordinary tag key called ForgeCaps is not equivalent to actual saved capability payload. No universal capsule/full-state recovery promise."
+          },
+          {
+            "id": "NO05",
+            "source": "CraftingRecipeProvider1507..1530; ShapelessRecipeBuilder46..76; Ingredient65..82,154..176,236..252",
+            "finding": "One base tiara recipe plus eight quartz recipe IDs select fixed variants1..8 from SAME tiara item. Standard item ingredient serialized item-only and test ignores stack NBT; no original variant/crafter requirement and no original state merge. Eight parameters are one wrapper mechanism, not eight unrelated implementations."
+          },
+          {
+            "id": "NO06",
+            "source": "FlugelTiaraItem61..108,537..540; prior ItemNBTHelper120..122",
+            "finding": "getVariant reads integer key default0; creative catalog writes variants0..8. This is actual variant reader/catalog, not paid acquisition proof, nor evidence of different flight powers or full rendering/flight implementation acceptance."
+          },
+          {
+            "id": "NO07",
+            "source": "PetalApothecaryProvider142..148; PetalsRecipe1..158; PetalApothecaryRecipe1..27",
+            "finding": "Head example uses SkullOwner plus16pink ingredients and a reagent path. Petals getter live/assemble copy and its own network serializer can transport template. matches stops at first empty slot and does not test later occupied slots or reagent inside that method; complete BE debit/reagent/entity receipt path was not read, so this is wrapper supporting context0, not second paid implementation."
+          },
+          {
+            "id": "NO08",
+            "source": "ClientboundUpdateRecipesPacket35..47; ShapelessRecipe113..139; PetalsRecipe135..154",
+            "finding": "Returned INNER serializer gets sent with same recipe ID and actual result, so wrapper network methods intentionally throwing do not prove shown recipes cannot sync. No wrapper recipe object persists for packet selection. Network runtime/overrides remain untested."
+          },
+          {
+            "id": "NO09",
+            "source": "FriendlyByteBuf624..660; Item233..235; IForgeItem140..174",
+            "finding": "writeItem defaults limitedTag=true, writes share-tag only conditional on item damageability/override. Default item overrides=true and IForgeItem share/read use ordinary stack tag/setTag. Custom share behavior may omit state; default path is not all-caps serialization or authenticated client/result acceptance."
+          },
+          {
+            "id": "NO10",
+            "source": "ShapedRecipe285..287; CraftingHelper151..204",
+            "finding": "This pinned Forge already supports result NBT object or SNBT in ordinary shaped/shapeless JSON, separately reconstructing caps. Botania wrapper may serve cross-platform/template adaptation, not proof Dynasty must add a redundant serializer. Version applicability is fixed Forge47.4.10 source artifact, not arbitrary versions."
+          },
+          {
+            "id": "NO11",
+            "source": "prior independent Composite whole ResultSlot/CraftingMenu/RecipeHolder/RecipeCraftedTrigger",
+            "finding": "Template load/datagen/unlock is not native paid acquisition. Callbacks/criterion precede debit; ingredient-list shallow copy, no output stack in criterion. Preserve intended native result route and explicit variant data rather than base ItemTask/icon/generic first_infusion or duplicate reward."
+          },
+          {
+            "id": "NO12",
+            "source": "prior three accepted whole migration decisions; two actual independent Botania mechanisms",
+            "finding": "Fixed static result-tag replacement is different from input-state copying/nested composite+inverse split, and from old flags/Brewery/Altar persistence. At most one separate NBT wrapper mechanism pending integration. No new global/migration/immunity/ecology credit and no semantic1000 gate from structural counters."
+          }
+        ],
+        "corrected_constraints_from_independent_review": [
+          "Exact cached repo metadata/recursive tree/raw Git blobs only; no raw commit/treeobject provenance chain or fresh remote verification.",
+          "19 generated raw bodies absent in the two explicitly checked cache roots: 9recipe+9advancement tiara bodies and1head recipe; tree identity alone is not resource-body reading/loading.",
+          "Live constant getter usable with RegistryAccess.EMPTY is required; CustomRecipe.EMPTY, copy-return, computed/registry-dependent or null inner recipes not certified.",
+          "setTag REPLACES template ordinary data, does not merge consumed input state or initialize tag-embedded ForgeCaps.",
+          "Wrapper returns inner recipe same ID; packet uses inner serializer and cannot be diagnosed from throwing wrapper networking alone.",
+          "Outer conditions are checked by reload; nested deprecated parser resets context to EMPTY, no blanket custom condition compatibility.",
+          "Standard shown tiara ingredient is item-only; eight variant recipes and creative entries count one mechanism and do not prove player ownership or retained old state.",
+          "Share-tag packet path does not unconditionally carry every capability; no runtime network/MP/native crafting acceptance.",
+          "Petal example is supporting template context0; no independent complete BE payment/reagent/thrower chain read or credited.",
+          "Original author Tinkers49-line comparison remains unbound0; this reviewer did not claim to read it or accept a second implementation.",
+          "Reuse exact prior own registration/helper/native craft and three whole structured decision evidence without new reading/credit inflation.",
+          "Original Dynasty IDs/rewards/progress preserved, material->prerequisite->paid native craft->intended NBT output acquisition; no broad base-item substitution or repeated branch rewards.",
+          "No production/game/build/QA or prompt deletion; applicable NBT semantic1000 gate still unmet and formal ecology remains23."
+        ],
+        "credit": {
+          "maximum_individually_supported_nbt_mechanism": 1,
+          "new_formal_aggregate_credit": 0,
+          "global_additional_credit": 0,
+          "migration_additional_credit": 0,
+          "immunity_additional_credit": 0,
+          "ecology_additional_credit": 0,
+          "nbt1000_gate_met": false,
+          "not_added_to_existing_structural_or_migration1000": true,
+          "no_candidate_or_formal_receipt_fabricated": true
+        },
+        "closure_limits": [
+          "Static source research only. No native craft/payment/variant acquisition receipt, MP/visual/performance/survival acceptance or direct production authorization.",
+          "Full General review is real independently authored source reading, not a synthesized acceptance from name/hash. Main current binding audit is not a fresh rerun of all prior chain reading.",
+          "Preserve original Dynasty IDs/rewards/progress. Do not use a base ItemTask/recipe criterion/name as output variant proof or repeat branch rewards.",
+          "Cached tree/raw Git blob identity not independently anchored raw commit/tree objects or fresh remote graph. Tinkers unbound comparison stays0.",
+          "No old passed game/tool suite rerun; fixed19 rawgap list includes nine tiara recipes and nine advancements plus head1."
+        ],
+        "application_to_Dynasty": [
+          "Four NBT variant quest branches must resolve output NBT and the actual crafting/table result path; preserve current IDs, old rewards and native costs.",
+          "Existing Forge JSON output support is a possible minimal route for a static output; do not introduce this Botania wrapper or copy upstream code/assets without need. No production recipe change authorized by this incomplete1000 gate.",
+          "Distinguish fixed template replacement from prior composite/split preserving selected input state; they are not automatically two unique global credits. Independent reviewer must compare complete prior owner decisions, not only labels."
+        ]
+      },
+      "original_upstream_source_chains_reread": false,
+      "new_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/independent-botania-composite-lens-nbt-review-20261103.json",
+      "sha256": "5d953b54b9a64c2c150e195d6785cc0b863979f606a86693de8452518e28d0e4",
+      "actual_complete_judgment_fields_read": {
+        "status": "independent-static-whole-mechanism-review-complete-pending-coordinator-integration",
+        "semantic_family": "botania-slot-ordered-paid-composite-lens-nbt-and-inverse-split-remainders-with-native-crafting-trigger-boundaries",
+        "maximum_proposed_nbt_mechanism_credit": 1,
+        "whole_lifecycle_findings": [
+          {
+            "id": "CL01",
+            "source": "CompositeLensRecipe33..89",
+            "finding": "matches counts occupied slots using ordered branches: two CompositableLensItem slots and one glue-tag slot, irrespective of stack counts. It does not debit or call compatibility. After second lens, an extra CompositableLensItem could occupy glue branch if an external loaded tag also names it; exact current tag disjointness is unverified."
+          },
+          {
+            "id": "CL02",
+            "source": "CompositeLensRecipe64..86; BasicLensItem21..25",
+            "finding": "First encountered lens owns canCombine and BOTH getCompositeLens calls, including lookup on the second stack; second implementation is not reciprocally invoked despite API prose. Custom cross-mod accessors are not automatically interchangeable. assemble separately rejects incompatibility/composite inputs and may return EMPTY after matches true."
+          },
+          {
+            "id": "CL03",
+            "source": "LensItem154..185,239..245; BotaniaItems128..152",
+            "finding": "Built-in lenses require distinct item objects, both combinable (normal lens refused), and disjoint property bits. Distinct PROP_NONE lenses overlap zero bits and remain eligible. Registration variants are one parameterized policy, not separate implementations."
+          },
+          {
+            "id": "CL04",
+            "source": "CompositeLensRecipe82..86; LensItem188..205; ItemStack140..204,277..300,423..445",
+            "finding": "Base and nested each copied count1; base ordinary metadata copied, nested saved id/count/tag/ForgeCaps into compositeLens. of reconstructs registered items, verifies tags/initializes caps; RuntimeException returns EMPTY. This is specific functional payload, not names or generic base-item identity. Removed/invalid IDs and arbitrary capabilities are not guaranteed recoverable."
+          },
+          {
+            "id": "CL05",
+            "source": "ItemNBTHelper89..100,148..152; CompoundTag382..392",
+            "finding": "Existence check lacks compound-type validation; wrong typed key becomes new empty compound through native getCompound, then loader may yield EMPTY. Null-for-missing and empty malformed compound are different. No claim of arbitrary malformed payload preservation."
+          },
+          {
+            "id": "CL06",
+            "source": "SplitLensRecipe33..77",
+            "finding": "Split accepts one occupied BasicLensItem (broader than Compositable) exposing a nonempty nested result, outputs count1 nested copy. Remainder independently copies outer count1 and removes compositeLens only. getRemainingItems has no own full-grid validation; native matching manager normally selects it. Do not directly invoke recipe methods as rewards or migrations."
+          },
+          {
+            "id": "CL07",
+            "source": "ResultSlot55..78; Recipe21..31; RecipeManager130..142",
+            "finding": "Native onTake reselects matching remainder recipe, removes one from each occupied slot, merges same-tag remainder into grid or inventory/drop. Base remainder is not a second unpaid item. Glue is not reconstructed by split. Composite default remainders can return a glue container when the actual item defines one; no universal glue loss or refund is inferred. Callback-induced grid mutation/reselection is not tested transactionally."
+          },
+          {
+            "id": "CL08",
+            "source": "LensItem80..121,208..235",
+            "finding": "apply/collide/update dispatch base then nested BasicLens. Control/transfer methods remain primary-only. Nested payload is functionally read, but neither complete lens implementations nor burst behavior/visuals are executed or separately credited."
+          },
+          {
+            "id": "CL09",
+            "source": "NoOpRecipeSerializer1..33; BotaniaItems442..466; CraftingRecipeProvider57..73,2676..2679; SpecialRecipeBuilder1..42",
+            "finding": "Registry binds two constructor serializers; datagen derives dynamic/composite_lens and dynamic/split_lens IDs. No dynamic JSON/network fields. Special builder emits no advancement by itself, not evidence no separate recipe-crafted criterion can observe it. Current generated raw resources are four gaps."
+          },
+          {
+            "id": "CL10",
+            "source": "CustomRecipe1..31; CraftingMenu58..76,109..154",
+            "finding": "Special catalog getter EMPTY is expected; server assembles enabled result for preview/sync. Quick-move calls item onCraftedBy BEFORE inventory move success. Preview/JEI/name or item callback alone does not prove payment or acquisition."
+          },
+          {
+            "id": "CL11",
+            "source": "ResultSlot41..78; RecipeHolder19..37; ServerPlayer1055..1057",
+            "finding": "Item crafted stat/callback, Forge event and recipe trigger occur before per-slot debit/remainders. Special recipes also trigger; special branch retains used recipe reference rather than clearing it. No exact-once after-payment transaction or exploit is asserted; a future reward adapter must establish its own actual committed result path."
+          },
+          {
+            "id": "CL12",
+            "source": "RecipeCraftedTrigger20..29,50..75",
+            "finding": "Criterion observes recipe ID and ingredient predicates, not output. new ArrayList copies the input LIST only: ItemStack references are not deep-copied here. One matching input element is removed per predicate; no output-NBT proof. Corrects original proposal loose phrase copies of input stacks."
+          },
+          {
+            "id": "CL13",
+            "source": "three whole prior migration decisions and current ledger screen",
+            "finding": "Existing item-flags legacy booleans, Brewery paid inventory/mana recipe rebind, RunicAltar paid mana/rune refund are distinct complete migration decisions; shared serialization support adds migration0. Composite+split is at most ONE NBT functional-crafting mechanism, not new global/ecology/immunity/migration counts or NBT1000 gate."
+          }
+        ],
+        "mandatory_constraints": [
+          "Current loaded recipes/tags and all four generated raw bodies unverified; source datagen is intent, not deployed resource proof.",
+          "Cached official repo identity plus fixed recursive tree and exact raw Git blobs only; no raw commit/tree-object anchoring or fresh remote verification. Do not claim independently authenticated remote commit graph.",
+          "Ordered first implementation controls both accessors; no reciprocal custom implementation promise; possible tag/type overlap remains conditional.",
+          "matches is neither assembly success nor ingredient debit; direct assemble/remainder invocation is not a completion receipt.",
+          "Preserve count1 base and nested ordinary NBT through exact copy/save paths; do not promise unknown registry/capability/malformed payload recovery.",
+          "Split produces nested output and stripped outer remainder with native dispatch; no extra glue reimbursement and no free duplication claim.",
+          "Default crafting remainder may return actual glue container; loaded recipe/ingredient state is authoritative.",
+          "recipe_crafted special recipes may trigger before debit and exposes no output. List shallow copy is not stack snapshot. Do not use generic base item or names to certify intended variant.",
+          "Keep original Dynasty IDs, prerequisites, progress and rewards. Material source -> existing prerequisite -> native paid craft -> exact intended acquisition; no repeated branch rewards.",
+          "Static fixed-source study only, no Java/game/native/MP/survival/performance/visual verification and no production authorization.",
+          "No file/range/property/variant/native-support credits. Existing structural1000 and migration1000 cannot satisfy NBT semantic1000.",
+          "Independent review is pending source/research integration, not formal receipt or finished checklist scope; no prompt deletion."
+        ],
+        "application_to_Dynasty": "Materials -> existing craft prerequisite -> native crafting/payment -> intended functional result acquisition; retain original IDs/rewards/progress and empty new branch rewards. Four named variants require their actual tags, not display names or base item. Independent NBT semantic gate still pending; no implementation performed."
+      },
+      "original_upstream_source_chains_reread": false,
+      "new_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-four-variant-functional-identity-review-20261104.json",
+      "sha256": "1463ba7fa24fec6fc6b6a8f672f7dd2ee27744cd872ac6f6ea81ef362e795fd3",
+      "actual_complete_judgment_fields_read": {
+        "findings": [
+          "四种result均为已有base ID +NBT，没有从译名推导新registry item。蟹甲变体是scale_plate，狼牙变体是tiger_claw，温酒变体是marching_wine，毒烟是minecraft:lingering_potion。当前review不是新注册/配方实机加载证明。",
+          "InfusionTraits.slots只读取DynastyInfusion slot0..2中已知material；active还要求count==1、eligible、family不重复及capacity<=max(legacy4,nativecapacity)，最终每trait.accepts。它不是仅display.Name或version==1或固定slot0判定；任务若只匹配名字/基础ID或僵硬slot0，将与实际功能身份错位。",
+          "蟹甲trait为ARMOR/retaliation，scale_plate为饰品资格路径；wolf_fang为WEAPON/shanxiao_claw，tiger_claw有专门接受例外。还须保留其余合法NBT/slots，不要求精确整tag等于新recipe单槽输出，亦不能把额外冲突/超容量槽当有效变体。",
+          "战斗收集armor只查穿戴armor/Curios/正在格挡useItem。佩戴狼牙另在经过server主攻击来源/当前tick/目标/strength>=.9/same-mainhand/LOS门后，由Curios真实tiger_claw且active含wolf_fang并入同一traits集合，第三combo且60tick ready才请求15%bonus/slow/cue；不会因背包有基础tiger_claw就生效。近战target enemy/boss限制、最终event/backend拒绝仍存在，声光不作成功证明。",
+          "蟹甲反击由defend：hostile living attacker、incoming amount>=maxHP*.08、retaliation、160tick ready；非boss请求knockback，另请求20tickWeakness/cue。addEffect/原生事件链最终接受未检查，不能给任务记实际Boss控制成功。获取任务、穿戴任务和战斗效果验收应区分。",
+          "温酒功能谓词明确是marching_wine+cod4WarmWine boolean。finishUsingItem在server player写同dimension、1200gameTick有效期，清FROST，仍执行marching_wine本来YANG/confusion；有限解冻与freeze减伤消费者另看warm(p)。display.Name/颜色不参与温酒判定，普通marching_wine没有该功能。Clone/换维/过期清理保留，不把临时Until导入永久迁移。",
+          "温酒after-super还处理非creative玻璃瓶返还（空result返回瓶，否则server inventory/add失败drop）；这里只读调用，不作实际饮用/库存回读或原生扣料保证。不得为完成获取任务强迫用户消耗唯一温酒。",
+          "毒烟recipe输出lingering_potion+Potion minecraft:poison+customcolor+cod4PoisonSmoke marker。所读tooltip仅检查base+marker；显示标签不证明Poison内容或原生云效果。未来variant获取身份至少保留base/marker/实际Potion语义，不能任意带flag的空/水药水混过；原生ThrownPotion/云投掷效果未在本次展开，不宣称native控制成功。",
+          "原甲片任务1000000000000162与虎爪1000000000000181为base item tasks，没有本节点variant NBT predicate；旧ID、任务进度、奖励均须保留。是否由FTB默认行为匹配其他NBT仍需对应已加载版本源码/运行收据，不能仅节点无tag就声称已全部验证。",
+          "壮行酒1000000000c40012用cod4_obtain_marching_wine impossible advancement；ContentProgress.crafted按base ID且SUPPLIES包含即award，未区分温酒。其原task不能自动代表温酒专用获得/来源/付款链，温酒也不应重发原奖。毒烟在既有结构收据无专用节点，不能用任意lingering_potion task代替。",
+          "ContentProgress reconcile仅在材料ID已获得时awardRecipesByKey对应alias recipe，是发现提示，不是材料付款/原生variant回执。InfusionMenu另一条真实改装路径按owner/menu/server/stillValid/revision、get_jade/traitgate/materialcount/XP检查，非creative付材料和XP，再持有结果并award first_infusion。配方合成与此菜单是两种付款途径，不能在新获取任务再重复扣同一笔XP/材料或再发同一装备。",
+          "合理衔接可复用原有材料前置与已合规付款路径，用功能身份匹配的服务器获取事实推进后续阅读/使用目标；来源、发现、付款、输出、到达指定玩家五步需分开。尚未满足适用新NBT任务语义研究1000和native专用回执，故本次不新增/修改任务节点、Java、配方或现有奖励。"
+        ],
+        "limitations": [
+          "Local implementation/root-cause analysis only, not applicable1000 reference acceptance.",
+          "No new FTB match contract, loaded registry, actual crafting/payment/drink/wear/combat/cloud/native player receipt.",
+          "Existing structural1259-node review not repeated and not credited; prior materials natural24/30+pickup9/10 gaps remain.",
+          "No assets/sharedJar/userworld/game/display/audio/Git/automation change."
+        ]
+      },
+      "original_upstream_source_chains_reread": false,
+      "new_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-installed-ftb-progress-attribution-20261109.json",
+      "sha256": "f0bac92a781fafb8877557a5390997b56ccd4a8ed24fe82e79725c9ebbd410f1",
+      "actual_complete_judgment_fields_read": {
+        "findings": [
+          "Deferred queue stores only playerUUID->wall-clock deadline. scheduleInventoryCheck uses putIfAbsent(now+delay*50ms), so another inventory update does not replace an existing earlier deadline in this method. This is not a durable item acquisition log or exact simulated tick duration.",
+          "At due tick, lookup onlineServerPlayer by same UUID, call detect(sp,EMPTY,0) if found, then remove dueUUID even if offline. The queue retains no ItemEntityUUID, configured functional variant, recipeID, payment/debit result, transaction nonce or team snapshot. No guarantee about disconnected pending checks or actual runtime scheduling is inferred.",
+          "Prior actual inventory listener selects current team using the player context and submits into that TeamData. BaseQuestFile exact getter is map.get(teamUUID). TeamData owns taskProgress longtaskID->longprogress separately from its UUID-indexed perPlayerData and QuestKey claimedRewards.",
+          "TeamData.setProgress has no contributing-player argument; it clamps against taskMax, updates/removes taskID progress, synchronizes online team members, starts/completes via team context and marks dirty. Thus a task progress value alone cannot certify which member paid or personally received a particular item. Team progress sharing may be intended; preserve original policy rather than relabel it personal receipt.",
+          "markTaskCompleted triggers actual task.onCompleted team context then requests inventory detection for each current online member with EMPTY and sourceTask=currenttaskID. Reuse prior listener sourceTask exclusion; do not interpret that fanout as each member independently crafting, paying or receiving the same item. Deeper callback recursion and max progress lifecycle not executed.",
+          "ServerQuestFile teamCreated requests copyData from creator personalteam for a new party; playerChangedTeam requests mergeData when joining another owner party and mergeClaimedRewards when returning to personalteam. Only call sites read here: merge/copy helper implementation and event order were not studied, and no new migration1000credit or oldworld native acceptance is claimed.",
+          "Claim path marks reward key before reward.claim(player,notify). Actual QuestKey.forReward policy, external reward delivery rollback, permissions and all original reward types were not expanded; no duplicate reward or exploit claim. Keep original rewards/IDs. Task progress and reward bookkeeping must remain separate from intended-player acquisition evidence."
+        ]
+      },
+      "original_upstream_source_chains_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "whole_current_migration_owner_comparisons": [
+    {
+      "candidate_id": "6b33e544e74ffc2ec851",
+      "whole_decision_canonical_sha256": "0007731b6c13d182a4b271f2b6f9f508c1ebadf2bc6e1ae6b3850736229ac664",
+      "whole_current_structured_fields": {
+        "candidate_id": "6b33e544e74ffc2ec851",
+        "status": "accepted",
+        "family": "botania-item-flags-old-spawn-cooldown-payload",
+        "trigger": "ItemFlagsComponent.readFromNbt internal item component persistence consumer",
+        "input": "current spawn flags/timeCounter plus legacy _elvenPortal boolean, manaInfusionCooldown/runicAltarCooldown integers",
+        "output": "current flags loaded then old true/positive values set portal/infusion/altar spawned flags true",
+        "preservation": "legacy branch only strengthens true; old nonpositive cooldown does not clear current true; timeCounter still loaded from current key",
+        "application_limit": "these are item processing state, not permanent player achievements. Must not use as permission to retain active combat immunity across death",
+        "credit": 1
+      },
+      "full_current_row_matches_prior_own_complete_decision": true,
+      "upstream_chain_reread": false,
+      "same_smithing_whole_owner": false,
+      "additional_credit": 0
+    },
+    {
+      "candidate_id": "c5cdac3007b2f3e374b6",
+      "whole_decision_canonical_sha256": "e8ed07e7155ae6816ec84442f0770c6cd0fd006756ffe3a80bab38396bafdec2",
+      "whole_current_structured_fields": {
+        "candidate_id": "c5cdac3007b2f3e374b6",
+        "status": "accepted",
+        "family": "botania-brewery-paid-ingredients-and-mana-recipe-rebind",
+        "trigger": "Brewery read/write/commonTick/findRecipe/addItem",
+        "input": "seven physical ingredient/container slots and paid mana, recipe cache absent on disk",
+        "output": "base inventory restored then mana; first tick with paid mana searches current recipes before completion",
+        "preservation": "Read both persistence methods and full paid input/tick/output path plus SimpleInventoryBlockEntity and BotaniaBlockEntity. readPacketNBT really serves disk load/saveAdditional, not merely networking. Restores full stacks and recomputes recipe from inventory without spending inputs again.",
+        "application_limit": "If current data no longer has matching recipe, paid mana resets0; unknown item stack behavior inherited native loader. Output spawn result unchecked before clearing all inputs. Recipe changes may reinterpret ingredients. No opaque removed-recipe retention or atomicity guarantee.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "full_current_row_matches_prior_own_complete_decision": true,
+      "upstream_chain_reread": false,
+      "same_smithing_whole_owner": false,
+      "additional_credit": 0
+    },
+    {
+      "candidate_id": "980d0b8b01ef0f629fc3",
+      "whole_decision_canonical_sha256": "9e83e907631ad0c7b3f5385cd3293efad072428be43364d0b6da2f4356c0df30",
+      "whole_current_structured_fields": {
+        "candidate_id": "980d0b8b01ef0f629fc3",
+        "status": "accepted",
+        "family": "botania-runic-altar-paid-mana-target-with-refundable-runes",
+        "trigger": "RunicAltar read/write/serverTick/updateRecipe/onUsedByWand",
+        "input": "full ingredient slots plus stored mana/manaToGet, transient lastRecipe/cooldown omitted",
+        "output": "recover paid charge and ingredients; current recipe target recomputed, wand completion refunds rune ingredients and consumes other inputs/livingrock",
+        "preservation": "Read full ingredient acquisition, both tick paths, all update/lastRecipe/wand methods and pair. Derived target can update after reload; lastRecipe is recipe history only and is not treated as owned stock/refunded independently. Rune output flags prevent immediate re-ingestion.",
+        "application_limit": "CurrentRecipe cache not persisted; missing/changed recipe can change target. addFreshEntity success unchecked before input clear/shrink. Omitted cooldown/history are temporary conveniences, not claimed preserved. Do not count helper Container load as another implementation.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "full_current_row_matches_prior_own_complete_decision": true,
+      "upstream_chain_reread": false,
+      "same_smithing_whole_owner": false,
+      "additional_credit": 0
+    }
+  ],
+  "ownership_screen": {
+    "ledger": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "total_rows": 1329,
+    "accepted_credit": 1000,
+    "non_evidence_label_term_matches": {
+      "smithing": 0,
+      "composite_lens": 0,
+      "split_lens": 0,
+      "composite-lens": 0,
+      "split-lens": 0,
+      "input-tag-dominance": 0
+    },
+    "not_full_global_semantic_dedup": true,
+    "bounded_actual_whole_comparisons_only": true
+  },
+  "whole_research_judgment": {
+    "maximum_individually_supported_nbt_whole": 1,
+    "boundary": "three-slot transform conditional base-input ordinary-tag dominance plus containing result extraction and one-unit-per-input debit lifecycle",
+    "zero_supports": [
+      "native copy/tag/serializer helpers",
+      "individual classes/ranges/roles",
+      "generic crafted/recipe callbacks",
+      "quickmove/result container",
+      "three existing migration owners"
+    ],
+    "pending_Main_registration": true,
+    "research_registered_here": 0,
+    "new_formal_aggregate_credit": 0,
+    "global_additional_credit": 0,
+    "migration_additional_credit": 0,
+    "ecology_additional_credit": 0,
+    "immunity_additional_credit": 0,
+    "nbt1000_gate_met": false
+  },
+  "application_to_Dynasty": [
+    "Keep current four shapeless variant recipes unchanged pending applicable research/native gate. Do not adopt smithing as implicit state merge.",
+    "Define base-vs-configured NBT precedence explicitly, preserve valid functional state and output-specific predicates rather than names/base IDs.",
+    "Future receipt needs actual player/recipe/menu, input before/after counts, functional output NBT and final destination; generic pre-debit callback/team progress is insufficient.",
+    "Material source -> original prerequisite -> actual paid craft -> intended functional output -> intended player acquisition; preserve IDs/progress/rewards, never second material/XP charge or duplicate branch reward."
+  ],
+  "limitations": [
+    "Static fixed source only, no native payment/craft/acquisition, loaded recipe/tag, multiplayer/survival/performance/visual acceptance.",
+    "Some supports partial; full move helper read, not full packet/click chain. Arbitrary item hooks/capabilities not certified.",
+    "No exploit, transactional exact-once/rollback or full global dedup claim.",
+    "No Java/build/game/process/display query, audio/brightness/focus/world/sharedJar/tool/network/Git or production/asset edits.",
+    "Existing structural/migration1000 and previous ecology44 observation cannot satisfy NBT semantic1000. No tasks/prompts removed."
+  ],
+  "authoring_correction": {
+    "first_builder_prewrite_assertion": "Incorrect assumption ledger total rows==1000 failed before any write.",
+    "actual_verified_rows": 1329,
+    "accepted_rows": 1000,
+    "pending_rows": 3,
+    "rejected_rows": 133,
+    "duplicate_rows": 193,
+    "source_or_ledger_changes": 0
+  },
+  "protected_sha256_before": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "protected_sha256_after": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "production_changes": 0,
+  "art_changes": 0,
+  "game_starts": 0,
+  "formal_ledgers_changed": 0,
+  "checklist_deletions": 0,
+  "duration_hours_claimed": 0
+}

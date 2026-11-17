@@ -1,0 +1,328 @@
+{
+  "date": "2026-11-01",
+  "proposal": 48,
+  "kind": "original-candidate-complete-migration-owner-proposal",
+  "candidate_id": "e3113d003084269cbf68",
+  "candidate": {
+    "candidate_id": "e3113d003084269cbf68",
+    "status": "candidate_not_reviewed",
+    "repo": "GregTechCEu/GregTech-Modern",
+    "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+    "path": "src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+    "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+    "method": "onLoad",
+    "start_line": 175,
+    "end_line": 201,
+    "file_sha256": "5198f50592829970843dde3223e84dd382fb67ab2e1256fd6913b0623781f8e1",
+    "method_sha256": "071d029e08898bf83b0f4306ceb55bad1769bce6f2040382c335287049596531",
+    "structural_fingerprint": "f8aaebe7a197dfe2ce9d9fdb1079c18c7ab325bf95816c3e1d8dd281f7401d02",
+    "source_url_or_coordinate": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java#L175-L201",
+    "ast_calls": [
+      "machineLoaded",
+      "getTraitHolder",
+      "forEach",
+      "getAllTraits",
+      "fixUpwardsFacing",
+      "getFrontFacing",
+      "getUpwardsFacing",
+      "hasProperty",
+      "getBlockState",
+      "getBlockState",
+      "getValue",
+      "getBlock",
+      "setBlock",
+      "getLevel",
+      "getBlockPos",
+      "setValue",
+      "getRenderState",
+      "hasProperty",
+      "isPainted",
+      "getValue",
+      "setRenderState",
+      "setValue",
+      "isPainted"
+    ],
+    "ast_guards": [
+      "(isOldMachineData)",
+      "(upwardsGlobal != null && getBlockState().hasProperty(GTBlockStateProperties.UPWARDS_FACING))",
+      "(blockState.getBlock() instanceof MetaMachineBlock && changeGlobal)",
+      "(renderState.hasProperty(GTMachineModelProperties.IS_PAINTED) &&\n                this.isPainted() != renderState.getValue(GTMachineModelProperties.IS_PAINTED))"
+    ],
+    "context": "@MustBeInvokedByOverriders\n    public void onLoad() {\n        getTraitHolder().machineLoaded();\n        getAllTraits().forEach(MachineTrait::onMachineLoad);\n\n        if (isOldMachineData) {\n            Direction upwardsGlobal = TagCompatibilityFixer.fixUpwardsFacing(this.getFrontFacing(),\n                    this.getUpwardsFacing());\n            if (upwardsGlobal != null && getBlockState().hasProperty(GTBlockStateProperties.UPWARDS_FACING)) {\n                // force the global upwards direction\n                var blockState = getBlockState();\n                boolean changeGlobal = blockState.getValue(GTBlockStateProperties.UPWARDS_FACING) != upwardsGlobal;\n                if (blockState.getBlock() instanceof MetaMachineBlock && changeGlobal) {\n                    getLevel().setBlock(getBlockPos(),\n                            blockState.setValue(GTBlockStateProperties.UPWARDS_FACING, upwardsGlobal),\n                            Block.UPDATE_IMMEDIATE);\n                }\n            }\n        }\n\n        // update the painted model property if the machine is painted\n        MachineRenderState renderState = getRenderState();\n        if (renderState.hasProperty(GTMachineModelProperties.IS_PAINTED) &&\n                this.isPainted() != renderState.getValue(GTMachineModelProperties.IS_PAINTED)) {\n            setRenderState(renderState.setValue(GTMachineModelProperties.IS_PAINTED, this.isPainted()));\n        }\n    }",
+    "class_has_migration_marker": true,
+    "parse_has_error": false
+  },
+  "family": "gtceu-world-installed-machine-relative-up-to-global-basis-and-existing-multiblock-recognition-migration",
+  "credit_requested": 1,
+  "status": "pending_coordinator_independent_review_not_counted",
+  "accepted_basis": 993,
+  "source_pin": {
+    "repo": "GregTechCEu/GregTech-Modern",
+    "sha": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+    "archive_url": "https://codeload.github.com/GregTechCEu/GregTech-Modern/zip/6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+    "archive_sha256": "ff4744b64a53fccf13682389562f95b0171924a3a1c7b9c1fb81771c09686fdf",
+    "java_files": 1737
+  },
+  "source_pin_sha256": "77f2f912cc9dc7a9f81056dd1c8c96e884420e63d086a07b27ab67ac4d8067cb",
+  "native_source_artifact_not_git_revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "ledger_basis_sha256": "30e98aeac28e06bf3b0fbc87bb55424c19e94945957d245a6d89c57056b7c1a6",
+  "trigger": "MetaMachine.load detects missing traitHolder 7.x marker before fixTraitTags adds current envelope. Native/Forge BE onLoad virtual dispatch then concrete multiblock parent calls actual MetaMachine.onLoad and schedules pattern check.",
+  "input": "Persisted placed controller front-facing and old relative-up blockstate, legacy BE absent traitHolder marker, current registered definition supports extended facing; existing physical surrounding multiblock.",
+  "output": "Actual TagCompatibilityFixer.fixUpwardsFacing maps relative cardinal up to world direction conditioned on front: for NORTH relative N/E/S/W -> UP/WEST/DOWN/EAST; EAST ->UP/NORTH/DOWN/SOUTH; SOUTH ->UP/EAST/DOWN/WEST; WEST ->UP/SOUTH/DOWN/NORTH. Noncardinal defaultsUP for horizontal front; vertical front retains current up or null->NORTH. After traits initialize, only old flag and property existing, actual block instanceofMetaMachineBlock+changed invokes Level.setBlock same physical controller with upwards_facing updated. Current registry block adds property only extended-facing machine; multiblock builder default extendedtrue, real EBFregistered uses RotationState.ALL and concrete pattern. Multiblock.onLoad first super migration then schedules real checkAndFormStructure; pattern.checkPatternFastAt receives current actual front/up, scans slices using RelativeDirection basis to actual world positions, validators, then accepts structure/adds parts+trait structure callbacks. Current blockstate setter updates section palette, BE cached state and marks chunk unsaved; chunk serializer encodes restored actual blockstate palette. Current BE save @SaveField traitHolder named holder establishes next-load no-old gate (same machinery already reviewed1da, support0). One complete placed machine authored orientation migration, no each facing/pattern/helper counted.",
+  "limits": [
+    "Source static research only, no old/new actual world load/game/Java/commands/builds/network run. Read-only old machine pattern audit,0 new building examples/assets.",
+    "Original complete7.x writer not in audit; infer relative semantics from explicitly labeled7.x->8.x helper mappings, not independently verified every old machine orientation. No all-version/current-world loading claim.",
+    "Presence of ANY traitHolder suppresses old gate including wrong-type/empty/mixed data. Missing marker on already-current orientation can rotate/collapse global directions; not a safe generic unconditional repair. Helper mutates BE tag by adding traitHolder before actual world orientation rewrite, no atomic journal linking marker and blockstate.",
+    "isOldMachineData is runtime boolean and not cleared by onLoad shown; multiple onLoad calls same loaded object can reapply table (e.g. frontN WEST->EAST->WEST). No universally idempotent/once migration claim.",
+    "getUpwardsFacing returnsUP if definition doesnotallowextendedfacing; no property skipswrite. Missing actual property despite definition or invalid raw blockstate may throw getter before hasProperty guard. horizontal sourceUP/DOWN fallbackUP loses distinctions. Vertical illegal same-axis values unchanged; RelativeDirection fallback returnsUP for collinearbasis, not valid arbitrary orientation proof.",
+    "getLevel().setBlock return ignored; rejected mutation doesnot stop trait init or mark completed separately. onLoad traits initialize BEFORE orientation rewrite; any trait caches may initially see old basis. Scheduled multiblock check runs later but not proof every trait recalculates.",
+    "BlockPattern fastcache can return VALID_CACHED/INVALID_CACHED solely from cached block/blockentity identity without rechecking passedbasis; normally fresh patternState cache empty, full PatternState lifecycle/other overrides not fully audited. No correctness claim for nonempty old caches or all loaded machine classes.",
+    "Native section palette persistence and BE marker separate saves, no crash atomicity/complete backups/fsync proof. Native sources fixed1.20.1Forge coordinate not upstream Gitcommit. Actual older/more recent GT dependency binaries not run; no source-to-installed artifact proof.",
+    "Recipe execution/cost retained by other traits not audited here; only actual pattern acceptance/part registration+traitcallbacks consumer. Do not claim all recipes resume or paid progress recovered; authored physical orientation continuity only.",
+    "Existing installed-stock owner1da retained whole credit, no standalone TagCompatibilityFixer/keys/serializer credit. If coordinator finds same oldformat whole owner already includes basis conversion, classify0 rather than shrinking previous owner."
+  ],
+  "dedup": {
+    "all_statuses_and_no_family_serialized_records_scanned": true,
+    "candidate_method_ast_collision": [],
+    "complete_record_comparisons": [
+      {
+        "candidate_id": "1da3ebfc31ea59d12891",
+        "family": "gtceu-installed-machine-sidecar-stock-class-cardinality-to-named-trait-owner-migration",
+        "status": "accepted",
+        "complete_record_sha256": "26ba1f8beb9bc61a52ba30cc87328210662456c708a177e510dd02cea5d2ce71",
+        "reason": "Entire accepted machine-sidecar stock cardinality/name/schema migration kept whole; shared missing-traitHolder gate, generic helper, SaveField machinery support0. That owner has no physical old relative-up→global blockstate conversion or actual multiblock coordinates consumer; this proposal owns authored 2-axis physical machine orientation only."
+      },
+      {
+        "candidate_id": "6a09129cd7eca670e806",
+        "family": "native-item-frame-2d-to-3d-orientation-migration",
+        "status": "accepted",
+        "complete_record_sha256": "5f5494f1ac97c87e4c82794113e3db24f6e3dc5fc5e0bee7d7438d298e9dae7d",
+        "reason": "Whole native item-frame mounted Item payload + legacy single Facing byte indexing remains whole. Here physical controller has front and local-up coupled basis to global-up, post-load world blockstate rewrite, concrete physical multiblock scan. Not new helper per direction or generic rename."
+      },
+      {
+        "candidate_id": "53ab20f4bfab1311a1b6",
+        "family": "native-authored-jigsaw-connector-contract-schema-to-current-template-assembly",
+        "status": "accepted",
+        "complete_record_sha256": "6b7eee8e1822a5086c66b0620be33029290aa4058cd78125131e747f2e7f63fc",
+        "reason": "Whole jigsaw authoring grammar/name/target/pool/facing contract remains whole; this controller physical machine basis defines recognition of existing placed blocks, not future generated connected templates or new architectural asset. No building research/design credit."
+      }
+    ],
+    "shared_trait_gate_serializers_and_native_bridge_credit": 0
+  },
+  "evidence_ranges": [
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/utils/data/TagCompatibilityFixer.java",
+      "start_line": 1,
+      "end_line": 162,
+      "file_sha256": "a6e8aa54149410c2f12c8a30708e46f31a194e5a2f939f20d3230c39f07e6b97",
+      "range_sha256": "0dfb503c84b166bf77e003e6948850781e0c93790607cd95e1b438d6a18c0b89",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/utils/data/TagCompatibilityFixer.java#L1-L162"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "start_line": 130,
+      "end_line": 205,
+      "file_sha256": "5198f50592829970843dde3223e84dd382fb67ab2e1256fd6913b0623781f8e1",
+      "range_sha256": "77aec409c94ca089e2d6d8df55a28d1c19d0663f3cae625e49822d8d8cb9b2f9",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java#L130-L205"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "start_line": 744,
+      "end_line": 758,
+      "file_sha256": "5198f50592829970843dde3223e84dd382fb67ab2e1256fd6913b0623781f8e1",
+      "range_sha256": "fdc9c028216975b7149f7d5fda26f5076d13c5f7d79ed0c36c6a827545d07b7c",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java#L744-L758"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "start_line": 760,
+      "end_line": 850,
+      "file_sha256": "5198f50592829970843dde3223e84dd382fb67ab2e1256fd6913b0623781f8e1",
+      "range_sha256": "d1ff550d0d71c482706366a879c9b5eadef36cc8521732d812d6f06e11fc9cbb",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java#L760-L850"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/block/MetaMachineBlock.java",
+      "start_line": 59,
+      "end_line": 104,
+      "file_sha256": "f36b2da55658a3bb2be8daa3336dbf2a7978d23d6fce1740575cef38a49a5103",
+      "range_sha256": "3e0e86016d27e8c504b54cb7214658ecf5a360730f51f88b396ed09414be4278",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/block/MetaMachineBlock.java#L59-L104"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/block/MetaMachineBlock.java",
+      "start_line": 375,
+      "end_line": 380,
+      "file_sha256": "f36b2da55658a3bb2be8daa3336dbf2a7978d23d6fce1740575cef38a49a5103",
+      "range_sha256": "d736d218f3d9bdba8d6e735308b223eff7f43cef2d39092f38ad9b353a954222",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/block/MetaMachineBlock.java#L375-L380"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/multiblock/MultiblockControllerMachine.java",
+      "start_line": 64,
+      "end_line": 102,
+      "file_sha256": "ec8194b09ac1d836e35d09b915191588c9aaa1fc8f4aa66189f9f06ffaee15d4",
+      "range_sha256": "46045f69de1c2a41f3d341f6aa453626370fd49e87bc728a8911c38cfa64793d",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/multiblock/MultiblockControllerMachine.java#L64-L102"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/multiblock/MultiblockControllerMachine.java",
+      "start_line": 201,
+      "end_line": 220,
+      "file_sha256": "ec8194b09ac1d836e35d09b915191588c9aaa1fc8f4aa66189f9f06ffaee15d4",
+      "range_sha256": "980625ed1eee3e089e6f85e8f187658caad5b0cd1baf9e5e8cf1a00bcf1e7c50",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/multiblock/MultiblockControllerMachine.java#L201-L220"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/multiblock/MultiblockControllerMachine.java",
+      "start_line": 260,
+      "end_line": 360,
+      "file_sha256": "ec8194b09ac1d836e35d09b915191588c9aaa1fc8f4aa66189f9f06ffaee15d4",
+      "range_sha256": "7cb7d963f4478e02f3940fdd6c01a951dd66837e19dfa0c3d0c125bb9e7913bd",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/multiblock/MultiblockControllerMachine.java#L260-L360"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/multiblock/util/RelativeDirection.java",
+      "start_line": 19,
+      "end_line": 98,
+      "file_sha256": "98adbccf4c2f45d526d99f1f0ffff744228ebb83b1df7e90401b70246a4315d2",
+      "range_sha256": "d95f1d306958cdc2f5b523e39ecc6a3407473bfba0d1569c0649b350502cbf49",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/multiblock/util/RelativeDirection.java#L19-L98"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/multiblock/pattern/BlockPattern.java",
+      "start_line": 1,
+      "end_line": 260,
+      "file_sha256": "b921c5fe4d305a31e4e72528bb00fc0e96eeb90789a60322ccf1370a6c8696ed",
+      "range_sha256": "386564d4daa815cf21222c01af2bb3b2a497be440b69364c1066054a4c0aedd8",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/multiblock/pattern/BlockPattern.java#L1-L260"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/multiblock/pattern/SliceStrategy.java",
+      "start_line": 1,
+      "end_line": 69,
+      "file_sha256": "898c82169cb179735908c75866a477039e3f346aa4c2b040c9685b2d696f5546",
+      "range_sha256": "a6e2891af19ea231c9c3a4fab8ead04b03eaa81187309d70a98f3e4aed91c44d",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/multiblock/pattern/SliceStrategy.java#L1-L69"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/multiblock/pattern/BasicSliceStrategy.java",
+      "start_line": 1,
+      "end_line": 150,
+      "file_sha256": "2569b0429010f173a5e7712e240e3ce7f7e546cc12dda981252b2aa3b442af64",
+      "range_sha256": "8b8c4b755169cc361c84aa4a5085e36e6ba8ccd259d6861ce4839081e54f7631",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/multiblock/pattern/BasicSliceStrategy.java#L1-L150"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/block/property/GTBlockStateProperties.java",
+      "start_line": 1,
+      "end_line": 17,
+      "file_sha256": "3ab4a95371efceda12622a23e66752f87c22b032dc77d6608fc7e60786e105f2",
+      "range_sha256": "844006750929f45e130d2983ca5708ef8db62d1503063ed83d44faba6fe3329f",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/block/property/GTBlockStateProperties.java#L1-L17"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/registry/registrate/MultiblockMachineBuilder.java",
+      "start_line": 45,
+      "end_line": 70,
+      "file_sha256": "a1fcfa60941cccd01840e20286ea67bf6ac19f3b2d7f4db3b1c9ae578473fb03",
+      "range_sha256": "b5e35ef35f03a64fe60bfd825859c3c414a89d1dde84125114295b50fa9f73bd",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/registry/registrate/MultiblockMachineBuilder.java#L45-L70"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/registry/registrate/MachineBuilder.java",
+      "start_line": 740,
+      "end_line": 760,
+      "file_sha256": "7acd9514c9d2a09264949debf03a0f809cebdc2f3b6129024a413e0cf776ea1b",
+      "range_sha256": "5abdaadb7926e0882311902896dcd081b2358ff2af356fbaeea8e611b84258f5",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/registry/registrate/MachineBuilder.java#L740-L760"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/managed/ManagedSyncBlockEntity.java",
+      "start_line": 1,
+      "end_line": 155,
+      "file_sha256": "727be9466dcd9860888c1be7edcd77d8f441612dfd91e4edf9f28bdc97c88642",
+      "range_sha256": "c34e0ed487e6f53d974b58155de3fed583b77400110582b05506e6b6092020d3",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/managed/ManagedSyncBlockEntity.java#L1-L155"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java",
+      "start_line": 35,
+      "end_line": 107,
+      "file_sha256": "ddd7ef950ba462b9cd2ae865b4900ef784dcb02e6d7a24f7f7aedceec7e6cdb3",
+      "range_sha256": "25799c4536ef8e18101d4d46a0ed7f6f5e879ff40bddf6e730e521b8e485aa1c",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java#L35-L107"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/common/data/machines/GTMultiMachines.java",
+      "start_line": 141,
+      "end_line": 166,
+      "file_sha256": "f64208c8abf74ad3c0347648f59dcc7ea1465db2780f16d0abbf1e397ea9b694",
+      "range_sha256": "03c5149a7e7de30bc068c3da4f4d4603b58be8ff96c938897ae329b1cdfcaea8",
+      "source": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/common/data/machines/GTMultiMachines.java#L141-L166"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/Level.java",
+      "start_line": 195,
+      "end_line": 233,
+      "file_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+      "range_sha256": "0fbeb4f5fa502f2566c53dc2a823e0ea8c9a68c7f9acddef07e864a714a1dd91",
+      "source": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/chunk/LevelChunk.java",
+      "start_line": 213,
+      "end_line": 278,
+      "file_sha256": "a50bae64a90f9acc0d2a51c6b0dd000d5ef1b61cfacfbb5f285a74921eefa85f",
+      "range_sha256": "86937c553e413d920e1edd1f146c7898832827f489b97f87f7f2e20a19b58000",
+      "source": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/chunk/LevelChunk.java",
+      "start_line": 325,
+      "end_line": 338,
+      "file_sha256": "a50bae64a90f9acc0d2a51c6b0dd000d5ef1b61cfacfbb5f285a74921eefa85f",
+      "range_sha256": "d943b04f5bfb5eaff66b2f2e9e08aa7222b73f06f36034b03b35b377e65d4e4a",
+      "source": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/chunk/storage/ChunkSerializer.java",
+      "start_line": 65,
+      "end_line": 68,
+      "file_sha256": "a5586737223da2cebfa9d133f179247a021cf8f41c0aec4724cc1dd2d022af52",
+      "range_sha256": "91fe532e203f5a14d1df997a27765134383679f71e80c6179f528555beec25c0",
+      "source": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/chunk/storage/ChunkSerializer.java",
+      "start_line": 90,
+      "end_line": 122,
+      "file_sha256": "a5586737223da2cebfa9d133f179247a021cf8f41c0aec4724cc1dd2d022af52",
+      "range_sha256": "b4f37403dda3155d49e77ff5d17298b96a6213a926331ea133050f60038297b8",
+      "source": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    },
+    {
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/chunk/storage/ChunkSerializer.java",
+      "start_line": 278,
+      "end_line": 309,
+      "file_sha256": "a5586737223da2cebfa9d133f179247a021cf8f41c0aec4724cc1dd2d022af52",
+      "range_sha256": "2d076e13e568a538aabf86569428b22fa9da5ea5ae751b751fe237ab7cd662cc",
+      "source": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources"
+    }
+  ],
+  "actual_range_count": 25,
+  "actual_line_count": 1621,
+  "scope": {
+    "network": false,
+    "java_or_game": false,
+    "production_edits": false,
+    "shared_ledger_edits": false,
+    "prompt_deletion": false
+  },
+  "read_notes": [
+    "Earlier read RelativeDirection full output truncated; required19-98 includes recovered55-98, no whole238line class claim.",
+    "Earlier MetaMachineBlock375-390 exceeded380 EOF; corrected375-380 evidence. No evidence for beyondEOF.",
+    "Actual EBF pattern read only static registration, no building creation or1000architecture count."
+  ]
+}

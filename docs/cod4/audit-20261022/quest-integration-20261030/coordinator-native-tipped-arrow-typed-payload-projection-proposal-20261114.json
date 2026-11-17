@@ -1,0 +1,811 @@
+{
+  "schema": "Main-native-tipped-arrow-typed-projection-whole-proposal-v1",
+  "recorded_at": "2026-11-13T21:42:31.800806+00:00",
+  "status": "PROSPECTIVE_RELATED_WHOLE_REQUIRES_INDEPENDENT_REVIEW",
+  "semantic_family": "typed-functional-potion-payload-projection-and-ammunition-reconstruction",
+  "formal_candidate_id": null,
+  "maximum_proposed_credit": 1,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "independent_review_pending": true,
+  "archive": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_refs": [
+    {
+      "entry": "net/minecraft/world/item/crafting/TippedArrowRecipe.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "47952082277ebd3ada8eccc98cea87fa078b8ff37f8eba346d12648a51263c6d",
+      "bytes": 2100,
+      "total_lines": 60,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            60
+          ],
+          "excerpt": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.inventory.CraftingContainer;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.level.Level;\n\npublic class TippedArrowRecipe extends CustomRecipe {\n   public TippedArrowRecipe(ResourceLocation p_250995_, CraftingBookCategory p_252163_) {\n      super(p_250995_, p_252163_);\n   }\n\n   public boolean matches(CraftingContainer p_44515_, Level p_44516_) {\n      if (p_44515_.getWidth() == 3 && p_44515_.getHeight() == 3) {\n         for(int i = 0; i < p_44515_.getWidth(); ++i) {\n            for(int j = 0; j < p_44515_.getHeight(); ++j) {\n               ItemStack itemstack = p_44515_.getItem(i + j * p_44515_.getWidth());\n               if (itemstack.isEmpty()) {\n                  return false;\n               }\n\n               if (i == 1 && j == 1) {\n                  if (!itemstack.is(Items.LINGERING_POTION)) {\n                     return false;\n                  }\n               } else if (!itemstack.is(Items.ARROW)) {\n                  return false;\n               }\n            }\n         }\n\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   public ItemStack assemble(CraftingContainer p_44513_, RegistryAccess p_267186_) {\n      ItemStack itemstack = p_44513_.getItem(1 + p_44513_.getWidth());\n      if (!itemstack.is(Items.LINGERING_POTION)) {\n         return ItemStack.EMPTY;\n      } else {\n         ItemStack itemstack1 = new ItemStack(Items.TIPPED_ARROW, 8);\n         PotionUtils.setPotion(itemstack1, PotionUtils.getPotion(itemstack));\n         PotionUtils.setCustomEffects(itemstack1, PotionUtils.getCustomEffects(itemstack));\n         return itemstack1;\n      }\n   }\n\n   public boolean canCraftInDimensions(int p_44505_, int p_44506_) {\n      return p_44505_ >= 2 && p_44506_ >= 2;\n   }\n\n   public RecipeSerializer<?> getSerializer() {\n      return RecipeSerializer.TIPPED_ARROW;\n   }\n}",
+          "excerpt_sha256": "47952082277ebd3ada8eccc98cea87fa078b8ff37f8eba346d12648a51263c6d"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/alchemy/PotionUtils.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "417a68f87eceb4ad97a661184d691617b82455138b0f1fbe5e2b629c3149a175",
+      "bytes": 8949,
+      "total_lines": 211,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            211
+          ],
+          "excerpt": "package net.minecraft.world.item.alchemy;\n\nimport com.google.common.collect.Lists;\nimport com.mojang.datafixers.util.Pair;\nimport java.util.Collection;\nimport java.util.List;\nimport java.util.Map;\nimport javax.annotation.Nullable;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.network.chat.CommonComponents;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffectUtil;\nimport net.minecraft.world.entity.ai.attributes.Attribute;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.item.ItemStack;\n\npublic class PotionUtils {\n   public static final String TAG_CUSTOM_POTION_EFFECTS = \"CustomPotionEffects\";\n   public static final String TAG_CUSTOM_POTION_COLOR = \"CustomPotionColor\";\n   public static final String TAG_POTION = \"Potion\";\n   private static final int EMPTY_COLOR = 16253176;\n   private static final Component NO_EFFECT = Component.translatable(\"effect.none\").withStyle(ChatFormatting.GRAY);\n\n   public static List<MobEffectInstance> getMobEffects(ItemStack p_43548_) {\n      return getAllEffects(p_43548_.getTag());\n   }\n\n   public static List<MobEffectInstance> getAllEffects(Potion p_43562_, Collection<MobEffectInstance> p_43563_) {\n      List<MobEffectInstance> list = Lists.newArrayList();\n      list.addAll(p_43562_.getEffects());\n      list.addAll(p_43563_);\n      return list;\n   }\n\n   public static List<MobEffectInstance> getAllEffects(@Nullable CompoundTag p_43567_) {\n      List<MobEffectInstance> list = Lists.newArrayList();\n      list.addAll(getPotion(p_43567_).getEffects());\n      getCustomEffects(p_43567_, list);\n      return list;\n   }\n\n   public static List<MobEffectInstance> getCustomEffects(ItemStack p_43572_) {\n      return getCustomEffects(p_43572_.getTag());\n   }\n\n   public static List<MobEffectInstance> getCustomEffects(@Nullable CompoundTag p_43574_) {\n      List<MobEffectInstance> list = Lists.newArrayList();\n      getCustomEffects(p_43574_, list);\n      return list;\n   }\n\n   public static void getCustomEffects(@Nullable CompoundTag p_43569_, List<MobEffectInstance> p_43570_) {\n      if (p_43569_ != null && p_43569_.contains(\"CustomPotionEffects\", 9)) {\n         ListTag listtag = p_43569_.getList(\"CustomPotionEffects\", 10);\n\n         for(int i = 0; i < listtag.size(); ++i) {\n            CompoundTag compoundtag = listtag.getCompound(i);\n            MobEffectInstance mobeffectinstance = MobEffectInstance.load(compoundtag);\n            if (mobeffectinstance != null) {\n               p_43570_.add(mobeffectinstance);\n            }\n         }\n      }\n\n   }\n\n   public static int getColor(ItemStack p_43576_) {\n      CompoundTag compoundtag = p_43576_.getTag();\n      if (compoundtag != null && compoundtag.contains(\"CustomPotionColor\", 99)) {\n         return compoundtag.getInt(\"CustomPotionColor\");\n      } else {\n         return getPotion(p_43576_) == Potions.EMPTY ? 16253176 : getColor(getMobEffects(p_43576_));\n      }\n   }\n\n   public static int getColor(Potion p_43560_) {\n      return p_43560_ == Potions.EMPTY ? 16253176 : getColor(p_43560_.getEffects());\n   }\n\n   public static int getColor(Collection<MobEffectInstance> p_43565_) {\n      int i = 3694022;\n      if (p_43565_.isEmpty()) {\n         return 3694022;\n      } else {\n         float f = 0.0F;\n         float f1 = 0.0F;\n         float f2 = 0.0F;\n         int j = 0;\n\n         for(MobEffectInstance mobeffectinstance : p_43565_) {\n            if (mobeffectinstance.isVisible()) {\n               int k = mobeffectinstance.getEffect().getColor();\n               int l = mobeffectinstance.getAmplifier() + 1;\n               f += (float)(l * (k >> 16 & 255)) / 255.0F;\n               f1 += (float)(l * (k >> 8 & 255)) / 255.0F;\n               f2 += (float)(l * (k >> 0 & 255)) / 255.0F;\n               j += l;\n            }\n         }\n\n         if (j == 0) {\n            return 0;\n         } else {\n            f = f / (float)j * 255.0F;\n            f1 = f1 / (float)j * 255.0F;\n            f2 = f2 / (float)j * 255.0F;\n            return (int)f << 16 | (int)f1 << 8 | (int)f2;\n         }\n      }\n   }\n\n   public static Potion getPotion(ItemStack p_43580_) {\n      return getPotion(p_43580_.getTag());\n   }\n\n   public static Potion getPotion(@Nullable CompoundTag p_43578_) {\n      return p_43578_ == null ? Potions.EMPTY : Potion.byName(p_43578_.getString(\"Potion\"));\n   }\n\n   public static ItemStack setPotion(ItemStack p_43550_, Potion p_43551_) {\n      ResourceLocation resourcelocation = BuiltInRegistries.POTION.getKey(p_43551_);\n      if (p_43551_ == Potions.EMPTY) {\n         p_43550_.removeTagKey(\"Potion\");\n      } else {\n         p_43550_.getOrCreateTag().putString(\"Potion\", resourcelocation.toString());\n      }\n\n      return p_43550_;\n   }\n\n   public static ItemStack setCustomEffects(ItemStack p_43553_, Collection<MobEffectInstance> p_43554_) {\n      if (p_43554_.isEmpty()) {\n         return p_43553_;\n      } else {\n         CompoundTag compoundtag = p_43553_.getOrCreateTag();\n         ListTag listtag = compoundtag.getList(\"CustomPotionEffects\", 9);\n\n         for(MobEffectInstance mobeffectinstance : p_43554_) {\n            listtag.add(mobeffectinstance.save(new CompoundTag()));\n         }\n\n         compoundtag.put(\"CustomPotionEffects\", listtag);\n         return p_43553_;\n      }\n   }\n\n   public static void addPotionTooltip(ItemStack p_43556_, List<Component> p_43557_, float p_43558_) {\n      addPotionTooltip(getMobEffects(p_43556_), p_43557_, p_43558_);\n   }\n\n   public static void addPotionTooltip(List<MobEffectInstance> p_259687_, List<Component> p_259660_, float p_259949_) {\n      List<Pair<Attribute, AttributeModifier>> list = Lists.newArrayList();\n      if (p_259687_.isEmpty()) {\n         p_259660_.add(NO_EFFECT);\n      } else {\n         for(MobEffectInstance mobeffectinstance : p_259687_) {\n            MutableComponent mutablecomponent = Component.translatable(mobeffectinstance.getDescriptionId());\n            MobEffect mobeffect = mobeffectinstance.getEffect();\n            Map<Attribute, AttributeModifier> map = mobeffect.getAttributeModifiers();\n            if (!map.isEmpty()) {\n               for(Map.Entry<Attribute, AttributeModifier> entry : map.entrySet()) {\n                  AttributeModifier attributemodifier = entry.getValue();\n                  AttributeModifier attributemodifier1 = new AttributeModifier(attributemodifier.getName(), mobeffect.getAttributeModifierValue(mobeffectinstance.getAmplifier(), attributemodifier), attributemodifier.getOperation());\n                  list.add(new Pair<>(entry.getKey(), attributemodifier1));\n               }\n            }\n\n            if (mobeffectinstance.getAmplifier() > 0) {\n               mutablecomponent = Component.translatable(\"potion.withAmplifier\", mutablecomponent, Component.translatable(\"potion.potency.\" + mobeffectinstance.getAmplifier()));\n            }\n\n            if (!mobeffectinstance.endsWithin(20)) {\n               mutablecomponent = Component.translatable(\"potion.withDuration\", mutablecomponent, MobEffectUtil.formatDuration(mobeffectinstance, p_259949_));\n            }\n\n            p_259660_.add(mutablecomponent.withStyle(mobeffect.getCategory().getTooltipFormatting()));\n         }\n      }\n\n      if (!list.isEmpty()) {\n         p_259660_.add(CommonComponents.EMPTY);\n         p_259660_.add(Component.translatable(\"potion.whenDrank\").withStyle(ChatFormatting.DARK_PURPLE));\n\n         for(Pair<Attribute, AttributeModifier> pair : list) {\n            AttributeModifier attributemodifier2 = pair.getSecond();\n            double d0 = attributemodifier2.getAmount();\n            double d1;\n            if (attributemodifier2.getOperation() != AttributeModifier.Operation.MULTIPLY_BASE && attributemodifier2.getOperation() != AttributeModifier.Operation.MULTIPLY_TOTAL) {\n               d1 = attributemodifier2.getAmount();\n            } else {\n               d1 = attributemodifier2.getAmount() * 100.0D;\n            }\n\n            if (d0 > 0.0D) {\n               p_259660_.add(Component.translatable(\"attribute.modifier.plus.\" + attributemodifier2.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), Component.translatable(pair.getFirst().getDescriptionId())).withStyle(ChatFormatting.BLUE));\n            } else if (d0 < 0.0D) {\n               d1 *= -1.0D;\n               p_259660_.add(Component.translatable(\"attribute.modifier.take.\" + attributemodifier2.getOperation().toValue(), ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(d1), Component.translatable(pair.getFirst().getDescriptionId())).withStyle(ChatFormatting.RED));\n            }\n         }\n      }\n\n   }\n}",
+          "excerpt_sha256": "417a68f87eceb4ad97a661184d691617b82455138b0f1fbe5e2b629c3149a175"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/TippedArrowItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "eb34e1788efbd181b6b5858b13a1ba625168c4d191d1cbb2b603104787c3a0c2",
+      "bytes": 892,
+      "total_lines": 26,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            26
+          ],
+          "excerpt": "package net.minecraft.world.item;\n\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.item.alchemy.Potions;\nimport net.minecraft.world.level.Level;\n\npublic class TippedArrowItem extends ArrowItem {\n   public TippedArrowItem(Item.Properties p_43354_) {\n      super(p_43354_);\n   }\n\n   public ItemStack getDefaultInstance() {\n      return PotionUtils.setPotion(super.getDefaultInstance(), Potions.POISON);\n   }\n\n   public void appendHoverText(ItemStack p_43359_, @Nullable Level p_43360_, List<Component> p_43361_, TooltipFlag p_43362_) {\n      PotionUtils.addPotionTooltip(p_43359_, p_43361_, 0.125F);\n   }\n\n   public String getDescriptionId(ItemStack p_43364_) {\n      return PotionUtils.getPotion(p_43364_).getName(this.getDescriptionId() + \".effect.\");\n   }\n}",
+          "excerpt_sha256": "eb34e1788efbd181b6b5858b13a1ba625168c4d191d1cbb2b603104787c3a0c2"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/entity/projectile/Arrow.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "64f68829e729e0603ac9f933d2af40403fe61c181a6a28c2e4cfdb4e3f0f84b4",
+      "bytes": 7846,
+      "total_lines": 226,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            226
+          ],
+          "excerpt": "package net.minecraft.world.entity.projectile;\n\nimport com.google.common.collect.Sets;\nimport java.util.Collection;\nimport java.util.Set;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.alchemy.Potion;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.item.alchemy.Potions;\nimport net.minecraft.world.level.Level;\n\npublic class Arrow extends AbstractArrow {\n   private static final int EXPOSED_POTION_DECAY_TIME = 600;\n   private static final int NO_EFFECT_COLOR = -1;\n   private static final EntityDataAccessor<Integer> ID_EFFECT_COLOR = SynchedEntityData.defineId(Arrow.class, EntityDataSerializers.INT);\n   private static final byte EVENT_POTION_PUFF = 0;\n   private Potion potion = Potions.EMPTY;\n   private final Set<MobEffectInstance> effects = Sets.newHashSet();\n   private boolean fixedColor;\n\n   public Arrow(EntityType<? extends Arrow> p_36858_, Level p_36859_) {\n      super(p_36858_, p_36859_);\n   }\n\n   public Arrow(Level p_36861_, double p_36862_, double p_36863_, double p_36864_) {\n      super(EntityType.ARROW, p_36862_, p_36863_, p_36864_, p_36861_);\n   }\n\n   public Arrow(Level p_36866_, LivingEntity p_36867_) {\n      super(EntityType.ARROW, p_36867_, p_36866_);\n   }\n\n   public void setEffectsFromItem(ItemStack p_36879_) {\n      if (p_36879_.is(Items.TIPPED_ARROW)) {\n         this.potion = PotionUtils.getPotion(p_36879_);\n         Collection<MobEffectInstance> collection = PotionUtils.getCustomEffects(p_36879_);\n         if (!collection.isEmpty()) {\n            for(MobEffectInstance mobeffectinstance : collection) {\n               this.effects.add(new MobEffectInstance(mobeffectinstance));\n            }\n         }\n\n         int i = getCustomColor(p_36879_);\n         if (i == -1) {\n            this.updateColor();\n         } else {\n            this.setFixedColor(i);\n         }\n      } else if (p_36879_.is(Items.ARROW)) {\n         this.potion = Potions.EMPTY;\n         this.effects.clear();\n         this.entityData.set(ID_EFFECT_COLOR, -1);\n      }\n\n   }\n\n   public static int getCustomColor(ItemStack p_36885_) {\n      CompoundTag compoundtag = p_36885_.getTag();\n      return compoundtag != null && compoundtag.contains(\"CustomPotionColor\", 99) ? compoundtag.getInt(\"CustomPotionColor\") : -1;\n   }\n\n   private void updateColor() {\n      this.fixedColor = false;\n      if (this.potion == Potions.EMPTY && this.effects.isEmpty()) {\n         this.entityData.set(ID_EFFECT_COLOR, -1);\n      } else {\n         this.entityData.set(ID_EFFECT_COLOR, PotionUtils.getColor(PotionUtils.getAllEffects(this.potion, this.effects)));\n      }\n\n   }\n\n   public void addEffect(MobEffectInstance p_36871_) {\n      this.effects.add(p_36871_);\n      this.getEntityData().set(ID_EFFECT_COLOR, PotionUtils.getColor(PotionUtils.getAllEffects(this.potion, this.effects)));\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(ID_EFFECT_COLOR, -1);\n   }\n\n   public void tick() {\n      super.tick();\n      if (this.level().isClientSide) {\n         if (this.inGround) {\n            if (this.inGroundTime % 5 == 0) {\n               this.makeParticle(1);\n            }\n         } else {\n            this.makeParticle(2);\n         }\n      } else if (this.inGround && this.inGroundTime != 0 && !this.effects.isEmpty() && this.inGroundTime >= 600) {\n         this.level().broadcastEntityEvent(this, (byte)0);\n         this.potion = Potions.EMPTY;\n         this.effects.clear();\n         this.entityData.set(ID_EFFECT_COLOR, -1);\n      }\n\n   }\n\n   private void makeParticle(int p_36877_) {\n      int i = this.getColor();\n      if (i != -1 && p_36877_ > 0) {\n         double d0 = (double)(i >> 16 & 255) / 255.0D;\n         double d1 = (double)(i >> 8 & 255) / 255.0D;\n         double d2 = (double)(i >> 0 & 255) / 255.0D;\n\n         for(int j = 0; j < p_36877_; ++j) {\n            this.level().addParticle(ParticleTypes.ENTITY_EFFECT, this.getRandomX(0.5D), this.getRandomY(), this.getRandomZ(0.5D), d0, d1, d2);\n         }\n\n      }\n   }\n\n   public int getColor() {\n      return this.entityData.get(ID_EFFECT_COLOR);\n   }\n\n   private void setFixedColor(int p_36883_) {\n      this.fixedColor = true;\n      this.entityData.set(ID_EFFECT_COLOR, p_36883_);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_36881_) {\n      super.addAdditionalSaveData(p_36881_);\n      if (this.potion != Potions.EMPTY) {\n         p_36881_.putString(\"Potion\", BuiltInRegistries.POTION.getKey(this.potion).toString());\n      }\n\n      if (this.fixedColor) {\n         p_36881_.putInt(\"Color\", this.getColor());\n      }\n\n      if (!this.effects.isEmpty()) {\n         ListTag listtag = new ListTag();\n\n         for(MobEffectInstance mobeffectinstance : this.effects) {\n            listtag.add(mobeffectinstance.save(new CompoundTag()));\n         }\n\n         p_36881_.put(\"CustomPotionEffects\", listtag);\n      }\n\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_36875_) {\n      super.readAdditionalSaveData(p_36875_);\n      if (p_36875_.contains(\"Potion\", 8)) {\n         this.potion = PotionUtils.getPotion(p_36875_);\n      }\n\n      for(MobEffectInstance mobeffectinstance : PotionUtils.getCustomEffects(p_36875_)) {\n         this.addEffect(mobeffectinstance);\n      }\n\n      if (p_36875_.contains(\"Color\", 99)) {\n         this.setFixedColor(p_36875_.getInt(\"Color\"));\n      } else {\n         this.updateColor();\n      }\n\n   }\n\n   protected void doPostHurtEffects(LivingEntity p_36873_) {\n      super.doPostHurtEffects(p_36873_);\n      Entity entity = this.getEffectSource();\n\n      for(MobEffectInstance mobeffectinstance : this.potion.getEffects()) {\n         p_36873_.addEffect(new MobEffectInstance(mobeffectinstance.getEffect(), Math.max(mobeffectinstance.mapDuration((p_268168_) -> {\n            return p_268168_ / 8;\n         }), 1), mobeffectinstance.getAmplifier(), mobeffectinstance.isAmbient(), mobeffectinstance.isVisible()), entity);\n      }\n\n      if (!this.effects.isEmpty()) {\n         for(MobEffectInstance mobeffectinstance1 : this.effects) {\n            p_36873_.addEffect(mobeffectinstance1, entity);\n         }\n      }\n\n   }\n\n   protected ItemStack getPickupItem() {\n      if (this.effects.isEmpty() && this.potion == Potions.EMPTY) {\n         return new ItemStack(Items.ARROW);\n      } else {\n         ItemStack itemstack = new ItemStack(Items.TIPPED_ARROW);\n         PotionUtils.setPotion(itemstack, this.potion);\n         PotionUtils.setCustomEffects(itemstack, this.effects);\n         if (this.fixedColor) {\n            itemstack.getOrCreateTag().putInt(\"CustomPotionColor\", this.getColor());\n         }\n\n         return itemstack;\n      }\n   }\n\n   public void handleEntityEvent(byte p_36869_) {\n      if (p_36869_ == 0) {\n         int i = this.getColor();\n         if (i != -1) {\n            double d0 = (double)(i >> 16 & 255) / 255.0D;\n            double d1 = (double)(i >> 8 & 255) / 255.0D;\n            double d2 = (double)(i >> 0 & 255) / 255.0D;\n\n            for(int j = 0; j < 20; ++j) {\n               this.level().addParticle(ParticleTypes.ENTITY_EFFECT, this.getRandomX(0.5D), this.getRandomY(), this.getRandomZ(0.5D), d0, d1, d2);\n            }\n         }\n      } else {\n         super.handleEntityEvent(p_36869_);\n      }\n\n   }\n}",
+          "excerpt_sha256": "64f68829e729e0603ac9f933d2af40403fe61c181a6a28c2e4cfdb4e3f0f84b4"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/ArrowItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "104c50678f7edd2e9bc1566c0b599f7db37b831c39043bb006e245e6e523ae77",
+      "bytes": 930,
+      "total_lines": 23,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            23
+          ],
+          "excerpt": "package net.minecraft.world.item;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.projectile.AbstractArrow;\nimport net.minecraft.world.entity.projectile.Arrow;\nimport net.minecraft.world.level.Level;\n\npublic class ArrowItem extends Item {\n   public ArrowItem(Item.Properties p_40512_) {\n      super(p_40512_);\n   }\n\n   public AbstractArrow createArrow(Level p_40513_, ItemStack p_40514_, LivingEntity p_40515_) {\n      Arrow arrow = new Arrow(p_40513_, p_40515_);\n      arrow.setEffectsFromItem(p_40514_);\n      return arrow;\n   }\n\n   public boolean isInfinite(ItemStack stack, ItemStack bow, net.minecraft.world.entity.player.Player player) {\n      int enchant = net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.INFINITY_ARROWS, bow);\n      return enchant <= 0 ? false : this.getClass() == ArrowItem.class;\n   }\n}\n",
+          "excerpt_sha256": "104c50678f7edd2e9bc1566c0b599f7db37b831c39043bb006e245e6e523ae77"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/crafting/CustomRecipe.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "651fd9961cf1cbf8b638db3655fe6aa75c45b7f59162e9d429d3c2031c929a31",
+      "bytes": 778,
+      "total_lines": 31,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            31
+          ],
+          "excerpt": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.ItemStack;\n\npublic abstract class CustomRecipe implements CraftingRecipe {\n   private final ResourceLocation id;\n   private final CraftingBookCategory category;\n\n   public CustomRecipe(ResourceLocation p_252125_, CraftingBookCategory p_249010_) {\n      this.id = p_252125_;\n      this.category = p_249010_;\n   }\n\n   public ResourceLocation getId() {\n      return this.id;\n   }\n\n   public boolean isSpecial() {\n      return true;\n   }\n\n   public ItemStack getResultItem(RegistryAccess p_267025_) {\n      return ItemStack.EMPTY;\n   }\n\n   public CraftingBookCategory category() {\n      return this.category;\n   }\n}",
+          "excerpt_sha256": "651fd9961cf1cbf8b638db3655fe6aa75c45b7f59162e9d429d3c2031c929a31"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/crafting/Recipe.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "5ba0410d2b35571788cffaab3e73773510ef0d79ccb0cd02c02913831136527c",
+      "bytes": 1852,
+      "total_lines": 66,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            66
+          ],
+          "excerpt": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\n\npublic interface Recipe<C extends Container> {\n   boolean matches(C p_44002_, Level p_44003_);\n\n   ItemStack assemble(C p_44001_, RegistryAccess p_267165_);\n\n   boolean canCraftInDimensions(int p_43999_, int p_44000_);\n\n   ItemStack getResultItem(RegistryAccess p_267052_);\n\n   default NonNullList<ItemStack> getRemainingItems(C p_44004_) {\n      NonNullList<ItemStack> nonnulllist = NonNullList.withSize(p_44004_.getContainerSize(), ItemStack.EMPTY);\n\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack item = p_44004_.getItem(i);\n         if (item.hasCraftingRemainingItem()) {\n            nonnulllist.set(i, item.getCraftingRemainingItem());\n         }\n      }\n\n      return nonnulllist;\n   }\n\n   default NonNullList<Ingredient> getIngredients() {\n      return NonNullList.create();\n   }\n\n   default boolean isSpecial() {\n      return false;\n   }\n\n   default boolean showNotification() {\n      return true;\n   }\n\n   default String getGroup() {\n      return \"\";\n   }\n\n   default ItemStack getToastSymbol() {\n      return new ItemStack(Blocks.CRAFTING_TABLE);\n   }\n\n   ResourceLocation getId();\n\n   RecipeSerializer<?> getSerializer();\n\n   RecipeType<?> getType();\n\n   default boolean isIncomplete() {\n      NonNullList<Ingredient> nonnulllist = this.getIngredients();\n      return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch((p_151268_) -> {\n         return net.minecraftforge.common.ForgeHooks.hasNoElements(p_151268_);\n      });\n   }\n}\n",
+          "excerpt_sha256": "5ba0410d2b35571788cffaab3e73773510ef0d79ccb0cd02c02913831136527c"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/inventory/ResultSlot.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4",
+      "bytes": 2911,
+      "total_lines": 81,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            81
+          ],
+          "excerpt": "package net.minecraft.world.inventory;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.RecipeType;\n\npublic class ResultSlot extends Slot {\n   private final CraftingContainer craftSlots;\n   private final Player player;\n   private int removeCount;\n\n   public ResultSlot(Player p_40166_, CraftingContainer p_40167_, Container p_40168_, int p_40169_, int p_40170_, int p_40171_) {\n      super(p_40168_, p_40169_, p_40170_, p_40171_);\n      this.player = p_40166_;\n      this.craftSlots = p_40167_;\n   }\n\n   public boolean mayPlace(ItemStack p_40178_) {\n      return false;\n   }\n\n   public ItemStack remove(int p_40173_) {\n      if (this.hasItem()) {\n         this.removeCount += Math.min(p_40173_, this.getItem().getCount());\n      }\n\n      return super.remove(p_40173_);\n   }\n\n   protected void onQuickCraft(ItemStack p_40180_, int p_40181_) {\n      this.removeCount += p_40181_;\n      this.checkTakeAchievements(p_40180_);\n   }\n\n   protected void onSwapCraft(int p_40183_) {\n      this.removeCount += p_40183_;\n   }\n\n   protected void checkTakeAchievements(ItemStack p_40185_) {\n      if (this.removeCount > 0) {\n         p_40185_.onCraftedBy(this.player.level(), this.player, this.removeCount);\n         net.minecraftforge.event.ForgeEventFactory.firePlayerCraftingEvent(this.player, p_40185_, this.craftSlots);\n      }\n\n      Container container = this.container;\n      if (container instanceof RecipeHolder recipeholder) {\n         recipeholder.awardUsedRecipes(this.player, this.craftSlots.getItems());\n      }\n\n      this.removeCount = 0;\n   }\n\n   public void onTake(Player p_150638_, ItemStack p_150639_) {\n      this.checkTakeAchievements(p_150639_);\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(p_150638_);\n      NonNullList<ItemStack> nonnulllist = p_150638_.level().getRecipeManager().getRemainingItemsFor(RecipeType.CRAFTING, this.craftSlots, p_150638_.level());\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(null);\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack itemstack = this.craftSlots.getItem(i);\n         ItemStack itemstack1 = nonnulllist.get(i);\n         if (!itemstack.isEmpty()) {\n            this.craftSlots.removeItem(i, 1);\n            itemstack = this.craftSlots.getItem(i);\n         }\n\n         if (!itemstack1.isEmpty()) {\n            if (itemstack.isEmpty()) {\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (ItemStack.isSameItemSameTags(itemstack, itemstack1)) {\n               itemstack1.grow(itemstack.getCount());\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (!this.player.getInventory().add(itemstack1)) {\n               this.player.drop(itemstack1, false);\n            }\n         }\n      }\n\n   }\n}\n",
+          "excerpt_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/alchemy/Potion.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "91d86cf436a1d16e7da52097b5fdd9a596653252ba4d3593cd5f569904d78909",
+      "bytes": 1423,
+      "total_lines": 47,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            47
+          ],
+          "excerpt": "package net.minecraft.world.item.alchemy;\n\nimport com.google.common.collect.ImmutableList;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.effect.MobEffectInstance;\n\npublic class Potion implements net.minecraftforge.common.extensions.IForgePotion {\n   @Nullable\n   private final String name;\n   private final ImmutableList<MobEffectInstance> effects;\n\n   public static Potion byName(String p_43490_) {\n      return BuiltInRegistries.POTION.get(ResourceLocation.tryParse(p_43490_));\n   }\n\n   public Potion(MobEffectInstance... p_43487_) {\n      this((String)null, p_43487_);\n   }\n\n   public Potion(@Nullable String p_43484_, MobEffectInstance... p_43485_) {\n      this.name = p_43484_;\n      this.effects = ImmutableList.copyOf(p_43485_);\n   }\n\n   public String getName(String p_43493_) {\n      return p_43493_ + (this.name == null ? BuiltInRegistries.POTION.getKey(this).getPath() : this.name);\n   }\n\n   public List<MobEffectInstance> getEffects() {\n      return this.effects;\n   }\n\n   public boolean hasInstantEffects() {\n      if (!this.effects.isEmpty()) {\n         for(MobEffectInstance mobeffectinstance : this.effects) {\n            if (mobeffectinstance.getEffect().isInstantenous()) {\n               return true;\n            }\n         }\n      }\n\n      return false;\n   }\n}\n",
+          "excerpt_sha256": "91d86cf436a1d16e7da52097b5fdd9a596653252ba4d3593cd5f569904d78909"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/entity/projectile/AbstractArrow.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "3de998415e22db54e106ed1e743e14e0cc4e4f3c97fa8503d5dd115dc8528c46",
+      "bytes": 23584,
+      "total_lines": 642,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            315,
+            420
+          ],
+          "excerpt": "   protected void onHitEntity(EntityHitResult p_36757_) {\n      super.onHitEntity(p_36757_);\n      Entity entity = p_36757_.getEntity();\n      float f = (float)this.getDeltaMovement().length();\n      int i = Mth.ceil(Mth.clamp((double)f * this.baseDamage, 0.0D, (double)Integer.MAX_VALUE));\n      if (this.getPierceLevel() > 0) {\n         if (this.piercingIgnoreEntityIds == null) {\n            this.piercingIgnoreEntityIds = new IntOpenHashSet(5);\n         }\n\n         if (this.piercedAndKilledEntities == null) {\n            this.piercedAndKilledEntities = Lists.newArrayListWithCapacity(5);\n         }\n\n         if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {\n            this.discard();\n            return;\n         }\n\n         this.piercingIgnoreEntityIds.add(entity.getId());\n      }\n\n      if (this.isCritArrow()) {\n         long j = (long)this.random.nextInt(i / 2 + 2);\n         i = (int)Math.min(j + (long)i, 2147483647L);\n      }\n\n      Entity entity1 = this.getOwner();\n      DamageSource damagesource;\n      if (entity1 == null) {\n         damagesource = this.damageSources().arrow(this, this);\n      } else {\n         damagesource = this.damageSources().arrow(this, entity1);\n         if (entity1 instanceof LivingEntity) {\n            ((LivingEntity)entity1).setLastHurtMob(entity);\n         }\n      }\n\n      boolean flag = entity.getType() == EntityType.ENDERMAN;\n      int k = entity.getRemainingFireTicks();\n      if (this.isOnFire() && !flag) {\n         entity.setSecondsOnFire(5);\n      }\n\n      if (entity.hurt(damagesource, (float)i)) {\n         if (flag) {\n            return;\n         }\n\n         if (entity instanceof LivingEntity) {\n            LivingEntity livingentity = (LivingEntity)entity;\n            if (!this.level().isClientSide && this.getPierceLevel() <= 0) {\n               livingentity.setArrowCount(livingentity.getArrowCount() + 1);\n            }\n\n            if (this.knockback > 0) {\n               double d0 = Math.max(0.0D, 1.0D - livingentity.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));\n               Vec3 vec3 = this.getDeltaMovement().multiply(1.0D, 0.0D, 1.0D).normalize().scale((double)this.knockback * 0.6D * d0);\n               if (vec3.lengthSqr() > 0.0D) {\n                  livingentity.push(vec3.x, 0.1D, vec3.z);\n               }\n            }\n\n            if (!this.level().isClientSide && entity1 instanceof LivingEntity) {\n               EnchantmentHelper.doPostHurtEffects(livingentity, entity1);\n               EnchantmentHelper.doPostDamageEffects((LivingEntity)entity1, livingentity);\n            }\n\n            this.doPostHurtEffects(livingentity);\n            if (entity1 != null && livingentity != entity1 && livingentity instanceof Player && entity1 instanceof ServerPlayer && !this.isSilent()) {\n               ((ServerPlayer)entity1).connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.ARROW_HIT_PLAYER, 0.0F));\n            }\n\n            if (!entity.isAlive() && this.piercedAndKilledEntities != null) {\n               this.piercedAndKilledEntities.add(livingentity);\n            }\n\n            if (!this.level().isClientSide && entity1 instanceof ServerPlayer) {\n               ServerPlayer serverplayer = (ServerPlayer)entity1;\n               if (this.piercedAndKilledEntities != null && this.shotFromCrossbow()) {\n                  CriteriaTriggers.KILLED_BY_CROSSBOW.trigger(serverplayer, this.piercedAndKilledEntities);\n               } else if (!entity.isAlive() && this.shotFromCrossbow()) {\n                  CriteriaTriggers.KILLED_BY_CROSSBOW.trigger(serverplayer, Arrays.asList(entity));\n               }\n            }\n         }\n\n         this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));\n         if (this.getPierceLevel() <= 0) {\n            this.discard();\n         }\n      } else {\n         entity.setRemainingFireTicks(k);\n         this.setDeltaMovement(this.getDeltaMovement().scale(-0.1D));\n         this.setYRot(this.getYRot() + 180.0F);\n         this.yRotO += 180.0F;\n         if (!this.level().isClientSide && this.getDeltaMovement().lengthSqr() < 1.0E-7D) {\n            if (this.pickup == AbstractArrow.Pickup.ALLOWED) {\n               this.spawnAtLocation(this.getPickupItem(), 0.1F);\n            }\n\n            this.discard();\n         }\n      }\n\n   }\n",
+          "excerpt_sha256": "53b5db7542f2a119ef23c11e86aa8a4e644f0c6e58e3648149e1e8c6ec978c7b"
+        },
+        {
+          "lines": [
+            499,
+            528
+          ],
+          "excerpt": "   public void setOwner(@Nullable Entity p_36770_) {\n      super.setOwner(p_36770_);\n      if (p_36770_ instanceof Player) {\n         this.pickup = ((Player)p_36770_).getAbilities().instabuild ? AbstractArrow.Pickup.CREATIVE_ONLY : AbstractArrow.Pickup.ALLOWED;\n      }\n\n   }\n\n   public void playerTouch(Player p_36766_) {\n      if (!this.level().isClientSide && (this.inGround || this.isNoPhysics()) && this.shakeTime <= 0) {\n         if (this.tryPickup(p_36766_)) {\n            p_36766_.take(this, 1);\n            this.discard();\n         }\n\n      }\n   }\n\n   protected boolean tryPickup(Player p_150121_) {\n      switch (this.pickup) {\n         case ALLOWED:\n            return p_150121_.getInventory().add(this.getPickupItem());\n         case CREATIVE_ONLY:\n            return p_150121_.getAbilities().instabuild;\n         default:\n            return false;\n      }\n   }\n\n   protected abstract ItemStack getPickupItem();\n",
+          "excerpt_sha256": "9d577915b8b3d621d1c9be9ab3185b0d1e864ea13c72050cdb80d8cf1928609b"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/world/item/BowItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "f7c453ddf525223983e3b665402ad681c8627374880df81a9f6dcdf39cc63d08",
+      "bytes": 5428,
+      "total_lines": 132,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            132
+          ],
+          "excerpt": "package net.minecraft.world.item;\n\nimport java.util.function.Predicate;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.AbstractArrow;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.item.enchantment.Enchantments;\nimport net.minecraft.world.level.Level;\n\npublic class BowItem extends ProjectileWeaponItem implements Vanishable {\n   public static final int MAX_DRAW_DURATION = 20;\n   public static final int DEFAULT_RANGE = 15;\n\n   public BowItem(Item.Properties p_40660_) {\n      super(p_40660_);\n   }\n\n   public void releaseUsing(ItemStack p_40667_, Level p_40668_, LivingEntity p_40669_, int p_40670_) {\n      if (p_40669_ instanceof Player player) {\n         boolean flag = player.getAbilities().instabuild || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.INFINITY_ARROWS, p_40667_) > 0;\n         ItemStack itemstack = player.getProjectile(p_40667_);\n\n         int i = this.getUseDuration(p_40667_) - p_40670_;\n         i = net.minecraftforge.event.ForgeEventFactory.onArrowLoose(p_40667_, p_40668_, player, i, !itemstack.isEmpty() || flag);\n         if (i < 0) return;\n\n         if (!itemstack.isEmpty() || flag) {\n            if (itemstack.isEmpty()) {\n               itemstack = new ItemStack(Items.ARROW);\n            }\n\n            float f = getPowerForTime(i);\n            if (!((double)f < 0.1D)) {\n               boolean flag1 = player.getAbilities().instabuild || (itemstack.getItem() instanceof ArrowItem && ((ArrowItem)itemstack.getItem()).isInfinite(itemstack, p_40667_, player));\n               if (!p_40668_.isClientSide) {\n                  ArrowItem arrowitem = (ArrowItem)(itemstack.getItem() instanceof ArrowItem ? itemstack.getItem() : Items.ARROW);\n                  AbstractArrow abstractarrow = arrowitem.createArrow(p_40668_, itemstack, player);\n                  abstractarrow = customArrow(abstractarrow);\n                  abstractarrow.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, f * 3.0F, 1.0F);\n                  if (f == 1.0F) {\n                     abstractarrow.setCritArrow(true);\n                  }\n\n                  int j = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.POWER_ARROWS, p_40667_);\n                  if (j > 0) {\n                     abstractarrow.setBaseDamage(abstractarrow.getBaseDamage() + (double)j * 0.5D + 0.5D);\n                  }\n\n                  int k = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.PUNCH_ARROWS, p_40667_);\n                  if (k > 0) {\n                     abstractarrow.setKnockback(k);\n                  }\n\n                  if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, p_40667_) > 0) {\n                     abstractarrow.setSecondsOnFire(100);\n                  }\n\n                  p_40667_.hurtAndBreak(1, player, (p_289501_) -> {\n                     p_289501_.broadcastBreakEvent(player.getUsedItemHand());\n                  });\n                  if (flag1 || player.getAbilities().instabuild && (itemstack.is(Items.SPECTRAL_ARROW) || itemstack.is(Items.TIPPED_ARROW))) {\n                     abstractarrow.pickup = AbstractArrow.Pickup.CREATIVE_ONLY;\n                  }\n\n                  p_40668_.addFreshEntity(abstractarrow);\n               }\n\n               p_40668_.playSound((Player)null, player.getX(), player.getY(), player.getZ(), SoundEvents.ARROW_SHOOT, SoundSource.PLAYERS, 1.0F, 1.0F / (p_40668_.getRandom().nextFloat() * 0.4F + 1.2F) + f * 0.5F);\n               if (!flag1 && !player.getAbilities().instabuild) {\n                  itemstack.shrink(1);\n                  if (itemstack.isEmpty()) {\n                     player.getInventory().removeItem(itemstack);\n                  }\n               }\n\n               player.awardStat(Stats.ITEM_USED.get(this));\n            }\n         }\n      }\n   }\n\n   public static float getPowerForTime(int p_40662_) {\n      float f = (float)p_40662_ / 20.0F;\n      f = (f * f + f * 2.0F) / 3.0F;\n      if (f > 1.0F) {\n         f = 1.0F;\n      }\n\n      return f;\n   }\n\n   public int getUseDuration(ItemStack p_40680_) {\n      return 72000;\n   }\n\n   public UseAnim getUseAnimation(ItemStack p_40678_) {\n      return UseAnim.BOW;\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_40672_, Player p_40673_, InteractionHand p_40674_) {\n      ItemStack itemstack = p_40673_.getItemInHand(p_40674_);\n      boolean flag = !p_40673_.getProjectile(itemstack).isEmpty();\n\n      InteractionResultHolder<ItemStack> ret = net.minecraftforge.event.ForgeEventFactory.onArrowNock(itemstack, p_40672_, p_40673_, p_40674_, flag);\n      if (ret != null) return ret;\n\n      if (!p_40673_.getAbilities().instabuild && !flag) {\n         return InteractionResultHolder.fail(itemstack);\n      } else {\n         p_40673_.startUsingItem(p_40674_);\n         return InteractionResultHolder.consume(itemstack);\n      }\n   }\n\n   public Predicate<ItemStack> getAllSupportedProjectiles() {\n      return ARROW_ONLY;\n   }\n\n   public AbstractArrow customArrow(AbstractArrow arrow) {\n      return arrow;\n   }\n\n   public int getDefaultProjectileRange() {\n      return 15;\n   }\n}\n",
+          "excerpt_sha256": "f7c453ddf525223983e3b665402ad681c8627374880df81a9f6dcdf39cc63d08"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/effect/MobEffectInstance.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "384c0ac276a214c63f5bb32dbdd312e6de499b4bbec2543e633c201ce67f8923",
+      "bytes": 15762,
+      "total_lines": 412,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            30,
+            80
+          ],
+          "excerpt": "\n   public MobEffectInstance(MobEffect p_19513_) {\n      this(p_19513_, 0, 0);\n   }\n\n   public MobEffectInstance(MobEffect p_19515_, int p_19516_) {\n      this(p_19515_, p_19516_, 0);\n   }\n\n   public MobEffectInstance(MobEffect p_19518_, int p_19519_, int p_19520_) {\n      this(p_19518_, p_19519_, p_19520_, false, true);\n   }\n\n   public MobEffectInstance(MobEffect p_19522_, int p_19523_, int p_19524_, boolean p_19525_, boolean p_19526_) {\n      this(p_19522_, p_19523_, p_19524_, p_19525_, p_19526_, p_19526_);\n   }\n\n   public MobEffectInstance(MobEffect p_19528_, int p_19529_, int p_19530_, boolean p_19531_, boolean p_19532_, boolean p_19533_) {\n      this(p_19528_, p_19529_, p_19530_, p_19531_, p_19532_, p_19533_, (MobEffectInstance)null, p_19528_.createFactorData());\n   }\n\n   public MobEffectInstance(MobEffect p_216887_, int p_216888_, int p_216889_, boolean p_216890_, boolean p_216891_, boolean p_216892_, @Nullable MobEffectInstance p_216893_, Optional<MobEffectInstance.FactorData> p_216894_) {\n      this.effect = p_216887_;\n      this.duration = p_216888_;\n      this.amplifier = p_216889_;\n      this.ambient = p_216890_;\n      this.visible = p_216891_;\n      this.showIcon = p_216892_;\n      this.hiddenEffect = p_216893_;\n      this.factorData = p_216894_;\n   }\n\n   public MobEffectInstance(MobEffectInstance p_19543_) {\n      this.effect = p_19543_.effect;\n      this.factorData = this.effect.createFactorData();\n      this.setDetailsFrom(p_19543_);\n   }\n\n   public Optional<MobEffectInstance.FactorData> getFactorData() {\n      return this.factorData;\n   }\n\n   void setDetailsFrom(MobEffectInstance p_19549_) {\n      this.duration = p_19549_.duration;\n      this.amplifier = p_19549_.amplifier;\n      this.ambient = p_19549_.ambient;\n      this.visible = p_19549_.visible;\n      this.showIcon = p_19549_.showIcon;\n      this.curativeItems = p_19549_.curativeItems == null ? null : new java.util.ArrayList<net.minecraft.world.item.ItemStack>(p_19549_.curativeItems);\n   }\n\n",
+          "excerpt_sha256": "40952e4b2ccdd3a6aefd92a35473132b52105eff36a894a2ae0a7d6dd691ce01"
+        },
+        {
+          "lines": [
+            129,
+            146
+          ],
+          "excerpt": "   }\n\n   public boolean isInfiniteDuration() {\n      return this.duration == -1;\n   }\n\n   public boolean endsWithin(int p_268088_) {\n      return !this.isInfiniteDuration() && this.duration <= p_268088_;\n   }\n\n   public int mapDuration(Int2IntFunction p_268089_) {\n      return !this.isInfiniteDuration() && this.duration != 0 ? p_268089_.applyAsInt(this.duration) : this.duration;\n   }\n\n   public MobEffect getEffect() {\n      return this.effect == null ? null : net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getDelegateOrThrow(this.effect).get();\n   }\n\n",
+          "excerpt_sha256": "48c36a81adcf58133f05addb2209ef548a8c3f8762d26c3881b42231c11a25a7"
+        },
+        {
+          "lines": [
+            254,
+            353
+          ],
+          "excerpt": "   public CompoundTag save(CompoundTag p_19556_) {\n      p_19556_.putInt(\"Id\", MobEffect.getId(this.getEffect()));\n      net.minecraftforge.common.ForgeHooks.saveMobEffect(p_19556_, \"forge:id\", this.getEffect());\n      this.writeDetailsTo(p_19556_);\n      return p_19556_;\n   }\n\n   private void writeDetailsTo(CompoundTag p_19568_) {\n      p_19568_.putByte(\"Amplifier\", (byte)this.getAmplifier());\n      p_19568_.putInt(\"Duration\", this.getDuration());\n      p_19568_.putBoolean(\"Ambient\", this.isAmbient());\n      p_19568_.putBoolean(\"ShowParticles\", this.isVisible());\n      p_19568_.putBoolean(\"ShowIcon\", this.showIcon());\n      if (this.hiddenEffect != null) {\n         CompoundTag compoundtag = new CompoundTag();\n         this.hiddenEffect.save(compoundtag);\n         p_19568_.put(\"HiddenEffect\", compoundtag);\n      }\n      writeCurativeItems(p_19568_);\n\n      this.factorData.ifPresent((p_216903_) -> {\n         MobEffectInstance.FactorData.CODEC.encodeStart(NbtOps.INSTANCE, p_216903_).resultOrPartial(LOGGER::error).ifPresent((p_216906_) -> {\n            p_19568_.put(\"FactorCalculationData\", p_216906_);\n         });\n      });\n   }\n\n   @Nullable\n   public static MobEffectInstance load(CompoundTag p_19561_) {\n      int i = p_19561_.getByte(\"Id\") & 0xFF;\n      MobEffect mobeffect = MobEffect.byId(i);\n      mobeffect = net.minecraftforge.common.ForgeHooks.loadMobEffect(p_19561_, \"forge:id\", mobeffect);\n      return mobeffect == null ? null : loadSpecifiedEffect(mobeffect, p_19561_);\n   }\n\n   private static MobEffectInstance loadSpecifiedEffect(MobEffect p_19546_, CompoundTag p_19547_) {\n      int i = p_19547_.getByte(\"Amplifier\");\n      int j = p_19547_.getInt(\"Duration\");\n      boolean flag = p_19547_.getBoolean(\"Ambient\");\n      boolean flag1 = true;\n      if (p_19547_.contains(\"ShowParticles\", 1)) {\n         flag1 = p_19547_.getBoolean(\"ShowParticles\");\n      }\n\n      boolean flag2 = flag1;\n      if (p_19547_.contains(\"ShowIcon\", 1)) {\n         flag2 = p_19547_.getBoolean(\"ShowIcon\");\n      }\n\n      MobEffectInstance mobeffectinstance = null;\n      if (p_19547_.contains(\"HiddenEffect\", 10)) {\n         mobeffectinstance = loadSpecifiedEffect(p_19546_, p_19547_.getCompound(\"HiddenEffect\"));\n      }\n\n      Optional<MobEffectInstance.FactorData> optional;\n      if (p_19547_.contains(\"FactorCalculationData\", 10)) {\n         optional = MobEffectInstance.FactorData.CODEC.parse(new Dynamic<>(NbtOps.INSTANCE, p_19547_.getCompound(\"FactorCalculationData\"))).resultOrPartial(LOGGER::error);\n      } else {\n         optional = Optional.empty();\n      }\n\n      return readCurativeItems(new MobEffectInstance(p_19546_, j, Math.max(0, i), flag, flag1, flag2, mobeffectinstance, optional), p_19547_);\n   }\n\n   public int compareTo(MobEffectInstance p_19566_) {\n      int i = 32147;\n      return (this.getDuration() <= 32147 || p_19566_.getDuration() <= 32147) && (!this.isAmbient() || !p_19566_.isAmbient()) ? ComparisonChain.start().compare(this.isAmbient(), p_19566_.isAmbient()).compare(this.getDuration(), p_19566_.getDuration()).compare(this.getEffect().getSortOrder(this), p_19566_.getEffect().getSortOrder(this)).result() : ComparisonChain.start().compare(this.isAmbient(), p_19566_.isAmbient()).compare(this.getEffect().getSortOrder(this), p_19566_.getEffect().getSortOrder(this)).result();\n   }\n\n   //======================= FORGE START ===========================\n   private java.util.List<net.minecraft.world.item.ItemStack> curativeItems;\n\n   @Override\n   public java.util.List<net.minecraft.world.item.ItemStack> getCurativeItems() {\n      if (this.curativeItems == null) //Lazy load this so that we don't create a circular dep on Items.\n         this.curativeItems = getEffect().getCurativeItems();\n      return this.curativeItems;\n   }\n   @Override\n   public void setCurativeItems(java.util.List<net.minecraft.world.item.ItemStack> curativeItems) {\n      this.curativeItems = curativeItems;\n   }\n   private static MobEffectInstance readCurativeItems(MobEffectInstance effect, CompoundTag nbt) {\n      if (nbt.contains(\"CurativeItems\", net.minecraft.nbt.Tag.TAG_LIST)) {\n         java.util.List<net.minecraft.world.item.ItemStack> items = new java.util.ArrayList<net.minecraft.world.item.ItemStack>();\n         net.minecraft.nbt.ListTag list = nbt.getList(\"CurativeItems\", net.minecraft.nbt.Tag.TAG_COMPOUND);\n         for (int i = 0; i < list.size(); i++) {\n            items.add(net.minecraft.world.item.ItemStack.of(list.getCompound(i)));\n         }\n         effect.setCurativeItems(items);\n      }\n\n      return effect;\n   }\n\n   public static class FactorData {\n      public static final Codec<MobEffectInstance.FactorData> CODEC = RecordCodecBuilder.create((p_216933_) -> {\n         return p_216933_.group(ExtraCodecs.NON_NEGATIVE_INT.fieldOf(\"padding_duration\").forGetter((p_216945_) -> {\n            return p_216945_.paddingDuration;\n         }), Codec.FLOAT.fieldOf(\"factor_start\").orElse(0.0F).forGetter((p_216943_) -> {\n",
+          "excerpt_sha256": "5c97e7c45c158e1ba13651bb221e410d8e57698909dc9870bcb6dbbd79e1a390"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/core/registries/BuiltInRegistries.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "8cc7925eff138a75e3191441770de071cf0d9b951464003ea1bef1e47a17d726",
+      "bytes": 26374,
+      "total_lines": 496,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            168,
+            174
+          ],
+          "excerpt": "    */\n   @Deprecated\n   public static final DefaultedRegistry<Potion> POTION = forge(Registries.POTION, \"empty\", (p_259869_) -> {\n      return Potions.EMPTY;\n   });\n   /**\n    * @deprecated Forge: Use {@link net.minecraftforge.registries.ForgeRegistries#PARTICLE_TYPES} instead.\n",
+          "excerpt_sha256": "475795bef5f9a8c01825b15de8d58ef78fae631a1237b610e04116169d629e2b"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraftforge/common/extensions/IForgeItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "949587914b3853e476f4c3508191b3c1ad1ad46917076ee758d7e3fc627699bf",
+      "bytes": 32905,
+      "total_lines": 876,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            227,
+            257
+          ],
+          "excerpt": "    }\n\n    /**\n     * ItemStack sensitive version of {@link Item#getCraftingRemainingItem()}.\n     * Returns a full ItemStack instance of the result.\n     *\n     * @param itemStack The current ItemStack\n     * @return The resulting ItemStack\n     */\n    @SuppressWarnings(\"deprecation\")\n    default ItemStack getCraftingRemainingItem(ItemStack itemStack)\n    {\n        if (!hasCraftingRemainingItem(itemStack))\n        {\n            return ItemStack.EMPTY;\n        }\n        return new ItemStack(self().getCraftingRemainingItem());\n    }\n\n    /**\n     * ItemStack sensitive version of {@link Item#hasCraftingRemainingItem()}.\n     *\n     * @param stack The current item stack\n     * @return True if this item has a crafting remaining item\n     */\n    @SuppressWarnings(\"deprecation\")\n    default boolean hasCraftingRemainingItem(ItemStack stack)\n    {\n        return self().hasCraftingRemainingItem();\n    }\n\n",
+          "excerpt_sha256": "a96be72c039ea4b2cd0eee9a97cbd472c7a34b12a27e2b6442adba5f9e7b561e"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraftforge/common/extensions/IForgeItemStack.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "683e0be451a9178960eb5404871ba81d38b1d7c4d348b93934df8f9487aee79f",
+      "bytes": 22346,
+      "total_lines": 593,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            51,
+            74
+          ],
+          "excerpt": "        return (ItemStack)this;\n    }\n\n    /**\n     * ItemStack sensitive version of {@link Item#getCraftingRemainingItem()}.\n     * Returns a full ItemStack instance of the result.\n     *\n     * @return The resulting ItemStack\n     */\n    default ItemStack getCraftingRemainingItem()\n    {\n        return self().getItem().getCraftingRemainingItem(self());\n    }\n\n    /**\n     * ItemStack sensitive version of {@link Item#hasCraftingRemainingItem()}.\n     *\n     * @return True if this item has a crafting remaining item\n     */\n    default boolean hasCraftingRemainingItem()\n    {\n        return self().getItem().hasCraftingRemainingItem(self());\n    }\n\n",
+          "excerpt_sha256": "a5f921981bbd40157bfe5534f7e54cd6e8dce5f753e184ee31ac25a4d6a47cac"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/world/item/Items.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+      "bytes": 142779,
+      "total_lines": 1326,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1128,
+            1138
+          ],
+          "excerpt": "   public static final Item PITCHER_POD = registerItem(\"pitcher_pod\", new ItemNameBlockItem(Blocks.PITCHER_CROP, new Item.Properties()));\n   public static final Item BEETROOT = registerItem(\"beetroot\", new Item((new Item.Properties()).food(Foods.BEETROOT)));\n   public static final Item BEETROOT_SEEDS = registerItem(\"beetroot_seeds\", new ItemNameBlockItem(Blocks.BEETROOTS, new Item.Properties()));\n   public static final Item BEETROOT_SOUP = registerItem(\"beetroot_soup\", new BowlFoodItem((new Item.Properties()).stacksTo(1).food(Foods.BEETROOT_SOUP)));\n   public static final Item DRAGON_BREATH = registerItem(\"dragon_breath\", new Item((new Item.Properties()).craftRemainder(GLASS_BOTTLE).rarity(Rarity.UNCOMMON)));\n   public static final Item SPLASH_POTION = registerItem(\"splash_potion\", new SplashPotionItem((new Item.Properties()).stacksTo(1)));\n   public static final Item SPECTRAL_ARROW = registerItem(\"spectral_arrow\", new SpectralArrowItem(new Item.Properties()));\n   public static final Item TIPPED_ARROW = registerItem(\"tipped_arrow\", new TippedArrowItem(new Item.Properties()));\n   public static final Item LINGERING_POTION = registerItem(\"lingering_potion\", new LingeringPotionItem((new Item.Properties()).stacksTo(1)));\n   public static final Item SHIELD = registerItem(\"shield\", new ShieldItem((new Item.Properties()).durability(336)));\n   public static final Item TOTEM_OF_UNDYING = registerItem(\"totem_of_undying\", new Item((new Item.Properties()).stacksTo(1).rarity(Rarity.UNCOMMON)));\n",
+          "excerpt_sha256": "751f7403d15276faaac223841408f626273c24f352ae50ee19c2ed9fe0d914c3"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/world/item/Item.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "7acea0f9dcac2a301141e5584a9a3f35d7c7480c9ad93cfb974f39307cd30909",
+      "bytes": 15835,
+      "total_lines": 476,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            58,
+            132
+          ],
+          "excerpt": "   public static final int MAX_STACK_SIZE = 64;\n   public static final int EAT_DURATION = 32;\n   public static final int MAX_BAR_WIDTH = 13;\n   private final Holder.Reference<Item> builtInRegistryHolder = BuiltInRegistries.ITEM.createIntrusiveHolder(this);\n   private final Rarity rarity;\n   private final int maxStackSize;\n   private final int maxDamage;\n   private final boolean isFireResistant;\n   @Nullable\n   private final Item craftingRemainingItem;\n   @Nullable\n   private String descriptionId;\n   @Nullable\n   private final FoodProperties foodProperties;\n   private final FeatureFlagSet requiredFeatures;\n\n   public static int getId(Item p_41394_) {\n      return p_41394_ == null ? 0 : BuiltInRegistries.ITEM.getId(p_41394_);\n   }\n\n   public static Item byId(int p_41446_) {\n      return BuiltInRegistries.ITEM.byId(p_41446_);\n   }\n\n   /** @deprecated */\n   @Deprecated\n   public static Item byBlock(Block p_41440_) {\n      return BY_BLOCK.getOrDefault(p_41440_, Items.AIR);\n   }\n\n   public Item(Item.Properties p_41383_) {\n      this.rarity = p_41383_.rarity;\n      this.craftingRemainingItem = p_41383_.craftingRemainingItem;\n      this.maxDamage = p_41383_.maxDamage;\n      this.maxStackSize = p_41383_.maxStackSize;\n      this.foodProperties = p_41383_.foodProperties;\n      this.isFireResistant = p_41383_.isFireResistant;\n      this.requiredFeatures = p_41383_.requiredFeatures;\n      if (SharedConstants.IS_RUNNING_IN_IDE) {\n         String s = this.getClass().getSimpleName();\n         if (!s.endsWith(\"Item\")) {\n            LOGGER.error(\"Item classes should end with Item and {} doesn't.\", (Object)s);\n         }\n      }\n      this.canRepair = p_41383_.canRepair;\n      initClient();\n   }\n\n   /** @deprecated */\n   @Deprecated\n   public Holder.Reference<Item> builtInRegistryHolder() {\n      return this.builtInRegistryHolder;\n   }\n\n   public void onUseTick(Level p_41428_, LivingEntity p_41429_, ItemStack p_41430_, int p_41431_) {\n   }\n\n   /** @deprecated Forge: {@link net.minecraftforge.common.extensions.IForgeItem#onDestroyed(ItemEntity, DamageSource) Use damage source sensitive version} */\n   @Deprecated\n   public void onDestroyed(ItemEntity p_150887_) {\n   }\n\n   public void verifyTagAfterLoad(CompoundTag p_150898_) {\n   }\n\n   public boolean canAttackBlock(BlockState p_41441_, Level p_41442_, BlockPos p_41443_, Player p_41444_) {\n      return true;\n   }\n\n   public Item asItem() {\n      return this;\n   }\n\n   public InteractionResult useOn(UseOnContext p_41427_) {\n      return InteractionResult.PASS;\n",
+          "excerpt_sha256": "aa3d4a07031532ba77b24895962caa10fae8e8f3d8a14fc7ce929ff497a34106"
+        },
+        {
+          "lines": [
+            232,
+            248
+          ],
+          "excerpt": "\n   public boolean shouldOverrideMultiplayerNbt() {\n      return true;\n   }\n\n   @Nullable\n   @Deprecated // Use ItemStack sensitive version.\n   public final Item getCraftingRemainingItem() {\n      return this.craftingRemainingItem;\n   }\n\n   @Deprecated // Use ItemStack sensitive version.\n   public boolean hasCraftingRemainingItem() {\n      return this.craftingRemainingItem != null;\n   }\n\n   public void inventoryTick(ItemStack p_41404_, Level p_41405_, Entity p_41406_, int p_41407_, boolean p_41408_) {\n",
+          "excerpt_sha256": "4b38f2849f5d72aef8fb258c21e6eb838e5c997d112dac26c57b1bb3cc852c6c"
+        },
+        {
+          "lines": [
+            364,
+            383
+          ],
+          "excerpt": "\n   public SoundEvent getDrinkingSound() {\n      return SoundEvents.GENERIC_DRINK;\n   }\n\n   public SoundEvent getEatingSound() {\n      return SoundEvents.GENERIC_EAT;\n   }\n\n   public boolean isFireResistant() {\n      return this.isFireResistant;\n   }\n\n   public boolean canBeHurtBy(DamageSource p_41387_) {\n      return !this.isFireResistant || !p_41387_.is(DamageTypeTags.IS_FIRE);\n   }\n\n   public boolean canFitInsideContainerItems() {\n      return true;\n   }\n",
+          "excerpt_sha256": "1041e9289ff1554ce47c94e3941bdb26fc61d940f3efcb7e525563e138fdf13d"
+        },
+        {
+          "lines": [
+            413,
+            457
+          ],
+          "excerpt": "   // END FORGE\n\n   public static class Properties {\n      int maxStackSize = 64;\n      int maxDamage;\n      @Nullable\n      Item craftingRemainingItem;\n      Rarity rarity = Rarity.COMMON;\n      @Nullable\n      FoodProperties foodProperties;\n      boolean isFireResistant;\n      FeatureFlagSet requiredFeatures = FeatureFlags.VANILLA_SET;\n      private boolean canRepair = true;\n\n      public Item.Properties food(FoodProperties p_41490_) {\n         this.foodProperties = p_41490_;\n         return this;\n      }\n\n      public Item.Properties stacksTo(int p_41488_) {\n         if (this.maxDamage > 0) {\n            throw new RuntimeException(\"Unable to have damage AND stack.\");\n         } else {\n            this.maxStackSize = p_41488_;\n            return this;\n         }\n      }\n\n      public Item.Properties defaultDurability(int p_41500_) {\n         return this.maxDamage == 0 ? this.durability(p_41500_) : this;\n      }\n\n      public Item.Properties durability(int p_41504_) {\n         this.maxDamage = p_41504_;\n         this.maxStackSize = 1;\n         return this;\n      }\n\n      public Item.Properties craftRemainder(Item p_41496_) {\n         this.craftingRemainingItem = p_41496_;\n         return this;\n      }\n\n      public Item.Properties rarity(Rarity p_41498_) {\n         this.rarity = p_41498_;\n",
+          "excerpt_sha256": "49c082af27a889b913c923aaea8fd29ecaa2da6691ab7e3de9ddd6743c4a114e"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/world/item/LingeringPotionItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "94b6510932da3877b5e2ef88a3e6a692cb5bbe8e98b8cdb72ff70cc3ce29a51c",
+      "bytes": 1185,
+      "total_lines": 27,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            27
+          ],
+          "excerpt": "package net.minecraft.world.item;\n\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.level.Level;\n\npublic class LingeringPotionItem extends ThrowablePotionItem {\n   public LingeringPotionItem(Item.Properties p_42836_) {\n      super(p_42836_);\n   }\n\n   public void appendHoverText(ItemStack p_42838_, @Nullable Level p_42839_, List<Component> p_42840_, TooltipFlag p_42841_) {\n      PotionUtils.addPotionTooltip(p_42838_, p_42840_, 0.25F);\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_42843_, Player p_42844_, InteractionHand p_42845_) {\n      p_42843_.playSound((Player)null, p_42844_.getX(), p_42844_.getY(), p_42844_.getZ(), SoundEvents.LINGERING_POTION_THROW, SoundSource.NEUTRAL, 0.5F, 0.4F / (p_42843_.getRandom().nextFloat() * 0.4F + 0.8F));\n      return super.use(p_42843_, p_42844_, p_42845_);\n   }\n}",
+          "excerpt_sha256": "94b6510932da3877b5e2ef88a3e6a692cb5bbe8e98b8cdb72ff70cc3ce29a51c"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/ThrowablePotionItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "b5152be226a29b86000da429ce2633841cb13f0c89126700624f50ff06ec8b46",
+      "bytes": 1182,
+      "total_lines": 31,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            31
+          ],
+          "excerpt": "package net.minecraft.world.item;\n\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.ThrownPotion;\nimport net.minecraft.world.level.Level;\n\npublic class ThrowablePotionItem extends PotionItem {\n   public ThrowablePotionItem(Item.Properties p_43301_) {\n      super(p_43301_);\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_43303_, Player p_43304_, InteractionHand p_43305_) {\n      ItemStack itemstack = p_43304_.getItemInHand(p_43305_);\n      if (!p_43303_.isClientSide) {\n         ThrownPotion thrownpotion = new ThrownPotion(p_43303_, p_43304_);\n         thrownpotion.setItem(itemstack);\n         thrownpotion.shootFromRotation(p_43304_, p_43304_.getXRot(), p_43304_.getYRot(), -20.0F, 0.5F, 1.0F);\n         p_43303_.addFreshEntity(thrownpotion);\n      }\n\n      p_43304_.awardStat(Stats.ITEM_USED.get(this));\n      if (!p_43304_.getAbilities().instabuild) {\n         itemstack.shrink(1);\n      }\n\n      return InteractionResultHolder.sidedSuccess(itemstack, p_43303_.isClientSide());\n   }\n}",
+          "excerpt_sha256": "b5152be226a29b86000da429ce2633841cb13f0c89126700624f50ff06ec8b46"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/world/item/PotionItem.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "eba168fa0abaee0b3508ea318e2622ee1439c65bd60fdba26b2e5be724629e0c",
+      "bytes": 5134,
+      "total_lines": 125,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            125
+          ],
+          "excerpt": "package net.minecraft.world.item;\n\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.item.alchemy.Potions;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class PotionItem extends Item {\n   private static final int DRINK_DURATION = 32;\n\n   public PotionItem(Item.Properties p_42979_) {\n      super(p_42979_);\n   }\n\n   public ItemStack getDefaultInstance() {\n      return PotionUtils.setPotion(super.getDefaultInstance(), Potions.WATER);\n   }\n\n   public ItemStack finishUsingItem(ItemStack p_42984_, Level p_42985_, LivingEntity p_42986_) {\n      Player player = p_42986_ instanceof Player ? (Player)p_42986_ : null;\n      if (player instanceof ServerPlayer) {\n         CriteriaTriggers.CONSUME_ITEM.trigger((ServerPlayer)player, p_42984_);\n      }\n\n      if (!p_42985_.isClientSide) {\n         for(MobEffectInstance mobeffectinstance : PotionUtils.getMobEffects(p_42984_)) {\n            if (mobeffectinstance.getEffect().isInstantenous()) {\n               mobeffectinstance.getEffect().applyInstantenousEffect(player, player, p_42986_, mobeffectinstance.getAmplifier(), 1.0D);\n            } else {\n               p_42986_.addEffect(new MobEffectInstance(mobeffectinstance));\n            }\n         }\n      }\n\n      if (player != null) {\n         player.awardStat(Stats.ITEM_USED.get(this));\n         if (!player.getAbilities().instabuild) {\n            p_42984_.shrink(1);\n         }\n      }\n\n      if (player == null || !player.getAbilities().instabuild) {\n         if (p_42984_.isEmpty()) {\n            return new ItemStack(Items.GLASS_BOTTLE);\n         }\n\n         if (player != null) {\n            player.getInventory().add(new ItemStack(Items.GLASS_BOTTLE));\n         }\n      }\n\n      p_42986_.gameEvent(GameEvent.DRINK);\n      return p_42984_;\n   }\n\n   public InteractionResult useOn(UseOnContext p_220235_) {\n      Level level = p_220235_.getLevel();\n      BlockPos blockpos = p_220235_.getClickedPos();\n      Player player = p_220235_.getPlayer();\n      ItemStack itemstack = p_220235_.getItemInHand();\n      BlockState blockstate = level.getBlockState(blockpos);\n      if (p_220235_.getClickedFace() != Direction.DOWN && blockstate.is(BlockTags.CONVERTABLE_TO_MUD) && PotionUtils.getPotion(itemstack) == Potions.WATER) {\n         level.playSound((Player)null, blockpos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 1.0F, 1.0F);\n         player.setItemInHand(p_220235_.getHand(), ItemUtils.createFilledResult(itemstack, player, new ItemStack(Items.GLASS_BOTTLE)));\n         player.awardStat(Stats.ITEM_USED.get(itemstack.getItem()));\n         if (!level.isClientSide) {\n            ServerLevel serverlevel = (ServerLevel)level;\n\n            for(int i = 0; i < 5; ++i) {\n               serverlevel.sendParticles(ParticleTypes.SPLASH, (double)blockpos.getX() + level.random.nextDouble(), (double)(blockpos.getY() + 1), (double)blockpos.getZ() + level.random.nextDouble(), 1, 0.0D, 0.0D, 0.0D, 1.0D);\n            }\n         }\n\n         level.playSound((Player)null, blockpos, SoundEvents.BOTTLE_EMPTY, SoundSource.BLOCKS, 1.0F, 1.0F);\n         level.gameEvent((Entity)null, GameEvent.FLUID_PLACE, blockpos);\n         level.setBlockAndUpdate(blockpos, Blocks.MUD.defaultBlockState());\n         return InteractionResult.sidedSuccess(level.isClientSide);\n      } else {\n         return InteractionResult.PASS;\n      }\n   }\n\n   public int getUseDuration(ItemStack p_43001_) {\n      return 32;\n   }\n\n   public UseAnim getUseAnimation(ItemStack p_42997_) {\n      return UseAnim.DRINK;\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_42993_, Player p_42994_, InteractionHand p_42995_) {\n      return ItemUtils.startUsingInstantly(p_42993_, p_42994_, p_42995_);\n   }\n\n   public String getDescriptionId(ItemStack p_43003_) {\n      return PotionUtils.getPotion(p_43003_).getName(this.getDescriptionId() + \".effect.\");\n   }\n\n   public void appendHoverText(ItemStack p_42988_, @Nullable Level p_42989_, List<Component> p_42990_, TooltipFlag p_42991_) {\n      PotionUtils.addPotionTooltip(p_42988_, p_42990_, 1.0F);\n   }\n}",
+          "excerpt_sha256": "eba168fa0abaee0b3508ea318e2622ee1439c65bd60fdba26b2e5be724629e0c"
+        }
+      ],
+      "whole": true
+    },
+    {
+      "entry": "net/minecraft/nbt/CompoundTag.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "15316266077dd84480a4884576bde8d9e8842ffab6d92469c9af8700f52243ca",
+      "bytes": 17506,
+      "total_lines": 545,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            394,
+            409
+          ],
+          "excerpt": "   public ListTag getList(String p_128438_, int p_128439_) {\n      try {\n         if (this.getTagType(p_128438_) == 9) {\n            ListTag listtag = (ListTag)this.tags.get(p_128438_);\n            if (!listtag.isEmpty() && listtag.getElementType() != p_128439_) {\n               return new ListTag();\n            }\n\n            return listtag;\n         }\n      } catch (ClassCastException classcastexception) {\n         throw new ReportedException(this.createReport(p_128438_, ListTag.TYPE, classcastexception));\n      }\n\n      return new ListTag();\n   }\n",
+          "excerpt_sha256": "291c29a8844f7e5dd1c375df8e3ccd8203b2d2b2bb40e38f9c02146a6709bf36"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/nbt/ListTag.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "da500ba3579bc9f95c3452834041eceef88f2018f18398e90f04b02d321499b6",
+      "bytes": 10753,
+      "total_lines": 380,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            280,
+            322
+          ],
+          "excerpt": "      }\n   }\n\n   public void add(int p_128753_, Tag p_128754_) {\n      if (!this.addTag(p_128753_, p_128754_)) {\n         throw new UnsupportedOperationException(String.format(Locale.ROOT, \"Trying to add tag of type %d to list of %d\", p_128754_.getId(), this.type));\n      }\n   }\n\n   public boolean setTag(int p_128731_, Tag p_128732_) {\n      if (this.updateType(p_128732_)) {\n         this.list.set(p_128731_, p_128732_);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   public boolean addTag(int p_128747_, Tag p_128748_) {\n      if (this.updateType(p_128748_)) {\n         this.list.add(p_128747_, p_128748_);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   private boolean updateType(Tag p_128739_) {\n      if (p_128739_.getId() == 0) {\n         return false;\n      } else if (this.type == 0) {\n         this.type = p_128739_.getId();\n         return true;\n      } else {\n         return this.type == p_128739_.getId();\n      }\n   }\n\n   public ListTag copy() {\n      Iterable<Tag> iterable = (Iterable<Tag>)(TagTypes.getType(this.type).isValue() ? this.list : Iterables.transform(this.list, Tag::copy));\n      List<Tag> list = Lists.newArrayList(iterable);\n      return new ListTag(list, this.type);\n   }\n",
+          "excerpt_sha256": "cb9a5bd102cbfd5d3db55df472e6f03d2afddc5eecda36da7b86c3e57cdc451e"
+        }
+      ],
+      "whole": false
+    },
+    {
+      "entry": "net/minecraft/core/DefaultedMappedRegistry.java",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "raw_sha256": "145116719ca49da477621c4ce271910d99bd5c196786892dc5397d60102cb609",
+      "bytes": 2197,
+      "total_lines": 65,
+      "actual_read_ranges": [
+        {
+          "lines": [
+            1,
+            65
+          ],
+          "excerpt": "package net.minecraft.core;\n\nimport com.mojang.serialization.Lifecycle;\nimport java.util.Optional;\nimport javax.annotation.Nonnull;\nimport javax.annotation.Nullable;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.RandomSource;\n\npublic class DefaultedMappedRegistry<T> extends MappedRegistry<T> implements DefaultedRegistry<T> {\n   private final ResourceLocation defaultKey;\n   private Holder.Reference<T> defaultValue;\n\n   public DefaultedMappedRegistry(String p_260196_, ResourceKey<? extends Registry<T>> p_259440_, Lifecycle p_260260_, boolean p_259808_) {\n      super(p_259440_, p_260260_, p_259808_);\n      this.defaultKey = new ResourceLocation(p_260196_);\n   }\n\n   public Holder.Reference<T> registerMapping(int p_259787_, ResourceKey<T> p_259677_, T p_259430_, Lifecycle p_259516_) {\n      Holder.Reference<T> reference = super.registerMapping(p_259787_, p_259677_, p_259430_, p_259516_);\n      if (this.defaultKey.equals(p_259677_.location())) {\n         this.defaultValue = reference;\n      }\n\n      return reference;\n   }\n\n   public int getId(@Nullable T p_260033_) {\n      int i = super.getId(p_260033_);\n      return i == -1 ? super.getId(this.defaultValue.value()) : i;\n   }\n\n   @Nonnull\n   public ResourceLocation getKey(T p_259233_) {\n      ResourceLocation resourcelocation = super.getKey(p_259233_);\n      return resourcelocation == null ? this.defaultKey : resourcelocation;\n   }\n\n   @Nonnull\n   public T get(@Nullable ResourceLocation p_260004_) {\n      T t = super.get(p_260004_);\n      return (T)(t == null ? this.defaultValue.value() : t);\n   }\n\n   public Optional<T> getOptional(@Nullable ResourceLocation p_260078_) {\n      return Optional.ofNullable(super.get(p_260078_));\n   }\n\n   @Nonnull\n   public T byId(int p_259534_) {\n      T t = super.byId(p_259534_);\n      return (T)(t == null ? this.defaultValue.value() : t);\n   }\n\n   public Optional<Holder.Reference<T>> getRandom(RandomSource p_260255_) {\n      return super.getRandom(p_260255_).or(() -> {\n         return Optional.of(this.defaultValue);\n      });\n   }\n\n   public ResourceLocation getDefaultKey() {\n      return this.defaultKey;\n   }\n}",
+          "excerpt_sha256": "145116719ca49da477621c4ce271910d99bd5c196786892dc5397d60102cb609"
+        }
+      ],
+      "whole": true
+    }
+  ],
+  "actual_source_coverage": {
+    "files": 23,
+    "ranges": 29,
+    "unique_lines": 1745,
+    "whole_files": 14,
+    "line_file_counts_are_not_credit": true
+  },
+  "prior_saved_complete_business": {
+    "coordinator-botania-composite-lens-nbt-proposal-20261103.json": {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/quest-integration-20261030/coordinator-botania-composite-lens-nbt-proposal-20261103.json",
+        "sha256": "f2e8b50558800ce3fb0bfe92c297889af52041e6b10cf4843cf1d0fdb56ed871",
+        "bytes": 108597
+      },
+      "complete_business_fields_actually_read": {
+        "whole_lifecycle_findings": [
+          "One whole dynamic composite-lens and inverse split lifecycle at most, not one credit per lens/property/serializer/native helper. This study is applicable NBT functional-variant/crafting research, pending independent review0; migration1000 and machine-only quest structural1000 do not authorize new NBT production.",
+          "Composite matches occupied slots: exactly two CompositableLensItem stacks and one LENS_GLUE stack, not physical stack counts. Multiple units in one slot do not become multiple ingredients. Slot encounter order chooses outer/base versus nested lens. No output or consumption occurs in matches.",
+          "Composite matches does not itself run compatibility. assemble may return EMPTY after a matches=true preview path. It invokes the first lens canCombineLenses and forbids existing composite on either side. Interface prose is not evidence that both custom implementations are called reciprocally.",
+          "LensItem compatibility checks distinct item identity, both non-normal combinable lenses, and no overlapping property bits. PROP_NONE zero-bit lenses can combine with other zero-bit lenses if distinct items. These are parameters of one policy, not independent implementations.",
+          "assemble copies base and second count1; setCompositeLens serializes the second stack into the compositeLens compound of the base copy. Base custom metadata follows copy; nested stack item/count/tag and Forge caps follow native save/ItemStack.of supporting code. Names, tooltip and base item ID do not prove functional composite NBT.",
+          "Split accepts exactly one occupied lens slot whose getCompositeLens is nonempty. It returns a count1 copy of nested lens. getRemainingItems separately copies the base count1 and removes only compositeLens; outer and nested unrelated metadata have copy semantics. Glue is not refunded by this split; native ResultSlot delivers remainder. This is inverse composition, not minting two outputs without an original paid stack.",
+          "Split getRemainingItems lacks its own full valid-grid guard; normal RecipeManager selects a matching recipe before invoking it. Callback reentry/mutation and malicious direct invocation have not been executed or proven safe. Never call assemble/getRemainingItems to award a quest reward or migrate inventory.",
+          "ItemNBTHelper.getCompound checks key existence rather than compound type; malformed entry handling is inherited getCompound and ItemStack.of. Native of catches RuntimeException and returns EMPTY. Do not claim arbitrary corrupted/unknown item payload is preserved, or removed item IDs remain recoverable.",
+          "Lens effects dispatch outer then nested BasicLens effects for apply/collide/update. Controlled spreader methods delegate primary lens only. This source binds functional readers but does not prove every burst/property combination or running visuals. None of those implementations is a separate credit.",
+          "Concrete NoOpRecipeSerializer registrations and specialRecipe datagen map serializer registry keys to dynamic/composite_lens and dynamic/split_lens IDs. Constructor-only JSON/network serializer has no per-recipe dynamic fields. Forge datagen glue requests slimeballs tag plus honey bottle; raw generated recipe/tag bodies absent, current loaded tags/recipes unverified.",
+          "Native server CraftingMenu.slotChangedCraftingGrid binds chosen recipe, evaluates assemble and enabled output before sync. CustomRecipe catalog getResultItem EMPTY is not a missing craft result. Recipe preview/JEI/string name alone is not native crafting completion.",
+          "Native ResultSlot.checkTakeAchievements calls onCraftedBy, Forge crafted event and recipe award/trigger before onTake removes one ingredient per occupied slot and processes remainders. Native shift-click calls item onCraftedBy even before destination move success. Those early item callbacks are not an after-payment exactly-once committed receipt.",
+          "Native RecipeHolder.awardUsedRecipes invokes triggerRecipeCrafted for special as well as ordinary recipes before its special book-unlock branch. SpecialRecipeBuilder emits no recipe advancement itself, yet a separate recipe_crafted criterion may still observe its recipe ID. Never infer special means no trigger.",
+          "RecipeCraftedTrigger input predicates match copies of input stacks with per-predicate removal; recipe ID and ingredient predicates are in this trigger, output stack is absent. A future four-variant quest must bind an exact intended recipe/native result path; broad base-item/generic first_infusion cannot certify arbitrary output variant NBT. Current Dynasty has no new quest/serializer edits from this study.",
+          "Existing accepted migration item-flags legacy booleans, Brewery paid mana+inventory recomputation, and RunicAltar paid mana+rune refund decisions are fully read here. Composite/split final item-owned functional payload differs from their durable machine-state migrations; shared ItemNBTHelper/ItemStack serialization has zero new migration credit. No composite/split terms appeared in either current ledger; this bounded screen is not a claim to re-read every accepted record."
+        ],
+        "application_to_Dynasty": "Materials -> existing craft prerequisite -> native crafting/payment -> intended functional result acquisition; retain original IDs/rewards/progress and empty new branch rewards. Four named variants require their actual tags, not display names or base item. Independent NBT semantic gate still pending; no implementation performed.",
+        "limits": [
+          "Static fixed-source reading only; no game/native/client/network/MP/survival/performance acceptance.",
+          "No unknown registry/capability full recovery or exactly-once transaction assertion.",
+          "No crafting sound/resource/media inspected or changed.",
+          "No existing machine-assisted structural1000 promoted to NBT semantic1000."
+        ]
+      },
+      "old_nested_raw_chains_newly_read": false,
+      "new_credit": 0
+    },
+    "coordinator-botania-fixed-nbt-result-proposal-20261103.json": {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/quest-integration-20261030/coordinator-botania-fixed-nbt-result-proposal-20261103.json",
+        "sha256": "3239016c49deb76b8b17da2968b869c53fad967921225ef59eca335f036a018a",
+        "bytes": 81151
+      },
+      "complete_business_fields_actually_read": {
+        "whole_lifecycle_findings": [
+          {
+            "key": "authoring",
+            "source": "NbtOutputResult24..66; CraftingRecipeProvider1507..1529",
+            "finding": "Wrapper stores inner FinishedRecipe and a CompoundTag, emits nested complete recipe plus SNBT string, preserves inner ID and advancement JSON/ID but changes datagen type to wrapper. with() creates one tag object per returned consumer, shared by emitted wrappers and not copied here. Eight tiara recipes are parameter variants of this one mechanism, not eight credits."
+          },
+          {
+            "key": "load",
+            "source": "NbtOutputRecipe28..63; RecipeManager161..172",
+            "finding": "Wrapper serializer parses inner recipe under the SAME resource ID then parses required nbt string and setTag replaces its live getResultItem(RegistryAccess.EMPTY) tag. Missing nbt/invalid SNBT raises JsonSyntaxException. It returns inner recipe, not a durable wrapper recipe. Correctness requires inner result getter live/constant and usable with EMPTY registry; special recipes returning EMPTY or computed copies are not justified. Deprecated two-argument RecipeManager.fromJson supplies EMPTY Forge condition context; no proof it propagates outer dynamic condition context."
+          },
+          {
+            "key": "result-template",
+            "source": "ShapelessRecipe25..78,84..139; ItemStack423..445",
+            "finding": "Inner shapeless recipe stores live result, returns it from getter, assemble copies result including deep ordinary tag and serialized capabilities. Inputs are NOT copied into output; output variant is fixed. Existing enchant/custom name/input variant/damage/capabilities are not merged from consumed tiara. Any registered wrapper used on a dynamic/copy-return getter needs separate proof."
+          },
+          {
+            "key": "concrete-consumer",
+            "source": "FlugelTiara61..108,537..540; CraftingRecipeProvider1518..1529",
+            "finding": "Fixed base tiara Item ID is shared; runtime getter reads integer variant default0. Eight distinct quartz ingredients determine separate recipe IDs and static variant1..8. Item-only ingredient does not require prior variant and is not a record of original crafter. Creation-tab variants are catalog sources, not survival payment receipts."
+          },
+          {
+            "key": "second-inner-context0",
+            "source": "PetalApothecaryProvider142..148; PetalsRecipe1..158; PetalApothecaryRecipe1..27",
+            "finding": "Author also wraps a player-head result with SkullOwner and a16-pink-petal recipe. PetalsRecipe getter returns live output, assemble copies and serializer writes its result using own PETAL serializer. Its matches breaks at first empty slot, one ingredient per visited occupied stack, not generic arbitrary sparse-container matching. Apothecary BE payment/credit/thrower path was NOT reread for this proposal; this example supports template wrapper0 only, not a separate mechanic/transaction acceptance."
+          },
+          {
+            "key": "sync",
+            "source": "ClientboundUpdateRecipesPacket35..47; ShapelessRecipe113..139; FriendlyByteBuf624..660; Item233..235; IForgeItem159..174",
+            "finding": "Update packet chooses returned inner recipe.getSerializer, so wrapper own network methods deliberately throwing do not establish broken sync for shown live inner result. Normal shapeless/Petal serializers send result ItemStack. Forge writeItem uses share tag conditional on item damageability/override; Item default override=true and default IForgeItem share/read use ordinary stack tag. Custom overrides can omit data; no unconditional full-capability/client-NBT fidelity or actual TCP runtime claim."
+          },
+          {
+            "key": "Forge-result-context0",
+            "source": "ShapedRecipe285..287; CraftingHelper151..204; comparative Tinkers CraftingNBTWrapper1..49 actual read only",
+            "finding": "This local Forge native ShapedRecipe already delegates output JSON to CraftingHelper with readNBT=true. Helper accepts object or SNBT; moves ForgeCaps aside and builds ItemStack.of from id/count/tag. Main read Tinkers datagen wrapper49lines as a comparison but did not bind its source tree/commit/native-Mantle consumer, so it adds0 and is NOT counted as second accepted implementation."
+          },
+          {
+            "key": "payment-and-quest",
+            "source": "prior composite proposal native ResultSlot/RecipeCraftedTrigger whole actual reading reused",
+            "finding": "Neither datagen decoration nor recipe-manager loading is a paid player acquisition receipt. Existing native craft callbacks/recipe criteria precede result-slot material debit and criteria predicates observe recipe ID plus inputs, not output variant. Dynasty must establish intended native result with payment and post-output path; a base ItemTask, icon, recipe unlock or generic first_infusion cannot stand in for four variant acquisitions."
+          }
+        ],
+        "application_to_Dynasty": [
+          "Four NBT variant quest branches must resolve output NBT and the actual crafting/table result path; preserve current IDs, old rewards and native costs.",
+          "Existing Forge JSON output support is a possible minimal route for a static output; do not introduce this Botania wrapper or copy upstream code/assets without need. No production recipe change authorized by this incomplete1000 gate.",
+          "Distinguish fixed template replacement from prior composite/split preserving selected input state; they are not automatically two unique global credits. Independent reviewer must compare complete prior owner decisions, not only labels."
+        ],
+        "limits": [
+          "Raw commit/tree object chain not newly read; same existing fixed metadata/tree/blob pin as earlier proposal; reviewer must decide provenance sufficiency.",
+          "Generated recipe JSON raw bodies listed missing are tree identities only, not actual resource loading.",
+          "No new external web request or pinned gradle.properties file; requested local gradle.properties absent. Forge mods.toml actual54lines supports Forge47/1.20.1 dependency context, not full runtime bootstrap proof.",
+          "Metadata source.json huge dump clipped; only parsed metadata identity bound, not5517lines semantic reading. PetalsRecipe158/API27 actually visible in full and counted. First Tiara528..543 output failed bounds before printing; corrected528..540 actual13lines read before inclusion.",
+          "No game, no compilation/test, no native craft/packet/payment/party-sharing runtime proof, no10-hour claim."
+        ]
+      },
+      "old_nested_raw_chains_newly_read": false,
+      "new_credit": 0
+    },
+    "coordinator-smithing-input-nbt-debit-whole-policy-proposal-20261109.json": {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/quest-integration-20261030/coordinator-smithing-input-nbt-debit-whole-policy-proposal-20261109.json",
+        "sha256": "e53fe8b0c611ea840f6dc6b5a4ab70d535012274cfb37880c643d9cedf9ac8fa",
+        "bytes": 37669
+      },
+      "complete_business_fields_actually_read": {
+        "observations": [
+          "SmithingTransformRecipe matches template/base/addition Ingredient.test in three fixed slots. It copies the declared result, then if BASE getTag is nonnull it replaces the whole result CompoundTag with a copy of base tag. This is not a key merge or transfer of template/addition tags; a nonnull empty CompoundTag also enters replacement. Result item/count originate in declared result copy; base Forge capability migration is not established by this explicit getTag/setTag code.",
+          "If base tag is null, declared result tag remains. getResultItem returns declared recipe result, while assemble can return a different tag because of base override. A displayed/catalog result is therefore not sufficient actual assembled NBT identity proof.",
+          "Full Serializer has fixed three Ingredient parse/encode positions and ShapedRecipe.itemStackFromJson for result; network writes declared result via writeItem. The inner Ingredient/Forge parser, share-tag policies and packet path were not reread here, and are not assumed to preserve every unexpanded custom capability.",
+          "SmithingMenu constructor caches all smithing recipes for input-slot acceptance and quick-move destination. createResult asks current RecipeManager for currently matching recipes and chooses first, then only publishes if result item enabled by level features. Actual reload interaction/freshness is not tested.",
+          "Result mayPickup checks selectedRecipe nonnull and selectedRecipe.matches(current inputs, level). Slot input predicate permits any recipe ingredient for that role, not necessarily all slots jointly matching until createResult/mayPickup. No user quest prerequisite is consulted in these specific classes.",
+          "SmithingMenu.onTake calls output onCraftedBy and resultSlots.awardUsedRecipes(player, current three inputs) BEFORE shrinkStackInSlot(0), (1), (2). Each helper shrinks nonempty input by1 and calls setItem, so repeated container changes can recompute preview between debits. No explicit rollback or persistent transaction receipt occurs in these classes; this is not proof of exploit, duplication or failed payment in execution.",
+          "ResultContainer stores one result and nullable recipeUsed, and implements RecipeHolder. awardUsedRecipes triggers player.triggerRecipeCrafted even for special recipe, then non-special awards recipe and clears recipeUsed. The overload enforcing limited crafting is distinct and is not the direct setRecipeUsed(recipe) call used by SmithingMenu.createResult. A helper existing in interface does not establish this call-site applied that check.",
+          "ItemCombinerMenu owns player from Inventory and proxies result Slot.mayPickup/onTake into menu. Input SimpleContainer.setChanged calls slotsChanged/createResult; removed delegates input clearing to ContainerLevelAccess. stillValid checks block and Forge block reach+3.5. Distant/invalid access and client/server closing effects still require actual native acceptance.",
+          "In quickMoveStack, result first attempts moveItemStackTo inventory and returns empty on failure. After transfer it checks change and calls slot.onTake using the remaining mutable result stack; getCount passed by SmithingMenu.onTake therefore cannot alone serve as final output quantity receipt, especially if moved fully. Partial transfer, inherited move, normal click and server packet mechanics were not executed or expanded here.",
+          "This source path contains item onCraftedBy/recipe award but no direct Forge ItemCraftedEvent call. Do not infer that the previously inspected FTB crafting listener observes smithing identically, nor that recipe award proves final post-debit output/intended-player possession."
+        ],
+        "application_to_Dynasty": [
+          "Do not switch four existing shapeless NBT recipes to smithing to obtain implicit preservation. Their produced functional flags/infusion identity and any lawful base metadata require explicit precedence, not catalog label/name matching.",
+          "Materials source -> old prerequisites -> actual debit -> functional full output -> specified player native receipt remain separate; keep old IDs/rewards/progress/team semantics and never add a second consuming reward/task fee.",
+          "A prospective native acceptance record must bind recipe ID, actor UUID, actual output functional tags, before/after three input stacks and costs, actual destination and relevant task/team progress. Native normal click/shift move/refusal/reload and original reward multiplicity require own admissible QA, not this source-only record."
+        ],
+        "limitations": [
+          "No game/server/client/Java/network/process/display query; no recipe, quest node, reward, production Java, sharedJar or professional asset changes.",
+          "Generic server container click/move/add/clear internals, advancement implementation and rollback exceptions not expanded here; no complete native transaction, capability portability, exploit, survival or task completion claim.",
+          "Sources are pinned mapped Forge archive/coordinate/entry bytes. No fabricated raw upstream Git commit/tree identity or claim exact bytes are official unmapped vanilla.",
+          "Initial guessed entry RecipeCraftingHolder.java absent in this pinned archive caused KeyError before any source read/write; actual namespace inventory showed RecipeHolder.java, which was then read whole. Missing one guessed entry is not absent environment."
+        ]
+      },
+      "old_nested_raw_chains_newly_read": false,
+      "new_credit": 0
+    },
+    "coordinator-bloodmagic-ordered-flask-lifecycle-proposal-20261112.json": {
+      "binding": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/quest-integration-20261030/coordinator-bloodmagic-ordered-flask-lifecycle-proposal-20261112.json",
+        "sha256": "b556a615d6dff580de2b0d19d3f0cae03a658a8370ed6791b6f263c0ede10f80",
+        "bytes": 141395
+      },
+      "complete_business_fields_actually_read": {
+        "whole_lifecycle_findings": [
+          "At most one complete ordered functional-effect-holder truncation/rotation -> paid workstation result -> derived drink cache lifecycle proposal. Fill weak/standard and cycle basic are parameters/operations of this one studied family; classes, fields, recipes, ranges and packet methods add zero independent credits.",
+          "Base recipe constructor rejects null input and negative syphon/ticks/minimumTier, but its MAX_INPUTS constant alone does not enforce input length. Builders and JSON serializers truncate ingredient authoring at five; network fromNetwork accepts its read size without that same limit. No hostile packet reachability or exploit is established.",
+          "Actual datagen declares fill weak=max1/cost1000/ticks200/tier0, standard=max3/cost3000/ticks200/tier0 and cycle one/cost500/ticks50/tier1. These declarations are not actual loaded generated recipe JSON or survival acquisition. Fill requires a nonempty decoded holder list, cycle requires at least two.",
+          "Registrar removes one matching ingredient from a copied recipe list for each occupied nonempty input stack and requires equal list sizes. It is greedy, not a general bipartite solver; physical stack count and arbitrary flask tags are not matched by this helper. canModifyFlask then highest strict-greater priority selects a recipe; equal priority retains first encountered, order elsewhere unexpanded.",
+          "The table first searches ordinary alchemy recipes. Only its subsequent flask branch removes the first ItemAlchemyFlask from a compact nonempty-input list before matching additional materials. This is not the raw inventory slot index, and ordinary recipes can take precedence.",
+          "Fill copies the input flask, retains the first min(holderCount,maxEffects) ordered holder objects, writes effectholder and resets damage to zero. It does not itself rebuild CustomPotionEffects. Cycle copies flask/list and repeatedly moves first holder to the end, then writes holders; it does not refill damage or rebuild cache itself. These output methods do not perform payment or prove player ownership.",
+          "Both flask setters return early for an empty list without clearing old keys. Zero/negative maxEffects is unchecked in the fill constructor/JSON parser, so a direct such output call can retain old holder payload while resetting damage. Normal shown generated fill values are positive; no current-game exploitable recipe or malformed JSON acceptance is asserted.",
+          "EffectHolder serializes MobEffect numeric ID, duration, amplifier as byte, and double duration/potency modifiers. Getter drops invalid effect IDs; signed byte amplifier is not arbitrary-int preservation. No general cross-version registry migration, unknown-ID recovery or arbitrary payload validity follows.",
+          "ItemAlchemyFlask keeps effectholder as editable source data and CustomPotionEffects as derived consumption data. resyncEffectInstances generates runtime instances from holders and overwrites CustomPotionEffects only for nonempty results. Missing stack tag has no local getter null check; normal creation/context is not expanded enough to call this a universal crash.",
+          "Workstation progress requires output slot empty. At burnTime0 it checks server side/tier/contained LP; burnTime>0 bypasses this initial eligibility clause. Current recipe/ticks are looked up each tick; no own recipe-identity/input-hash binding appears. Completion is server gated and checks cost again, but no crash-safe transaction journal or reload invariant is demonstrated.",
+          "NetworkHelper obtains the binding owner SoulNetwork, not an output-recipient identity. syphonFromContainer posts a cancellable item event then calls syphon(eventTicket,true), comparing the returned amount with the original requested ticket amount. SoulNetwork checks available essence before subtraction and marks dirty through setCurrentEssence. Cross-mod event mutations can affect amount; external listeners and dirty persistence owner are unexpanded. No all-or-nothing craft transaction is established.",
+          "On successful positive-cost check, flask completion calls recipe getOutput, rebuilds derived effects when result is an ItemAlchemyFlask, writes output slot, then consumes inventory and resets progress. Exception handling/rollback is absent in this shown branch. Its PotionCraftedEvent block is commented out; the active ordinary-alchemy crafted event must not be attributed to flask processing.",
+          "Flask inventory consumption loops all six original occupied slots, including the original flask removed only from the matching list. IAlchemyItem hooks and crafting remaining item precede ordinary shrink1. This is not the ordinary recipe damageable-item branch, which has separate behavior. Copied output retains other original stack state, not a new registered ID per effect combination.",
+          "The use entry only starts drinking if maxDamage-damage>0. finishUsingItem triggers server CONSUME_ITEM before applying the PotionUtils effects from CustomPotionEffects, then player stat and damage1 unless creative. This is use consumption, not a paid crafting/player delivery receipt, and addEffect outcomes are not inspected.",
+          "Item registration distinguishes drink/throw/lingering flask IDs, while Fill/Cycle mutate the existing copied flask. Throwable/lingering consumers were not expanded; names and registered base classes do not prove Dynasty poison-smoke or warm-wine functional payload.",
+          "Complete prior saved composite/split, fixed-output decorator, recursive merge, and typed-fragment consensus judgments were actually compared. This narrow ordered-holder edit plus derived consumer cache differs from recursive merging, fixed template tags and typed input consensus. Shared copying/serialization/payment helpers remain zero new credit. Global semantic novelty and raw provenance still require independent review.",
+          "Full existing immunity rows97 and232 were read: flask registration/drinking were auxiliary context for bounce/obsidian mitigation, with explicit incomplete recipe acquisition limitations. Their old effect/immune families retain ownership; this study adds zero immunity/migration/ecology credit and does not relabel those rows as new NBT acceptance."
+        ],
+        "limits": [
+          "Formal research credit0; no candidate ID assigned. At most1 whole proposal after independent provenance/relevance/semantic review. No claim that files/recipes/branches/ranges satisfy any1000 gate.",
+          "Local exact source SHA256/Git blob and recursive tree entries verified for15 files,10 whole and5 bounded contexts. Raw commit-to-authenticated root-tree bridge remains unverified; tree.sha is requested commit/API echo, not independent root identity. No web request, fresh commit fetch or source acquisition performed.",
+          "Initial batched tool result clipped part of provider/builder/prior judgment output. Exact selected provider116..127, both whole builders and all four prior complete judgment fields were separately recovered/read. Unrecovered incidental provider regions are not credited; 10 original whole files were already read in full earlier this continuous turn.",
+          "Generated fill/cycle JSON and mods.toml bodies are absent locally. Serializer registration/bootstrap, block tick registration, table superclass persistence/automation, event listener contracts, output slot player take/shift-click, and native RecipeCraftedTrigger integration were not expanded. This is bounded complete studied policy, not entire mod runtime acceptance.",
+          "Direct source-local unchecked edge observations are not verified exploits or current Dynasty bugs. No proof of exact LP/material rollback, intended player possession, same ItemEntity UUID pickup, actual packet sync, multiplayer, survival or performance.",
+          "No production Java/recipe/quest/assets/Jar/old save change, no Java/Gradle/game execution, no old once/marker import/replay/validation, no TODO deletion, no commit/push/publish, no actual-hours claim."
+        ],
+        "application_to_Dynasty": [
+          "Keep four named functional variant tags authoritative and update any derived consumer representation before a native output is accepted; base item ID, icon, recipe preview, generic advancement and use callback are not acquisition receipts.",
+          "Materials source -> existing prerequisite -> actual material/resource debit -> exact intended functional output -> intended player native receipt. Binding owner paying a machine is not automatically that recipient. Preserve current IDs/rewards/progress and do not award twice from craft and pickup.",
+          "Any future selected-state preservation must define allowed keys/order/empty clear semantics; never blanket-copy owner/cooldown/ForgeData/caps or invoke recipe/use/payment APIs during migration. Applicable1000 NBT gate remains unmet; no production changes now."
+        ]
+      },
+      "old_nested_raw_chains_newly_read": false,
+      "new_credit": 0
+    }
+  },
+  "whole_lifecycle_findings": [
+    "One prospective whole native typed functional-payload projection: lingering potion grid -> newly constructed eight tipped arrows -> decoded projectile payload -> reconstructed pickup. Files, recipes, effect IDs, helpers, metadata fields and temporal phases are not separate implementations or new research credits.",
+    "TippedArrowRecipe.matches requires exactly3x3 container, all9 occupied, center LINGERING_POTION and other8 ARROW IDs. It does not require poison, marker, display, color, stack counts or Dynasty prerequisite. canCraftInDimensions >=2x2 is catalog placement eligibility, not proof2x2 matching or a reproduced defect.",
+    "assemble independently checks center item then constructs NEW TIPPED_ARROW count8; only PotionUtils.setPotion/getPotion and decoded custom effects are projected. It does not deep-copy source item, cod4PoisonSmoke, display, CustomPotionColor, unknown tags or source capabilities. Direct assemble is not itself a full matches guard, material debit, native delivery or transaction.",
+    "PotionUtils.getPotion reads tag string and registry byName; pinned BuiltInRegistries declares default empty potion and DefaultedMappedRegistry returns default for absent key. Empty result removes Potion output tag. Matching baseLINGERING_POTION therefore need not mean a nonempty poison payload; no loaded malicious recipe is claimed.",
+    "Custom effects reader requires list and compound entries, invokes MobEffectInstance.load and drops null unknown effect. Load consults Forge string-ID fallback as well as numeric ID, clamps signed byte amplifier below0 and decodes flags/hidden/factor/curatives. Save reserializes supported fields and Forge ID. This is typed normalization, not arbitrary compound or unknown-field preservation.",
+    "PotionUtils.setCustomEffects returns unchanged on empty collection. For nonempty effects it calls getList(key,9), not10. The shown CompoundTag implementation returns a fresh empty list if existing nonempty element type differs; normal new arrow output has no such existing list and add(compound) fixes its type10. Do not describe this helper as unconditional additive merge, arbitrary malformed-list recovery or source-order-independent set union.",
+    "CustomRecipe isSpecial true, static getResultItem EMPTY; actual assemble derives output. Reused prior complete recipe/payment judgments distinguish catalog from server result, special from trigger absence and early recipe/craft callbacks from debit. This study reread complete native Recipe and ResultSlot but not entire Menu/packet/click/debit exception chains.",
+    "ResultSlot.checkTakeAchievements emits item onCraftedBy, Forge player crafting event and recipe award before onTake removes1 from each occupied input then handles remainders. New reference does not certify all-or-nothing debit or final intended-player possession; callback count and catalog8 are not a committed custody receipt.",
+    "Default Recipe remainder delegates stack-sensitive Forge remainder. Pinned item registration LINGERING_POTION sets maxstack1 with no craftRemainder; full LingeringPotionItem/ThrowablePotionItem/PotionItem and Item construction/remainder/Properties contexts show no override for crafting glass-bottle return in this chain. Drinking finishUsingItem bottle behavior is a different call path, not a promised crafting refund; arbitrary mods/mixins still unexpanded.",
+    "TippedArrowItem.defaultInstance supplies poison, whereas recipe uses new ItemStack not getDefaultInstance. Tooltip uses PotionUtils with factor0.125 and description uses potion ID. Do not silently supply default poison to an assembled empty-potion arrow or infer payload from tooltip/name.",
+    "ArrowItem.createArrow constructs fresh Arrow then setEffectsFromItem; TIPPED_ARROW branch reads potion and copies custom-effect instances, optionally fixes numeric custom color. Ordinary ARROW branch resets potion/effects/color. Reusing same Arrow with multiple tipped stacks does not clear preexisting effects here, but normal shown factory uses a fresh instance; no execution bug or exploit asserted.",
+    "MobEffectInstance copy constructor creates new factor data, copies duration/amplifier/ambient/visible/icon and a new curativeItems list when present; shown setDetailsFrom does not copy hiddenEffect/factor history. Thus even typed CustomPotionEffects round-trip through projectile is not raw serialized effect-tree identity. No new migration approval for arbitrary player NBT follows.",
+    "Arrow saves potion, optional fixed Color and nonempty decoded effects; read adds loaded custom effects and resets/recomputes color. Pickup builds NEW ordinary ARROW if both payload stores empty, otherwise NEW TIPPED_ARROW with supported payload and fixed color. It does not restore original display/marker/capabilities. Recipe output and later recovered ammo cannot both stand for the original Dynasty poison-smoke flask.",
+    "Arrow server exposed-potion expiry branch requires inGround, nonzero inGroundTime, custom effects nonempty and >=600. It clears both potion/effects and color; pure base-potion arrows without custom effects do not satisfy this shown predicate. No claim all potion arrows lose effects after600, nor current inGround-time behavior without superclass/native execution.",
+    "AbstractArrow.onHitEntity calls doPostHurtEffects only in hurt-returntrue non-Enderman living path. Arrow base potion effects create new instances with duration max(mapDuration(d/8),1); custom effects pass their stored instance. mapDuration preserves -1/0 before max, so no blanket infinite-duration preservation. addEffect returns are ignored in Arrow; no actual poison admission or Boss control proof.",
+    "Bow release uses Forge onArrowLoose and power gate, server ArrowItem factory/customArrow and enchantments, damages bow and requests unchecked addFreshEntity; ammo shrink/stat occur afterwards outside that server block according to flags. ArrowItem Infinity applies only exact ArrowItem class, not all subclasses. These are bounded vanilla call policies, not Dynasty bow-wide performance, transaction or C2S acceptance.",
+    "Native playerTouch requires server/inGround-or-noPhysics/shake<=0; ALLOWED pickup calls Inventory.add(getPickupItem) and only true leads take/discard. CREATIVE_ONLY success returns ability without adding item. No same ItemEntityUUID pickup, full inventory mutation, custodian or native player receipt was observed.",
+    "Prior four complete saved lifecycle judgments were actually read: fixed template replacement, composite/split preserving nested full stacks, smithing whole base-tag replacement and ordered flask holder->derived cache. This proposal is an explicitly selected typed cross-item payload projection with reset/reconstruction and expiry constraints, not each shared copy/helper being a novel credit. Independent whole semantic/provenance review may merge it; formal candidateID remainsnull.",
+    "Current Dynasty poison_smoke_bomb recipe was reread and byte-bound: lingering poison +7828599color +cod4PoisonSmoke +translatedName. The source transfer would retain poison/effects into arrows but lose its marker/name/color. A future poison-smoke quest must bind original base+marker+functional potion, material costs and intended native recipient, not any poisonous arrow or empty base potion. No task/recipe change performed."
+  ],
+  "limits": [
+    "Prospective atmost1 related NBT implementation only; acceptedcredit0/IDnull, independent review pending; no claimed1000 gate, immunity/ecology/migration credit or functional task completion.",
+    "Pinned mapped Forge47.4.10/1.20.1 archive actualentry bytes, not invented Git commit. No nativeexecution, new build, game, server, sound/display/process/native marker operations.",
+    "Global screen limited to direct top-level source_refs TippedArrowRecipe path in527immune and1329migration rows, found0; nested imports, entire ecology, allglobal semantics not exhaustively reread. Absence does not independently prove novelty.",
+    "Reading accounting includes explicitly selected bounded members and full files only; Item unrelated364..383 and partial FactorData349..353 were visible contextual ranges, not extra complete mechanisms. No tests claimed and symbolic cases not executed.",
+    "Superclass onHit/sensing/collision/motion, complete server recipe selection/menu normal+shift packets, Inventory.add, mod-event listeners/effectadmission, full Forge registry/default bootstrap and userworld source acquisition are not fully closed; source-supported conditionals only.",
+    "No sourcecache, production Java/recipe/quest/asset/Jar/world/清单/ownership changes; no old once replay, Git commit/push or automation; activehoursnull."
+  ],
+  "symbolic_cases_not_executed": [
+    {
+      "case": "Poison-smoke tagged lingering potion in3x3 arrowgrid",
+      "source_prediction": "Matches bybase; output8poison tipped arrows, marker/name/color omitted",
+      "executed": false
+    },
+    {
+      "case": "Empty/water lingering potion with marker but no effects",
+      "source_prediction": "matches base; typed projected payload may be empty/nonpoison, not Dynasty functional smoke",
+      "executed": false
+    },
+    {
+      "case": "Custom effect with malformed/unknown effect ID or signed amplifier",
+      "source_prediction": "decode/drop/clamp as native load; no raw-tag equality guarantee",
+      "executed": false
+    },
+    {
+      "case": "Pure basepotion arrow inGround>=600, custom list empty",
+      "source_prediction": "shown Arrow expiry predicate false; no universal expiry claim",
+      "executed": false
+    },
+    {
+      "case": "Creative-only arrow pickup",
+      "source_prediction": "tryPickup cantrue withoutInventory.add; not acquisition receipt",
+      "executed": false
+    }
+  ],
+  "current_Dynasty_poison_recipe": {
+    "binding": {
+      "path": "/Users/a15356015027/Desktop/dynasty/src/main/resources/data/dynasty/recipes/cod4/poison_smoke_bomb.json",
+      "sha256": "97ab35fd02edd43186bd8b41ceeaefcdf0f79756d965e70fc74430018d765047",
+      "bytes": 562
+    },
+    "whole_json": {
+      "type": "minecraft:crafting_shapeless",
+      "ingredients": [
+        {
+          "item": "dynasty:locust_dust"
+        },
+        {
+          "item": "dynasty:locust_dust"
+        },
+        {
+          "item": "minecraft:gunpowder"
+        },
+        {
+          "item": "minecraft:glass_bottle"
+        }
+      ],
+      "result": {
+        "item": "minecraft:lingering_potion",
+        "count": 1,
+        "nbt": {
+          "Potion": "minecraft:poison",
+          "CustomPotionColor": 7828599,
+          "cod4PoisonSmoke": true,
+          "display": {
+            "Name": "{\"translate\":\"item.dynasty.poison_smoke_bomb\"}"
+          }
+        }
+      }
+    }
+  },
+  "protected8": [
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar",
+      "sha256": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+      "bytes": 264172604
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json",
+      "sha256": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+      "bytes": 16879
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json",
+      "sha256": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+      "bytes": 60249
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod1.txt",
+      "sha256": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+      "bytes": 176564
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod2.txt",
+      "sha256": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+      "bytes": 88472
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod3.txt",
+      "sha256": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+      "bytes": 114611
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod4.txt",
+      "sha256": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+      "bytes": 13391
+    },
+    {
+      "path": "/Users/a15356015027/Desktop/code x提示词/cod6.txt",
+      "sha256": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749",
+      "bytes": 63710
+    }
+  ],
+  "program527_reference_scope_unchanged": true,
+  "ecology65_unchanged": true,
+  "production_changes": 0,
+  "game_starts": 0,
+  "task_deletions": 0,
+  "new_native_acceptance": false,
+  "new_migration_credit": 0,
+  "new_ecology_credit": 0,
+  "new_immunity_credit": 0,
+  "all_tasks_complete": false,
+  "actual_hours_claimed": null
+}

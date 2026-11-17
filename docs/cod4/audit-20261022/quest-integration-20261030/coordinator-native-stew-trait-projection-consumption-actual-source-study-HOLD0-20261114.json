@@ -1,0 +1,687 @@
+{
+  "schema": "Main-native-stew-ingredient-trait-projection-consumption-source-study-HOLD0-v1",
+  "recorded_at": "2026-11-13T22:43:14.243863+00:00",
+  "status": "ACTUAL_BOUNDED_SOURCE_STUDY_NOT_INDEPENDENT_WHOLE_ACCEPTANCE",
+  "formal_id": null,
+  "formal_credit": 0,
+  "maximum_potential_related_whole": 1,
+  "source_provenance": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_refs": [
+    {
+      "entry": "net/minecraft/world/item/crafting/SuspiciousStewRecipe.java",
+      "entry_sha256": "6819ba145317dc0a3f902dcc2b2405dddafecdebf36c84868e37261c74b9086c",
+      "entry_bytes": 2522,
+      "entry_lines": 71,
+      "lines": [
+        1,
+        71
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.world.inventory.CraftingContainer;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.SuspiciousStewItem;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.SuspiciousEffectHolder;\n\npublic class SuspiciousStewRecipe extends CustomRecipe {\n   public SuspiciousStewRecipe(ResourceLocation p_248870_, CraftingBookCategory p_250392_) {\n      super(p_248870_, p_250392_);\n   }\n\n   public boolean matches(CraftingContainer p_44499_, Level p_44500_) {\n      boolean flag = false;\n      boolean flag1 = false;\n      boolean flag2 = false;\n      boolean flag3 = false;\n\n      for(int i = 0; i < p_44499_.getContainerSize(); ++i) {\n         ItemStack itemstack = p_44499_.getItem(i);\n         if (!itemstack.isEmpty()) {\n            if (itemstack.is(Blocks.BROWN_MUSHROOM.asItem()) && !flag2) {\n               flag2 = true;\n            } else if (itemstack.is(Blocks.RED_MUSHROOM.asItem()) && !flag1) {\n               flag1 = true;\n            } else if (itemstack.is(ItemTags.SMALL_FLOWERS) && !flag) {\n               flag = true;\n            } else {\n               if (!itemstack.is(Items.BOWL) || flag3) {\n                  return false;\n               }\n\n               flag3 = true;\n            }\n         }\n      }\n\n      return flag && flag2 && flag1 && flag3;\n   }\n\n   public ItemStack assemble(CraftingContainer p_44497_, RegistryAccess p_266871_) {\n      ItemStack itemstack = new ItemStack(Items.SUSPICIOUS_STEW, 1);\n\n      for(int i = 0; i < p_44497_.getContainerSize(); ++i) {\n         ItemStack itemstack1 = p_44497_.getItem(i);\n         if (!itemstack1.isEmpty()) {\n            SuspiciousEffectHolder suspiciouseffectholder = SuspiciousEffectHolder.tryGet(itemstack1.getItem());\n            if (suspiciouseffectholder != null) {\n               SuspiciousStewItem.saveMobEffect(itemstack, suspiciouseffectholder.getSuspiciousEffect(), suspiciouseffectholder.getEffectDuration());\n               break;\n            }\n         }\n      }\n\n      return itemstack;\n   }\n\n   public boolean canCraftInDimensions(int p_44489_, int p_44490_) {\n      return p_44489_ >= 2 && p_44490_ >= 2;\n   }\n\n   public RecipeSerializer<?> getSerializer() {\n      return RecipeSerializer.SUSPICIOUS_STEW;\n   }\n}",
+      "raw_excerpt_sha256": "6819ba145317dc0a3f902dcc2b2405dddafecdebf36c84868e37261c74b9086c",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/SuspiciousStewItem.java",
+      "entry_sha256": "83d9c025a937198904325efcb12c2b57c4d9ca508b650c97c7d367c8ad7b8099",
+      "entry_bytes": 3247,
+      "entry_lines": 77,
+      "lines": [
+        1,
+        77
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.function.Consumer;\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.level.Level;\n\npublic class SuspiciousStewItem extends Item {\n   public static final String EFFECTS_TAG = \"Effects\";\n   public static final String EFFECT_ID_TAG = \"EffectId\";\n   public static final String EFFECT_DURATION_TAG = \"EffectDuration\";\n   public static final int DEFAULT_DURATION = 160;\n\n   public SuspiciousStewItem(Item.Properties p_43257_) {\n      super(p_43257_);\n   }\n\n   public static void saveMobEffect(ItemStack p_43259_, MobEffect p_43260_, int p_43261_) {\n      CompoundTag compoundtag = p_43259_.getOrCreateTag();\n      ListTag listtag = compoundtag.getList(\"Effects\", 9);\n      CompoundTag compoundtag1 = new CompoundTag();\n      compoundtag1.putInt(\"EffectId\", MobEffect.getId(p_43260_));\n      net.minecraftforge.common.ForgeHooks.saveMobEffect(compoundtag1, \"forge:effect_id\", p_43260_);\n      compoundtag1.putInt(\"EffectDuration\", p_43261_);\n      listtag.add(compoundtag1);\n      compoundtag.put(\"Effects\", listtag);\n   }\n\n   private static void listPotionEffects(ItemStack p_260126_, Consumer<MobEffectInstance> p_259500_) {\n      CompoundTag compoundtag = p_260126_.getTag();\n      if (compoundtag != null && compoundtag.contains(\"Effects\", 9)) {\n         ListTag listtag = compoundtag.getList(\"Effects\", 10);\n\n         for(int i = 0; i < listtag.size(); ++i) {\n            CompoundTag compoundtag1 = listtag.getCompound(i);\n            int j;\n            if (compoundtag1.contains(\"EffectDuration\", 99)) {\n               j = compoundtag1.getInt(\"EffectDuration\");\n            } else {\n               j = 160;\n            }\n\n            MobEffect mobeffect = MobEffect.byId(compoundtag1.getInt(\"EffectId\"));\n            mobeffect = net.minecraftforge.common.ForgeHooks.loadMobEffect(compoundtag1, \"forge:effect_id\", mobeffect);\n            if (mobeffect != null) {\n               p_259500_.accept(new MobEffectInstance(mobeffect, j));\n            }\n         }\n      }\n\n   }\n\n   public void appendHoverText(ItemStack p_260314_, @Nullable Level p_259224_, List<Component> p_259700_, TooltipFlag p_260021_) {\n      super.appendHoverText(p_260314_, p_259224_, p_259700_, p_260021_);\n      if (p_260021_.isCreative()) {\n         List<MobEffectInstance> list = new ArrayList<>();\n         listPotionEffects(p_260314_, list::add);\n         PotionUtils.addPotionTooltip(list, p_259700_, 1.0F);\n      }\n\n   }\n\n   public ItemStack finishUsingItem(ItemStack p_43263_, Level p_43264_, LivingEntity p_43265_) {\n      ItemStack itemstack = super.finishUsingItem(p_43263_, p_43264_, p_43265_);\n      listPotionEffects(itemstack, p_43265_::addEffect);\n      return p_43265_ instanceof Player && ((Player)p_43265_).getAbilities().instabuild ? itemstack : new ItemStack(Items.BOWL);\n   }\n}\n",
+      "raw_excerpt_sha256": "83d9c025a937198904325efcb12c2b57c4d9ca508b650c97c7d367c8ad7b8099",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/level/block/SuspiciousEffectHolder.java",
+      "entry_sha256": "636fdcaf71a03e6376293d4926fc68498332c1f2d0148fcdb358457e845c8e6b",
+      "entry_bytes": 1255,
+      "entry_lines": 39,
+      "lines": [
+        1,
+        39
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.level.block;\n\nimport java.util.List;\nimport java.util.Objects;\nimport java.util.stream.Collectors;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.item.BlockItem;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.level.ItemLike;\n\npublic interface SuspiciousEffectHolder {\n   MobEffect getSuspiciousEffect();\n\n   int getEffectDuration();\n\n   static List<SuspiciousEffectHolder> getAllEffectHolders() {\n      return BuiltInRegistries.ITEM.stream().map(SuspiciousEffectHolder::tryGet).filter(Objects::nonNull).collect(Collectors.toList());\n   }\n\n   @Nullable\n   static SuspiciousEffectHolder tryGet(ItemLike p_259322_) {\n      Item item1 = p_259322_.asItem();\n      if (item1 instanceof BlockItem blockitem) {\n         Block block = blockitem.getBlock();\n         if (block instanceof SuspiciousEffectHolder suspiciouseffectholder1) {\n            return suspiciouseffectholder1;\n         }\n      }\n\n      Item $$2 = p_259322_.asItem();\n      if ($$2 instanceof SuspiciousEffectHolder suspiciouseffectholder) {\n         return suspiciouseffectholder;\n      } else {\n         return null;\n      }\n   }\n}",
+      "raw_excerpt_sha256": "636fdcaf71a03e6376293d4926fc68498332c1f2d0148fcdb358457e845c8e6b",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/level/block/FlowerBlock.java",
+      "entry_sha256": "53586d3ef6c20dad848cf8bf07ed2ebf377410515f3f78f6ea4807281acde2ce",
+      "entry_bytes": 2252,
+      "entry_lines": 55,
+      "lines": [
+        1,
+        55
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.level.block;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.level.BlockGetter;\nimport net.minecraft.world.level.block.state.BlockBehaviour;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraft.world.phys.shapes.CollisionContext;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\npublic class FlowerBlock extends BushBlock implements SuspiciousEffectHolder {\n   protected static final float AABB_OFFSET = 3.0F;\n   protected static final VoxelShape SHAPE = Block.box(5.0D, 0.0D, 5.0D, 11.0D, 10.0D, 11.0D);\n   private final MobEffect suspiciousStewEffect;\n   private final int effectDuration;\n\n   private final java.util.function.Supplier<MobEffect> suspiciousStewEffectSupplier;\n\n   public FlowerBlock(java.util.function.Supplier<MobEffect> effectSupplier, int p_53513_, BlockBehaviour.Properties p_53514_) {\n      super(p_53514_);\n      this.suspiciousStewEffect = null;\n      this.suspiciousStewEffectSupplier = effectSupplier;\n      this.effectDuration = p_53513_;\n   }\n\n   /** @deprecated FORGE: Use supplier version instead */\n   @Deprecated\n   public FlowerBlock(MobEffect p_53512_, int p_53513_, BlockBehaviour.Properties p_53514_) {\n      super(p_53514_);\n      this.suspiciousStewEffect = p_53512_;\n      if (p_53512_.isInstantenous()) {\n         this.effectDuration = p_53513_;\n      } else {\n         this.effectDuration = p_53513_ * 20;\n      }\n      this.suspiciousStewEffectSupplier = net.minecraftforge.registries.ForgeRegistries.MOB_EFFECTS.getDelegateOrThrow(p_53512_);\n\n   }\n\n   public VoxelShape getShape(BlockState p_53517_, BlockGetter p_53518_, BlockPos p_53519_, CollisionContext p_53520_) {\n      Vec3 vec3 = p_53517_.getOffset(p_53518_, p_53519_);\n      return SHAPE.move(vec3.x, vec3.y, vec3.z);\n   }\n\n   public MobEffect getSuspiciousEffect() {\n      if (true) return this.suspiciousStewEffectSupplier.get();\n      return this.suspiciousStewEffect;\n   }\n\n   public int getEffectDuration() {\n      if (this.suspiciousStewEffect == null && !this.suspiciousStewEffectSupplier.get().isInstantenous()) return this.effectDuration * 20;\n      return this.effectDuration;\n   }\n}\n",
+      "raw_excerpt_sha256": "53586d3ef6c20dad848cf8bf07ed2ebf377410515f3f78f6ea4807281acde2ce",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/BowlFoodItem.java",
+      "entry_sha256": "ebede26018f1a1981a8cc90d5e01270eb0eb0b2f2e9bd936451090cc9161a88b",
+      "entry_bytes": 607,
+      "entry_lines": 16,
+      "lines": [
+        1,
+        16
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\n\npublic class BowlFoodItem extends Item {\n   public BowlFoodItem(Item.Properties p_40682_) {\n      super(p_40682_);\n   }\n\n   public ItemStack finishUsingItem(ItemStack p_40684_, Level p_40685_, LivingEntity p_40686_) {\n      ItemStack itemstack = super.finishUsingItem(p_40684_, p_40685_, p_40686_);\n      return p_40686_ instanceof Player && ((Player)p_40686_).getAbilities().instabuild ? itemstack : new ItemStack(Items.BOWL);\n   }\n}",
+      "raw_excerpt_sha256": "ebede26018f1a1981a8cc90d5e01270eb0eb0b2f2e9bd936451090cc9161a88b",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/crafting/CustomRecipe.java",
+      "entry_sha256": "651fd9961cf1cbf8b638db3655fe6aa75c45b7f59162e9d429d3c2031c929a31",
+      "entry_bytes": 778,
+      "entry_lines": 31,
+      "lines": [
+        1,
+        31
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.ItemStack;\n\npublic abstract class CustomRecipe implements CraftingRecipe {\n   private final ResourceLocation id;\n   private final CraftingBookCategory category;\n\n   public CustomRecipe(ResourceLocation p_252125_, CraftingBookCategory p_249010_) {\n      this.id = p_252125_;\n      this.category = p_249010_;\n   }\n\n   public ResourceLocation getId() {\n      return this.id;\n   }\n\n   public boolean isSpecial() {\n      return true;\n   }\n\n   public ItemStack getResultItem(RegistryAccess p_267025_) {\n      return ItemStack.EMPTY;\n   }\n\n   public CraftingBookCategory category() {\n      return this.category;\n   }\n}",
+      "raw_excerpt_sha256": "651fd9961cf1cbf8b638db3655fe6aa75c45b7f59162e9d429d3c2031c929a31",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/crafting/Recipe.java",
+      "entry_sha256": "5ba0410d2b35571788cffaab3e73773510ef0d79ccb0cd02c02913831136527c",
+      "entry_bytes": 1852,
+      "entry_lines": 66,
+      "lines": [
+        1,
+        66
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\n\npublic interface Recipe<C extends Container> {\n   boolean matches(C p_44002_, Level p_44003_);\n\n   ItemStack assemble(C p_44001_, RegistryAccess p_267165_);\n\n   boolean canCraftInDimensions(int p_43999_, int p_44000_);\n\n   ItemStack getResultItem(RegistryAccess p_267052_);\n\n   default NonNullList<ItemStack> getRemainingItems(C p_44004_) {\n      NonNullList<ItemStack> nonnulllist = NonNullList.withSize(p_44004_.getContainerSize(), ItemStack.EMPTY);\n\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack item = p_44004_.getItem(i);\n         if (item.hasCraftingRemainingItem()) {\n            nonnulllist.set(i, item.getCraftingRemainingItem());\n         }\n      }\n\n      return nonnulllist;\n   }\n\n   default NonNullList<Ingredient> getIngredients() {\n      return NonNullList.create();\n   }\n\n   default boolean isSpecial() {\n      return false;\n   }\n\n   default boolean showNotification() {\n      return true;\n   }\n\n   default String getGroup() {\n      return \"\";\n   }\n\n   default ItemStack getToastSymbol() {\n      return new ItemStack(Blocks.CRAFTING_TABLE);\n   }\n\n   ResourceLocation getId();\n\n   RecipeSerializer<?> getSerializer();\n\n   RecipeType<?> getType();\n\n   default boolean isIncomplete() {\n      NonNullList<Ingredient> nonnulllist = this.getIngredients();\n      return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch((p_151268_) -> {\n         return net.minecraftforge.common.ForgeHooks.hasNoElements(p_151268_);\n      });\n   }\n}\n",
+      "raw_excerpt_sha256": "5ba0410d2b35571788cffaab3e73773510ef0d79ccb0cd02c02913831136527c",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/crafting/RecipeSerializer.java",
+      "entry_sha256": "e1ee1a596bbf29a32b98b332bda37174a11efc750ae6bbba581ed6a381894352",
+      "entry_bytes": 4388,
+      "entry_lines": 45,
+      "lines": [
+        1,
+        45
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.item.crafting;\n\nimport com.google.gson.JsonObject;\nimport net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.resources.ResourceLocation;\n\npublic interface RecipeSerializer<T extends Recipe<?>> extends net.minecraftforge.common.extensions.IForgeRecipeSerializer<T> {\n   RecipeSerializer<ShapedRecipe> SHAPED_RECIPE = register(\"crafting_shaped\", new ShapedRecipe.Serializer());\n   RecipeSerializer<ShapelessRecipe> SHAPELESS_RECIPE = register(\"crafting_shapeless\", new ShapelessRecipe.Serializer());\n   RecipeSerializer<ArmorDyeRecipe> ARMOR_DYE = register(\"crafting_special_armordye\", new SimpleCraftingRecipeSerializer<>(ArmorDyeRecipe::new));\n   RecipeSerializer<BookCloningRecipe> BOOK_CLONING = register(\"crafting_special_bookcloning\", new SimpleCraftingRecipeSerializer<>(BookCloningRecipe::new));\n   RecipeSerializer<MapCloningRecipe> MAP_CLONING = register(\"crafting_special_mapcloning\", new SimpleCraftingRecipeSerializer<>(MapCloningRecipe::new));\n   RecipeSerializer<MapExtendingRecipe> MAP_EXTENDING = register(\"crafting_special_mapextending\", new SimpleCraftingRecipeSerializer<>(MapExtendingRecipe::new));\n   RecipeSerializer<FireworkRocketRecipe> FIREWORK_ROCKET = register(\"crafting_special_firework_rocket\", new SimpleCraftingRecipeSerializer<>(FireworkRocketRecipe::new));\n   RecipeSerializer<FireworkStarRecipe> FIREWORK_STAR = register(\"crafting_special_firework_star\", new SimpleCraftingRecipeSerializer<>(FireworkStarRecipe::new));\n   RecipeSerializer<FireworkStarFadeRecipe> FIREWORK_STAR_FADE = register(\"crafting_special_firework_star_fade\", new SimpleCraftingRecipeSerializer<>(FireworkStarFadeRecipe::new));\n   RecipeSerializer<TippedArrowRecipe> TIPPED_ARROW = register(\"crafting_special_tippedarrow\", new SimpleCraftingRecipeSerializer<>(TippedArrowRecipe::new));\n   RecipeSerializer<BannerDuplicateRecipe> BANNER_DUPLICATE = register(\"crafting_special_bannerduplicate\", new SimpleCraftingRecipeSerializer<>(BannerDuplicateRecipe::new));\n   RecipeSerializer<ShieldDecorationRecipe> SHIELD_DECORATION = register(\"crafting_special_shielddecoration\", new SimpleCraftingRecipeSerializer<>(ShieldDecorationRecipe::new));\n   RecipeSerializer<ShulkerBoxColoring> SHULKER_BOX_COLORING = register(\"crafting_special_shulkerboxcoloring\", new SimpleCraftingRecipeSerializer<>(ShulkerBoxColoring::new));\n   RecipeSerializer<SuspiciousStewRecipe> SUSPICIOUS_STEW = register(\"crafting_special_suspiciousstew\", new SimpleCraftingRecipeSerializer<>(SuspiciousStewRecipe::new));\n   RecipeSerializer<RepairItemRecipe> REPAIR_ITEM = register(\"crafting_special_repairitem\", new SimpleCraftingRecipeSerializer<>(RepairItemRecipe::new));\n   RecipeSerializer<SmeltingRecipe> SMELTING_RECIPE = register(\"smelting\", new SimpleCookingSerializer<>(SmeltingRecipe::new, 200));\n   RecipeSerializer<BlastingRecipe> BLASTING_RECIPE = register(\"blasting\", new SimpleCookingSerializer<>(BlastingRecipe::new, 100));\n   RecipeSerializer<SmokingRecipe> SMOKING_RECIPE = register(\"smoking\", new SimpleCookingSerializer<>(SmokingRecipe::new, 100));\n   RecipeSerializer<CampfireCookingRecipe> CAMPFIRE_COOKING_RECIPE = register(\"campfire_cooking\", new SimpleCookingSerializer<>(CampfireCookingRecipe::new, 100));\n   RecipeSerializer<StonecutterRecipe> STONECUTTER = register(\"stonecutting\", new SingleItemRecipe.Serializer<>(StonecutterRecipe::new));\n   RecipeSerializer<SmithingTransformRecipe> SMITHING_TRANSFORM = register(\"smithing_transform\", new SmithingTransformRecipe.Serializer());\n   RecipeSerializer<SmithingTrimRecipe> SMITHING_TRIM = register(\"smithing_trim\", new SmithingTrimRecipe.Serializer());\n   RecipeSerializer<DecoratedPotRecipe> DECORATED_POT_RECIPE = register(\"crafting_decorated_pot\", new SimpleCraftingRecipeSerializer<>(DecoratedPotRecipe::new));\n\n   // Forge: use fromJson with IContext if you need the context\n   T fromJson(ResourceLocation p_44103_, JsonObject p_44104_);\n\n   @org.jetbrains.annotations.Nullable\n   T fromNetwork(ResourceLocation p_44105_, FriendlyByteBuf p_44106_);\n\n   void toNetwork(FriendlyByteBuf p_44101_, T p_44102_);\n\n   static <S extends RecipeSerializer<T>, T extends Recipe<?>> S register(String p_44099_, S p_44100_) {\n      return Registry.register(BuiltInRegistries.RECIPE_SERIALIZER, p_44099_, p_44100_);\n   }\n}\n",
+      "raw_excerpt_sha256": "e1ee1a596bbf29a32b98b332bda37174a11efc750ae6bbba581ed6a381894352",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/inventory/ResultSlot.java",
+      "entry_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4",
+      "entry_bytes": 2911,
+      "entry_lines": 81,
+      "lines": [
+        1,
+        81
+      ],
+      "whole_file": true,
+      "raw_utf8_keepends": "package net.minecraft.world.inventory;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.RecipeType;\n\npublic class ResultSlot extends Slot {\n   private final CraftingContainer craftSlots;\n   private final Player player;\n   private int removeCount;\n\n   public ResultSlot(Player p_40166_, CraftingContainer p_40167_, Container p_40168_, int p_40169_, int p_40170_, int p_40171_) {\n      super(p_40168_, p_40169_, p_40170_, p_40171_);\n      this.player = p_40166_;\n      this.craftSlots = p_40167_;\n   }\n\n   public boolean mayPlace(ItemStack p_40178_) {\n      return false;\n   }\n\n   public ItemStack remove(int p_40173_) {\n      if (this.hasItem()) {\n         this.removeCount += Math.min(p_40173_, this.getItem().getCount());\n      }\n\n      return super.remove(p_40173_);\n   }\n\n   protected void onQuickCraft(ItemStack p_40180_, int p_40181_) {\n      this.removeCount += p_40181_;\n      this.checkTakeAchievements(p_40180_);\n   }\n\n   protected void onSwapCraft(int p_40183_) {\n      this.removeCount += p_40183_;\n   }\n\n   protected void checkTakeAchievements(ItemStack p_40185_) {\n      if (this.removeCount > 0) {\n         p_40185_.onCraftedBy(this.player.level(), this.player, this.removeCount);\n         net.minecraftforge.event.ForgeEventFactory.firePlayerCraftingEvent(this.player, p_40185_, this.craftSlots);\n      }\n\n      Container container = this.container;\n      if (container instanceof RecipeHolder recipeholder) {\n         recipeholder.awardUsedRecipes(this.player, this.craftSlots.getItems());\n      }\n\n      this.removeCount = 0;\n   }\n\n   public void onTake(Player p_150638_, ItemStack p_150639_) {\n      this.checkTakeAchievements(p_150639_);\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(p_150638_);\n      NonNullList<ItemStack> nonnulllist = p_150638_.level().getRecipeManager().getRemainingItemsFor(RecipeType.CRAFTING, this.craftSlots, p_150638_.level());\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(null);\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack itemstack = this.craftSlots.getItem(i);\n         ItemStack itemstack1 = nonnulllist.get(i);\n         if (!itemstack.isEmpty()) {\n            this.craftSlots.removeItem(i, 1);\n            itemstack = this.craftSlots.getItem(i);\n         }\n\n         if (!itemstack1.isEmpty()) {\n            if (itemstack.isEmpty()) {\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (ItemStack.isSameItemSameTags(itemstack, itemstack1)) {\n               itemstack1.grow(itemstack.getCount());\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (!this.player.getInventory().add(itemstack1)) {\n               this.player.drop(itemstack1, false);\n            }\n         }\n      }\n\n   }\n}\n",
+      "raw_excerpt_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/Item.java",
+      "entry_sha256": "7acea0f9dcac2a301141e5584a9a3f35d7c7480c9ad93cfb974f39307cd30909",
+      "entry_bytes": 15835,
+      "entry_lines": 476,
+      "lines": [
+        134,
+        157
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "\n   public float getDestroySpeed(ItemStack p_41425_, BlockState p_41426_) {\n      return 1.0F;\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_41432_, Player p_41433_, InteractionHand p_41434_) {\n      ItemStack itemstack = p_41433_.getItemInHand(p_41434_);\n      if (itemstack.isEdible()) {\n         if (p_41433_.canEat(itemstack.getFoodProperties(p_41433_).canAlwaysEat())) {\n            p_41433_.startUsingItem(p_41434_);\n            return InteractionResultHolder.consume(itemstack);\n         } else {\n            return InteractionResultHolder.fail(itemstack);\n         }\n      } else {\n         return InteractionResultHolder.pass(p_41433_.getItemInHand(p_41434_));\n      }\n   }\n\n   public ItemStack finishUsingItem(ItemStack p_41409_, Level p_41410_, LivingEntity p_41411_) {\n      return this.isEdible() ? p_41411_.eat(p_41410_, p_41409_) : p_41409_;\n   }\n\n   @Deprecated // Use ItemStack sensitive version.\n",
+      "raw_excerpt_sha256": "40e4d6ab4da7ef9ec95835773a4f6f11f6b2e1fbec9ce48a174340417f07dd6f",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "entry_bytes": 37857,
+      "entry_lines": 1021,
+      "lines": [
+        276,
+        281
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   }\n\n   public ItemStack finishUsingItem(Level p_41672_, LivingEntity p_41673_) {\n      return this.getItem().finishUsingItem(this, p_41672_, p_41673_);\n   }\n\n",
+      "raw_excerpt_sha256": "4778dc78b0730d68f77eb03ab2012f9addd3061a6ac2ec3b169171c209bcbc96",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "entry_bytes": 37857,
+      "entry_lines": 1021,
+      "lines": [
+        506,
+        519
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "\n   public boolean hasTag() {\n      return !this.isEmpty() && this.tag != null && !this.tag.isEmpty();\n   }\n\n   @Nullable\n   public CompoundTag getTag() {\n      return this.tag;\n   }\n\n   public CompoundTag getOrCreateTag() {\n      if (this.tag == null) {\n         this.setTag(new CompoundTag());\n      }\n",
+      "raw_excerpt_sha256": "4cbc48eec4ec69be58ba9ab24b4adfe9c056d1958551d76ffffdebde0e56e6a8",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "entry_bytes": 37857,
+      "entry_lines": 1021,
+      "lines": [
+        946,
+        967
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public void setPopTime(int p_41755_) {\n      this.popTime = p_41755_;\n   }\n\n   public int getCount() {\n      return this.isEmpty() ? 0 : this.count;\n   }\n\n   public void setCount(int p_41765_) {\n      this.count = p_41765_;\n   }\n\n   public void grow(int p_41770_) {\n      this.setCount(this.getCount() + p_41770_);\n   }\n\n   public void shrink(int p_41775_) {\n      this.grow(-p_41775_);\n   }\n\n   public void onUseTick(Level p_41732_, LivingEntity p_41733_, int p_41734_) {\n      this.getItem().onUseTick(p_41732_, p_41733_, this, p_41734_);\n",
+      "raw_excerpt_sha256": "2b9ed76611ebae0aab1dfdb3f66a4d01c9ac69a2827913b78deb05d01955d7d3",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "entry_bytes": 131153,
+      "entry_lines": 3473,
+      "lines": [
+        3273,
+        3318
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public ItemStack eat(Level p_21067_, ItemStack p_21068_) {\n      if (p_21068_.isEdible()) {\n         p_21067_.playSound((Player)null, this.getX(), this.getY(), this.getZ(), this.getEatingSound(p_21068_), SoundSource.NEUTRAL, 1.0F, 1.0F + (p_21067_.random.nextFloat() - p_21067_.random.nextFloat()) * 0.4F);\n         this.addEatEffect(p_21068_, p_21067_, this);\n         if (!(this instanceof Player) || !((Player)this).getAbilities().instabuild) {\n            p_21068_.shrink(1);\n         }\n\n         this.gameEvent(GameEvent.EAT);\n      }\n\n      return p_21068_;\n   }\n\n   private void addEatEffect(ItemStack p_21064_, Level p_21065_, LivingEntity p_21066_) {\n      Item item = p_21064_.getItem();\n      if (item.isEdible()) {\n         for(Pair<MobEffectInstance, Float> pair : p_21064_.getFoodProperties(this).getEffects()) {\n            if (!p_21065_.isClientSide && pair.getFirst() != null && p_21065_.random.nextFloat() < pair.getSecond()) {\n               p_21066_.addEffect(new MobEffectInstance(pair.getFirst()));\n            }\n         }\n      }\n\n   }\n\n   private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {\n      switch (p_21267_) {\n         case MAINHAND:\n            return 47;\n         case OFFHAND:\n            return 48;\n         case HEAD:\n            return 49;\n         case CHEST:\n            return 50;\n         case FEET:\n            return 52;\n         case LEGS:\n            return 51;\n         default:\n            return 47;\n      }\n   }\n\n   public void broadcastBreakEvent(EquipmentSlot p_21167_) {\n",
+      "raw_excerpt_sha256": "ec55b4cd4b8ff41355127a9e434975fee2c211bbc24e19bed345963920e0df02",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "entry_bytes": 84201,
+      "entry_lines": 2169,
+      "lines": [
+        2001,
+        2014
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public ItemStack eat(Level p_36185_, ItemStack p_36186_) {\n      this.getFoodData().eat(p_36186_.getItem(), p_36186_, this);\n      this.awardStat(Stats.ITEM_USED.get(p_36186_.getItem()));\n      p_36185_.playSound((Player)null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.5F, p_36185_.random.nextFloat() * 0.1F + 0.9F);\n      if (this instanceof ServerPlayer) {\n         CriteriaTriggers.CONSUME_ITEM.trigger((ServerPlayer)this, p_36186_);\n      }\n\n      return super.eat(p_36185_, p_36186_);\n   }\n\n   protected boolean shouldRemoveSoulSpeed(BlockState p_36262_) {\n      return this.abilities.flying || super.shouldRemoveSoulSpeed(p_36262_);\n   }\n",
+      "raw_excerpt_sha256": "1fae5ccb9d29e721a002984a2968d59dce8e630e47632adcf94a5a64c1a14165",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/Items.java",
+      "entry_sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+      "entry_bytes": 142779,
+      "entry_lines": 1326,
+      "lines": [
+        1165,
+        1165
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public static final Item SUSPICIOUS_STEW = registerItem(\"suspicious_stew\", new SuspiciousStewItem((new Item.Properties()).stacksTo(1).food(Foods.SUSPICIOUS_STEW)));\n",
+      "raw_excerpt_sha256": "a0057588973e9acd8ae5625c05c979709ed8eb121033f16b4ef51538f89de8b8",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/food/Foods.java",
+      "entry_sha256": "3f04cfbdf847e55a53af6a43f64b268c353b2ec90aaa3dad8ae408e311bbea1e",
+      "entry_bytes": 6066,
+      "entry_lines": 51,
+      "lines": [
+        38,
+        45
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public static final FoodProperties RABBIT = (new FoodProperties.Builder()).nutrition(3).saturationMod(0.3F).meat().build();\n   public static final FoodProperties RABBIT_STEW = stew(10).build();\n   public static final FoodProperties ROTTEN_FLESH = (new FoodProperties.Builder()).nutrition(4).saturationMod(0.1F).effect(new MobEffectInstance(MobEffects.HUNGER, 600, 0), 0.8F).meat().build();\n   public static final FoodProperties SALMON = (new FoodProperties.Builder()).nutrition(2).saturationMod(0.1F).build();\n   public static final FoodProperties SPIDER_EYE = (new FoodProperties.Builder()).nutrition(2).saturationMod(0.8F).effect(new MobEffectInstance(MobEffects.POISON, 100, 0), 1.0F).build();\n   public static final FoodProperties SUSPICIOUS_STEW = stew(6).alwaysEat().build();\n   public static final FoodProperties SWEET_BERRIES = (new FoodProperties.Builder()).nutrition(2).saturationMod(0.1F).build();\n   public static final FoodProperties GLOW_BERRIES = (new FoodProperties.Builder()).nutrition(2).saturationMod(0.1F).build();\n",
+      "raw_excerpt_sha256": "3e2062584f8fbc7a24af887644a28e7b3645fc2b6af81c508d767f3640f6f512",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/food/Foods.java",
+      "entry_sha256": "3f04cfbdf847e55a53af6a43f64b268c353b2ec90aaa3dad8ae408e311bbea1e",
+      "entry_bytes": 6066,
+      "entry_lines": 51,
+      "lines": [
+        46,
+        51
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public static final FoodProperties TROPICAL_FISH = (new FoodProperties.Builder()).nutrition(1).saturationMod(0.1F).build();\n\n   private static FoodProperties.Builder stew(int p_150384_) {\n      return (new FoodProperties.Builder()).nutrition(p_150384_).saturationMod(0.6F);\n   }\n}",
+      "raw_excerpt_sha256": "bd26505e0aaaf5af2fbf8bc2c0266cf800aa9d0524488d0401bff989d576b241",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/food/FoodData.java",
+      "entry_sha256": "5cc881a4e8cdfb3b4e9d9278488f7e9c4213e68a9876f18c7a6cd91199c43c3e",
+      "entry_bytes": 4404,
+      "entry_lines": 135,
+      "lines": [
+        1,
+        55
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "package net.minecraft.world.food;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.GameRules;\n\npublic class FoodData {\n   private int foodLevel = 20;\n   private float saturationLevel;\n   private float exhaustionLevel;\n   private int tickTimer;\n   private int lastFoodLevel = 20;\n\n   public FoodData() {\n      this.saturationLevel = 5.0F;\n   }\n\n   public void eat(int p_38708_, float p_38709_) {\n      this.foodLevel = Math.min(p_38708_ + this.foodLevel, 20);\n      this.saturationLevel = Math.min(this.saturationLevel + (float)p_38708_ * p_38709_ * 2.0F, (float)this.foodLevel);\n   }\n\n   // Use the LivingEntity sensitive version in favour of this.\n   @Deprecated\n   public void eat(Item p_38713_, ItemStack p_38714_) {\n      this.eat(p_38713_, p_38714_, null);\n   }\n\n   public void eat(Item p_38713_, ItemStack p_38714_, @org.jetbrains.annotations.Nullable net.minecraft.world.entity.LivingEntity entity) {\n      if (p_38713_.isEdible()) {\n         FoodProperties foodproperties = p_38714_.getFoodProperties(entity);\n         this.eat(foodproperties.getNutrition(), foodproperties.getSaturationModifier());\n      }\n\n   }\n\n   public void tick(Player p_38711_) {\n      Difficulty difficulty = p_38711_.level().getDifficulty();\n      this.lastFoodLevel = this.foodLevel;\n      if (this.exhaustionLevel > 4.0F) {\n         this.exhaustionLevel -= 4.0F;\n         if (this.saturationLevel > 0.0F) {\n            this.saturationLevel = Math.max(this.saturationLevel - 1.0F, 0.0F);\n         } else if (difficulty != Difficulty.PEACEFUL) {\n            this.foodLevel = Math.max(this.foodLevel - 1, 0);\n         }\n      }\n\n      boolean flag = p_38711_.level().getGameRules().getBoolean(GameRules.RULE_NATURAL_REGENERATION);\n      if (flag && this.saturationLevel > 0.0F && p_38711_.isHurt() && this.foodLevel >= 20) {\n         ++this.tickTimer;\n         if (this.tickTimer >= 10) {\n",
+      "raw_excerpt_sha256": "089485c4e24b7df66ea774543865adb757e5286614713569cf54f294ffd40e07",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/nbt/CompoundTag.java",
+      "entry_sha256": "15316266077dd84480a4884576bde8d9e8842ffab6d92469c9af8700f52243ca",
+      "entry_bytes": 17506,
+      "entry_lines": 545,
+      "lines": [
+        394,
+        414
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public ListTag getList(String p_128438_, int p_128439_) {\n      try {\n         if (this.getTagType(p_128438_) == 9) {\n            ListTag listtag = (ListTag)this.tags.get(p_128438_);\n            if (!listtag.isEmpty() && listtag.getElementType() != p_128439_) {\n               return new ListTag();\n            }\n\n            return listtag;\n         }\n      } catch (ClassCastException classcastexception) {\n         throw new ReportedException(this.createReport(p_128438_, ListTag.TYPE, classcastexception));\n      }\n\n      return new ListTag();\n   }\n\n   public boolean getBoolean(String p_128472_) {\n      return this.getByte(p_128472_) != 0;\n   }\n\n",
+      "raw_excerpt_sha256": "7ad9afe2e6899c0d2c8b3bbdd2ac11003dc6018f4caced3764bc4444fe0ba0da",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/level/block/Blocks.java",
+      "entry_sha256": "f56e75c83075cb1eff308d9f0326766919e03c461c80e2e8b5b3ab4a8949e9a6",
+      "entry_bytes": 237801,
+      "entry_lines": 1257,
+      "lines": [
+        194,
+        194
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public static final Block DANDELION = register(\"dandelion\", new FlowerBlock(MobEffects.SATURATION, 7, BlockBehaviour.Properties.of().mapColor(MapColor.PLANT).noCollission().instabreak().sound(SoundType.GRASS).offsetType(BlockBehaviour.OffsetType.XZ).pushReaction(PushReaction.DESTROY)));\n",
+      "raw_excerpt_sha256": "15a8422b59fd9f4d3931bde50a48837df1b12345b9f3e48cbc768051dbe99e36",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/level/block/Blocks.java",
+      "entry_sha256": "f56e75c83075cb1eff308d9f0326766919e03c461c80e2e8b5b3ab4a8949e9a6",
+      "entry_bytes": 237801,
+      "entry_lines": 1257,
+      "lines": [
+        196,
+        196
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   public static final Block POPPY = register(\"poppy\", new FlowerBlock(MobEffects.NIGHT_VISION, 5, BlockBehaviour.Properties.of().mapColor(MapColor.PLANT).noCollission().instabreak().sound(SoundType.GRASS).offsetType(BlockBehaviour.OffsetType.XZ).pushReaction(PushReaction.DESTROY)));\n",
+      "raw_excerpt_sha256": "27d7ca0c4952e205ecddc383ef021f0f42ad07c26a573873869b4658b664b451",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/effect/MobEffectInstance.java",
+      "entry_sha256": "384c0ac276a214c63f5bb32dbdd312e6de499b4bbec2543e633c201ce67f8923",
+      "entry_bytes": 15762,
+      "entry_lines": 412,
+      "lines": [
+        25,
+        70
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   private boolean visible;\n   private boolean showIcon;\n   @Nullable\n   private MobEffectInstance hiddenEffect;\n   private final Optional<MobEffectInstance.FactorData> factorData;\n\n   public MobEffectInstance(MobEffect p_19513_) {\n      this(p_19513_, 0, 0);\n   }\n\n   public MobEffectInstance(MobEffect p_19515_, int p_19516_) {\n      this(p_19515_, p_19516_, 0);\n   }\n\n   public MobEffectInstance(MobEffect p_19518_, int p_19519_, int p_19520_) {\n      this(p_19518_, p_19519_, p_19520_, false, true);\n   }\n\n   public MobEffectInstance(MobEffect p_19522_, int p_19523_, int p_19524_, boolean p_19525_, boolean p_19526_) {\n      this(p_19522_, p_19523_, p_19524_, p_19525_, p_19526_, p_19526_);\n   }\n\n   public MobEffectInstance(MobEffect p_19528_, int p_19529_, int p_19530_, boolean p_19531_, boolean p_19532_, boolean p_19533_) {\n      this(p_19528_, p_19529_, p_19530_, p_19531_, p_19532_, p_19533_, (MobEffectInstance)null, p_19528_.createFactorData());\n   }\n\n   public MobEffectInstance(MobEffect p_216887_, int p_216888_, int p_216889_, boolean p_216890_, boolean p_216891_, boolean p_216892_, @Nullable MobEffectInstance p_216893_, Optional<MobEffectInstance.FactorData> p_216894_) {\n      this.effect = p_216887_;\n      this.duration = p_216888_;\n      this.amplifier = p_216889_;\n      this.ambient = p_216890_;\n      this.visible = p_216891_;\n      this.showIcon = p_216892_;\n      this.hiddenEffect = p_216893_;\n      this.factorData = p_216894_;\n   }\n\n   public MobEffectInstance(MobEffectInstance p_19543_) {\n      this.effect = p_19543_.effect;\n      this.factorData = this.effect.createFactorData();\n      this.setDetailsFrom(p_19543_);\n   }\n\n   public Optional<MobEffectInstance.FactorData> getFactorData() {\n      return this.factorData;\n   }\n",
+      "raw_excerpt_sha256": "a67186ff80d0242236747c7932ca0bb7c99cb1a637ebfdd50c099756e23d8ddc",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/effect/MobEffect.java",
+      "entry_sha256": "5007a7028133c2d8e62cd0f34a4284b200310be8a21dbf0ef4973f4fc1fc4320",
+      "entry_bytes": 8351,
+      "entry_lines": 223,
+      "lines": [
+        30,
+        65
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "   @Nullable\n   public static MobEffect byId(int p_19454_) {\n      return BuiltInRegistries.MOB_EFFECT.byId(p_19454_);\n   }\n\n   public static int getId(MobEffect p_19460_) {\n      return BuiltInRegistries.MOB_EFFECT.getId(p_19460_);\n   }\n\n   public static int getIdFromNullable(@Nullable MobEffect p_216883_) {\n      return BuiltInRegistries.MOB_EFFECT.getId(p_216883_);\n   }\n\n   protected MobEffect(MobEffectCategory p_19451_, int p_19452_) {\n      this.category = p_19451_;\n      this.color = p_19452_;\n      initClient();\n   }\n\n   public Optional<MobEffectInstance.FactorData> createFactorData() {\n      return Optional.ofNullable(this.factorDataFactory.get());\n   }\n\n   public void applyEffectTick(LivingEntity p_19467_, int p_19468_) {\n      if (this == MobEffects.REGENERATION) {\n         if (p_19467_.getHealth() < p_19467_.getMaxHealth()) {\n            p_19467_.heal(1.0F);\n         }\n      } else if (this == MobEffects.POISON) {\n         if (p_19467_.getHealth() > 1.0F) {\n            p_19467_.hurt(p_19467_.damageSources().magic(), 1.0F);\n         }\n      } else if (this == MobEffects.WITHER) {\n         p_19467_.hurt(p_19467_.damageSources().wither(), 1.0F);\n      } else if (this == MobEffects.HUNGER && p_19467_ instanceof Player) {\n         ((Player)p_19467_).causeFoodExhaustion(0.005F * (float)(p_19468_ + 1));\n",
+      "raw_excerpt_sha256": "3d9a1569d1564510b660035d5cc8388a71da1acd71ddfe70562a29da0f469cd5",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    },
+    {
+      "entry": "net/minecraftforge/common/ForgeHooks.java",
+      "entry_sha256": "e21acd3d13778b54be47ed9b4f8407bfbad3957206281c085219c166e405102c",
+      "entry_bytes": 71532,
+      "entry_lines": 1641,
+      "lines": [
+        1420,
+        1449
+      ],
+      "whole_file": false,
+      "raw_utf8_keepends": "        throw new IllegalArgumentException(\"Unknown lifecycle.\");\n    }\n\n    public static void saveMobEffect(CompoundTag nbt, String key, MobEffect effect)\n    {\n        var registryName = ForgeRegistries.MOB_EFFECTS.getKey(effect);\n        if (registryName != null)\n        {\n            nbt.putString(key, registryName.toString());\n        }\n    }\n\n    @Nullable\n    public static MobEffect loadMobEffect(CompoundTag nbt, String key, @Nullable MobEffect fallback)\n    {\n        var registryName = nbt.getString(key);\n        if (Strings.isNullOrEmpty(registryName))\n        {\n            return fallback;\n        }\n        try\n        {\n            return ForgeRegistries.MOB_EFFECTS.getValue(new ResourceLocation(registryName));\n        }\n        catch (ResourceLocationException e)\n        {\n            return fallback;\n        }\n    }\n\n",
+      "raw_excerpt_sha256": "b13ceba21030795ef9055261581f207d85986e77a506cfc014954a1e584b4516",
+      "actual_read": true,
+      "source_quantity_credit": 0
+    }
+  ],
+  "base_resources": [
+    {
+      "archive": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+        "sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+        "bytes": 10436626
+      },
+      "entry": "data/minecraft/recipes/suspicious_stew.json",
+      "sha256": "8ecc4ee97d8a89eb89b50e78d020bcd6abe6eff898edd766342f361b66197438",
+      "bytes": 79,
+      "raw_utf8": "{\n  \"type\": \"minecraft:crafting_special_suspiciousstew\",\n  \"category\": \"misc\"\n}",
+      "base_not_current_merged": true,
+      "actual_read_whole": true,
+      "credit": 0
+    },
+    {
+      "archive": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+        "sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+        "bytes": 10436626
+      },
+      "entry": "data/minecraft/tags/items/small_flowers.json",
+      "sha256": "4fc1ae0b1bf81d9e9b074c2f6c06b82901578aa92d09fa9604e1dc8e19743fe8",
+      "bytes": 417,
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:dandelion\",\n    \"minecraft:poppy\",\n    \"minecraft:blue_orchid\",\n    \"minecraft:allium\",\n    \"minecraft:azure_bluet\",\n    \"minecraft:red_tulip\",\n    \"minecraft:orange_tulip\",\n    \"minecraft:white_tulip\",\n    \"minecraft:pink_tulip\",\n    \"minecraft:oxeye_daisy\",\n    \"minecraft:cornflower\",\n    \"minecraft:lily_of_the_valley\",\n    \"minecraft:wither_rose\",\n    \"minecraft:torchflower\"\n  ]\n}",
+      "base_not_current_merged": true,
+      "actual_read_whole": true,
+      "credit": 0
+    },
+    {
+      "archive": {
+        "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+        "sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+        "bytes": 10436626
+      },
+      "entry": "data/minecraft/tags/blocks/small_flowers.json",
+      "sha256": "4fc1ae0b1bf81d9e9b074c2f6c06b82901578aa92d09fa9604e1dc8e19743fe8",
+      "bytes": 417,
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:dandelion\",\n    \"minecraft:poppy\",\n    \"minecraft:blue_orchid\",\n    \"minecraft:allium\",\n    \"minecraft:azure_bluet\",\n    \"minecraft:red_tulip\",\n    \"minecraft:orange_tulip\",\n    \"minecraft:white_tulip\",\n    \"minecraft:pink_tulip\",\n    \"minecraft:oxeye_daisy\",\n    \"minecraft:cornflower\",\n    \"minecraft:lily_of_the_valley\",\n    \"minecraft:wither_rose\",\n    \"minecraft:torchflower\"\n  ]\n}",
+      "base_not_current_merged": true,
+      "actual_read_whole": true,
+      "credit": 0
+    }
+  ],
+  "actual_coverage": {
+    "members": 21,
+    "ranges": 25,
+    "unique_lines": 812,
+    "whole_files": 9,
+    "whole_base_JSON": 3,
+    "count_credit": 0
+  },
+  "observations": [
+    "Specialrecipe requires exactly one nonempty slot for each brownmushroom/redmushroom/SMALL_FLOWERS/bowl with branch-order booleans, grid at least2x2. Counts per slot not stack debit; tag overlap follows actual branch order. matches does not require flower implement SuspiciousEffectHolder.",
+    "assemble creates new plain1 SUSPICIOUS_STEW without copying input name/customcolor/payer/marker/capabilities. It scans all occupied slots for first tryGet(holder) and adds one trait effect/duration, independently of matches. A tagged non-holder can match but output no effect; a holder elsewhere could be chosen conditionally under custom content. No deployed intersection/recipe bypass exploit proved.",
+    "SuspiciousEffectHolder.tryGet checks BlockItem underlying Block implementing holder first, then Item implementing holder. getAllEffectHolders registry scan is containing context0, not actual smallflower qualification.",
+    "Forge FlowerBlock supplier constructor defers effect lookup and multiplies noninstant duration20 in getter, legacy ctor multiplies at construction. Fixed dandelion SATURATION7/poppyNIGHT_VISION5 declarations only illustrate branches, not effect success or current merged registry.",
+    "saveMobEffect stores Effects list entry numeric EffectId plus Forge namespaced effect ID and duration. It calls getList(Effects,9) although appended entries are compounds10. CompoundTag returns a new list for nonempty wrong-element-type, so repeated calls do not promise compound-list append/merge; this generic helper limitation already seen in Tipped/Potion,0 additional.",
+    "Reader requires Effects outerlist9, then compound elements10; numeric duration uses99 check else160, no clamp; numeric effect fallback is overridden by Forge key. Missing/empty or malformed ResourceLocation use fallback; syntactically valid unknown string directly requests registry, no numeric fallback promise.",
+    "New MobEffectInstance(effect,duration) uses amplifier0/default ambientfalse/visible+icontrue; it is not copying arbitrary effect amplifier/hidden history/factor payload from ingredient ItemStack. No effect tick/instant behavior guarantee from constructor.",
+    "Generic ItemStack.finishUsing delegates to item; Item.finishUsing routes edible to Living.eat. Player.eat invokes FoodData nutrition/stat/burp/CONSUME_ITEM before super.eat. Living generic food feedback/effects/shrink and EAT before extra stew list application. Earlier criteria or food state do not certify all extra effects accepted.",
+    "FoodData uses current stack-sensitive food properties, clamps food20 and saturation at resulting food. Base SUSPICIOUS_STEW food6/saturationMod.6/alwaysEat is declaration only; override/actual hunger restoration/player benefit not run.",
+    "Living generic eat returns same mutable ItemStack; shrink changes count, getTag returns underlying tag even when hasTag/isEmpty differ. Therefore reading returned stew tag after default consumption is not automatically empty due count0. Broader hook/customItem replacement/empty cleanup untraced.",
+    "SuspiciousStew.finishUsing applies list effects from returned itemstack through Consumer addEffect, ignores Boolean, then creative Player returns original result else freshBOWL. Nutrition,consumeCriterion,effect attempt and bowl replacement are separate; custom output marker not preserved into bowl by this method.",
+    "Full ResultSlot: craftedBy+Forgecraft event+awardUsedRecipes before getRemainingItems and ingredientremove. Each nonempty ingredient remove1, remainder sets/merges or tries inventory/drop. No atomic payment/result/inventory receipt. Same actual generic lifecycle supports prior Tipped whole,0 extra.",
+    "Recipe default remainder delegates to current stack hasCraftingRemainingItem; customserializer factory/CustomRecipe special/empty preview read, but complete manager/menu/network transaction not expanded. Fixedbase specialrecipe JSON and14smallflower names not current merged proof.",
+    "Existing accepted global94a entire recursive effect/stew schema converter andb35 whole paid flower→cow held effect→next bowl/clear consumer remain old1/new0. New recipe-based trait projection and actual consuming stack→effect/bowl is at most1 RELATED NBT whole pending full bounded business comparison and independent review orMERGE0; not new migration/global claim.",
+    "Prior Main Tipped lifecycle exact accepted closure reused0 for general typed-projection/actual acquisition design. Source methods, flowers, durations, stackkeys and helpers0 extra. Newstudy does not close any fourNBT variant/poisonsmoke production/task.",
+    "Future quest intake must keep real material identity and source→existing prerequisite→actual debit/crafting→decorated output→native intended benefit separated; do not accept baseitem ID or consumption criterion before extra effect outcome as complete variant proof."
+  ],
+  "limits": [
+    "Actual fixed local archive/ranges only; no fresh Git authentication/currentpack/loaded tags/modifiers/listeners or raw resource deployment.",
+    "Larger Item/Stack/Living/Player/Blocks/Effect/FoodData are bounded fragments, not full parent engine, menu/payment/finish-use event or lifecycle proof.",
+    "Initial Foods60..83 request exceeded51line member and displayed no text. It is excluded entirely; actual46..51 getter recovered separately, no invisible/empty coverage.",
+    "Two full saved old global business objects read, nested oldsource/evidence not newly read. Need remaining relevant NBT whole comparisons and independent semantic judgment before any credit.",
+    "No actualinputreceipt/paid crafting/admitted output, poisonvariant correctness, effective effect/instant heal/hunger or native player benefit/survival/balance proof.",
+    "Conditional tagged-nonholder/firstholder, repeatedwriter and count0 tag reasoning not demonstrated currentgame bug/dupe or production repair authorization.",
+    "No formal/global/migration/NBT/ecology/program/native credit, production, art/Jar/world/task/automation/Git change. Program528/ecology66/51COD4/currenttenhoursunverified remain."
+  ],
+  "existing_two_global_whole_business_unchanged": [
+    {
+      "ledger": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+        "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+        "bytes": 18357046
+      },
+      "line_1based": 202,
+      "complete_row_unchanged": {
+        "candidate_id": "94aec409ce25598d6ec8",
+        "status": "accepted",
+        "family": "paper-recursive-status-effect-schema-and-stew-upgrade",
+        "trigger": "V3568 registered item/player effect conversion chain",
+        "input": "legacy numeric Id, uppercase effect fields, recursively HiddenEffect, suspicious stew effect list",
+        "output": "moves known effect IDs to named strings, moves duration/amplifier/visibility fields, recursively upgrades hidden effect and renames list",
+        "preservation": "Effect helper and all registered wrappers count once; unchanged fields travel in same maps. Stew update reads EffectId before removing it when source==destination.",
+        "application_limit": "Unknown numeric ID removed without replacement; not universally lossless. Do not assign permanent status to temporary effects. Pinned Paper source study, not Dynasty runtime/API proof; no new death-retention eligibility inferred.",
+        "supporting_candidates": [
+          "35a53ecee4177c69b278",
+          "a728426c4c2b19b42a90",
+          "084b36c198783d88e188",
+          "aa056163cdae65b180b6",
+          "a0321179effe07863b5b"
+        ],
+        "credit": 1,
+        "evidence": [
+          {
+            "candidate_id": "94aec409ce25598d6ec8",
+            "repo": "PaperMC/DataConverter",
+            "revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+            "path": "src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "start_line": 198,
+            "end_line": 229,
+            "method": "convert",
+            "file_sha256": "0067741c5afa1cc14db07d3616f8cbc2761584793bd2e584295727fd15311cdb",
+            "method_sha256": "4ce92cc679a0c4a394c9b68d2c3667928c02643cba4c42a78f1a9dc43fefcae4",
+            "structural_fingerprint": "36a196225d7b0bc51ba5aac8f88ff15b5aff985711ed3c738391c1557029ec7d",
+            "source_url_or_coordinate": "https://github.com/PaperMC/DataConverter/blob/cc6b1f3e71e9b991fcf402e92d8f291a12af84df/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java#L198-L229",
+            "context": "@Override\n            public MapType convert(final MapType root, final long sourceVersion, final long toVersion) {\n                final String id = root.getString(\"id\");\n\n                final MapType tag = root.getMap(\"tag\");\n\n                if (tag == null) {\n                    return null;\n                }\n\n                if (\"minecraft:suspicious_stew\".equals(id)) {\n                    RenameHelper.renameSingle(tag, \"Effects\", \"effects\");\n\n                    final ListType effects = tag.getList(\"effects\", ObjectType.MAP);\n\n                    if (effects != null) {\n                        for (int i = 0, len = effects.size(); i < len; ++i) {\n                            final MapType effect = effects.getMap(i);\n                            updateSuspiciousStew(effect, effect);\n                        }\n                    }\n\n                    return null;\n                }\n\n                if (EFFECT_ITEMS.contains(id)) {\n                    convertMobEffectList(tag, \"CustomPotionEffects\", \"custom_potion_effects\");\n                    return null;\n                }\n\n                return null;\n            }",
+            "parse_has_error": false
+          },
+          {
+            "candidate_id": "35a53ecee4177c69b278",
+            "repo": "PaperMC/DataConverter",
+            "revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+            "path": "src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "start_line": 65,
+            "end_line": 73,
+            "method": "readLegacyEffect",
+            "file_sha256": "0067741c5afa1cc14db07d3616f8cbc2761584793bd2e584295727fd15311cdb",
+            "method_sha256": "944e58155045e249817d5577bdbbe29852cb7be29fb9c3c3fc87eb3ecd0f374e",
+            "structural_fingerprint": "99175d9c92f9187b187c71c6eb27254b50f822f45fad95aefc3d7744b43fb023",
+            "source_url_or_coordinate": "https://github.com/PaperMC/DataConverter/blob/cc6b1f3e71e9b991fcf402e92d8f291a12af84df/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java#L65-L73",
+            "context": "private static String readLegacyEffect(final MapType data, final String path) {\n        final Number id = data.getNumber(path);\n        if (id == null) {\n            return null;\n        }\n\n        final int castedId = id.intValue();\n        return castedId >= 0 && castedId < EFFECT_ID_MAP.length ? EFFECT_ID_MAP[castedId] : null;\n    }",
+            "parse_has_error": false
+          },
+          {
+            "candidate_id": "a728426c4c2b19b42a90",
+            "repo": "PaperMC/DataConverter",
+            "revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+            "path": "src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "start_line": 75,
+            "end_line": 91,
+            "method": "convertLegacyEffect",
+            "file_sha256": "0067741c5afa1cc14db07d3616f8cbc2761584793bd2e584295727fd15311cdb",
+            "method_sha256": "0b73fb03dcca22dd983f886610c58c81a2b074b124793c73e909cc9035ebb810",
+            "structural_fingerprint": "06e06564076c6631c49f119047915a224d55d6d390e759a9039a8341aa4312d6",
+            "source_url_or_coordinate": "https://github.com/PaperMC/DataConverter/blob/cc6b1f3e71e9b991fcf402e92d8f291a12af84df/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java#L75-L91",
+            "context": "private static void convertLegacyEffect(final MapType data, final String legacyPath, final String newPath) {\n        final Number id = data.getNumber(legacyPath);\n        data.remove(legacyPath);\n\n        if (id == null) {\n            return;\n        }\n\n        final int castedId = id.intValue();\n        final String newId = castedId >= 0 && castedId < EFFECT_ID_MAP.length ? EFFECT_ID_MAP[castedId] : null;\n\n        if (newId == null) {\n            return;\n        }\n\n        data.setString(newPath, newId);\n    }",
+            "parse_has_error": false
+          },
+          {
+            "candidate_id": "084b36c198783d88e188",
+            "repo": "PaperMC/DataConverter",
+            "revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+            "path": "src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "start_line": 104,
+            "end_line": 116,
+            "method": "convertMobEffect",
+            "file_sha256": "0067741c5afa1cc14db07d3616f8cbc2761584793bd2e584295727fd15311cdb",
+            "method_sha256": "bb107fcb6edc9e10910e13a5c3c797463786fd03ddb05a6bd992ce8787cac34d",
+            "structural_fingerprint": "70f98a58c939e0c1793165873025f97b681b4c7fa9fabed935ae2a5266f96d47",
+            "source_url_or_coordinate": "https://github.com/PaperMC/DataConverter/blob/cc6b1f3e71e9b991fcf402e92d8f291a12af84df/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java#L104-L116",
+            "context": "private static void convertMobEffect(final MapType mobEffect) {\n        if (mobEffect == null) {\n            return;\n        }\n\n        convertLegacyEffect(mobEffect, \"Id\", \"id\");\n\n        for (final Map.Entry<String, String> rename : MOB_EFFECT_RENAMES.entrySet()) {\n            RenameHelper.renameSingle(mobEffect, rename.getKey(), rename.getValue());\n        }\n\n        convertMobEffect(mobEffect.getMap(\"hidden_effect\"));\n    }",
+            "parse_has_error": false
+          },
+          {
+            "candidate_id": "aa056163cdae65b180b6",
+            "repo": "PaperMC/DataConverter",
+            "revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+            "path": "src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "start_line": 118,
+            "end_line": 130,
+            "method": "convertMobEffectList",
+            "file_sha256": "0067741c5afa1cc14db07d3616f8cbc2761584793bd2e584295727fd15311cdb",
+            "method_sha256": "745339abc094ddb5e90798237b25558e38e05588b2a3f05ef09f8d8dbb37fbba",
+            "structural_fingerprint": "8c712fa2da156e2387c15936c80b61ca91826f5c213147bec36ffc1cd1397597",
+            "source_url_or_coordinate": "https://github.com/PaperMC/DataConverter/blob/cc6b1f3e71e9b991fcf402e92d8f291a12af84df/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java#L118-L130",
+            "context": "private static void convertMobEffectList(final MapType data, final String oldPath, final String newPath) {\n        final ListType effects = data.getList(oldPath, ObjectType.MAP);\n        if (effects == null) {\n            return;\n        }\n\n        for (int i = 0, len = effects.size(); i < len; ++i) {\n            convertMobEffect(effects.getMap(i));\n        }\n\n        data.remove(oldPath);\n        data.setList(newPath, effects);\n    }",
+            "parse_has_error": false
+          },
+          {
+            "candidate_id": "a0321179effe07863b5b",
+            "repo": "PaperMC/DataConverter",
+            "revision": "cc6b1f3e71e9b991fcf402e92d8f291a12af84df",
+            "path": "src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/PaperMC__DataConverter/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java",
+            "start_line": 140,
+            "end_line": 143,
+            "method": "updateSuspiciousStew",
+            "file_sha256": "0067741c5afa1cc14db07d3616f8cbc2761584793bd2e584295727fd15311cdb",
+            "method_sha256": "03f31b96d2bdd194edcdb8145002e328e75daccf39386d30f8e7c6fec3614474",
+            "structural_fingerprint": "0fe0287ecd0f1ac090492f42e4553244acebf90c1e8a1fa3fc6a70ca58aadb0e",
+            "source_url_or_coordinate": "https://github.com/PaperMC/DataConverter/blob/cc6b1f3e71e9b991fcf402e92d8f291a12af84df/src/main/java/ca/spottedleaf/dataconverter/minecraft/versions/V3568.java#L140-L143",
+            "context": "private static void updateSuspiciousStew(final MapType from, final MapType into) {\n        removeAndSet(into, \"EffectId\", \"id\", readLegacyEffect(from, \"EffectId\"));\n        removeAndSet(into, \"EffectDuration\", \"duration\", from.getGeneric(\"EffectDuration\"));\n    }",
+            "parse_has_error": false
+          }
+        ]
+      },
+      "complete_non_evidence_business_actually_read": {
+        "candidate_id": "94aec409ce25598d6ec8",
+        "status": "accepted",
+        "family": "paper-recursive-status-effect-schema-and-stew-upgrade",
+        "trigger": "V3568 registered item/player effect conversion chain",
+        "input": "legacy numeric Id, uppercase effect fields, recursively HiddenEffect, suspicious stew effect list",
+        "output": "moves known effect IDs to named strings, moves duration/amplifier/visibility fields, recursively upgrades hidden effect and renames list",
+        "preservation": "Effect helper and all registered wrappers count once; unchanged fields travel in same maps. Stew update reads EffectId before removing it when source==destination.",
+        "application_limit": "Unknown numeric ID removed without replacement; not universally lossless. Do not assign permanent status to temporary effects. Pinned Paper source study, not Dynasty runtime/API proof; no new death-retention eligibility inferred.",
+        "supporting_candidates": [
+          "35a53ecee4177c69b278",
+          "a728426c4c2b19b42a90",
+          "084b36c198783d88e188",
+          "aa056163cdae65b180b6",
+          "a0321179effe07863b5b"
+        ],
+        "credit": 1
+      },
+      "underlying_old_raw_sources_newly_read": false,
+      "old_credit_retained": 1,
+      "new_global_credit": 0
+    },
+    {
+      "ledger": {
+        "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+        "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+        "bytes": 18357046
+      },
+      "line_1based": 407,
+      "complete_row_unchanged": {
+        "candidate_id": "b35db56f4e42c890c7f9",
+        "status": "accepted",
+        "family": "native-mooshroom-paid-flower-next-stew-effect-identity-fallback",
+        "trigger": "MushroomCow read/write and full mobInteract; ForgeHooks effect helpers",
+        "input": "paid flower-derived EffectId+forge:effect_id and EffectDuration, cow variant",
+        "output": "numeric effect fallback overridden by namespaced Forge ID when usable; next bowl consumes stored effect exactly by clearing field",
+        "preservation": "Full pair, full payment/payout method and effect helper bodies read. Flower shrunk only when no effect already stored; next suspicious stew gets effect/duration then clears receipt. This is a paid deferred output, distinct from entity-active buff timer. Namespaced registry encoding supports numeric ID movement.",
+        "application_limit": "Reader gates Forge override on presence numeric EffectId, so namespaced-only record ignored. Missing fields on reused cow leave stale effect/duration. Registry key bad/unresolved fallback behavior limited to helper source; no native old-save test. All effect types one chain.",
+        "supporting_candidates": [],
+        "credit": 1,
+        "evidence": [
+          {
+            "candidate_id": "b35db56f4e42c890c7f9",
+            "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+            "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+            "path": "net/minecraft/world/entity/animal/MushroomCow.java",
+            "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/MushroomCow.java",
+            "start_line": 205,
+            "end_line": 217,
+            "method": "readAdditionalSaveData",
+            "file_sha256": "983094acb33210a0d00aa75ba4324c178c58a8efee59b2757cb2dfa6cf0fc2cb",
+            "method_sha256": "9063371c3efd8bed49a4714c0763d783c9a29e35f5e0bf1e866254d5607c6b06",
+            "structural_fingerprint": "98bd60b16278cf28312f7f7e4aac874dd86e6dbec336af98d2512c71ae897b02",
+            "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+            "context": "public void readAdditionalSaveData(CompoundTag p_28936_) {\n      super.readAdditionalSaveData(p_28936_);\n      this.setVariant(MushroomCow.MushroomType.byType(p_28936_.getString(\"Type\")));\n      if (p_28936_.contains(\"EffectId\", 99)) {\n         this.effect = MobEffect.byId(p_28936_.getInt(\"EffectId\"));\n         this.effect = net.minecraftforge.common.ForgeHooks.loadMobEffect(p_28936_, \"forge:effect_id\", this.effect);\n      }\n\n      if (p_28936_.contains(\"EffectDuration\", 99)) {\n         this.effectDuration = p_28936_.getInt(\"EffectDuration\");\n      }\n\n   }",
+            "parse_has_error": false
+          }
+        ]
+      },
+      "complete_non_evidence_business_actually_read": {
+        "candidate_id": "b35db56f4e42c890c7f9",
+        "status": "accepted",
+        "family": "native-mooshroom-paid-flower-next-stew-effect-identity-fallback",
+        "trigger": "MushroomCow read/write and full mobInteract; ForgeHooks effect helpers",
+        "input": "paid flower-derived EffectId+forge:effect_id and EffectDuration, cow variant",
+        "output": "numeric effect fallback overridden by namespaced Forge ID when usable; next bowl consumes stored effect exactly by clearing field",
+        "preservation": "Full pair, full payment/payout method and effect helper bodies read. Flower shrunk only when no effect already stored; next suspicious stew gets effect/duration then clears receipt. This is a paid deferred output, distinct from entity-active buff timer. Namespaced registry encoding supports numeric ID movement.",
+        "application_limit": "Reader gates Forge override on presence numeric EffectId, so namespaced-only record ignored. Missing fields on reused cow leave stale effect/duration. Registry key bad/unresolved fallback behavior limited to helper source; no native old-save test. All effect types one chain.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "underlying_old_raw_sources_newly_read": false,
+      "old_credit_retained": 1,
+      "new_global_credit": 0
+    }
+  ],
+  "prior_Main_tipped_closure": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/quest-integration-20261030/coordinator-native-tipped-arrow-independent-review-closure-20261114.json",
+    "sha256": "0a81456189d9b80a9c419a393190bf403a4a2a6194eb52031aa6244688e993ab",
+    "bytes": 163723
+  },
+  "current_context": {
+    "program": 528,
+    "groups": 256,
+    "gap": 472,
+    "ecology": 66,
+    "ecology_gap": 934,
+    "gate": false
+  },
+  "production_changes": 0,
+  "task_deletions": 0,
+  "native_credit": 0,
+  "active_hours_claimed": null,
+  "all_tasks_complete": false
+}

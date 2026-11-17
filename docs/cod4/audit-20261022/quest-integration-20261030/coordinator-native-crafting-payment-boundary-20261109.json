@@ -1,0 +1,188 @@
+{
+  "recorded_at": "2026-11-09T13:39:09.419944+00:00",
+  "status": "ACTUAL_BOUNDED_SOURCE_AND_INSTALLED_CALLER_REVIEW_NO_NATIVE_PAYMENT_ACCEPTANCE",
+  "native_actual_read_ranges": [
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/inventory/ResultSlot.java",
+      "entry_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4",
+      "lines": [
+        1,
+        81
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.RecipeType;\n\npublic class ResultSlot extends Slot {\n   private final CraftingContainer craftSlots;\n   private final Player player;\n   private int removeCount;\n\n   public ResultSlot(Player p_40166_, CraftingContainer p_40167_, Container p_40168_, int p_40169_, int p_40170_, int p_40171_) {\n      super(p_40168_, p_40169_, p_40170_, p_40171_);\n      this.player = p_40166_;\n      this.craftSlots = p_40167_;\n   }\n\n   public boolean mayPlace(ItemStack p_40178_) {\n      return false;\n   }\n\n   public ItemStack remove(int p_40173_) {\n      if (this.hasItem()) {\n         this.removeCount += Math.min(p_40173_, this.getItem().getCount());\n      }\n\n      return super.remove(p_40173_);\n   }\n\n   protected void onQuickCraft(ItemStack p_40180_, int p_40181_) {\n      this.removeCount += p_40181_;\n      this.checkTakeAchievements(p_40180_);\n   }\n\n   protected void onSwapCraft(int p_40183_) {\n      this.removeCount += p_40183_;\n   }\n\n   protected void checkTakeAchievements(ItemStack p_40185_) {\n      if (this.removeCount > 0) {\n         p_40185_.onCraftedBy(this.player.level(), this.player, this.removeCount);\n         net.minecraftforge.event.ForgeEventFactory.firePlayerCraftingEvent(this.player, p_40185_, this.craftSlots);\n      }\n\n      Container container = this.container;\n      if (container instanceof RecipeHolder recipeholder) {\n         recipeholder.awardUsedRecipes(this.player, this.craftSlots.getItems());\n      }\n\n      this.removeCount = 0;\n   }\n\n   public void onTake(Player p_150638_, ItemStack p_150639_) {\n      this.checkTakeAchievements(p_150639_);\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(p_150638_);\n      NonNullList<ItemStack> nonnulllist = p_150638_.level().getRecipeManager().getRemainingItemsFor(RecipeType.CRAFTING, this.craftSlots, p_150638_.level());\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(null);\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack itemstack = this.craftSlots.getItem(i);\n         ItemStack itemstack1 = nonnulllist.get(i);\n         if (!itemstack.isEmpty()) {\n            this.craftSlots.removeItem(i, 1);\n            itemstack = this.craftSlots.getItem(i);\n         }\n\n         if (!itemstack1.isEmpty()) {\n            if (itemstack.isEmpty()) {\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (ItemStack.isSameItemSameTags(itemstack, itemstack1)) {\n               itemstack1.grow(itemstack.getCount());\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (!this.player.getInventory().add(itemstack1)) {\n               this.player.drop(itemstack1, false);\n            }\n         }\n      }\n\n   }\n}\n",
+      "actual_source_read": true,
+      "formal_reference_credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/inventory/CraftingMenu.java",
+      "entry_sha256": "9040b6dfdf9cde3d625d277e275bed5776cb65247ceb66ffd4d7263684a2fb5b",
+      "lines": [
+        1,
+        184
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "9040b6dfdf9cde3d625d277e275bed5776cb65247ceb66ffd4d7263684a2fb5b",
+      "raw_excerpt_utf8": "package net.minecraft.world.inventory;\n\nimport java.util.Optional;\nimport net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Inventory;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.player.StackedContents;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.CraftingRecipe;\nimport net.minecraft.world.item.crafting.Recipe;\nimport net.minecraft.world.item.crafting.RecipeType;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\n\npublic class CraftingMenu extends RecipeBookMenu<CraftingContainer> {\n   public static final int RESULT_SLOT = 0;\n   private static final int CRAFT_SLOT_START = 1;\n   private static final int CRAFT_SLOT_END = 10;\n   private static final int INV_SLOT_START = 10;\n   private static final int INV_SLOT_END = 37;\n   private static final int USE_ROW_SLOT_START = 37;\n   private static final int USE_ROW_SLOT_END = 46;\n   private final CraftingContainer craftSlots = new TransientCraftingContainer(this, 3, 3);\n   private final ResultContainer resultSlots = new ResultContainer();\n   private final ContainerLevelAccess access;\n   private final Player player;\n\n   public CraftingMenu(int p_39353_, Inventory p_39354_) {\n      this(p_39353_, p_39354_, ContainerLevelAccess.NULL);\n   }\n\n   public CraftingMenu(int p_39356_, Inventory p_39357_, ContainerLevelAccess p_39358_) {\n      super(MenuType.CRAFTING, p_39356_);\n      this.access = p_39358_;\n      this.player = p_39357_.player;\n      this.addSlot(new ResultSlot(p_39357_.player, this.craftSlots, this.resultSlots, 0, 124, 35));\n\n      for(int i = 0; i < 3; ++i) {\n         for(int j = 0; j < 3; ++j) {\n            this.addSlot(new Slot(this.craftSlots, j + i * 3, 30 + j * 18, 17 + i * 18));\n         }\n      }\n\n      for(int k = 0; k < 3; ++k) {\n         for(int i1 = 0; i1 < 9; ++i1) {\n            this.addSlot(new Slot(p_39357_, i1 + k * 9 + 9, 8 + i1 * 18, 84 + k * 18));\n         }\n      }\n\n      for(int l = 0; l < 9; ++l) {\n         this.addSlot(new Slot(p_39357_, l, 8 + l * 18, 142));\n      }\n\n   }\n\n   protected static void slotChangedCraftingGrid(AbstractContainerMenu p_150547_, Level p_150548_, Player p_150549_, CraftingContainer p_150550_, ResultContainer p_150551_) {\n      if (!p_150548_.isClientSide) {\n         ServerPlayer serverplayer = (ServerPlayer)p_150549_;\n         ItemStack itemstack = ItemStack.EMPTY;\n         Optional<CraftingRecipe> optional = p_150548_.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, p_150550_, p_150548_);\n         if (optional.isPresent()) {\n            CraftingRecipe craftingrecipe = optional.get();\n            if (p_150551_.setRecipeUsed(p_150548_, serverplayer, craftingrecipe)) {\n               ItemStack itemstack1 = craftingrecipe.assemble(p_150550_, p_150548_.registryAccess());\n               if (itemstack1.isItemEnabled(p_150548_.enabledFeatures())) {\n                  itemstack = itemstack1;\n               }\n            }\n         }\n\n         p_150551_.setItem(0, itemstack);\n         p_150547_.setRemoteSlot(0, itemstack);\n         serverplayer.connection.send(new ClientboundContainerSetSlotPacket(p_150547_.containerId, p_150547_.incrementStateId(), 0, itemstack));\n      }\n   }\n\n   public void slotsChanged(Container p_39366_) {\n      this.access.execute((p_39386_, p_39387_) -> {\n         slotChangedCraftingGrid(this, p_39386_, this.player, this.craftSlots, this.resultSlots);\n      });\n   }\n\n   public void fillCraftSlotsStackedContents(StackedContents p_39374_) {\n      this.craftSlots.fillStackedContents(p_39374_);\n   }\n\n   public void clearCraftingContent() {\n      this.craftSlots.clearContent();\n      this.resultSlots.clearContent();\n   }\n\n   public boolean recipeMatches(Recipe<? super CraftingContainer> p_39384_) {\n      return p_39384_.matches(this.craftSlots, this.player.level());\n   }\n\n   public void removed(Player p_39389_) {\n      super.removed(p_39389_);\n      this.access.execute((p_39371_, p_39372_) -> {\n         this.clearContainer(p_39389_, this.craftSlots);\n      });\n   }\n\n   public boolean stillValid(Player p_39368_) {\n      return stillValid(this.access, p_39368_, Blocks.CRAFTING_TABLE);\n   }\n\n   public ItemStack quickMoveStack(Player p_39391_, int p_39392_) {\n      ItemStack itemstack = ItemStack.EMPTY;\n      Slot slot = this.slots.get(p_39392_);\n      if (slot != null && slot.hasItem()) {\n         ItemStack itemstack1 = slot.getItem();\n         itemstack = itemstack1.copy();\n         if (p_39392_ == 0) {\n            this.access.execute((p_39378_, p_39379_) -> {\n               itemstack1.getItem().onCraftedBy(itemstack1, p_39378_, p_39391_);\n            });\n            if (!this.moveItemStackTo(itemstack1, 10, 46, true)) {\n               return ItemStack.EMPTY;\n            }\n\n            slot.onQuickCraft(itemstack1, itemstack);\n         } else if (p_39392_ >= 10 && p_39392_ < 46) {\n            if (!this.moveItemStackTo(itemstack1, 1, 10, false)) {\n               if (p_39392_ < 37) {\n                  if (!this.moveItemStackTo(itemstack1, 37, 46, false)) {\n                     return ItemStack.EMPTY;\n                  }\n               } else if (!this.moveItemStackTo(itemstack1, 10, 37, false)) {\n                  return ItemStack.EMPTY;\n               }\n            }\n         } else if (!this.moveItemStackTo(itemstack1, 10, 46, false)) {\n            return ItemStack.EMPTY;\n         }\n\n         if (itemstack1.isEmpty()) {\n            slot.setByPlayer(ItemStack.EMPTY);\n         } else {\n            slot.setChanged();\n         }\n\n         if (itemstack1.getCount() == itemstack.getCount()) {\n            return ItemStack.EMPTY;\n         }\n\n         slot.onTake(p_39391_, itemstack1);\n         if (p_39392_ == 0) {\n            p_39391_.drop(itemstack1, false);\n         }\n      }\n\n      return itemstack;\n   }\n\n   public boolean canTakeItemForPickAll(ItemStack p_39381_, Slot p_39382_) {\n      return p_39382_.container != this.resultSlots && super.canTakeItemForPickAll(p_39381_, p_39382_);\n   }\n\n   public int getResultSlotIndex() {\n      return 0;\n   }\n\n   public int getGridWidth() {\n      return this.craftSlots.getWidth();\n   }\n\n   public int getGridHeight() {\n      return this.craftSlots.getHeight();\n   }\n\n   public int getSize() {\n      return 10;\n   }\n\n   public RecipeBookType getRecipeBookType() {\n      return RecipeBookType.CRAFTING;\n   }\n\n   public boolean shouldMoveToInventory(int p_150553_) {\n      return p_150553_ != this.getResultSlotIndex();\n   }\n}",
+      "actual_source_read": true,
+      "formal_reference_credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/crafting/ShapelessRecipe.java",
+      "entry_sha256": "b5a266759fa0bd8f1739127d55520d87f7fbc58581259e40f5cbbd10d37f8733",
+      "lines": [
+        1,
+        139
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b5a266759fa0bd8f1739127d55520d87f7fbc58581259e40f5cbbd10d37f8733",
+      "raw_excerpt_utf8": "package net.minecraft.world.item.crafting;\n\nimport com.google.gson.JsonArray;\nimport com.google.gson.JsonObject;\nimport com.google.gson.JsonParseException;\nimport it.unimi.dsi.fastutil.ints.IntList;\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.GsonHelper;\nimport net.minecraft.world.entity.player.StackedContents;\nimport net.minecraft.world.inventory.CraftingContainer;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\n\npublic class ShapelessRecipe implements CraftingRecipe {\n   private final ResourceLocation id;\n   final String group;\n   final CraftingBookCategory category;\n   final ItemStack result;\n   final NonNullList<Ingredient> ingredients;\n   private final boolean isSimple;\n\n   public ShapelessRecipe(ResourceLocation p_251840_, String p_249640_, CraftingBookCategory p_249390_, ItemStack p_252071_, NonNullList<Ingredient> p_250689_) {\n      this.id = p_251840_;\n      this.group = p_249640_;\n      this.category = p_249390_;\n      this.result = p_252071_;\n      this.ingredients = p_250689_;\n      this.isSimple = p_250689_.stream().allMatch(Ingredient::isSimple);\n   }\n\n   public ResourceLocation getId() {\n      return this.id;\n   }\n\n   public RecipeSerializer<?> getSerializer() {\n      return RecipeSerializer.SHAPELESS_RECIPE;\n   }\n\n   public String getGroup() {\n      return this.group;\n   }\n\n   public CraftingBookCategory category() {\n      return this.category;\n   }\n\n   public ItemStack getResultItem(RegistryAccess p_267111_) {\n      return this.result;\n   }\n\n   public NonNullList<Ingredient> getIngredients() {\n      return this.ingredients;\n   }\n\n   public boolean matches(CraftingContainer p_44262_, Level p_44263_) {\n      StackedContents stackedcontents = new StackedContents();\n      java.util.List<ItemStack> inputs = new java.util.ArrayList<>();\n      int i = 0;\n\n      for(int j = 0; j < p_44262_.getContainerSize(); ++j) {\n         ItemStack itemstack = p_44262_.getItem(j);\n         if (!itemstack.isEmpty()) {\n            ++i;\n            if (isSimple)\n            stackedcontents.accountStack(itemstack, 1);\n            else inputs.add(itemstack);\n         }\n      }\n\n      return i == this.ingredients.size() && (isSimple ? stackedcontents.canCraft(this, (IntList)null) : net.minecraftforge.common.util.RecipeMatcher.findMatches(inputs,  this.ingredients) != null);\n   }\n\n   public ItemStack assemble(CraftingContainer p_44260_, RegistryAccess p_266797_) {\n      return this.result.copy();\n   }\n\n   public boolean canCraftInDimensions(int p_44252_, int p_44253_) {\n      return p_44252_ * p_44253_ >= this.ingredients.size();\n   }\n\n   public static class Serializer implements RecipeSerializer<ShapelessRecipe> {\n      private static final ResourceLocation NAME = new ResourceLocation(\"minecraft\", \"crafting_shapeless\");\n      public ShapelessRecipe fromJson(ResourceLocation p_44290_, JsonObject p_44291_) {\n         String s = GsonHelper.getAsString(p_44291_, \"group\", \"\");\n         CraftingBookCategory craftingbookcategory = CraftingBookCategory.CODEC.byName(GsonHelper.getAsString(p_44291_, \"category\", (String)null), CraftingBookCategory.MISC);\n         NonNullList<Ingredient> nonnulllist = itemsFromJson(GsonHelper.getAsJsonArray(p_44291_, \"ingredients\"));\n         if (nonnulllist.isEmpty()) {\n            throw new JsonParseException(\"No ingredients for shapeless recipe\");\n         } else if (nonnulllist.size() > ShapedRecipe.MAX_WIDTH * ShapedRecipe.MAX_HEIGHT) {\n            throw new JsonParseException(\"Too many ingredients for shapeless recipe. The maximum is \" + (ShapedRecipe.MAX_WIDTH * ShapedRecipe.MAX_HEIGHT));\n         } else {\n            ItemStack itemstack = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(p_44291_, \"result\"));\n            return new ShapelessRecipe(p_44290_, s, craftingbookcategory, itemstack, nonnulllist);\n         }\n      }\n\n      private static NonNullList<Ingredient> itemsFromJson(JsonArray p_44276_) {\n         NonNullList<Ingredient> nonnulllist = NonNullList.create();\n\n         for(int i = 0; i < p_44276_.size(); ++i) {\n            Ingredient ingredient = Ingredient.fromJson(p_44276_.get(i), false);\n            if (true || !ingredient.isEmpty()) { // FORGE: Skip checking if an ingredient is empty during shapeless recipe deserialization to prevent complex ingredients from caching tags too early. Can not be done using a config value due to sync issues.\n               nonnulllist.add(ingredient);\n            }\n         }\n\n         return nonnulllist;\n      }\n\n      public ShapelessRecipe fromNetwork(ResourceLocation p_44293_, FriendlyByteBuf p_44294_) {\n         String s = p_44294_.readUtf();\n         CraftingBookCategory craftingbookcategory = p_44294_.readEnum(CraftingBookCategory.class);\n         int i = p_44294_.readVarInt();\n         NonNullList<Ingredient> nonnulllist = NonNullList.withSize(i, Ingredient.EMPTY);\n\n         for(int j = 0; j < nonnulllist.size(); ++j) {\n            nonnulllist.set(j, Ingredient.fromNetwork(p_44294_));\n         }\n\n         ItemStack itemstack = p_44294_.readItem();\n         return new ShapelessRecipe(p_44293_, s, craftingbookcategory, itemstack, nonnulllist);\n      }\n\n      public void toNetwork(FriendlyByteBuf p_44281_, ShapelessRecipe p_44282_) {\n         p_44281_.writeUtf(p_44282_.group);\n         p_44281_.writeEnum(p_44282_.category);\n         p_44281_.writeVarInt(p_44282_.ingredients.size());\n\n         for(Ingredient ingredient : p_44282_.ingredients) {\n            ingredient.toNetwork(p_44281_);\n         }\n\n         p_44281_.writeItem(p_44282_.result);\n      }\n   }\n}\n",
+      "actual_source_read": true,
+      "formal_reference_credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/crafting/ShapedRecipe.java",
+      "entry_sha256": "de585b2d784d592a199d191e4d2f770e62a587604300614b1feae00e9d073d11",
+      "lines": [
+        285,
+        287
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f5d370fec0a88990e5afb87f2b8eea2e9c076e12d44fc46347aa8c2ed97e7850",
+      "raw_excerpt_utf8": "   public static ItemStack itemStackFromJson(JsonObject p_151275_) {\n      return net.minecraftforge.common.crafting.CraftingHelper.getItemStack(p_151275_, true, true);\n   }\n",
+      "actual_source_read": true,
+      "formal_reference_credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraftforge/common/crafting/CraftingHelper.java",
+      "entry_sha256": "dc1afb9f9b4b574c699052de920ab3c5b34ba7fd5a5e394b4f088e0b1bf936ee",
+      "lines": [
+        151,
+        205
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b5a3c58b899bda3e9a75275bcefa1cb75037af279686e1db33679ec222bac29a",
+      "raw_excerpt_utf8": "    public static ItemStack getItemStack(JsonObject json, boolean readNBT)\n    {\n        return getItemStack(json, readNBT, false);\n    }\n\n    public static Item getItem(String itemName, boolean disallowsAirInRecipe)\n    {\n        ResourceLocation itemKey = new ResourceLocation(itemName);\n        if (!ForgeRegistries.ITEMS.containsKey(itemKey))\n            throw new JsonSyntaxException(\"Unknown item '\" + itemName + \"'\");\n\n        Item item = ForgeRegistries.ITEMS.getValue(itemKey);\n        if (disallowsAirInRecipe && item == Items.AIR)\n            throw new JsonSyntaxException(\"Invalid item: \" + itemName);\n        return Objects.requireNonNull(item);\n    }\n\n    public static CompoundTag getNBT(JsonElement element)\n    {\n        try\n        {\n            if (element.isJsonObject())\n                return TagParser.parseTag(GSON.toJson(element));\n            else\n                return TagParser.parseTag(GsonHelper.convertToString(element, \"nbt\"));\n        }\n        catch (CommandSyntaxException e)\n        {\n            throw new JsonSyntaxException(\"Invalid NBT Entry: \" + e);\n        }\n    }\n\n    public static ItemStack getItemStack(JsonObject json, boolean readNBT, boolean disallowsAirInRecipe)\n    {\n        String itemName = GsonHelper.getAsString(json, \"item\");\n        Item item = getItem(itemName, disallowsAirInRecipe);\n        if (readNBT && json.has(\"nbt\"))\n        {\n            CompoundTag nbt = getNBT(json.get(\"nbt\"));\n            CompoundTag tmp = new CompoundTag();\n            if (nbt.contains(\"ForgeCaps\"))\n            {\n                tmp.put(\"ForgeCaps\", nbt.get(\"ForgeCaps\"));\n                nbt.remove(\"ForgeCaps\");\n            }\n\n            tmp.put(\"tag\", nbt);\n            tmp.putString(\"id\", itemName);\n            tmp.putInt(\"Count\", GsonHelper.getAsInt(json, \"count\", 1));\n\n            return ItemStack.of(tmp);\n        }\n\n        return new ItemStack(item, GsonHelper.getAsInt(json, \"count\", 1));\n    }\n",
+      "actual_source_read": true,
+      "formal_reference_credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        918,
+        921
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d93fdd5cfa162a63797332d47628d710fe27e9ab0783c600fbfd954d274f60ee",
+      "raw_excerpt_utf8": "    public static void firePlayerCraftingEvent(Player player, ItemStack crafted, Container craftMatrix)\n    {\n        MinecraftForge.EVENT_BUS.post(new PlayerEvent.ItemCraftedEvent(player, crafted, craftMatrix));\n    }\n",
+      "actual_source_read": true,
+      "formal_reference_credit": 0
+    }
+  ],
+  "installed_ftb": {
+    "path": "modpack/mods/ftb-quests-forge-2001.4.22.jar",
+    "sha256": "9ea9d159a78a2724cfe0457b024680fdb52a2126eff9cfa5280a30578f647a68",
+    "bytes": 1255469
+  },
+  "extracted_exact_class": {
+    "path": "build/cod4-ftb-crafting-payment-20261109/classes/dev/ftb/mods/ftbquests/FTBQuestsEventHandler.class",
+    "sha256": "30a04b2f00aa9eead58096e27244a0d4b8ff5898a6396ed83995e218ae777f63",
+    "bytes": 17572
+  },
+  "derived_full_handler_actually_read": {
+    "path": "build/cod4-ftb-crafting-payment-20261109/decompiled/FTBQuestsEventHandler.java",
+    "sha256": "c0b9df292bd5475c61f8af70b2373ec125867ddfe7852faa663ffc3385181e25",
+    "bytes": 9045
+  },
+  "derived_full_handler_lines": [
+    1,
+    226
+  ],
+  "derived_javap": {
+    "path": "build/cod4-ftb-crafting-payment-20261109/FTBQuestsEventHandler.javap.txt",
+    "sha256": "caed887b952f69c9696d18ae96ce483c6fdd174c41b34a998bba4f73d21c0aa5",
+    "bytes": 36267
+  },
+  "bytecode_method_actually_checked": "itemCrafted: ServerPlayer/nonempty guards then detect(player,crafted,0); does not use Container argument",
+  "decompile_logs": [
+    {
+      "path": "build/cod4-ftb-crafting-payment-20261109/decompile.stdout.txt",
+      "sha256": "3fc692b101fe6958cfb2150f49e234f23855a62eb7a9c9c7b24986877f4ac8b0",
+      "bytes": 5602
+    },
+    {
+      "path": "build/cod4-ftb-crafting-payment-20261109/decompile.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "decompiler": {
+    "path": "/Users/a15356015027/.gradle/caches/minecraftforge/forgegradle/mavenizer/caches/maven/mcp-tools/org/vineflower/vineflower/1.10.1/vineflower-1.10.1.jar",
+    "sha256": "b9b208e50793b64657a6b6292067526613f549de7405f9243624b02f4276e409"
+  },
+  "prior_installed_itemtask_contract_reused": {
+    "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-installed-ftb-itemtask-nbt-contract-20261109.json",
+    "sha256": "cf19baf04a825bead865545548c4b7147c6bef7e0eeef0a8fa189e77a2e736ab",
+    "bytes": 68799
+  },
+  "prior_itemtask_source_replayed": false,
+  "findings": [
+    "Server recipe-grid update assembles and publishes a result preview. A nonempty preview is not payment or accepted player output.",
+    "ResultSlot.checkTakeAchievements sends the Forge crafting event before onTake obtains remaining items and walks the ingredient removal/remainder loop. This notification alone is not a post-debit receipt.",
+    "Quick-move attempts inventory transfer before onQuickCraft/onTake. A failed move returns EMPTY before those calls. Normal and quick-move notifications/stack counts must not be treated as identical debit acknowledgements.",
+    "ResultSlot removes one from each occupied ingredient slot, then handles crafting remainder placement/merge/inventory/drop. Ordinary flow still performs payment; event ordering is not a reproduced unpaid exploit.",
+    "ShapelessRecipe.assemble returns a copy of the configured result. Its serializer delegates to ShapedRecipe.itemStackFromJson, which delegates to Forge CraftingHelper with NBT enabled.",
+    "CraftingHelper accepts JSON-object or SNBT NBT, moves ForgeCaps into the enclosing stack data and builds ItemStack.of. It does not automatically preserve arbitrary input stack tags. Base item identity cannot replace the configured functional variant.",
+    "Installed FTB handler registers Architectury CRAFT_ITEM; its crafting method checks ServerPlayer and nonempty result then calls detect with that result. The Container argument is unused, and this method validates neither recipe ID nor material debit.",
+    "Reuse the prior installed ItemTask contract: only_from_crafting uses supplied craftedItem, ordinary inventory possession is not payment, configured-null NBT can wildcard, adapters can override, and consuming submission could impose another payment."
+  ],
+  "quest_acceptance_boundaries": [
+    "Keep material source, existing prerequisites, recipe/trade debit, functional NBT output and native intended-player acquisition as separate facts.",
+    "Future native evidence must compare accepted recipe/inputs and post-debit remainder/output with intended player acquisition; notification, preview and possession are insufficient individually.",
+    "Retain old IDs, rewards and progress. Do not add a duplicate reward or use a base stack to impersonate the four functional NBT variants."
+  ],
+  "limits": [
+    "Mapped pinned Forge artifact is source evidence, not current runtime activation or exact installed Minecraft patch authentication.",
+    "FTB handler bytes are from the installed Jar; Architectury Forge event bridge/order was not traced in this receipt.",
+    "No native recipe execution, shift-click experiment, rollback/reload test, actual item predicate execution or user inventory experiment.",
+    "This bounded local root-boundary study earns zero formal 1000-reference credit and completes no game task."
+  ],
+  "production_changes": 0,
+  "quest_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "formal_reference_credit": 0,
+  "actual_active_hours_claimed": null
+}

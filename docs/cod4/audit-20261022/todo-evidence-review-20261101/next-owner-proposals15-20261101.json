@@ -1,0 +1,200 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-01T05:56:36.397465+00:00",
+  "scope": "Proposal15 complete native creative hotbar preset disk and materialization chain; support-only differentiation from earned physical inventory",
+  "accepted_reference_credit_added": 0,
+  "source_pins": [
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "original_candidate_revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "note": "Existing exact-version local native mapped source, not GitHub upstream commit"
+    }
+  ],
+  "ledger_snapshot": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "accepted_rows": 964,
+    "sha256": "ffe7f5dbc1c1bbca5a5148e22eef20bee3e8b5b7f7888d71a461eef896db3e58"
+  },
+  "original_candidates": [
+    {
+      "candidate_id": "0074b92ca2dc5bec92c0",
+      "status": "candidate_not_reviewed",
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "path": "net/minecraft/client/HotbarManager.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/HotbarManager.java",
+      "method": "load",
+      "start_line": 34,
+      "end_line": 51,
+      "file_sha256": "e06b5fa03c4d063db9d9ee1246e7091cf008420ee388ef96cccc0602bdfec99c",
+      "method_sha256": "ef95ba2138c5eb7f152da2ed57ada67fb2a899e61756590208b974d43122f750",
+      "structural_fingerprint": "c7bbdae7f8b8dae0444b10571156b068ee4ceb247d7fc9fab3aeb466d3a90088",
+      "source_url_or_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "ast_calls": [
+        "read",
+        "getDataVersion",
+        "updateToCurrentVersion",
+        "fromTag",
+        "getList",
+        "valueOf",
+        "error"
+      ],
+      "ast_guards": [
+        "(compoundtag == null)"
+      ],
+      "context": "private void load() {\n      try {\n         CompoundTag compoundtag = NbtIo.read(this.optionsFile);\n         if (compoundtag == null) {\n            return;\n         }\n\n         int i = NbtUtils.getDataVersion(compoundtag, 1343);\n         compoundtag = DataFixTypes.HOTBAR.updateToCurrentVersion(this.fixerUpper, compoundtag, i);\n\n         for(int j = 0; j < 9; ++j) {\n            this.hotbars[j].fromTag(compoundtag.getList(String.valueOf(j), 10));\n         }\n      } catch (Exception exception) {\n         LOGGER.error(\"Failed to load creative mode options\", (Throwable)exception);\n      }\n\n   }",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    }
+  ],
+  "comparators": [
+    {
+      "candidate_id": "a859ad89a511fc0273b1",
+      "family": "native-itemstack-compound-payload-construction",
+      "input": "id resource string, Count byte, typed tag compound, optional ForgeCaps",
+      "output": "registry resolves actual item; obtains Forge delegate; restores count, item tag and capability NBT then forgeInit; damage normalized for damageable item",
+      "preservation": "Does not generate replacement stack with count1: Count/tag are read from same saved payload after ID resolution; item verifyTagAfterLoad may modify tag.",
+      "application_limit": "Count signed byte and bad/unresolved IDs can fail/empty in caller; sourceTag assigned by reference, no deep-copy claim. Remap must happen before load; native QA still required for exact target tag behavior."
+    },
+    {
+      "candidate_id": "d0e0b5fa5b1e7bda65b9",
+      "family": "native-player-disk-dataversion-upgrade-and-selected-owner-reader",
+      "input": "UUID.dat compressed NBT, historical DataVersion default-1",
+      "output": "disk loader reads valid file, upgrades through DataFixTypes.PLAYER.updateToCurrentVersion then player.load; loading event fired afterwards",
+      "preservation": "Full save writes temporary file then safeReplaceFile with .dat_old; singleplayer-owner branch loads WorldData player tag instead and manually fires Forge loading event. This explains why testing only a different UUID.dat is insufficient old-world proof.",
+      "application_limit": "Loader does not fall back to .dat_old on failure; update/player.load outside file-read catch. No current original world read/write or native QA by this script; full payload loader distinct from owned-field readers."
+    },
+    {
+      "candidate_id": "6aa4c1e09157de9ead2f",
+      "family": "native-player-inventory-compartment-slot-restore",
+      "input": "ItemStack compounds with unsigned byte Slot namespaces main0..35/armor100..103/offhand150",
+      "output": "clears existing compartments, native-parses full stacks, places only nonempty valid slot payloads",
+      "preservation": "Read full load/save/replaceWith/dropAll. These are actual player owned item compartments, not generic NBT parser. Remap must occur before ItemStack.of discards unknown ID; same inventory three compartments count1. replaceWith transfers references/current selected slot, not a deep archive.",
+      "application_limit": "Duplicate saved slot entries overwrite prior row; invalid slot silently lost, empty unknown ID skipped. No item count clamp here. dropAll clears after unchecked player.drop. Existing keepInventory/clone behavior not changed by future root whitelist."
+    },
+    {
+      "candidate_id": "01654425f525de7da086",
+      "family": "ae2-memory-card-persisted-upgrade-plan-restored-with-real-item-custody",
+      "input": "Card ExportedUpgrades list actual stacks+counts; destination installed upgrades; player inventory and discovered network-tool storage; creative flag",
+      "output": "Export counts same item+tag stacks into immutable-format record; import requires player for actual upgrade restoration, removes excess back to sources/dropoverflow, simulates capacity before drawing missing resources and returns failed insertion remainder. Card carries a plan, never legitimizes free upgrades in survival",
+      "preservation": "One card-owned durable configuration restoration with concrete material ownership boundaries; copy of plan versus custody of paid cards differ. Generic settings/priority/config inventory and all upgrade types support0, not same-copy-per-key credit. Network tool finder uses matching item stack in player inventory, not all remote storage.",
+      "application_limit": "Creative sets list but then continues normal algorithm; desiredUpgradeCounts keyed Item yet getOrDefault uses current ItemStack object, apparent key mismatch makes excess-removal desiredcount0 (static, not tested). Export groups by type+tag but import collapses by Item and last count overwrites; not arbitrary component fidelity. removeItems deep transaction implementation not re-reviewed, no atomicity guarantee; partial restore marked imported without asserting every desired upgrade present. ExportedUpgrades comment says xmap legacy directlist but actual codec only record upgrades, no compatible raw-list fallback observed. New native APIs not1.20.1 port; no runtime claim."
+    }
+  ],
+  "evidence": [
+    {
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Original candidate local mapped source artifact identifier; not a Git commit",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "path": "net/minecraft/client/HotbarManager.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/HotbarManager.java",
+      "start_line": 1,
+      "end_line": 76,
+      "file_sha256": "e06b5fa03c4d063db9d9ee1246e7091cf008420ee388ef96cccc0602bdfec99c",
+      "range_sha256": "e06b5fa03c4d063db9d9ee1246e7091cf008420ee388ef96cccc0602bdfec99c",
+      "role": "complete client global preset file owner, version upgrade, read/write/lazy init/error policy",
+      "credit": 0
+    },
+    {
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Original candidate local mapped source artifact identifier; not a Git commit",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "path": "net/minecraft/client/player/inventory/Hotbar.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/player/inventory/Hotbar.java",
+      "start_line": 1,
+      "end_line": 49,
+      "file_sha256": "9ae80ae58bf284a0e6f08d7fcfd048f623dfba92cb698679c797657ecf8292ff",
+      "range_sha256": "9ae80ae58bf284a0e6f08d7fcfd048f623dfba92cb698679c797657ecf8292ff",
+      "role": "complete actual nine-item preset payload codec",
+      "credit": 0
+    },
+    {
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Original candidate local mapped source artifact identifier; not a Git commit",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "path": "net/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen.java",
+      "start_line": 486,
+      "end_line": 514,
+      "file_sha256": "6b9a4b27697041bfe1f159cc10a4752ffba6fd2515f877b158f2e1ce3f154473",
+      "range_sha256": "dd6f09d2cb6870a10b1a8bb6e1a9ff2a4c9780d2dc595f8ed6bf1f8776491519",
+      "role": "actual template list display and empty group special UI",
+      "credit": 0
+    },
+    {
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Original candidate local mapped source artifact identifier; not a Git commit",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "path": "net/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/gui/screens/inventory/CreativeModeInventoryScreen.java",
+      "start_line": 784,
+      "end_line": 810,
+      "file_sha256": "6b9a4b27697041bfe1f159cc10a4752ffba6fd2515f877b158f2e1ce3f154473",
+      "range_sha256": "ea91427ad2c8b0d26e3ed6e10d7e5d9a3aecb12c02ce96170fedbdc979ddc80b",
+      "role": "actual capture copies player slots to preset; actual load materializes copies and requests creative slot update",
+      "credit": 0
+    },
+    {
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Original candidate local mapped source artifact identifier; not a Git commit",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "path": "net/minecraft/client/multiplayer/MultiPlayerGameMode.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/multiplayer/MultiPlayerGameMode.java",
+      "start_line": 457,
+      "end_line": 462,
+      "file_sha256": "3badb03daf9391a4ed52a186fb8b3807bc08d48d74f7a773c0dd963a8b9f13fd",
+      "range_sha256": "35c30893fa2765c41a74e8243148b2f82ebfe050092a35d216520822e7e0ccdc",
+      "role": "real creative/feature guard before packet send",
+      "credit": 0
+    },
+    {
+      "repo": "Minecraft+MinecraftForge native mapped1.20.1",
+      "revision": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "revision_kind": "Original candidate local mapped source artifact identifier; not a Git commit",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "path": "net/minecraft/server/network/ServerGamePacketListenerImpl.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/network/ServerGamePacketListenerImpl.java",
+      "start_line": 1603,
+      "end_line": 1634,
+      "file_sha256": "e33f2a3082a3c949ac458b2c5d93133f7777399c0712c12493c458b2d9a2c3e1",
+      "range_sha256": "7b1fdb8a36bd42edb60e3ce89db578c0a665832fc238301b72ec223a7aa77dfa",
+      "role": "actual authoritative creative-mode receiver and slot mutation with source blockentity payload substitution",
+      "credit": 0
+    }
+  ],
+  "range_hash_convention": "Inclusive splitlines LF-joined without trailing newline; candidate digest additionally outer-strips",
+  "proposals": [
+    {
+      "candidate_id": "0074b92ca2dc5bec92c0",
+      "recommended_max_credit": 0,
+      "accepted_reference_credit_added": 0,
+      "proposed_family": "support-native-client-creative-hotbar-presets-versioned-disk-and-authority-boundary",
+      "mechanism": "Actual save action copies nine player hotbar stacks into selected preset, then saves nine groups in client hotbar.nbt with current DataVersion. Lazy first get reads global file, defaults old version1343, delegates HOTBAR datafix before reconstructing fixed-size lists. Actual load action copies restored templates into client player slots, filtering feature-disabled items, then requests server creative-slot mutation. Client sender and actual server receiver require creative mode. This owns authored templates rather than paid inventory; capture does not debit items and loading can generate copies repeatedly. Native ItemStack codec and versioned generic file restoration already accepted support.",
+      "dedup": "Recommend0: versioned local grouped stack snapshots use already credited native data-version upgrade/disk construction and bounded fixed-slot inventory codec. Named groups and client-global preset carrier alone do not create a new migration mechanism. AE2 memory-card authored upgrade plan likewise distinguishes template from physical custody; this source provides concrete creative authority negative support, not new earned resource owner. No owner alias/type routing/new reconciliation beyond grouped fixed slots is established. All six source ranges/helpers/groups0.",
+      "limits": [
+        "hotbar.nbt is client-global under supplied game directory, not per world/player UUID; never substitute it for server paid inventory or Clone durable facts. No item payment on save or load; repeatedly materialized templates only valid with creative authority.",
+        "load catches whole exception, may leave earlier groups/items partially restored; get then sets loaded=true even after failure, so no automatic retry until new manager/restart. save iterates get and can subsequently overwrite file using partial/default state. Underlying file IO atomicity/backup policy not inspected.",
+        "fromTag loops current nine slots; short lists yield empty compounds into native ItemStack.of; excess slots/groups ignored. Unknown registry items/default parse and native HOTBAR datafix internals not reaudited; no claim arbitrary old custom NBT preserved.",
+        "Client load filters current enabledFeatures to EMPTY and writes local inventory before sender guard; server rejects noncreative requests. Actual server additionally validates slot1..45 and stack condition <=64, so raw local restored count does not imply server accepted inventory. No client/server runtime test.",
+        "Server can replace supplied BlockEntityTag data from currently loaded coordinates using actual world blockentity.saveToItem. Therefore remembered template NBT is not unconditional authoritative server payload; current world can influence restored result. Source coordinate lookup and native saveToItem internals not expanded.",
+        "No native/source code execution or game start; this is fixed-source reading, not a fix for Dynasty. No production, checklist, main ledger, commit or push modification."
+      ]
+    }
+  ],
+  "verification": {
+    "candidate_hashes_verified": true,
+    "evidence_hashes_verified": true,
+    "recommended_credit_upper_bound": 0,
+    "actual_credit_added": 0,
+    "main_ledger_modified": false,
+    "production_modified": false,
+    "network_used": false,
+    "game_started": false,
+    "git_commit_push": false
+  }
+}

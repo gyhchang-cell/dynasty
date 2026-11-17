@@ -1,0 +1,623 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-03T15:03:36.605040+00:00",
+  "owner": "Main coordinator",
+  "status": "PENDING_INDEPENDENT_REVIEW_MAXIMUM_ONE_COMPOSITE_SPLIT_LENS_LIFECYCLE",
+  "semantic_family": "botania-slot-ordered-paid-composite-lens-nbt-and-inverse-split-remainders-with-native-crafting-trigger-boundaries",
+  "research_credit": 0,
+  "maximum_proposed_credit": 1,
+  "formal_candidate_id": null,
+  "candidate_id_not_fabricated": true,
+  "source": {
+    "repo": "VazkiiMods/Botania",
+    "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+    "source_metadata_path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/source.json",
+    "source_metadata_sha256": "0ae60220bd974a468f9096c1cc905c70b3d57d0b940729a5b8b4c841749e481f",
+    "tree_path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/tree.json",
+    "tree_sha256": "0c57f5092bf0cc3cb1a7dcc05c7e42d555e524305a2b08771d824436c2b6ac4e",
+    "tree_truncated": false,
+    "all_cited_raw_git_blobs_match_pinned_tree": true,
+    "independent_raw_commit_tree_object_proof_read": false,
+    "limitation": "Existing fixed-source metadata/tree pin used; no new remote acquisition or newly read raw commit object. Independent reviewer must assess any additional provenance requirement before credit."
+  },
+  "source_refs": [
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/crafting/recipe/CompositeLensRecipe.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/crafting/recipe/CompositeLensRecipe.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "d9778fcc69fb79560d7034b275b2f0422af4b6fb",
+      "file_sha256": "55f256cad424245f1c75131c7453c3b5f8cfdf9f149580b6be5f20b1b7d00f64",
+      "lines": [
+        1,
+        102
+      ],
+      "whole_file_read": true,
+      "excerpt": "/*\n * This class is distributed as part of the Botania Mod.\n * Get the Source Code in github:\n * https://github.com/Vazkii/Botania\n *\n * Botania is Open Source and distributed under the\n * Botania License: http://botaniamod.net/license.php\n */\npackage vazkii.botania.common.crafting.recipe;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.inventory.CraftingContainer;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.CraftingBookCategory;\nimport net.minecraft.world.item.crafting.CustomRecipe;\nimport net.minecraft.world.item.crafting.RecipeSerializer;\nimport net.minecraft.world.level.Level;\n\nimport org.jetbrains.annotations.NotNull;\n\nimport vazkii.botania.api.mana.CompositableLensItem;\nimport vazkii.botania.common.lib.BotaniaTags;\n\npublic class CompositeLensRecipe extends CustomRecipe {\n\tpublic static final NoOpRecipeSerializer<CompositeLensRecipe> SERIALIZER = new NoOpRecipeSerializer<>(CompositeLensRecipe::new);\n\n\tpublic CompositeLensRecipe(ResourceLocation id) {\n\t\tsuper(id, CraftingBookCategory.REDSTONE);\n\t}\n\n\t@Override\n\tpublic boolean matches(@NotNull CraftingContainer inv, @NotNull Level world) {\n\t\tboolean foundLens = false;\n\t\tboolean foundSecondLens = false;\n\t\tboolean foundGlue = false;\n\n\t\tfor (int i = 0; i < inv.getContainerSize(); i++) {\n\t\t\tItemStack stack = inv.getItem(i);\n\t\t\tif (!stack.isEmpty()) {\n\t\t\t\tif (stack.getItem() instanceof CompositableLensItem && !foundSecondLens) {\n\t\t\t\t\tif (foundLens) {\n\t\t\t\t\t\tfoundSecondLens = true;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tfoundLens = true;\n\t\t\t\t\t}\n\t\t\t\t} else if (stack.is(BotaniaTags.Items.LENS_GLUE) && !foundGlue) {\n\t\t\t\t\tfoundGlue = true;\n\t\t\t\t} else {\n\t\t\t\t\treturn false; // Found an invalid or extra item, breaking the recipe\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\treturn foundSecondLens && foundGlue;\n\t}\n\n\t@NotNull\n\t@Override\n\tpublic ItemStack assemble(@NotNull CraftingContainer inv, @NotNull RegistryAccess registries) {\n\t\tItemStack lens = ItemStack.EMPTY;\n\t\tItemStack secondLens = ItemStack.EMPTY;\n\n\t\tfor (int i = 0; i < inv.getContainerSize(); i++) {\n\t\t\tItemStack stack = inv.getItem(i);\n\t\t\tif (!stack.isEmpty()) {\n\t\t\t\tif (stack.getItem() instanceof CompositableLensItem) {\n\t\t\t\t\tif (lens.isEmpty()) {\n\t\t\t\t\t\tlens = stack;\n\t\t\t\t\t} else {\n\t\t\t\t\t\tsecondLens = stack;\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tif (lens.getItem() instanceof CompositableLensItem lensItem) {\n\t\t\tif (secondLens.isEmpty() || !lensItem.canCombineLenses(lens, secondLens) || !lensItem.getCompositeLens(lens).isEmpty() || !lensItem.getCompositeLens(secondLens).isEmpty()) {\n\t\t\t\treturn ItemStack.EMPTY;\n\t\t\t}\n\n\t\t\tItemStack lensCopy = lens.copyWithCount(1);\n\t\t\tItemStack secondCopy = secondLens.copyWithCount(1);\n\t\t\tlensItem.setCompositeLens(lensCopy, secondCopy);\n\n\t\t\treturn lensCopy;\n\t\t}\n\n\t\treturn ItemStack.EMPTY;\n\t}\n\n\t@Override\n\tpublic boolean canCraftInDimensions(int width, int height) {\n\t\treturn width * height >= 3;\n\t}\n\n\t@NotNull\n\t@Override\n\tpublic RecipeSerializer<?> getSerializer() {\n\t\treturn SERIALIZER;\n\t}\n}",
+      "excerpt_sha256": "fdb210564696d17d0ff3d437428e790d4c663afd3185093431fb5e3221d07693",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/crafting/recipe/CompositeLensRecipe.java#L1-L102"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/crafting/recipe/SplitLensRecipe.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/crafting/recipe/SplitLensRecipe.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "54adf73c4489efa7401de6c76638c763525466e4",
+      "file_sha256": "a05e5eb9672a82397efebb16db8021b918da050360018eecaca0ef9f1ad4131e",
+      "lines": [
+        1,
+        90
+      ],
+      "whole_file_read": true,
+      "excerpt": "/*\n * This class is distributed as part of the Botania Mod.\n * Get the Source Code in github:\n * https://github.com/Vazkii/Botania\n *\n * Botania is Open Source and distributed under the\n * Botania License: http://botaniamod.net/license.php\n */\npackage vazkii.botania.common.crafting.recipe;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.inventory.CraftingContainer;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.CraftingBookCategory;\nimport net.minecraft.world.item.crafting.CustomRecipe;\nimport net.minecraft.world.item.crafting.RecipeSerializer;\nimport net.minecraft.world.level.Level;\n\nimport org.jetbrains.annotations.NotNull;\n\nimport vazkii.botania.api.mana.BasicLensItem;\n\npublic class SplitLensRecipe extends CustomRecipe {\n\tpublic static final NoOpRecipeSerializer<SplitLensRecipe> SERIALIZER = new NoOpRecipeSerializer<>(SplitLensRecipe::new);\n\n\tpublic SplitLensRecipe(ResourceLocation id) {\n\t\tsuper(id, CraftingBookCategory.REDSTONE);\n\t}\n\n\t@Override\n\tpublic boolean matches(@NotNull CraftingContainer inv, @NotNull Level level) {\n\t\treturn !assemble(inv, level.registryAccess()).isEmpty();\n\t}\n\n\t@NotNull\n\t@Override\n\tpublic ItemStack assemble(CraftingContainer inv, @NotNull RegistryAccess registries) {\n\t\tItemStack found = ItemStack.EMPTY;\n\t\tfor (int i = 0; i < inv.getContainerSize(); i++) {\n\t\t\tItemStack candidate = inv.getItem(i);\n\t\t\tif (candidate.isEmpty()) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tif (!found.isEmpty() || (found = getComposite(candidate)).isEmpty()) {\n\t\t\t\treturn ItemStack.EMPTY;\n\t\t\t}\n\t\t}\n\t\tif (!found.isEmpty()) {\n\t\t\tfound = found.copyWithCount(1);\n\t\t}\n\t\treturn found;\n\t}\n\n\tprivate ItemStack getComposite(ItemStack stack) {\n\t\tItem item = stack.getItem();\n\t\tif (!(item instanceof BasicLensItem basicLens)) {\n\t\t\treturn ItemStack.EMPTY;\n\t\t}\n\t\treturn basicLens.getCompositeLens(stack);\n\t}\n\n\t@NotNull\n\t@Override\n\tpublic NonNullList<ItemStack> getRemainingItems(CraftingContainer inv) {\n\t\tNonNullList<ItemStack> remaining = NonNullList.withSize(inv.getContainerSize(), ItemStack.EMPTY);\n\t\tfor (int i = 0; i < inv.getContainerSize(); i++) {\n\t\t\tItemStack candidate = inv.getItem(i);\n\t\t\tif (candidate.getItem() instanceof BasicLensItem basicLensItem) {\n\t\t\t\tItemStack newLens = candidate.copyWithCount(1);\n\t\t\t\tbasicLensItem.setCompositeLens(newLens, ItemStack.EMPTY);\n\t\t\t\tremaining.set(i, newLens);\n\t\t\t}\n\t\t}\n\t\treturn remaining;\n\t}\n\n\t@Override\n\tpublic boolean canCraftInDimensions(int width, int height) {\n\t\treturn width * height >= 1;\n\t}\n\n\t@NotNull\n\t@Override\n\tpublic RecipeSerializer<?> getSerializer() {\n\t\treturn SERIALIZER;\n\t}\n}",
+      "excerpt_sha256": "8109ba635a2cf4cea8159d9badd109a5a11682f75f291aa7c5e010a4466de4ed",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/crafting/recipe/SplitLensRecipe.java#L1-L90"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/lens/LensItem.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/item/lens/LensItem.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "d38991ab3d8a592eb3d7de087bb081e826af16c3",
+      "file_sha256": "544ea1ababe5cb3349f5feb54c1bb84546dd484821629689e7b38e198adbd478",
+      "lines": [
+        1,
+        248
+      ],
+      "whole_file_read": true,
+      "excerpt": "/*\n * This class is distributed as part of the Botania Mod.\n * Get the Source Code in github:\n * https://github.com/Vazkii/Botania\n *\n * Botania is Open Source and distributed under the\n * Botania License: http://botaniamod.net/license.php\n */\npackage vazkii.botania.common.item.lens;\n\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.TextColor;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.item.DyeColor;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.TooltipFlag;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.HitResult;\n\nimport org.jetbrains.annotations.NotNull;\n\nimport vazkii.botania.api.internal.ManaBurst;\nimport vazkii.botania.api.mana.*;\nimport vazkii.botania.common.helper.ColorHelper;\nimport vazkii.botania.common.helper.ItemNBTHelper;\nimport vazkii.botania.common.item.BotaniaItems;\n\nimport java.util.List;\n\npublic class LensItem extends Item implements ControlLensItem, CompositableLensItem, TinyPlanetExcempt {\n\tpublic static final int PROP_NONE = 0,\n\t\t\tPROP_POWER = 1,\n\t\t\tPROP_ORIENTATION = 1 << 1,\n\t\t\tPROP_TOUCH = 1 << 2,\n\t\t\tPROP_INTERACTION = 1 << 3,\n\t\t\tPROP_DAMAGE = 1 << 4,\n\t\t\tPROP_CONTROL = 1 << 5;\n\n\tprivate static final String TAG_COLOR = \"color\";\n\tprivate static final String TAG_COMPOSITE_LENS = \"compositeLens\";\n\n\tprivate final Lens lens;\n\tprivate final int props;\n\n\tpublic LensItem(Item.Properties builder, Lens lens, int props) {\n\t\tsuper(builder);\n\t\tthis.lens = lens;\n\t\tthis.props = props;\n\t}\n\n\t@Override\n\tpublic void appendHoverText(ItemStack stack, Level world, List<Component> stacks, TooltipFlag flags) {\n\t\tint storedColor = getStoredColor(stack);\n\t\tif (storedColor != -1) {\n\t\t\tvar colorName = Component.translatable(storedColor == 16 ? \"botania.color.rainbow\" : \"color.minecraft.\" + DyeColor.byId(storedColor));\n\t\t\tTextColor realColor = TextColor.fromRgb(getLensColor(stack, world));\n\t\t\tstacks.add(Component.translatable(\"botaniamisc.color\", colorName).withStyle(s -> s.withColor(realColor)));\n\t\t}\n\n\t\tif (lens instanceof StormLens) {\n\t\t\tstacks.add(Component.translatable(\"botaniamisc.creative\").withStyle(ChatFormatting.GRAY));\n\t\t}\n\t}\n\n\t@NotNull\n\t@Override\n\tpublic Component getName(@NotNull ItemStack stack) {\n\t\tItemStack compositeLens = getCompositeLens(stack);\n\t\tif (compositeLens.isEmpty()) {\n\t\t\treturn super.getName(stack);\n\t\t}\n\t\tString shortKeyA = stack.getDescriptionId() + \".short\";\n\t\tString shortKeyB = compositeLens.getDescriptionId() + \".short\";\n\t\treturn Component.translatable(\"item.botania.composite_lens\", Component.translatable(shortKeyA), Component.translatable(shortKeyB));\n\t}\n\n\t@Override\n\tpublic void apply(ItemStack stack, BurstProperties props, Level level) {\n\t\tint storedColor = getStoredColor(stack);\n\t\tif (storedColor != -1) {\n\t\t\tprops.color = getLensColor(stack, level);\n\t\t}\n\n\t\tgetLens(stack).apply(stack, props);\n\n\t\tItemStack compositeLens = getCompositeLens(stack);\n\t\tif (!compositeLens.isEmpty() && compositeLens.getItem() instanceof BasicLensItem lens) {\n\t\t\tlens.apply(compositeLens, props, level);\n\t\t}\n\t}\n\n\t@Override\n\tpublic boolean collideBurst(ManaBurst burst, HitResult pos, boolean isManaBlock, boolean shouldKill, ItemStack stack) {\n\t\tshouldKill = getLens(stack).collideBurst(burst, pos, isManaBlock, shouldKill, stack);\n\n\t\tItemStack compositeLens = getCompositeLens(stack);\n\t\tif (!compositeLens.isEmpty() && compositeLens.getItem() instanceof BasicLensItem lens) {\n\t\t\tshouldKill = lens.collideBurst(burst, pos, isManaBlock, shouldKill, compositeLens);\n\t\t}\n\n\t\treturn shouldKill;\n\t}\n\n\t@Override\n\tpublic void updateBurst(ManaBurst burst, ItemStack stack) {\n\t\tint storedColor = getStoredColor(stack);\n\n\t\tif (storedColor == 16 && burst.entity().level().isClientSide) {\n\t\t\tburst.setColor(getLensColor(stack, burst.entity().level()));\n\t\t}\n\n\t\tgetLens(stack).updateBurst(burst, stack);\n\n\t\tItemStack compositeLens = getCompositeLens(stack);\n\t\tif (!compositeLens.isEmpty() && compositeLens.getItem() instanceof BasicLensItem lens) {\n\t\t\tlens.updateBurst(burst, compositeLens);\n\t\t}\n\t}\n\n\t@Override\n\tpublic int getLensColor(ItemStack stack, Level level) {\n\t\tint storedColor = getStoredColor(stack);\n\n\t\tif (storedColor == -1) {\n\t\t\treturn 0xFFFFFF;\n\t\t}\n\n\t\tif (storedColor == 16) {\n\t\t\tif (level == null) {\n\t\t\t\treturn 0xFFFFFF;\n\t\t\t}\n\t\t\treturn Mth.hsvToRgb(level.getGameTime() * 2 % 360 / 360F, 1F, 1F);\n\t\t}\n\n\t\treturn ColorHelper.getColorValue(DyeColor.byId(storedColor));\n\t}\n\n\tpublic static int getStoredColor(ItemStack stack) {\n\t\treturn ItemNBTHelper.getInt(stack, TAG_COLOR, -1);\n\t}\n\n\tpublic static void setLensColor(ItemStack stack, int color) {\n\t\tItemNBTHelper.setInt(stack, TAG_COLOR, color);\n\t}\n\n\t@Override\n\tpublic boolean doParticles(ManaBurst burst, ItemStack stack) {\n\t\treturn true;\n\t}\n\n\tpublic static boolean isBlacklisted(ItemStack lens1, ItemStack lens2) {\n\t\tCompositableLensItem item1 = (CompositableLensItem) lens1.getItem();\n\t\tCompositableLensItem item2 = (CompositableLensItem) lens2.getItem();\n\t\treturn (item1.getProps(lens1) & item2.getProps(lens2)) != 0;\n\t}\n\n\tpublic static Lens getLens(ItemStack stack) {\n\t\tif (stack.getItem() instanceof LensItem lens) {\n\t\t\treturn lens.lens;\n\t\t} else {\n\t\t\treturn new Lens();\n\t\t}\n\t}\n\n\t@Override\n\tpublic boolean canCombineLenses(ItemStack sourceLens, ItemStack compositeLens) {\n\t\tCompositableLensItem sourceItem = (CompositableLensItem) sourceLens.getItem();\n\t\tCompositableLensItem compositeItem = (CompositableLensItem) compositeLens.getItem();\n\t\tif (sourceItem == compositeItem) {\n\t\t\treturn false;\n\t\t}\n\n\t\tif (!sourceItem.isCombinable(sourceLens) || !compositeItem.isCombinable(compositeLens)) {\n\t\t\treturn false;\n\t\t}\n\n\t\tif (isBlacklisted(sourceLens, compositeLens)) {\n\t\t\treturn false;\n\t\t}\n\n\t\treturn true;\n\t}\n\n\t@Override\n\tpublic ItemStack getCompositeLens(ItemStack stack) {\n\t\tCompoundTag cmp = ItemNBTHelper.getCompound(stack, TAG_COMPOSITE_LENS, true);\n\t\tif (cmp == null) {\n\t\t\treturn ItemStack.EMPTY;\n\t\t} else {\n\t\t\treturn ItemStack.of(cmp);\n\t\t}\n\t}\n\n\t@Override\n\tpublic ItemStack setCompositeLens(ItemStack sourceLens, ItemStack compositeLens) {\n\t\tif (compositeLens.isEmpty()) {\n\t\t\tItemNBTHelper.removeEntry(sourceLens, TAG_COMPOSITE_LENS);\n\t\t} else {\n\t\t\tCompoundTag cmp = compositeLens.save(new CompoundTag());\n\t\t\tItemNBTHelper.setCompound(sourceLens, TAG_COMPOSITE_LENS, cmp);\n\t\t}\n\t\treturn sourceLens;\n\t}\n\n\t@Override\n\tpublic int getManaToTransfer(ManaBurst burst, ItemStack stack, ManaReceiver receiver) {\n\t\treturn getLens(stack).getManaToTransfer(burst, stack, receiver);\n\t}\n\n\t@Override\n\tpublic boolean shouldPull(ItemStack stack) {\n\t\treturn !stack.is(BotaniaItems.lensStorm);\n\t}\n\n\t@Override\n\tpublic boolean isControlLens(ItemStack stack) {\n\t\treturn (getProps(stack) & PROP_CONTROL) != 0;\n\t}\n\n\t@Override\n\tpublic boolean allowBurstShooting(ItemStack stack, ManaSpreader spreader, boolean redstone) {\n\t\treturn getLens(stack).allowBurstShooting(stack, spreader, redstone);\n\t}\n\n\t@Override\n\tpublic void onControlledSpreaderTick(ItemStack stack, ManaSpreader spreader, boolean redstone) {\n\t\tgetLens(stack).onControlledSpreaderTick(stack, spreader, redstone);\n\t}\n\n\t@Override\n\tpublic void onControlledSpreaderPulse(ItemStack stack, ManaSpreader spreader) {\n\t\tgetLens(stack).onControlledSpreaderPulse(stack, spreader);\n\t}\n\n\t@Override\n\tpublic int getProps(ItemStack stack) {\n\t\treturn props;\n\t}\n\n\t@Override\n\tpublic boolean isCombinable(ItemStack stack) {\n\t\treturn !stack.is(BotaniaItems.lensNormal);\n\t}\n\n}",
+      "excerpt_sha256": "d466b11d435e5b6d275ebb9a4c52240b739f8db899dd72fe902a856b8335b921",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/item/lens/LensItem.java#L1-L248"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/mana/CompositableLensItem.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/api/mana/CompositableLensItem.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "0afc41ccfc216fef2fcc40605ee6f75efba7bdec",
+      "file_sha256": "513116454768db04bb31008e03f968a983fbea583f2e17e4648a4e5e6b9fc408",
+      "lines": [
+        1,
+        28
+      ],
+      "whole_file_read": true,
+      "excerpt": "/*\n * This class is distributed as part of the Botania Mod.\n * Get the Source Code in github:\n * https://github.com/Vazkii/Botania\n *\n * Botania is Open Source and distributed under the\n * Botania License: http://botaniamod.net/license.php\n */\npackage vazkii.botania.api.mana;\n\nimport net.minecraft.world.item.ItemStack;\n\n/**\n * Have an Item implement this to be counted as a lens that can be combined with a LensItem.\n */\npublic interface CompositableLensItem extends BasicLensItem {\n\n\t/**\n\t * Returns the properties of the itemstack, used to check if two lenses can combine.\n\t */\n\tint getProps(ItemStack stack);\n\n\t/**\n\t * Checks if the lens is combinable.\n\t */\n\tboolean isCombinable(ItemStack stack);\n\n}",
+      "excerpt_sha256": "142ecf30aed4206aa8ec119b3552e5603d039c207a504a04bafe8b9a198010ec",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/mana/CompositableLensItem.java#L1-L28"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/mana/BasicLensItem.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/api/mana/BasicLensItem.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "c9268ba52d99d827e056c91aff0c420f2862088c",
+      "file_sha256": "76f1c4090c00cd5a36c837a76362117186eb03e7667359b08760122cb4ae4a63",
+      "lines": [
+        1,
+        39
+      ],
+      "whole_file_read": true,
+      "excerpt": "/*\n * This class is distributed as part of the Botania Mod.\n * Get the Source Code in github:\n * https://github.com/Vazkii/Botania\n *\n * Botania is Open Source and distributed under the\n * Botania License: http://botaniamod.net/license.php\n */\npackage vazkii.botania.api.mana;\n\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\n\n/**\n * Have an Item implement this to be counted as a lens for the mana spreader.\n */\npublic interface BasicLensItem extends LensEffectItem {\n\n\tint getLensColor(ItemStack stack, Level level);\n\n\t/**\n\t * Can the source lens be combined with the composite lens? This is called\n\t * for both the BasicLensItem instance of ItemStack.getItem() of sourceLens and compositeLens.\n\t */\n\tboolean canCombineLenses(ItemStack sourceLens, ItemStack compositeLens);\n\n\t/**\n\t * Gets the composite lens in the stack passed in, return empty for none.\n\t */\n\tItemStack getCompositeLens(ItemStack stack);\n\n\t/**\n\t * Sets the composite lens for the sourceLens as the compositeLens, returns\n\t * the ItemStack with the combination. If compositeLens is empty, this removes\n\t * the composite.\n\t */\n\tItemStack setCompositeLens(ItemStack sourceLens, ItemStack compositeLens);\n\n}",
+      "excerpt_sha256": "311b1d6e2e44220bb12e980ea8113f89f1643ca183c063313cb8e433b675c0c0",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/mana/BasicLensItem.java#L1-L39"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/crafting/recipe/NoOpRecipeSerializer.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/crafting/recipe/NoOpRecipeSerializer.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "5f1e74e8bec8cc71e75fbf9cc3f43a67cfdcd392",
+      "file_sha256": "9cf8e1350ef3b84a9333dd243693927c60f5be24b2b8d20f707b05e134c61b6e",
+      "lines": [
+        1,
+        33
+      ],
+      "whole_file_read": true,
+      "excerpt": "package vazkii.botania.common.crafting.recipe;\n\nimport com.google.gson.JsonObject;\n\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.crafting.Recipe;\nimport net.minecraft.world.item.crafting.RecipeSerializer;\n\nimport java.util.function.Function;\n\n// Serializer for dynamic recipes that don't have a json/network representation\n// The recipe type fully identifies the recipe\npublic class NoOpRecipeSerializer<T extends Recipe<?>> implements RecipeSerializer<T> {\n\tprivate final Function<ResourceLocation, T> constructor;\n\n\tpublic NoOpRecipeSerializer(Function<ResourceLocation, T> constructor) {\n\t\tthis.constructor = constructor;\n\t}\n\n\t@Override\n\tpublic T fromJson(ResourceLocation recipeId, JsonObject serializedRecipe) {\n\t\treturn this.constructor.apply(recipeId);\n\t}\n\n\t@Override\n\tpublic T fromNetwork(ResourceLocation recipeId, FriendlyByteBuf buffer) {\n\t\treturn this.constructor.apply(recipeId);\n\t}\n\n\t@Override\n\tpublic void toNetwork(FriendlyByteBuf buffer, T recipe) {}\n}",
+      "excerpt_sha256": "2ff871ffab0a9103ee6c3aff99bc70ace297da8b9f8075b1e5da54c793f2b6cf",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/crafting/recipe/NoOpRecipeSerializer.java#L1-L33"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/helper/ItemNBTHelper.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/helper/ItemNBTHelper.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "9687eba93900606092e8e0e9484afa3d9d37a6d8",
+      "file_sha256": "5ea781235d226986902d8d48c54a21ec1b584925cdc59467228076e9f04e7034",
+      "lines": [
+        1,
+        236
+      ],
+      "whole_file_read": true,
+      "excerpt": "/*\n * This class is distributed as part of the Botania Mod.\n * Get the Source Code in github:\n * https://github.com/Vazkii/Botania\n *\n * Botania is Open Source and distributed under the\n * Botania License: http://botaniamod.net/license.php\n */\npackage vazkii.botania.common.helper;\n\nimport com.google.gson.JsonObject;\nimport com.mojang.serialization.Dynamic;\nimport com.mojang.serialization.JsonOps;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.nbt.NbtOps;\nimport net.minecraft.nbt.Tag;\nimport net.minecraft.world.item.ItemStack;\n\nimport org.jetbrains.annotations.Contract;\nimport org.jetbrains.annotations.Nullable;\n\nimport vazkii.botania.api.mana.ManaItem;\nimport vazkii.botania.xplat.XplatAbstractions;\n\npublic final class ItemNBTHelper {\n\n\tprivate static final int[] EMPTY_INT_ARRAY = new int[0];\n\tprivate static final long[] EMPTY_LONG_ARRAY = new long[0];\n\n\t// SETTERS ///////////////////////////////////////////////////////////////////\n\n\tpublic static void set(ItemStack stack, String tag, Tag nbt) {\n\t\tstack.getOrCreateTag().put(tag, nbt);\n\t}\n\n\tpublic static void setBoolean(ItemStack stack, String tag, boolean b) {\n\t\tstack.getOrCreateTag().putBoolean(tag, b);\n\t}\n\n\tpublic static void setByte(ItemStack stack, String tag, byte b) {\n\t\tstack.getOrCreateTag().putByte(tag, b);\n\t}\n\n\tpublic static void setShort(ItemStack stack, String tag, short s) {\n\t\tstack.getOrCreateTag().putShort(tag, s);\n\t}\n\n\tpublic static void setInt(ItemStack stack, String tag, int i) {\n\t\tstack.getOrCreateTag().putInt(tag, i);\n\t}\n\n\tpublic static void setIntArray(ItemStack stack, String tag, int[] val) {\n\t\tstack.getOrCreateTag().putIntArray(tag, val);\n\t}\n\n\tpublic static void setLong(ItemStack stack, String tag, long l) {\n\t\tstack.getOrCreateTag().putLong(tag, l);\n\t}\n\n\tpublic static void setLongArray(ItemStack stack, String tag, long[] val) {\n\t\tstack.getOrCreateTag().putLongArray(tag, val);\n\t}\n\n\tpublic static void setFloat(ItemStack stack, String tag, float f) {\n\t\tstack.getOrCreateTag().putFloat(tag, f);\n\t}\n\n\tpublic static void setDouble(ItemStack stack, String tag, double d) {\n\t\tstack.getOrCreateTag().putDouble(tag, d);\n\t}\n\n\tpublic static void setCompound(ItemStack stack, String tag, CompoundTag cmp) {\n\t\tif (!tag.equalsIgnoreCase(\"ench\")) // not override the enchantments\n\t\t{\n\t\t\tstack.getOrCreateTag().put(tag, cmp);\n\t\t}\n\t}\n\n\tpublic static void setString(ItemStack stack, String tag, String s) {\n\t\tstack.getOrCreateTag().putString(tag, s);\n\t}\n\n\tpublic static void setList(ItemStack stack, String tag, ListTag list) {\n\t\tstack.getOrCreateTag().put(tag, list);\n\t}\n\n\tpublic static void removeEntry(ItemStack stack, String tag) {\n\t\tstack.removeTagKey(tag);\n\t}\n\n\t// GETTERS ///////////////////////////////////////////////////////////////////\n\n\tpublic static boolean verifyExistance(ItemStack stack, String tag) {\n\t\treturn !stack.isEmpty() && stack.hasTag() && stack.getOrCreateTag().contains(tag);\n\t}\n\n\tpublic static boolean verifyType(ItemStack stack, String tag, Class<? extends Tag> tagClass) {\n\t\treturn !stack.isEmpty() && stack.hasTag() && tagClass.isInstance(stack.getOrCreateTag().get(tag));\n\t}\n\n\t@Nullable\n\tpublic static Tag get(ItemStack stack, String tag) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().get(tag) : null;\n\t}\n\n\tpublic static boolean getBoolean(ItemStack stack, String tag, boolean defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getBoolean(tag) : defaultExpected;\n\t}\n\n\tpublic static byte getByte(ItemStack stack, String tag, byte defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getByte(tag) : defaultExpected;\n\t}\n\n\tpublic static short getShort(ItemStack stack, String tag, short defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getShort(tag) : defaultExpected;\n\t}\n\n\tpublic static int getInt(ItemStack stack, String tag, int defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getInt(tag) : defaultExpected;\n\t}\n\n\tpublic static int[] getIntArray(ItemStack stack, String tag) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getIntArray(tag) : EMPTY_INT_ARRAY;\n\t}\n\n\tpublic static long getLong(ItemStack stack, String tag, long defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getLong(tag) : defaultExpected;\n\t}\n\n\tpublic static long[] getLongArray(ItemStack stack, String tag) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getLongArray(tag) : EMPTY_LONG_ARRAY;\n\t}\n\n\tpublic static float getFloat(ItemStack stack, String tag, float defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getFloat(tag) : defaultExpected;\n\t}\n\n\tpublic static double getDouble(ItemStack stack, String tag, double defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getDouble(tag) : defaultExpected;\n\t}\n\n\t/**\n\t * If nullifyOnFail is true it'll return null if it doesn't find any\n\t * compounds, otherwise it'll return a new one.\n\t **/\n\t@Nullable\n\t@Contract(\"_, _, false -> !null\")\n\tpublic static CompoundTag getCompound(ItemStack stack, String tag, boolean nullifyOnFail) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getCompound(tag) : nullifyOnFail ? null : new CompoundTag();\n\t}\n\n\t@Nullable\n\t@Contract(\"_, _, !null -> !null\")\n\tpublic static String getString(ItemStack stack, String tag, String defaultExpected) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getString(tag) : defaultExpected;\n\t}\n\n\t@Nullable\n\t@Contract(\"_, _, _, false -> !null\")\n\tpublic static ListTag getList(ItemStack stack, String tag, int objtype, boolean nullifyOnFail) {\n\t\treturn verifyExistance(stack, tag) ? stack.getOrCreateTag().getList(tag, objtype) : nullifyOnFail ? null : new ListTag();\n\t}\n\n\t// OTHER ///////////////////////////////////////////////////////////////////\n\n\t/**\n\t * Returns the fullness of the mana item:\n\t * 0 if empty, 1 if partially full, 2 if full.\n\t */\n\tpublic static int getFullness(ManaItem item) {\n\t\tint mana = item.getMana();\n\t\tif (mana == 0) {\n\t\t\treturn 0;\n\t\t} else if (mana == item.getMaxMana()) {\n\t\t\treturn 2;\n\t\t} else {\n\t\t\treturn 1;\n\t\t}\n\t}\n\n\tpublic static ItemStack duplicateAndClearMana(ItemStack stack) {\n\t\tItemStack copy = stack.copy();\n\t\tManaItem manaItem = XplatAbstractions.INSTANCE.findManaItem(copy);\n\t\tif (manaItem != null) {\n\t\t\tmanaItem.addMana(-manaItem.getMana());\n\t\t}\n\t\treturn copy;\n\t}\n\n\t/**\n\t * Checks if two items are the same and have the same NBT. If they are `IManaItems`, their mana property is matched\n\t * on whether they are empty, partially full, or full.\n\t */\n\tpublic static boolean matchTagAndManaFullness(ItemStack stack1, ItemStack stack2) {\n\t\tif (!ItemStack.isSameItem(stack1, stack2)) {\n\t\t\treturn false;\n\t\t}\n\t\tManaItem manaItem1 = XplatAbstractions.INSTANCE.findManaItem(stack1);\n\t\tManaItem manaItem2 = XplatAbstractions.INSTANCE.findManaItem(stack2);\n\t\tif (manaItem1 != null && manaItem2 != null) {\n\t\t\tif (getFullness(manaItem1) != getFullness(manaItem2)) {\n\t\t\t\treturn false;\n\t\t\t} else {\n\t\t\t\treturn ItemStack.matches(duplicateAndClearMana(stack1), duplicateAndClearMana(stack2));\n\t\t\t}\n\t\t}\n\t\treturn ItemStack.isSameItemSameTags(stack1, stack2);\n\t}\n\n\t/**\n\t * Serializes the given stack such that {@link net.minecraft.world.item.crafting.ShapedRecipe#itemStackFromJson}\n\t * would be able to read the result back\n\t */\n\tpublic static JsonObject serializeStack(ItemStack stack) {\n\t\tCompoundTag nbt = stack.save(new CompoundTag());\n\t\tbyte c = nbt.getByte(\"Count\");\n\t\tif (c != 1) {\n\t\t\tnbt.putByte(\"count\", c);\n\t\t}\n\t\tnbt.remove(\"Count\");\n\t\trenameTag(nbt, \"id\", \"item\");\n\t\trenameTag(nbt, \"tag\", \"nbt\");\n\t\tDynamic<Tag> dyn = new Dynamic<>(NbtOps.INSTANCE, nbt);\n\t\treturn dyn.convert(JsonOps.INSTANCE).getValue().getAsJsonObject();\n\t}\n\n\tpublic static void renameTag(CompoundTag nbt, String oldName, String newName) {\n\t\tTag tag = nbt.get(oldName);\n\t\tif (tag != null) {\n\t\t\tnbt.remove(oldName);\n\t\t\tnbt.put(newName, tag);\n\t\t}\n\t}\n}",
+      "excerpt_sha256": "952723f187098fa6f6fc495501f5c9c66c9b397f91fbd1b6710d18496ce05d49",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/helper/ItemNBTHelper.java#L1-L236"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "6a1dd1de9e9e57e9a7a00886402abf3cd6208fe8",
+      "file_sha256": "34ddda6a77e5279030a6b1a4bad290ed3a4a7d934f5ba70fc0d8307e6cb7588a",
+      "lines": [
+        124,
+        153
+      ],
+      "whole_file_read": false,
+      "excerpt": "\tpublic static final Item redQuartz = make(prefix(LibItemNames.QUARTZ_RED), new Item(defaultBuilder()));\n\tpublic static final Item elfQuartz = make(prefix(LibItemNames.QUARTZ_ELVEN), new Item(defaultBuilder()));\n\tpublic static final Item sunnyQuartz = make(prefix(LibItemNames.QUARTZ_SUNNY), new Item(defaultBuilder()));\n\n\tpublic static final Item lensNormal = make(prefix(LibItemNames.LENS_NORMAL), new LensItem(stackTo16(), new Lens(), LensItem.PROP_NONE));\n\tpublic static final Item lensSpeed = make(prefix(LibItemNames.LENS_SPEED), new LensItem(stackTo16(), new VelocityLens(), LensItem.PROP_NONE));\n\tpublic static final Item lensPower = make(prefix(LibItemNames.LENS_POWER), new LensItem(stackTo16(), new PotencyLens(), LensItem.PROP_POWER));\n\tpublic static final Item lensTime = make(prefix(LibItemNames.LENS_TIME), new LensItem(stackTo16(), new ResistanceLens(), LensItem.PROP_NONE));\n\tpublic static final Item lensEfficiency = make(prefix(LibItemNames.LENS_EFFICIENCY), new LensItem(stackTo16(), new EfficiencyLens(), LensItem.PROP_NONE));\n\tpublic static final Item lensBounce = make(prefix(LibItemNames.LENS_BOUNCE), new LensItem(stackTo16(), new BounceLens(), LensItem.PROP_TOUCH));\n\tpublic static final Item lensGravity = make(prefix(LibItemNames.LENS_GRAVITY), new LensItem(stackTo16(), new GravityLens(), LensItem.PROP_ORIENTATION));\n\tpublic static final Item lensMine = make(prefix(LibItemNames.LENS_MINE), new LensItem(stackTo16(), new BoreLens(), LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensDamage = make(prefix(LibItemNames.LENS_DAMAGE), new LensItem(stackTo16(), new DamagingLens(), LensItem.PROP_DAMAGE));\n\tpublic static final Item lensPhantom = make(prefix(LibItemNames.LENS_PHANTOM), new LensItem(stackTo16(), new PhantomLens(), LensItem.PROP_TOUCH));\n\tpublic static final Item lensMagnet = make(prefix(LibItemNames.LENS_MAGNET), new LensItem(stackTo16(), new MagnetizingLens(), LensItem.PROP_ORIENTATION));\n\tpublic static final Item lensExplosive = make(prefix(LibItemNames.LENS_EXPLOSIVE), new LensItem(stackTo16(), new EntropicLens(), LensItem.PROP_DAMAGE | LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensInfluence = make(prefix(LibItemNames.LENS_INFLUENCE), new LensItem(stackTo16(), new InfluenceLens(), LensItem.PROP_NONE));\n\tpublic static final Item lensWeight = make(prefix(LibItemNames.LENS_WEIGHT), new LensItem(stackTo16(), new WeightLens(), LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensPaint = make(prefix(LibItemNames.LENS_PAINT), new LensItem(stackTo16(), new PaintslingerLens(), LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensFire = make(prefix(LibItemNames.LENS_FIRE), new LensItem(stackTo16(), new KindleLens(), LensItem.PROP_DAMAGE | LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensPiston = make(prefix(LibItemNames.LENS_PISTON), new LensItem(stackTo16(), new ForceLens(), LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensLight = make(prefix(LibItemNames.LENS_LIGHT), new LensItem(stackTo16(), new FlashLens(), LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensWarp = make(prefix(LibItemNames.LENS_WARP), new LensItem(stackTo16(), new WarpLens(), LensItem.PROP_NONE));\n\tpublic static final Item lensRedirect = make(prefix(LibItemNames.LENS_REDIRECT), new LensItem(stackTo16(), new RedirectiveLens(), LensItem.PROP_TOUCH | LensItem.PROP_INTERACTION));\n\tpublic static final Item lensFirework = make(prefix(LibItemNames.LENS_FIREWORK), new LensItem(stackTo16(), new CelebratoryLens(), LensItem.PROP_TOUCH));\n\tpublic static final Item lensFlare = make(prefix(LibItemNames.LENS_FLARE), new LensItem(stackTo16(), new FlareLens(), LensItem.PROP_CONTROL));\n\tpublic static final Item lensMessenger = make(prefix(LibItemNames.LENS_MESSENGER), new LensItem(stackTo16(), new MessengerLens(), LensItem.PROP_POWER));\n\tpublic static final Item lensTripwire = make(prefix(LibItemNames.LENS_TRIPWIRE), new LensItem(stackTo16(), new TripwireLens(), LensItem.PROP_CONTROL));\n\tpublic static final Item lensStorm = make(prefix(LibItemNames.LENS_STORM), new LensItem(stackTo16().rarity(Rarity.EPIC), new StormLens(), LensItem.PROP_NONE));\n",
+      "excerpt_sha256": "9ce11ca33e89f34ee1e3b1ac8299a80b08c5b69c8a57eebf8ebf3f56f5c9aa2e",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java#L124-L153"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "6a1dd1de9e9e57e9a7a00886402abf3cd6208fe8",
+      "file_sha256": "34ddda6a77e5279030a6b1a4bad290ed3a4a7d934f5ba70fc0d8307e6cb7588a",
+      "lines": [
+        420,
+        480
+      ],
+      "whole_file_read": false,
+      "excerpt": "\t}\n\n\tprivate static Item.Properties stackTo16() {\n\t\treturn defaultBuilder().stacksTo(16);\n\n\t}\n\n\tprivate static Item.Properties unstackable() {\n\t\treturn defaultBuilder().stacksTo(1);\n\t}\n\n\tpublic static void registerItems(BiConsumer<Item, ResourceLocation> r) {\n\t\tfor (var e : ALL.entrySet()) {\n\t\t\tr.accept(e.getValue(), e.getKey());\n\t\t}\n\t}\n\n\tpublic static void registerMenuTypes(BiConsumer<MenuType<?>, ResourceLocation> consumer) {\n\t\tconsumer.accept(BAUBLE_BOX_CONTAINER, prefix(LibItemNames.BAUBLE_BOX));\n\t\tconsumer.accept(FLOWER_BAG_CONTAINER, prefix(LibItemNames.FLOWER_BAG));\n\t}\n\n\tpublic static void registerRecipeSerializers(BiConsumer<RecipeSerializer<?>, ResourceLocation> r) {\n\t\tr.accept(AncientWillRecipe.SERIALIZER, prefix(\"ancient_will_attach\"));\n\t\tr.accept(ArmorUpgradeRecipe.SERIALIZER, prefix(\"armor_upgrade\"));\n\t\tr.accept(BlackHoleTalismanExtractRecipe.SERIALIZER, prefix(\"black_hole_talisman_extract\"));\n\t\tr.accept(CompositeLensRecipe.SERIALIZER, prefix(\"composite_lens\"));\n\t\tr.accept(CosmeticAttachRecipe.SERIALIZER, prefix(\"cosmetic_attach\"));\n\t\tr.accept(CosmeticRemoveRecipe.SERIALIZER, prefix(\"cosmetic_remove\"));\n\t\tr.accept(GogAlternationRecipe.SERIALIZER, prefix(\"gog_alternation\"));\n\t\tr.accept(ResoluteIvyRecipe.SERIALIZER, prefix(\"keep_ivy\"));\n\t\tr.accept(LaputaShardUpgradeRecipe.SERIALIZER, prefix(\"laputa_shard_upgrade\"));\n\t\tr.accept(LensDyeingRecipe.SERIALIZER, prefix(\"lens_dye\"));\n\t\tr.accept(ManaBlasterClipRecipe.SERIALIZER, prefix(\"mana_gun_add_clip\"));\n\t\tr.accept(ManaBlasterLensRecipe.SERIALIZER, prefix(\"mana_gun_add_lens\"));\n\t\tr.accept(ManaBlasterRemoveLensRecipe.SERIALIZER, prefix(\"mana_gun_remove_lens\"));\n\t\tr.accept(ManaUpgradeRecipe.SERIALIZER, prefix(\"mana_upgrade\"));\n\t\tr.accept(ShapelessManaUpgradeRecipe.SERIALIZER, prefix(\"mana_upgrade_shapeless\"));\n\t\tr.accept(MergeVialRecipe.SERIALIZER, prefix(\"merge_vial\"));\n\t\tr.accept(NbtOutputRecipe.SERIALIZER, prefix(\"nbt_output_wrapper\"));\n\t\tr.accept(PhantomInkRecipe.SERIALIZER, prefix(\"phantom_ink_apply\"));\n\t\tr.accept(SpellbindingClothRecipe.SERIALIZER, prefix(\"spell_cloth_apply\"));\n\t\tr.accept(SplitLensRecipe.SERIALIZER, prefix(\"split_lens\"));\n\t\tr.accept(TerraShattererTippingRecipe.SERIALIZER, prefix(\"terra_pick_tipping\"));\n\t\tr.accept(WandOfTheForestRecipe.SERIALIZER, prefix(\"twig_wand\"));\n\t\tr.accept(WaterBottleMatchingRecipe.SERIALIZER, prefix(\"water_bottle_matching_shaped\"));\n\t}\n\n\tpublic static Item getPetal(DyeColor color) {\n\t\treturn switch (color) {\n\t\t\tcase WHITE -> whitePetal;\n\t\t\tcase ORANGE -> orangePetal;\n\t\t\tcase MAGENTA -> magentaPetal;\n\t\t\tcase LIGHT_BLUE -> lightBluePetal;\n\t\t\tcase YELLOW -> yellowPetal;\n\t\t\tcase LIME -> limePetal;\n\t\t\tcase PINK -> pinkPetal;\n\t\t\tcase GRAY -> grayPetal;\n\t\t\tcase LIGHT_GRAY -> lightGrayPetal;\n\t\t\tcase CYAN -> cyanPetal;\n\t\t\tcase PURPLE -> purplePetal;",
+      "excerpt_sha256": "93382045bf0579c96944bf2cc2e5eb8ca8f04d0b90fe579ba152bb4064722983",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/item/BotaniaItems.java#L420-L480"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/data/recipes/CraftingRecipeProvider.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/data/recipes/CraftingRecipeProvider.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "7c9603ce0533e4d5db40eee57528ea5ec61ecc00",
+      "file_sha256": "a9a5ae71f176a85c1c1afd35bc7eaaa16717337a11b2f426144e27bbfa53ae84",
+      "lines": [
+        48,
+        80
+      ],
+      "whole_file_read": false,
+      "excerpt": "import java.util.stream.Collectors;\nimport java.util.stream.IntStream;\n\npublic class CraftingRecipeProvider extends BotaniaRecipeProvider {\n\tpublic CraftingRecipeProvider(PackOutput packOutput) {\n\t\tsuper(packOutput);\n\t}\n\n\t@Override\n\tpublic void buildRecipes(Consumer<FinishedRecipe> consumer) {\n\t\tspecialRecipe(consumer, AncientWillRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, BlackHoleTalismanExtractRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, CompositeLensRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, CosmeticAttachRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, CosmeticRemoveRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, ResoluteIvyRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, LaputaShardUpgradeRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, LensDyeingRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, ManaBlasterClipRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, ManaBlasterLensRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, ManaBlasterRemoveLensRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, MergeVialRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, PhantomInkRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, SpellbindingClothRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, SplitLensRecipe.SERIALIZER);\n\t\tspecialRecipe(consumer, TerraShattererTippingRecipe.SERIALIZER);\n\n\t\tregisterMain(consumer);\n\t\tregisterMisc(consumer);\n\t\tregisterTools(consumer);\n\t\tregisterTrinkets(consumer);\n\t\tregisterLenses(consumer);\n\t\tregisterCorporeaAndRedString(consumer);",
+      "excerpt_sha256": "5f8425d214d6cd82442ebc9273bcb27afcbb03dff484a808fcd24d46004532ee",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/data/recipes/CraftingRecipeProvider.java#L48-L80"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/data/recipes/CraftingRecipeProvider.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/data/recipes/CraftingRecipeProvider.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "7c9603ce0533e4d5db40eee57528ea5ec61ecc00",
+      "file_sha256": "a9a5ae71f176a85c1c1afd35bc7eaaa16717337a11b2f426144e27bbfa53ae84",
+      "lines": [
+        2668,
+        2690
+      ],
+      "whole_file_read": false,
+      "excerpt": "\t\t\t\t.pattern(\"PPP\")\n\t\t\t\t.pattern(\"PSP\")\n\t\t\t\t.pattern(\"PPP\")\n\t\t\t\t.group(\"botania:cosmetic_bauble\")\n\t\t\t\t.unlockedBy(\"has_item\", conditionsFromItem(BotaniaItems.manaString))\n\t\t\t\t.save(consumer);\n\t}\n\n\tprotected void specialRecipe(Consumer<FinishedRecipe> consumer, NoOpRecipeSerializer<? extends CraftingRecipe> serializer) {\n\t\tResourceLocation name = BuiltInRegistries.RECIPE_SERIALIZER.getKey(serializer);\n\t\tSpecialRecipeBuilder.special(serializer).save(consumer, prefix(\"dynamic/\" + name.getPath()).toString());\n\t}\n\n\tprotected Block getBlockOrThrow(ResourceLocation location) {\n\t\treturn BuiltInRegistries.BLOCK.getOrThrow(ResourceKey.create(Registries.BLOCK, location));\n\t}\n\n\tprotected Item getItemOrThrow(ResourceLocation location) {\n\t\treturn BuiltInRegistries.ITEM.getOrThrow(ResourceKey.create(Registries.ITEM, location));\n\t}\n\n\t@Override\n\tpublic String getName() {",
+      "excerpt_sha256": "fbefe7aa66f6c5a911b807776e8eadb4927aafe8368de94887920b6b0b5a3991",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/data/recipes/CraftingRecipeProvider.java#L2668-L2690"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/lib/BotaniaTags.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/lib/BotaniaTags.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "d728d82642aeb8a472b65355862d111bb72e2105",
+      "file_sha256": "1238c9074570be564fbcd31a228e6065633595298de490dfe5a3e3336b855bed",
+      "lines": [
+        52,
+        72
+      ],
+      "whole_file_read": false,
+      "excerpt": "\t\tpublic static final TagKey<Item> MISC_SPECIAL_FLOWERS = tag(\"misc_special_flowers\");\n\t\tpublic static final TagKey<Item> FUNCTIONAL_SPECIAL_FLOWERS = tag(\"functional_special_flowers\");\n\t\tpublic static final TagKey<Item> GENERATING_SPECIAL_FLOWERS = tag(\"generating_special_flowers\");\n\t\tpublic static final TagKey<Item> MISC_FLOATING_FLOWERS = tag(\"misc_floating_flowers\");\n\t\tpublic static final TagKey<Item> FUNCTIONAL_FLOATING_FLOWERS = tag(\"functional_floating_flowers\");\n\t\tpublic static final TagKey<Item> GENERATING_FLOATING_FLOWERS = tag(\"generating_floating_flowers\");\n\n\t\tpublic static final TagKey<Item> FLOATING_FLOWERS = tag(\"floating_flowers\");\n\t\tpublic static final TagKey<Item> MUNDANE_FLOATING_FLOWERS = tag(\"mundane_floating_flowers\");\n\t\tpublic static final TagKey<Item> SPECIAL_FLOATING_FLOWERS = tag(\"special_floating_flowers\");\n\n\t\tpublic static final TagKey<Item> LENS = tag(\"lens\");\n\n\t\tpublic static final TagKey<Item> LENS_GLUE = tag(\"lens_glue\");\n\n\t\t/**\n\t\t * Items in this tag cannot be pulled by the magnet rings\n\t\t */\n\t\tpublic static final TagKey<Item> MAGNET_RING_BLACKLIST = tag(\"magnet_ring_blacklist\");\n\t\t/**\n\t\t * Items in this tag cannot be rolled by Looniums",
+      "excerpt_sha256": "6a410891f60f9bc54e26f7f408bd0fd7e7ad4e5bb13a2fee7d4f194ea5476c9a",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/lib/BotaniaTags.java#L52-L72"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/lib/BotaniaTags.java",
+      "upstream_path": "Xplat/src/main/java/vazkii/botania/common/lib/BotaniaTags.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "d728d82642aeb8a472b65355862d111bb72e2105",
+      "file_sha256": "1238c9074570be564fbcd31a228e6065633595298de490dfe5a3e3336b855bed",
+      "lines": [
+        156,
+        170
+      ],
+      "whole_file_read": false,
+      "excerpt": "\n\t\tprivate static TagKey<Item> tag(String name) {\n\t\t\treturn TagKey.create(Registries.ITEM, prefix(name));\n\t\t}\n\t}\n\n\tpublic static class Blocks {\n\t\tpublic static final TagKey<Block> MYSTICAL_FLOWERS = tag(\"mystical_flowers\");\n\t\tpublic static final TagKey<Block> SHINY_FLOWERS = tag(\"shiny_flowers\");\n\t\tpublic static final TagKey<Block> POTTED_MYSTICAL_FLOWERS = tag(\"potted_mystical_flowers\");\n\t\tpublic static final TagKey<Block> POTTED_SHINY_FLOWERS = tag(\"potted_shiny_flowers\");\n\t\tpublic static final TagKey<Block> DOUBLE_MYSTICAL_FLOWERS = tag(\"double_mystical_flowers\");\n\t\tpublic static final TagKey<Block> SHIMMERING_MUSHROOMS = tag(\"shimmering_mushrooms\");\n\n\t\tpublic static final TagKey<Block> SPECIAL_FLOWERS = tag(\"special_flowers\");",
+      "excerpt_sha256": "f8535e21a8113fa65c2d35852798716902ac272bb3b30b804ecbf4071279c797",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/lib/BotaniaTags.java#L156-L170"
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Forge/src/main/java/vazkii/botania/forge/data/ForgeItemTagProvider.java",
+      "upstream_path": "Forge/src/main/java/vazkii/botania/forge/data/ForgeItemTagProvider.java",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "git_blob_sha1": "39a2b2e93ea274e17d6454c77d57b0381837ba35",
+      "file_sha256": "50690d1fc6b28a386dd61fb3613db053795a6746b03dfc604cf1985b241d445f",
+      "lines": [
+        1,
+        110
+      ],
+      "whole_file_read": false,
+      "excerpt": "package vazkii.botania.forge.data;\n\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.data.PackOutput;\nimport net.minecraft.data.tags.ItemTagsProvider;\nimport net.minecraft.data.tags.TagsProvider;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.tags.TagKey;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraftforge.common.Tags;\nimport net.minecraftforge.common.data.ExistingFileHelper;\n\nimport vazkii.botania.common.block.BotaniaBlocks;\nimport vazkii.botania.common.helper.ColorHelper;\nimport vazkii.botania.common.lib.BotaniaTags;\nimport vazkii.botania.common.lib.LibMisc;\n\nimport java.util.concurrent.CompletableFuture;\n\nimport static vazkii.botania.common.item.BotaniaItems.*;\n\npublic class ForgeItemTagProvider extends ItemTagsProvider {\n\tpublic ForgeItemTagProvider(PackOutput packOutput, CompletableFuture<HolderLookup.Provider> lookupProvider,\n\t\t\tCompletableFuture<TagsProvider.TagLookup<Block>> blockTagProvider, ExistingFileHelper helper) {\n\t\tsuper(packOutput, lookupProvider, blockTagProvider, LibMisc.MOD_ID, helper);\n\t}\n\n\t@Override\n\tpublic String getName() {\n\t\treturn \"Botania item tags (Forge-specific)\";\n\t}\n\n\t@Override\n\tprotected void addTags(HolderLookup.Provider provider) {\n\t\tthis.tag(forge(\"dusts/mana\")).addTag(BotaniaTags.Items.DUSTS_MANA);\n\t\tthis.tag(forge(\"dusts\")).addTag(forge(\"dusts/mana\"));\n\n\t\tthis.tag(forge(\"gems/dragonstone\")).addTag(BotaniaTags.Items.GEMS_DRAGONSTONE);\n\t\tthis.tag(forge(\"gems/mana_diamond\")).addTag(BotaniaTags.Items.GEMS_MANA_DIAMOND);\n\t\tthis.tag(forge(\"gems\")).addTag(forge(\"gems/dragonstone\")).addTag(forge(\"gems/mana_diamond\"));\n\n\t\tthis.tag(forge(\"ingots/elementium\")).addTag(BotaniaTags.Items.INGOTS_ELEMENTIUM);\n\t\tthis.tag(forge(\"ingots/manasteel\")).addTag(BotaniaTags.Items.INGOTS_MANASTEEL);\n\t\tthis.tag(forge(\"ingots/terrasteel\")).addTag(BotaniaTags.Items.INGOTS_TERRASTEEL);\n\t\tthis.tag(forge(\"ingots\")).addTag(forge(\"ingots/elementium\"))\n\t\t\t\t.addTag(forge(\"ingots/manasteel\"))\n\t\t\t\t.addTag(forge(\"ingots/terrasteel\"));\n\n\t\tthis.tag(forge(\"nuggets/elementium\")).addTag(BotaniaTags.Items.NUGGETS_ELEMENTIUM);\n\t\tthis.tag(forge(\"nuggets/manasteel\")).addTag(BotaniaTags.Items.NUGGETS_MANASTEEL);\n\t\tthis.tag(forge(\"nuggets/terrasteel\")).addTag(BotaniaTags.Items.NUGGETS_TERRASTEEL);\n\t\tthis.tag(forge(\"nuggets\")).addTag(forge(\"nuggets/elementium\"))\n\t\t\t\t.addTag(forge(\"nuggets/manasteel\"))\n\t\t\t\t.addTag(forge(\"nuggets/terrasteel\"));\n\n\t\tthis.tag(Tags.Items.HEADS).add(BotaniaBlocks.gaiaHead.asItem());\n\n\t\tthis.copyToSameName(ForgeBlockTagProvider.ELEMENTIUM);\n\t\tthis.copyToSameName(ForgeBlockTagProvider.MANASTEEL);\n\t\tthis.copyToSameName(ForgeBlockTagProvider.TERRASTEEL);\n\t\tthis.copyToSameName(ForgeBlockTagProvider.MANA_DIAMOND);\n\t\tthis.copyToSameName(ForgeBlockTagProvider.DRAGONSTONE);\n\t\tthis.copyToSameName(ForgeBlockTagProvider.BLAZE_MESH);\n\t\tColorHelper.supportedColors().map(ForgeBlockTagProvider.PETAL_BLOCKS::get).forEach(this::copyToSameName);\n\t\tthis.copy(ForgeBlockTagProvider.MUSHROOMS, Tags.Items.MUSHROOMS);\n\t\tthis.copy(Tags.Blocks.STORAGE_BLOCKS_QUARTZ, Tags.Items.STORAGE_BLOCKS_QUARTZ);\n\t\tthis.copy(Tags.Blocks.STORAGE_BLOCKS, Tags.Items.STORAGE_BLOCKS);\n\t\tthis.copy(Tags.Blocks.GLASS, Tags.Items.GLASS);\n\t\tthis.copy(Tags.Blocks.GLASS_PANES, Tags.Items.GLASS_PANES);\n\t\tthis.copy(Tags.Blocks.FENCES_WOODEN, Tags.Items.FENCES_WOODEN);\n\t\tthis.copy(Tags.Blocks.FENCE_GATES_WOODEN, Tags.Items.FENCE_GATES_WOODEN);\n\n\t\tthis.tag(BotaniaTags.Items.LENS_GLUE).addTag(Tags.Items.SLIMEBALLS).add(Items.HONEY_BOTTLE);\n\n\t\tthis.generateToolTags();\n\t\tthis.generateAccessoryTags();\n\t\tthis.generateQuarkTags();\n\t}\n\n\tprivate void generateToolTags() {\n\t\tthis.tag(Tags.Items.SHEARS).add(manasteelShears, elementiumShears);\n\t\tthis.tag(Tags.Items.TOOLS_BOWS).add(livingwoodBow, crystalBow);\n\n\t\tthis.tag(Tags.Items.ARMORS_HELMETS).add(manasteelHelm, manaweaveHelm,\n\t\t\t\telementiumHelm, terrasteelHelm);\n\t\tthis.tag(Tags.Items.ARMORS_CHESTPLATES).add(manasteelChest, manaweaveChest,\n\t\t\t\telementiumChest, terrasteelChest);\n\t\tthis.tag(Tags.Items.ARMORS_LEGGINGS).add(manasteelLegs, manaweaveLegs,\n\t\t\t\telementiumLegs, terrasteelLegs);\n\t\tthis.tag(Tags.Items.ARMORS_BOOTS).add(manasteelBoots, manaweaveBoots,\n\t\t\t\telementiumBoots, terrasteelBoots);\n\t}\n\n\tprivate void generateAccessoryTags() {\n\t\ttag(accessory(\"belt\")).add(\n\t\t\t\tknockbackBelt, speedUpBelt, superTravelBelt, travelBelt\n\t\t);\n\t\ttag(accessory(\"body\")).add(\n\t\t\t\tbalanceCloak, holyCloak, invisibilityCloak, thirdEye, unholyCloak\n\t\t);\n\t\ttag(accessory(\"charm\")).add(\n\t\t\t\tdivaCharm, goddessCharm, monocle, tinyPlanet\n\t\t);\n\t\ttag(accessory(\"head\")).add(flightTiara, itemFinder);\n\t\ttag(accessory(\"necklace\")).add(\n\t\t\t\tbloodPendant, cloudPendant, icePendant, lavaPendant,\n\t\t\t\tsuperCloudPendant, superLavaPendant",
+      "excerpt_sha256": "8193187efa6751f48a6dd3462be02d1d0287e89117076afb90264f972f2171e4",
+      "read_role": "Main actual semantic read; selected full methods/declarations only for partial files",
+      "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Forge/src/main/java/vazkii/botania/forge/data/ForgeItemTagProvider.java#L1-L110"
+    }
+  ],
+  "native_refs": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/inventory/ResultSlot.java",
+      "entry_sha256": "6ac252c3d686ab97ca37bb5546f5325d97f95699ff02718c45a6bc7e8ff302c4",
+      "lines": [
+        1,
+        81
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.world.inventory;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.RecipeType;\n\npublic class ResultSlot extends Slot {\n   private final CraftingContainer craftSlots;\n   private final Player player;\n   private int removeCount;\n\n   public ResultSlot(Player p_40166_, CraftingContainer p_40167_, Container p_40168_, int p_40169_, int p_40170_, int p_40171_) {\n      super(p_40168_, p_40169_, p_40170_, p_40171_);\n      this.player = p_40166_;\n      this.craftSlots = p_40167_;\n   }\n\n   public boolean mayPlace(ItemStack p_40178_) {\n      return false;\n   }\n\n   public ItemStack remove(int p_40173_) {\n      if (this.hasItem()) {\n         this.removeCount += Math.min(p_40173_, this.getItem().getCount());\n      }\n\n      return super.remove(p_40173_);\n   }\n\n   protected void onQuickCraft(ItemStack p_40180_, int p_40181_) {\n      this.removeCount += p_40181_;\n      this.checkTakeAchievements(p_40180_);\n   }\n\n   protected void onSwapCraft(int p_40183_) {\n      this.removeCount += p_40183_;\n   }\n\n   protected void checkTakeAchievements(ItemStack p_40185_) {\n      if (this.removeCount > 0) {\n         p_40185_.onCraftedBy(this.player.level(), this.player, this.removeCount);\n         net.minecraftforge.event.ForgeEventFactory.firePlayerCraftingEvent(this.player, p_40185_, this.craftSlots);\n      }\n\n      Container container = this.container;\n      if (container instanceof RecipeHolder recipeholder) {\n         recipeholder.awardUsedRecipes(this.player, this.craftSlots.getItems());\n      }\n\n      this.removeCount = 0;\n   }\n\n   public void onTake(Player p_150638_, ItemStack p_150639_) {\n      this.checkTakeAchievements(p_150639_);\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(p_150638_);\n      NonNullList<ItemStack> nonnulllist = p_150638_.level().getRecipeManager().getRemainingItemsFor(RecipeType.CRAFTING, this.craftSlots, p_150638_.level());\n      net.minecraftforge.common.ForgeHooks.setCraftingPlayer(null);\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack itemstack = this.craftSlots.getItem(i);\n         ItemStack itemstack1 = nonnulllist.get(i);\n         if (!itemstack.isEmpty()) {\n            this.craftSlots.removeItem(i, 1);\n            itemstack = this.craftSlots.getItem(i);\n         }\n\n         if (!itemstack1.isEmpty()) {\n            if (itemstack.isEmpty()) {\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (ItemStack.isSameItemSameTags(itemstack, itemstack1)) {\n               itemstack1.grow(itemstack.getCount());\n               this.craftSlots.setItem(i, itemstack1);\n            } else if (!this.player.getInventory().add(itemstack1)) {\n               this.player.drop(itemstack1, false);\n            }\n         }\n      }\n\n   }\n}",
+      "excerpt_sha256": "11565fdfbe35fdcb4c795aad6f472e8d97f61f57189262e24d0f248594802731",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/crafting/CustomRecipe.java",
+      "entry_sha256": "651fd9961cf1cbf8b638db3655fe6aa75c45b7f59162e9d429d3c2031c929a31",
+      "lines": [
+        1,
+        31
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.ItemStack;\n\npublic abstract class CustomRecipe implements CraftingRecipe {\n   private final ResourceLocation id;\n   private final CraftingBookCategory category;\n\n   public CustomRecipe(ResourceLocation p_252125_, CraftingBookCategory p_249010_) {\n      this.id = p_252125_;\n      this.category = p_249010_;\n   }\n\n   public ResourceLocation getId() {\n      return this.id;\n   }\n\n   public boolean isSpecial() {\n      return true;\n   }\n\n   public ItemStack getResultItem(RegistryAccess p_267025_) {\n      return ItemStack.EMPTY;\n   }\n\n   public CraftingBookCategory category() {\n      return this.category;\n   }\n}",
+      "excerpt_sha256": "651fd9961cf1cbf8b638db3655fe6aa75c45b7f59162e9d429d3c2031c929a31",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/crafting/Recipe.java",
+      "entry_sha256": "5ba0410d2b35571788cffaab3e73773510ef0d79ccb0cd02c02913831136527c",
+      "lines": [
+        1,
+        66
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.world.item.crafting;\n\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.core.RegistryAccess;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\n\npublic interface Recipe<C extends Container> {\n   boolean matches(C p_44002_, Level p_44003_);\n\n   ItemStack assemble(C p_44001_, RegistryAccess p_267165_);\n\n   boolean canCraftInDimensions(int p_43999_, int p_44000_);\n\n   ItemStack getResultItem(RegistryAccess p_267052_);\n\n   default NonNullList<ItemStack> getRemainingItems(C p_44004_) {\n      NonNullList<ItemStack> nonnulllist = NonNullList.withSize(p_44004_.getContainerSize(), ItemStack.EMPTY);\n\n      for(int i = 0; i < nonnulllist.size(); ++i) {\n         ItemStack item = p_44004_.getItem(i);\n         if (item.hasCraftingRemainingItem()) {\n            nonnulllist.set(i, item.getCraftingRemainingItem());\n         }\n      }\n\n      return nonnulllist;\n   }\n\n   default NonNullList<Ingredient> getIngredients() {\n      return NonNullList.create();\n   }\n\n   default boolean isSpecial() {\n      return false;\n   }\n\n   default boolean showNotification() {\n      return true;\n   }\n\n   default String getGroup() {\n      return \"\";\n   }\n\n   default ItemStack getToastSymbol() {\n      return new ItemStack(Blocks.CRAFTING_TABLE);\n   }\n\n   ResourceLocation getId();\n\n   RecipeSerializer<?> getSerializer();\n\n   RecipeType<?> getType();\n\n   default boolean isIncomplete() {\n      NonNullList<Ingredient> nonnulllist = this.getIngredients();\n      return nonnulllist.isEmpty() || nonnulllist.stream().anyMatch((p_151268_) -> {\n         return net.minecraftforge.common.ForgeHooks.hasNoElements(p_151268_);\n      });\n   }\n}",
+      "excerpt_sha256": "c8d70027f8554cde1152d190ef2c449d84769e4b98271f88f31c6cf40f40cb75",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/inventory/CraftingMenu.java",
+      "entry_sha256": "9040b6dfdf9cde3d625d277e275bed5776cb65247ceb66ffd4d7263684a2fb5b",
+      "lines": [
+        1,
+        184
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.world.inventory;\n\nimport java.util.Optional;\nimport net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Inventory;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.player.StackedContents;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.CraftingRecipe;\nimport net.minecraft.world.item.crafting.Recipe;\nimport net.minecraft.world.item.crafting.RecipeType;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\n\npublic class CraftingMenu extends RecipeBookMenu<CraftingContainer> {\n   public static final int RESULT_SLOT = 0;\n   private static final int CRAFT_SLOT_START = 1;\n   private static final int CRAFT_SLOT_END = 10;\n   private static final int INV_SLOT_START = 10;\n   private static final int INV_SLOT_END = 37;\n   private static final int USE_ROW_SLOT_START = 37;\n   private static final int USE_ROW_SLOT_END = 46;\n   private final CraftingContainer craftSlots = new TransientCraftingContainer(this, 3, 3);\n   private final ResultContainer resultSlots = new ResultContainer();\n   private final ContainerLevelAccess access;\n   private final Player player;\n\n   public CraftingMenu(int p_39353_, Inventory p_39354_) {\n      this(p_39353_, p_39354_, ContainerLevelAccess.NULL);\n   }\n\n   public CraftingMenu(int p_39356_, Inventory p_39357_, ContainerLevelAccess p_39358_) {\n      super(MenuType.CRAFTING, p_39356_);\n      this.access = p_39358_;\n      this.player = p_39357_.player;\n      this.addSlot(new ResultSlot(p_39357_.player, this.craftSlots, this.resultSlots, 0, 124, 35));\n\n      for(int i = 0; i < 3; ++i) {\n         for(int j = 0; j < 3; ++j) {\n            this.addSlot(new Slot(this.craftSlots, j + i * 3, 30 + j * 18, 17 + i * 18));\n         }\n      }\n\n      for(int k = 0; k < 3; ++k) {\n         for(int i1 = 0; i1 < 9; ++i1) {\n            this.addSlot(new Slot(p_39357_, i1 + k * 9 + 9, 8 + i1 * 18, 84 + k * 18));\n         }\n      }\n\n      for(int l = 0; l < 9; ++l) {\n         this.addSlot(new Slot(p_39357_, l, 8 + l * 18, 142));\n      }\n\n   }\n\n   protected static void slotChangedCraftingGrid(AbstractContainerMenu p_150547_, Level p_150548_, Player p_150549_, CraftingContainer p_150550_, ResultContainer p_150551_) {\n      if (!p_150548_.isClientSide) {\n         ServerPlayer serverplayer = (ServerPlayer)p_150549_;\n         ItemStack itemstack = ItemStack.EMPTY;\n         Optional<CraftingRecipe> optional = p_150548_.getServer().getRecipeManager().getRecipeFor(RecipeType.CRAFTING, p_150550_, p_150548_);\n         if (optional.isPresent()) {\n            CraftingRecipe craftingrecipe = optional.get();\n            if (p_150551_.setRecipeUsed(p_150548_, serverplayer, craftingrecipe)) {\n               ItemStack itemstack1 = craftingrecipe.assemble(p_150550_, p_150548_.registryAccess());\n               if (itemstack1.isItemEnabled(p_150548_.enabledFeatures())) {\n                  itemstack = itemstack1;\n               }\n            }\n         }\n\n         p_150551_.setItem(0, itemstack);\n         p_150547_.setRemoteSlot(0, itemstack);\n         serverplayer.connection.send(new ClientboundContainerSetSlotPacket(p_150547_.containerId, p_150547_.incrementStateId(), 0, itemstack));\n      }\n   }\n\n   public void slotsChanged(Container p_39366_) {\n      this.access.execute((p_39386_, p_39387_) -> {\n         slotChangedCraftingGrid(this, p_39386_, this.player, this.craftSlots, this.resultSlots);\n      });\n   }\n\n   public void fillCraftSlotsStackedContents(StackedContents p_39374_) {\n      this.craftSlots.fillStackedContents(p_39374_);\n   }\n\n   public void clearCraftingContent() {\n      this.craftSlots.clearContent();\n      this.resultSlots.clearContent();\n   }\n\n   public boolean recipeMatches(Recipe<? super CraftingContainer> p_39384_) {\n      return p_39384_.matches(this.craftSlots, this.player.level());\n   }\n\n   public void removed(Player p_39389_) {\n      super.removed(p_39389_);\n      this.access.execute((p_39371_, p_39372_) -> {\n         this.clearContainer(p_39389_, this.craftSlots);\n      });\n   }\n\n   public boolean stillValid(Player p_39368_) {\n      return stillValid(this.access, p_39368_, Blocks.CRAFTING_TABLE);\n   }\n\n   public ItemStack quickMoveStack(Player p_39391_, int p_39392_) {\n      ItemStack itemstack = ItemStack.EMPTY;\n      Slot slot = this.slots.get(p_39392_);\n      if (slot != null && slot.hasItem()) {\n         ItemStack itemstack1 = slot.getItem();\n         itemstack = itemstack1.copy();\n         if (p_39392_ == 0) {\n            this.access.execute((p_39378_, p_39379_) -> {\n               itemstack1.getItem().onCraftedBy(itemstack1, p_39378_, p_39391_);\n            });\n            if (!this.moveItemStackTo(itemstack1, 10, 46, true)) {\n               return ItemStack.EMPTY;\n            }\n\n            slot.onQuickCraft(itemstack1, itemstack);\n         } else if (p_39392_ >= 10 && p_39392_ < 46) {\n            if (!this.moveItemStackTo(itemstack1, 1, 10, false)) {\n               if (p_39392_ < 37) {\n                  if (!this.moveItemStackTo(itemstack1, 37, 46, false)) {\n                     return ItemStack.EMPTY;\n                  }\n               } else if (!this.moveItemStackTo(itemstack1, 10, 37, false)) {\n                  return ItemStack.EMPTY;\n               }\n            }\n         } else if (!this.moveItemStackTo(itemstack1, 10, 46, false)) {\n            return ItemStack.EMPTY;\n         }\n\n         if (itemstack1.isEmpty()) {\n            slot.setByPlayer(ItemStack.EMPTY);\n         } else {\n            slot.setChanged();\n         }\n\n         if (itemstack1.getCount() == itemstack.getCount()) {\n            return ItemStack.EMPTY;\n         }\n\n         slot.onTake(p_39391_, itemstack1);\n         if (p_39392_ == 0) {\n            p_39391_.drop(itemstack1, false);\n         }\n      }\n\n      return itemstack;\n   }\n\n   public boolean canTakeItemForPickAll(ItemStack p_39381_, Slot p_39382_) {\n      return p_39382_.container != this.resultSlots && super.canTakeItemForPickAll(p_39381_, p_39382_);\n   }\n\n   public int getResultSlotIndex() {\n      return 0;\n   }\n\n   public int getGridWidth() {\n      return this.craftSlots.getWidth();\n   }\n\n   public int getGridHeight() {\n      return this.craftSlots.getHeight();\n   }\n\n   public int getSize() {\n      return 10;\n   }\n\n   public RecipeBookType getRecipeBookType() {\n      return RecipeBookType.CRAFTING;\n   }\n\n   public boolean shouldMoveToInventory(int p_150553_) {\n      return p_150553_ != this.getResultSlotIndex();\n   }\n}",
+      "excerpt_sha256": "9040b6dfdf9cde3d625d277e275bed5776cb65247ceb66ffd4d7263684a2fb5b",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/inventory/RecipeHolder.java",
+      "entry_sha256": "e275871137fdb3662b69e08a7802b775ffb4c4dd6b15696e2dd99cef78860b30",
+      "lines": [
+        1,
+        39
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.world.inventory;\n\nimport java.util.Collections;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.crafting.Recipe;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\n\npublic interface RecipeHolder {\n   void setRecipeUsed(@Nullable Recipe<?> p_40134_);\n\n   @Nullable\n   Recipe<?> getRecipeUsed();\n\n   default void awardUsedRecipes(Player p_281647_, List<ItemStack> p_282578_) {\n      Recipe<?> recipe = this.getRecipeUsed();\n      if (recipe != null) {\n         p_281647_.triggerRecipeCrafted(recipe, p_282578_);\n         if (!recipe.isSpecial()) {\n            p_281647_.awardRecipes(Collections.singleton(recipe));\n            this.setRecipeUsed((Recipe<?>)null);\n         }\n      }\n\n   }\n\n   default boolean setRecipeUsed(Level p_40136_, ServerPlayer p_40137_, Recipe<?> p_40138_) {\n      if (!p_40138_.isSpecial() && p_40136_.getGameRules().getBoolean(GameRules.RULE_LIMITED_CRAFTING) && !p_40137_.getRecipeBook().contains(p_40138_)) {\n         return false;\n      } else {\n         this.setRecipeUsed(p_40138_);\n         return true;\n      }\n   }\n}",
+      "excerpt_sha256": "e275871137fdb3662b69e08a7802b775ffb4c4dd6b15696e2dd99cef78860b30",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/advancements/critereon/RecipeCraftedTrigger.java",
+      "entry_sha256": "7739b8caf5279dc69591fa2956e97b24f90a2610b1c86ab4a001ba61ad1e608f",
+      "lines": [
+        1,
+        93
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.advancements.critereon;\n\nimport com.google.gson.JsonArray;\nimport com.google.gson.JsonObject;\nimport java.util.ArrayList;\nimport java.util.Iterator;\nimport java.util.List;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.util.GsonHelper;\nimport net.minecraft.world.item.ItemStack;\n\npublic class RecipeCraftedTrigger extends SimpleCriterionTrigger<RecipeCraftedTrigger.TriggerInstance> {\n   static final ResourceLocation ID = new ResourceLocation(\"recipe_crafted\");\n\n   public ResourceLocation getId() {\n      return ID;\n   }\n\n   protected RecipeCraftedTrigger.TriggerInstance createInstance(JsonObject p_286541_, ContextAwarePredicate p_286267_, DeserializationContext p_286402_) {\n      ResourceLocation resourcelocation = new ResourceLocation(GsonHelper.getAsString(p_286541_, \"recipe_id\"));\n      ItemPredicate[] aitempredicate = ItemPredicate.fromJsonArray(p_286541_.get(\"ingredients\"));\n      return new RecipeCraftedTrigger.TriggerInstance(p_286267_, resourcelocation, List.of(aitempredicate));\n   }\n\n   public void trigger(ServerPlayer p_281468_, ResourceLocation p_282903_, List<ItemStack> p_282070_) {\n      this.trigger(p_281468_, (p_282798_) -> {\n         return p_282798_.matches(p_282903_, p_282070_);\n      });\n   }\n\n   public static class TriggerInstance extends AbstractCriterionTriggerInstance {\n      private final ResourceLocation recipeId;\n      private final List<ItemPredicate> predicates;\n\n      public TriggerInstance(ContextAwarePredicate p_286913_, ResourceLocation p_286906_, List<ItemPredicate> p_286302_) {\n         super(RecipeCraftedTrigger.ID, p_286913_);\n         this.recipeId = p_286906_;\n         this.predicates = p_286302_;\n      }\n\n      public static RecipeCraftedTrigger.TriggerInstance craftedItem(ResourceLocation p_282794_, List<ItemPredicate> p_281369_) {\n         return new RecipeCraftedTrigger.TriggerInstance(ContextAwarePredicate.ANY, p_282794_, p_281369_);\n      }\n\n      public static RecipeCraftedTrigger.TriggerInstance craftedItem(ResourceLocation p_283538_) {\n         return new RecipeCraftedTrigger.TriggerInstance(ContextAwarePredicate.ANY, p_283538_, List.of());\n      }\n\n      boolean matches(ResourceLocation p_283528_, List<ItemStack> p_283698_) {\n         if (!p_283528_.equals(this.recipeId)) {\n            return false;\n         } else {\n            List<ItemStack> list = new ArrayList<>(p_283698_);\n\n            for(ItemPredicate itempredicate : this.predicates) {\n               boolean flag = false;\n               Iterator<ItemStack> iterator = list.iterator();\n\n               while(iterator.hasNext()) {\n                  if (itempredicate.matches(iterator.next())) {\n                     iterator.remove();\n                     flag = true;\n                     break;\n                  }\n               }\n\n               if (!flag) {\n                  return false;\n               }\n            }\n\n            return true;\n         }\n      }\n\n      public JsonObject serializeToJson(SerializationContext p_281942_) {\n         JsonObject jsonobject = super.serializeToJson(p_281942_);\n         jsonobject.addProperty(\"recipe_id\", this.recipeId.toString());\n         if (this.predicates.size() > 0) {\n            JsonArray jsonarray = new JsonArray();\n\n            for(ItemPredicate itempredicate : this.predicates) {\n               jsonarray.add(itempredicate.serializeToJson());\n            }\n\n            jsonobject.add(\"ingredients\", jsonarray);\n         }\n\n         return jsonobject;\n      }\n   }\n}",
+      "excerpt_sha256": "7739b8caf5279dc69591fa2956e97b24f90a2610b1c86ab4a001ba61ad1e608f",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/data/recipes/SpecialRecipeBuilder.java",
+      "entry_sha256": "a9eb9bda0359ad3db740be81b3ca766c8455bef8a9fa288793eabc4d55a7df07",
+      "lines": [
+        1,
+        42
+      ],
+      "whole_file_read": true,
+      "excerpt": "package net.minecraft.data.recipes;\n\nimport com.google.gson.JsonObject;\nimport java.util.function.Consumer;\nimport javax.annotation.Nullable;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.crafting.CraftingBookCategory;\nimport net.minecraft.world.item.crafting.CraftingRecipe;\nimport net.minecraft.world.item.crafting.RecipeSerializer;\n\npublic class SpecialRecipeBuilder extends CraftingRecipeBuilder {\n   final RecipeSerializer<?> serializer;\n\n   public SpecialRecipeBuilder(RecipeSerializer<?> p_250173_) {\n      this.serializer = p_250173_;\n   }\n\n   public static SpecialRecipeBuilder special(RecipeSerializer<? extends CraftingRecipe> p_249458_) {\n      return new SpecialRecipeBuilder(p_249458_);\n   }\n\n   public void save(Consumer<FinishedRecipe> p_126360_, final String p_126361_) {\n      p_126360_.accept(new CraftingRecipeBuilder.CraftingResult(CraftingBookCategory.MISC) {\n         public RecipeSerializer<?> getType() {\n            return SpecialRecipeBuilder.this.serializer;\n         }\n\n         public ResourceLocation getId() {\n            return new ResourceLocation(p_126361_);\n         }\n\n         @Nullable\n         public JsonObject serializeAdvancement() {\n            return null;\n         }\n\n         public ResourceLocation getAdvancementId() {\n            return new ResourceLocation(\"\");\n         }\n      });\n   }\n}",
+      "excerpt_sha256": "a9eb9bda0359ad3db740be81b3ca766c8455bef8a9fa288793eabc4d55a7df07",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        140,
+        204
+      ],
+      "whole_file_read": false,
+      "excerpt": "      this(p_220155_.value(), p_220156_);\n   }\n\n   public ItemStack(ItemLike p_41601_, int p_41602_) { this(p_41601_, p_41602_, (CompoundTag) null); }\n   public ItemStack(ItemLike p_41604_, int p_41605_, @Nullable CompoundTag p_41606_) {\n      super(ItemStack.class, true);\n      this.capNBT = p_41606_;\n      this.item = p_41604_.asItem();\n      this.delegate = net.minecraftforge.registries.ForgeRegistries.ITEMS.getDelegateOrThrow(p_41604_.asItem());\n      this.count = p_41605_;\n      this.forgeInit();\n      if (this.item.isDamageable(this)) {\n         this.setDamageValue(this.getDamageValue());\n      }\n\n   }\n\n   private ItemStack(@Nullable Void p_282703_) {\n      super(ItemStack.class, true);\n      this.item = null;\n      this.delegate = null;\n   }\n\n   private ItemStack(CompoundTag p_41608_) {\n      super(ItemStack.class, true);\n      this.capNBT = p_41608_.contains(\"ForgeCaps\") ? p_41608_.getCompound(\"ForgeCaps\") : null;\n      Item rawItem =\n      this.item = BuiltInRegistries.ITEM.get(new ResourceLocation(p_41608_.getString(\"id\")));\n      this.delegate = net.minecraftforge.registries.ForgeRegistries.ITEMS.getDelegateOrThrow(rawItem);\n      this.count = p_41608_.getByte(\"Count\");\n      if (p_41608_.contains(\"tag\", 10)) {\n         this.tag = p_41608_.getCompound(\"tag\");\n         this.getItem().verifyTagAfterLoad(this.tag);\n      }\n      this.forgeInit();\n\n      if (this.getItem().isDamageable(this)) {\n         this.setDamageValue(this.getDamageValue());\n      }\n\n   }\n\n   public static ItemStack of(CompoundTag p_41713_) {\n      try {\n         return new ItemStack(p_41713_);\n      } catch (RuntimeException runtimeexception) {\n         LOGGER.debug(\"Tried to load invalid item: {}\", p_41713_, runtimeexception);\n         return EMPTY;\n      }\n   }\n\n   public boolean isEmpty() {\n      return this == EMPTY || this.count <= 0 || this.delegate.get() == Items.AIR;\n   }\n\n   public boolean isItemEnabled(FeatureFlagSet p_250869_) {\n      return this.isEmpty() || this.getItem().isEnabled(p_250869_);\n   }\n\n   public ItemStack split(int p_41621_) {\n      int i = Math.min(p_41621_, this.getCount());\n      ItemStack itemstack = this.copyWithCount(i);\n      this.shrink(i);\n      return itemstack;\n   }",
+      "excerpt_sha256": "e1cc0abf622cf69544dd0f73e8061763c7ba7348c3b400143419b872cc9fbfb5",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        277,
+        300
+      ],
+      "whole_file_read": false,
+      "excerpt": "\n   public ItemStack finishUsingItem(Level p_41672_, LivingEntity p_41673_) {\n      return this.getItem().finishUsingItem(this, p_41672_, p_41673_);\n   }\n\n   public CompoundTag save(CompoundTag p_41740_) {\n      ResourceLocation resourcelocation = BuiltInRegistries.ITEM.getKey(this.getItem());\n      p_41740_.putString(\"id\", resourcelocation == null ? \"minecraft:air\" : resourcelocation.toString());\n      p_41740_.putByte(\"Count\", (byte)this.count);\n      if (this.tag != null) {\n         p_41740_.put(\"tag\", this.tag.copy());\n      }\n\n      CompoundTag cnbt = this.serializeCaps();\n      if (cnbt != null && !cnbt.isEmpty()) {\n         p_41740_.put(\"ForgeCaps\", cnbt);\n      }\n      return p_41740_;\n   }\n\n   public int getMaxStackSize() {\n      return this.getItem().getMaxStackSize(this);\n   }\n",
+      "excerpt_sha256": "96e143ce73bd5e71ea051c9edbdbed3663f3485451271da4efa8457dfa120971",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        423,
+        445
+      ],
+      "whole_file_read": false,
+      "excerpt": "   public ItemStack copy() {\n      if (this.isEmpty()) {\n         return EMPTY;\n      } else {\n         ItemStack itemstack = new ItemStack(this.getItem(), this.count, this.serializeCaps());\n         itemstack.setPopTime(this.getPopTime());\n         if (this.tag != null) {\n            itemstack.tag = this.tag.copy();\n         }\n\n         return itemstack;\n      }\n   }\n\n   public ItemStack copyWithCount(int p_256354_) {\n      if (this.isEmpty()) {\n         return EMPTY;\n      } else {\n         ItemStack itemstack = this.copy();\n         itemstack.setCount(p_256354_);\n         return itemstack;\n      }\n   }",
+      "excerpt_sha256": "c207b62f9b1ccc3f1bb9fbc4eb4eebb6cbde4b687f060baaceb7791067fe8e96",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        480,
+        494
+      ],
+      "whole_file_read": false,
+      "excerpt": "      if (this.getItem() != null) {\n         this.getItem().inventoryTick(this, p_41667_, p_41668_, p_41669_, p_41670_);\n      }\n\n   }\n\n   public void onCraftedBy(Level p_41679_, Player p_41680_, int p_41681_) {\n      p_41680_.awardStat(Stats.ITEM_CRAFTED.get(this.getItem()), p_41681_);\n      this.getItem().onCraftedBy(this, p_41679_, p_41680_);\n   }\n\n   public int getUseDuration() {\n      return this.getItem().getUseDuration(this);\n   }\n",
+      "excerpt_sha256": "b203954e390c01739794724760973030ad8759b04902c69f880beea5fdbe54cc",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        1046,
+        1060
+      ],
+      "whole_file_read": false,
+      "excerpt": "   public void resetStat(Stat<?> p_9024_) {\n      this.stats.setValue(this, p_9024_, 0);\n      this.getScoreboard().forAllObjectives(p_9024_, this.getScoreboardName(), Score::reset);\n   }\n\n   public int awardRecipes(Collection<Recipe<?>> p_9129_) {\n      return this.recipeBook.addRecipes(p_9129_, this);\n   }\n\n   public void triggerRecipeCrafted(Recipe<?> p_283176_, List<ItemStack> p_282336_) {\n      CriteriaTriggers.RECIPE_CRAFTED.trigger(this, p_283176_.getId(), p_282336_);\n   }\n\n   public void awardRecipesByKey(ResourceLocation[] p_9168_) {\n      List<Recipe<?>> list = Lists.newArrayList();",
+      "excerpt_sha256": "c4b4028d8ea38bdac53eaf07d6815e35b94a218b861d0ca3bf732e33b11fcb7b",
+      "role": "native supporting context0; actual Main read, not executed"
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "entry": "net/minecraft/world/item/crafting/RecipeManager.java",
+      "entry_sha256": "a861ce3db061aa46c0633bdf48db7c261c1b418461cb3a2101e87d381308f289",
+      "lines": [
+        125,
+        147
+      ],
+      "whole_file_read": false,
+      "excerpt": "\n   private <C extends Container, T extends Recipe<C>> Map<ResourceLocation, T> byType(RecipeType<T> p_44055_) {\n      return (Map<ResourceLocation, T>)this.recipes.getOrDefault(p_44055_, Collections.emptyMap());\n   }\n\n   public <C extends Container, T extends Recipe<C>> NonNullList<ItemStack> getRemainingItemsFor(RecipeType<T> p_44070_, C p_44071_, Level p_44072_) {\n      Optional<T> optional = this.getRecipeFor(p_44070_, p_44071_, p_44072_);\n      if (optional.isPresent()) {\n         return optional.get().getRemainingItems(p_44071_);\n      } else {\n         NonNullList<ItemStack> nonnulllist = NonNullList.withSize(p_44071_.getContainerSize(), ItemStack.EMPTY);\n\n         for(int i = 0; i < nonnulllist.size(); ++i) {\n            nonnulllist.set(i, p_44071_.getItem(i));\n         }\n\n         return nonnulllist;\n      }\n   }\n\n   public Optional<? extends Recipe<?>> byKey(ResourceLocation p_44044_) {\n      return Optional.ofNullable(this.byName.get(p_44044_));\n   }",
+      "excerpt_sha256": "c5d0fb7071436aa821d1d08a59c5dfaa93c1f3bb333028a2bece070c6c219d1c",
+      "role": "native supporting context0; actual Main read, not executed"
+    }
+  ],
+  "actual_reading": {
+    "source_ranges": 14,
+    "source_files": 11,
+    "whole_source_files": 7,
+    "source_lines": 1069,
+    "native_ranges": 13,
+    "native_files": 10,
+    "whole_native_files": 7,
+    "native_lines": 701,
+    "counts_are_not_credit": true,
+    "same_Helper_native_context_reused_as_context_not_new_semantic_credit": true
+  },
+  "tree_only_missing_raw_context": [
+    {
+      "upstream_path": "Forge/src/generated/resources/data/botania/tags/items/lens_glue.json",
+      "tree_blob_sha1": "ac85c159e2d62734eaffd3b86849a763ef6f9f5c",
+      "raw_body_read": false,
+      "credit": 0
+    },
+    {
+      "upstream_path": "Fabric/src/generated/resources/data/botania/tags/items/lens_glue.json",
+      "tree_blob_sha1": "e6cf18fcd0ee2bceeaf125b16dd5f03b4068b537",
+      "raw_body_read": false,
+      "credit": 0
+    },
+    {
+      "upstream_path": "Xplat/src/generated/resources/data/botania/recipes/dynamic/composite_lens.json",
+      "tree_blob_sha1": "1be034cf6733f0941e7cc879f65908a91c47f47e",
+      "raw_body_read": false,
+      "credit": 0
+    },
+    {
+      "upstream_path": "Xplat/src/generated/resources/data/botania/recipes/dynamic/split_lens.json",
+      "tree_blob_sha1": "15d473eafa7dd5b464b2d72d2f9662e384070a97",
+      "raw_body_read": false,
+      "credit": 0
+    }
+  ],
+  "prior_semantic_decisions_read": [
+    {
+      "candidate_id": "6b33e544e74ffc2ec851",
+      "status": "accepted",
+      "family": "botania-item-flags-old-spawn-cooldown-payload",
+      "trigger": "ItemFlagsComponent.readFromNbt internal item component persistence consumer",
+      "input": "current spawn flags/timeCounter plus legacy _elvenPortal boolean, manaInfusionCooldown/runicAltarCooldown integers",
+      "output": "current flags loaded then old true/positive values set portal/infusion/altar spawned flags true",
+      "preservation": "legacy branch only strengthens true; old nonpositive cooldown does not clear current true; timeCounter still loaded from current key",
+      "application_limit": "these are item processing state, not permanent player achievements. Must not use as permission to retain active combat immunity across death",
+      "credit": 1,
+      "evidence": [
+        {
+          "candidate_id": "6b33e544e74ffc2ec851",
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/internal_caps/ItemFlagsComponent.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/internal_caps/ItemFlagsComponent.java",
+          "start_line": 34,
+          "end_line": 51,
+          "method": "readFromNbt",
+          "file_sha256": "34874050633c56dd25deb22006859d5bcdc7422c0988e2fbec7f210e4f2eb0a6",
+          "method_sha256": "07e03b4d461f2d77d09978f1b0fb513c13ea51cad3ebe27a7035751c3c8d318a",
+          "structural_fingerprint": "4a1f4318f99b7834310a4c7008cf6e9a9b050ed13feb84641e4d520f85545744",
+          "source_url_or_coordinate": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/internal_caps/ItemFlagsComponent.java#L34-L51",
+          "context": "@Override\n\tpublic void readFromNbt(CompoundTag tag) {\n\t\telvenPortalSpawned = tag.getBoolean(TAG_PORTAL_SPAWNED);\n\t\tapothecarySpawned = tag.getBoolean(TAG_APOTHECARY_SPAWNED);\n\t\tmanaInfusionSpawned = tag.getBoolean(TAG_INFUSION_SPAWNED);\n\t\trunicAltarSpawned = tag.getBoolean(TAG_ALTAR_SPAWNED);\n\t\ttimeCounter = tag.getInt(TAG_TIME_COUNTER);\n\t\t// legacy tags\n\t\tif (tag.getBoolean(\"_elvenPortal\")) {\n\t\t\telvenPortalSpawned = true;\n\t\t}\n\t\tif (tag.getInt(\"manaInfusionCooldown\") > 0) {\n\t\t\tmanaInfusionSpawned = true;\n\t\t}\n\t\tif (tag.getInt(\"runicAltarCooldown\") > 0) {\n\t\t\trunicAltarSpawned = true;\n\t\t}\n\t}",
+          "parse_has_error": false
+        }
+      ]
+    },
+    {
+      "candidate_id": "c5cdac3007b2f3e374b6",
+      "status": "accepted",
+      "family": "botania-brewery-paid-ingredients-and-mana-recipe-rebind",
+      "trigger": "Brewery read/write/commonTick/findRecipe/addItem",
+      "input": "seven physical ingredient/container slots and paid mana, recipe cache absent on disk",
+      "output": "base inventory restored then mana; first tick with paid mana searches current recipes before completion",
+      "preservation": "Read both persistence methods and full paid input/tick/output path plus SimpleInventoryBlockEntity and BotaniaBlockEntity. readPacketNBT really serves disk load/saveAdditional, not merely networking. Restores full stacks and recomputes recipe from inventory without spending inputs again.",
+      "application_limit": "If current data no longer has matching recipe, paid mana resets0; unknown item stack behavior inherited native loader. Output spawn result unchecked before clearing all inputs. Recipe changes may reinterpret ingredients. No opaque removed-recipe retention or atomicity guarantee.",
+      "supporting_candidates": [],
+      "credit": 1,
+      "evidence": [
+        {
+          "candidate_id": "c5cdac3007b2f3e374b6",
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/block/block_entity/BreweryBlockEntity.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/block_entity/BreweryBlockEntity.java",
+          "start_line": 212,
+          "end_line": 217,
+          "method": "readPacketNBT",
+          "file_sha256": "cf6aacc715d65ca83b85d0bdc78e140df4fac81cc5ca873cf594db0884285ccc",
+          "method_sha256": "c9b7b1205275f991c425da4fd15ca82aa31f06091a7ea9ef7730f21e59d0c2ac",
+          "structural_fingerprint": "bf4f8c050330da0274ce137639c802de0efb364c2cf1b6180bd1c6d5583a9ca1",
+          "source_url_or_coordinate": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/block/block_entity/BreweryBlockEntity.java#L212-L217",
+          "context": "@Override\n\tpublic void readPacketNBT(CompoundTag tag) {\n\t\tsuper.readPacketNBT(tag);\n\n\t\tmana = tag.getInt(TAG_MANA);\n\t}",
+          "parse_has_error": false
+        }
+      ]
+    },
+    {
+      "candidate_id": "980d0b8b01ef0f629fc3",
+      "status": "accepted",
+      "family": "botania-runic-altar-paid-mana-target-with-refundable-runes",
+      "trigger": "RunicAltar read/write/serverTick/updateRecipe/onUsedByWand",
+      "input": "full ingredient slots plus stored mana/manaToGet, transient lastRecipe/cooldown omitted",
+      "output": "recover paid charge and ingredients; current recipe target recomputed, wand completion refunds rune ingredients and consumes other inputs/livingrock",
+      "preservation": "Read full ingredient acquisition, both tick paths, all update/lastRecipe/wand methods and pair. Derived target can update after reload; lastRecipe is recipe history only and is not treated as owned stock/refunded independently. Rune output flags prevent immediate re-ingestion.",
+      "application_limit": "CurrentRecipe cache not persisted; missing/changed recipe can change target. addFreshEntity success unchecked before input clear/shrink. Omitted cooldown/history are temporary conveniences, not claimed preserved. Do not count helper Container load as another implementation.",
+      "supporting_candidates": [],
+      "credit": 1,
+      "evidence": [
+        {
+          "candidate_id": "980d0b8b01ef0f629fc3",
+          "repo": "VazkiiMods/Botania",
+          "revision": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+          "path": "Xplat/src/main/java/vazkii/botania/common/block/block_entity/RunicAltarBlockEntity.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/block_entity/RunicAltarBlockEntity.java",
+          "start_line": 338,
+          "end_line": 344,
+          "method": "readPacketNBT",
+          "file_sha256": "d2838c9c6c9e5a6c053a592da00dbb978426d678d681ac1e7f887569b261d9d1",
+          "method_sha256": "f0972732390d618899d651fb04bd54a417d24ee500ed7ba5e4bde9c5b1e38906",
+          "structural_fingerprint": "81a16609937a0518ee389d5980dd20b490242403f248ea6337000f13ce3bd449",
+          "source_url_or_coordinate": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/block/block_entity/RunicAltarBlockEntity.java#L338-L344",
+          "context": "@Override\n\tpublic void readPacketNBT(CompoundTag tag) {\n\t\tsuper.readPacketNBT(tag);\n\n\t\tmana = tag.getInt(TAG_MANA);\n\t\tmanaToGet = tag.getInt(TAG_MANA_TO_GET);\n\t}",
+          "parse_has_error": false
+        }
+      ]
+    }
+  ],
+  "ownership_screen": {
+    "migration_ledger": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "immunity_ledger": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+    "immunity_sha256": "b6c2810de753e6a7a3786b03a54ee522d4184b72812361b73478fcae032a435a",
+    "query_terms": [
+      "compositelens",
+      "splitlens",
+      "composite_lens",
+      "split_lens",
+      "composite-lens",
+      "split-lens",
+      "lens-composite"
+    ],
+    "direct_matches": 0,
+    "limits": "Full current structured entries searched; only the three recorded related complete decisions manually read. No new global, immunity or migration credit."
+  },
+  "whole_lifecycle_findings": [
+    "One whole dynamic composite-lens and inverse split lifecycle at most, not one credit per lens/property/serializer/native helper. This study is applicable NBT functional-variant/crafting research, pending independent review0; migration1000 and machine-only quest structural1000 do not authorize new NBT production.",
+    "Composite matches occupied slots: exactly two CompositableLensItem stacks and one LENS_GLUE stack, not physical stack counts. Multiple units in one slot do not become multiple ingredients. Slot encounter order chooses outer/base versus nested lens. No output or consumption occurs in matches.",
+    "Composite matches does not itself run compatibility. assemble may return EMPTY after a matches=true preview path. It invokes the first lens canCombineLenses and forbids existing composite on either side. Interface prose is not evidence that both custom implementations are called reciprocally.",
+    "LensItem compatibility checks distinct item identity, both non-normal combinable lenses, and no overlapping property bits. PROP_NONE zero-bit lenses can combine with other zero-bit lenses if distinct items. These are parameters of one policy, not independent implementations.",
+    "assemble copies base and second count1; setCompositeLens serializes the second stack into the compositeLens compound of the base copy. Base custom metadata follows copy; nested stack item/count/tag and Forge caps follow native save/ItemStack.of supporting code. Names, tooltip and base item ID do not prove functional composite NBT.",
+    "Split accepts exactly one occupied lens slot whose getCompositeLens is nonempty. It returns a count1 copy of nested lens. getRemainingItems separately copies the base count1 and removes only compositeLens; outer and nested unrelated metadata have copy semantics. Glue is not refunded by this split; native ResultSlot delivers remainder. This is inverse composition, not minting two outputs without an original paid stack.",
+    "Split getRemainingItems lacks its own full valid-grid guard; normal RecipeManager selects a matching recipe before invoking it. Callback reentry/mutation and malicious direct invocation have not been executed or proven safe. Never call assemble/getRemainingItems to award a quest reward or migrate inventory.",
+    "ItemNBTHelper.getCompound checks key existence rather than compound type; malformed entry handling is inherited getCompound and ItemStack.of. Native of catches RuntimeException and returns EMPTY. Do not claim arbitrary corrupted/unknown item payload is preserved, or removed item IDs remain recoverable.",
+    "Lens effects dispatch outer then nested BasicLens effects for apply/collide/update. Controlled spreader methods delegate primary lens only. This source binds functional readers but does not prove every burst/property combination or running visuals. None of those implementations is a separate credit.",
+    "Concrete NoOpRecipeSerializer registrations and specialRecipe datagen map serializer registry keys to dynamic/composite_lens and dynamic/split_lens IDs. Constructor-only JSON/network serializer has no per-recipe dynamic fields. Forge datagen glue requests slimeballs tag plus honey bottle; raw generated recipe/tag bodies absent, current loaded tags/recipes unverified.",
+    "Native server CraftingMenu.slotChangedCraftingGrid binds chosen recipe, evaluates assemble and enabled output before sync. CustomRecipe catalog getResultItem EMPTY is not a missing craft result. Recipe preview/JEI/string name alone is not native crafting completion.",
+    "Native ResultSlot.checkTakeAchievements calls onCraftedBy, Forge crafted event and recipe award/trigger before onTake removes one ingredient per occupied slot and processes remainders. Native shift-click calls item onCraftedBy even before destination move success. Those early item callbacks are not an after-payment exactly-once committed receipt.",
+    "Native RecipeHolder.awardUsedRecipes invokes triggerRecipeCrafted for special as well as ordinary recipes before its special book-unlock branch. SpecialRecipeBuilder emits no recipe advancement itself, yet a separate recipe_crafted criterion may still observe its recipe ID. Never infer special means no trigger.",
+    "RecipeCraftedTrigger input predicates match copies of input stacks with per-predicate removal; recipe ID and ingredient predicates are in this trigger, output stack is absent. A future four-variant quest must bind an exact intended recipe/native result path; broad base-item/generic first_infusion cannot certify arbitrary output variant NBT. Current Dynasty has no new quest/serializer edits from this study.",
+    "Existing accepted migration item-flags legacy booleans, Brewery paid mana+inventory recomputation, and RunicAltar paid mana+rune refund decisions are fully read here. Composite/split final item-owned functional payload differs from their durable machine-state migrations; shared ItemNBTHelper/ItemStack serialization has zero new migration credit. No composite/split terms appeared in either current ledger; this bounded screen is not a claim to re-read every accepted record."
+  ],
+  "application_to_Dynasty": "Materials -> existing craft prerequisite -> native crafting/payment -> intended functional result acquisition; retain original IDs/rewards/progress and empty new branch rewards. Four named variants require their actual tags, not display names or base item. Independent NBT semantic gate still pending; no implementation performed.",
+  "limits": [
+    "Static fixed-source reading only; no game/native/client/network/MP/survival/performance acceptance.",
+    "No unknown registry/capability full recovery or exactly-once transaction assertion.",
+    "No crafting sound/resource/media inspected or changed.",
+    "No existing machine-assisted structural1000 promoted to NBT semantic1000."
+  ],
+  "production_changes": 0,
+  "art_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "formal_ledgers_changed": false,
+  "duration_hours_claimed": 0
+}

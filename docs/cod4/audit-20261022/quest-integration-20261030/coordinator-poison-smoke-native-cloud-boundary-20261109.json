@@ -1,0 +1,181 @@
+{
+  "recorded_at": "2026-11-09T09:00:56.729396+00:00",
+  "client_date": "2026-11-09",
+  "reviewer": "Main coordinator",
+  "scope": "Bounded native poison-smoke output-to-cloud behavior needed by existing four-variant task integration; static source analysis only",
+  "prior_review": {
+    "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-four-variant-functional-identity-review-20261104.json",
+    "sha256": "1463ba7fa24fec6fc6b6a8f672f7dd2ee27744cd872ac6f6ea81ef362e795fd3",
+    "reused_credit": 0
+  },
+  "recipe": {
+    "path": "src/main/resources/data/dynasty/recipes/cod4/poison_smoke_bomb.json",
+    "sha256": "97ab35fd02edd43186bd8b41ceeaefcdf0f79756d965e70fc74430018d765047",
+    "source_definition": {
+      "type": "minecraft:crafting_shapeless",
+      "ingredients": [
+        {
+          "item": "dynasty:locust_dust"
+        },
+        {
+          "item": "dynasty:locust_dust"
+        },
+        {
+          "item": "minecraft:gunpowder"
+        },
+        {
+          "item": "minecraft:glass_bottle"
+        }
+      ],
+      "result": {
+        "item": "minecraft:lingering_potion",
+        "count": 1,
+        "nbt": {
+          "Potion": "minecraft:poison",
+          "CustomPotionColor": 7828599,
+          "cod4PoisonSmoke": true,
+          "display": {
+            "Name": "{\"translate\":\"item.dynasty.poison_smoke_bomb\"}"
+          }
+        }
+      }
+    }
+  },
+  "actual_native_read_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/projectile/ThrownPotion.java",
+      "entry_sha256": "60adfa0c9b318afba2f5be6d3708fdb2013d9dcf103f66d723665274401a64f7",
+      "lines": [
+        1,
+        207
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "60adfa0c9b318afba2f5be6d3708fdb2013d9dcf103f66d723665274401a64f7",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.projectile;\n\nimport java.util.List;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.AreaEffectCloud;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.animal.axolotl.Axolotl;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.alchemy.Potion;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.item.alchemy.Potions;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.AbstractCandleBlock;\nimport net.minecraft.world.level.block.CampfireBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.EntityHitResult;\nimport net.minecraft.world.phys.HitResult;\n\npublic class ThrownPotion extends ThrowableItemProjectile implements ItemSupplier {\n   public static final double SPLASH_RANGE = 4.0D;\n   private static final double SPLASH_RANGE_SQ = 16.0D;\n   public static final Predicate<LivingEntity> WATER_SENSITIVE_OR_ON_FIRE = (p_287524_) -> {\n      return p_287524_.isSensitiveToWater() || p_287524_.isOnFire();\n   };\n\n   public ThrownPotion(EntityType<? extends ThrownPotion> p_37527_, Level p_37528_) {\n      super(p_37527_, p_37528_);\n   }\n\n   public ThrownPotion(Level p_37535_, LivingEntity p_37536_) {\n      super(EntityType.POTION, p_37536_, p_37535_);\n   }\n\n   public ThrownPotion(Level p_37530_, double p_37531_, double p_37532_, double p_37533_) {\n      super(EntityType.POTION, p_37531_, p_37532_, p_37533_, p_37530_);\n   }\n\n   protected Item getDefaultItem() {\n      return Items.SPLASH_POTION;\n   }\n\n   protected float getGravity() {\n      return 0.05F;\n   }\n\n   protected void onHitBlock(BlockHitResult p_37541_) {\n      super.onHitBlock(p_37541_);\n      if (!this.level().isClientSide) {\n         ItemStack itemstack = this.getItem();\n         Potion potion = PotionUtils.getPotion(itemstack);\n         List<MobEffectInstance> list = PotionUtils.getMobEffects(itemstack);\n         boolean flag = potion == Potions.WATER && list.isEmpty();\n         Direction direction = p_37541_.getDirection();\n         BlockPos blockpos = p_37541_.getBlockPos();\n         BlockPos blockpos1 = blockpos.relative(direction);\n         if (flag) {\n            this.dowseFire(blockpos1);\n            this.dowseFire(blockpos1.relative(direction.getOpposite()));\n\n            for(Direction direction1 : Direction.Plane.HORIZONTAL) {\n               this.dowseFire(blockpos1.relative(direction1));\n            }\n         }\n\n      }\n   }\n\n   protected void onHit(HitResult p_37543_) {\n      super.onHit(p_37543_);\n      if (!this.level().isClientSide) {\n         ItemStack itemstack = this.getItem();\n         Potion potion = PotionUtils.getPotion(itemstack);\n         List<MobEffectInstance> list = PotionUtils.getMobEffects(itemstack);\n         boolean flag = potion == Potions.WATER && list.isEmpty();\n         if (flag) {\n            this.applyWater();\n         } else if (!list.isEmpty()) {\n            if (this.isLingering()) {\n               this.makeAreaOfEffectCloud(itemstack, potion);\n            } else {\n               this.applySplash(list, p_37543_.getType() == HitResult.Type.ENTITY ? ((EntityHitResult)p_37543_).getEntity() : null);\n            }\n         }\n\n         int i = potion.hasInstantEffects() ? 2007 : 2002;\n         this.level().levelEvent(i, this.blockPosition(), PotionUtils.getColor(itemstack));\n         this.discard();\n      }\n   }\n\n   private void applyWater() {\n      AABB aabb = this.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);\n\n      for(LivingEntity livingentity : this.level().getEntitiesOfClass(LivingEntity.class, aabb, WATER_SENSITIVE_OR_ON_FIRE)) {\n         double d0 = this.distanceToSqr(livingentity);\n         if (d0 < 16.0D) {\n            if (livingentity.isSensitiveToWater()) {\n               livingentity.hurt(this.damageSources().indirectMagic(this, this.getOwner()), 1.0F);\n            }\n\n            if (livingentity.isOnFire() && livingentity.isAlive()) {\n               livingentity.extinguishFire();\n            }\n         }\n      }\n\n      for(Axolotl axolotl : this.level().getEntitiesOfClass(Axolotl.class, aabb)) {\n         axolotl.rehydrate();\n      }\n\n   }\n\n   private void applySplash(List<MobEffectInstance> p_37548_, @Nullable Entity p_37549_) {\n      AABB aabb = this.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);\n      List<LivingEntity> list = this.level().getEntitiesOfClass(LivingEntity.class, aabb);\n      if (!list.isEmpty()) {\n         Entity entity = this.getEffectSource();\n\n         for(LivingEntity livingentity : list) {\n            if (livingentity.isAffectedByPotions()) {\n               double d0 = this.distanceToSqr(livingentity);\n               if (d0 < 16.0D) {\n                  double d1;\n                  if (livingentity == p_37549_) {\n                     d1 = 1.0D;\n                  } else {\n                     d1 = 1.0D - Math.sqrt(d0) / 4.0D;\n                  }\n\n                  for(MobEffectInstance mobeffectinstance : p_37548_) {\n                     MobEffect mobeffect = mobeffectinstance.getEffect();\n                     if (mobeffect.isInstantenous()) {\n                        mobeffect.applyInstantenousEffect(this, this.getOwner(), livingentity, mobeffectinstance.getAmplifier(), d1);\n                     } else {\n                        int i = mobeffectinstance.mapDuration((p_267930_) -> {\n                           return (int)(d1 * (double)p_267930_ + 0.5D);\n                        });\n                        MobEffectInstance mobeffectinstance1 = new MobEffectInstance(mobeffect, i, mobeffectinstance.getAmplifier(), mobeffectinstance.isAmbient(), mobeffectinstance.isVisible());\n                        if (!mobeffectinstance1.endsWithin(20)) {\n                           livingentity.addEffect(mobeffectinstance1, entity);\n                        }\n                     }\n                  }\n               }\n            }\n         }\n      }\n\n   }\n\n   private void makeAreaOfEffectCloud(ItemStack p_37538_, Potion p_37539_) {\n      AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());\n      Entity entity = this.getOwner();\n      if (entity instanceof LivingEntity) {\n         areaeffectcloud.setOwner((LivingEntity)entity);\n      }\n\n      areaeffectcloud.setRadius(3.0F);\n      areaeffectcloud.setRadiusOnUse(-0.5F);\n      areaeffectcloud.setWaitTime(10);\n      areaeffectcloud.setRadiusPerTick(-areaeffectcloud.getRadius() / (float)areaeffectcloud.getDuration());\n      areaeffectcloud.setPotion(p_37539_);\n\n      for(MobEffectInstance mobeffectinstance : PotionUtils.getCustomEffects(p_37538_)) {\n         areaeffectcloud.addEffect(new MobEffectInstance(mobeffectinstance));\n      }\n\n      CompoundTag compoundtag = p_37538_.getTag();\n      if (compoundtag != null && compoundtag.contains(\"CustomPotionColor\", 99)) {\n         areaeffectcloud.setFixedColor(compoundtag.getInt(\"CustomPotionColor\"));\n      }\n\n      this.level().addFreshEntity(areaeffectcloud);\n   }\n\n   private boolean isLingering() {\n      return this.getItem().is(Items.LINGERING_POTION);\n   }\n\n   private void dowseFire(BlockPos p_150193_) {\n      BlockState blockstate = this.level().getBlockState(p_150193_);\n      if (blockstate.is(BlockTags.FIRE)) {\n         this.level().removeBlock(p_150193_, false);\n      } else if (AbstractCandleBlock.isLit(blockstate)) {\n         AbstractCandleBlock.extinguish((Player)null, blockstate, this.level(), p_150193_);\n      } else if (CampfireBlock.isLitCampfire(blockstate)) {\n         this.level().levelEvent((Player)null, 1009, p_150193_, 0);\n         CampfireBlock.dowse(this.getOwner(), this.level(), p_150193_, blockstate);\n         this.level().setBlockAndUpdate(p_150193_, blockstate.setValue(CampfireBlock.LIT, Boolean.valueOf(false)));\n      }\n\n   }\n}",
+      "semantic_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/AreaEffectCloud.java",
+      "entry_sha256": "b9d0bc9e52940b50496bacff1faa18c8edba1f90de5040b79b510ab6319e90cb",
+      "lines": [
+        37,
+        151
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d930e50ad46371d44f4a0c1ddc2fd20df0746b00f562d336490c213da57e4c92",
+      "raw_excerpt_utf8": "   private static final EntityDataAccessor<ParticleOptions> DATA_PARTICLE = SynchedEntityData.defineId(AreaEffectCloud.class, EntityDataSerializers.PARTICLE);\n   private static final float MAX_RADIUS = 32.0F;\n   private static final float MINIMAL_RADIUS = 0.5F;\n   private static final float DEFAULT_RADIUS = 3.0F;\n   public static final float DEFAULT_WIDTH = 6.0F;\n   public static final float HEIGHT = 0.5F;\n   private Potion potion = Potions.EMPTY;\n   private final List<MobEffectInstance> effects = Lists.newArrayList();\n   private final Map<Entity, Integer> victims = Maps.newHashMap();\n   private int duration = 600;\n   private int waitTime = 20;\n   private int reapplicationDelay = 20;\n   private boolean fixedColor;\n   private int durationOnUse;\n   private float radiusOnUse;\n   private float radiusPerTick;\n   @Nullable\n   private LivingEntity owner;\n   @Nullable\n   private UUID ownerUUID;\n\n   public AreaEffectCloud(EntityType<? extends AreaEffectCloud> p_19704_, Level p_19705_) {\n      super(p_19704_, p_19705_);\n      this.noPhysics = true;\n   }\n\n   public AreaEffectCloud(Level p_19707_, double p_19708_, double p_19709_, double p_19710_) {\n      this(EntityType.AREA_EFFECT_CLOUD, p_19707_);\n      this.setPos(p_19708_, p_19709_, p_19710_);\n   }\n\n   protected void defineSynchedData() {\n      this.getEntityData().define(DATA_COLOR, 0);\n      this.getEntityData().define(DATA_RADIUS, 3.0F);\n      this.getEntityData().define(DATA_WAITING, false);\n      this.getEntityData().define(DATA_PARTICLE, ParticleTypes.ENTITY_EFFECT);\n   }\n\n   public void setRadius(float p_19713_) {\n      if (!this.level().isClientSide) {\n         this.getEntityData().set(DATA_RADIUS, Mth.clamp(p_19713_, 0.0F, 32.0F));\n      }\n\n   }\n\n   public void refreshDimensions() {\n      double d0 = this.getX();\n      double d1 = this.getY();\n      double d2 = this.getZ();\n      super.refreshDimensions();\n      this.setPos(d0, d1, d2);\n   }\n\n   public float getRadius() {\n      return this.getEntityData().get(DATA_RADIUS);\n   }\n\n   public void setPotion(Potion p_19723_) {\n      this.potion = p_19723_;\n      if (!this.fixedColor) {\n         this.updateColor();\n      }\n\n   }\n\n   private void updateColor() {\n      if (this.potion == Potions.EMPTY && this.effects.isEmpty()) {\n         this.getEntityData().set(DATA_COLOR, 0);\n      } else {\n         this.getEntityData().set(DATA_COLOR, PotionUtils.getColor(PotionUtils.getAllEffects(this.potion, this.effects)));\n      }\n\n   }\n\n   public void addEffect(MobEffectInstance p_19717_) {\n      this.effects.add(p_19717_);\n      if (!this.fixedColor) {\n         this.updateColor();\n      }\n\n   }\n\n   public int getColor() {\n      return this.getEntityData().get(DATA_COLOR);\n   }\n\n   public void setFixedColor(int p_19715_) {\n      this.fixedColor = true;\n      this.getEntityData().set(DATA_COLOR, p_19715_);\n   }\n\n   public ParticleOptions getParticle() {\n      return this.getEntityData().get(DATA_PARTICLE);\n   }\n\n   public void setParticle(ParticleOptions p_19725_) {\n      this.getEntityData().set(DATA_PARTICLE, p_19725_);\n   }\n\n   protected void setWaiting(boolean p_19731_) {\n      this.getEntityData().set(DATA_WAITING, p_19731_);\n   }\n\n   public boolean isWaiting() {\n      return this.getEntityData().get(DATA_WAITING);\n   }\n\n   public int getDuration() {\n      return this.duration;\n   }\n\n   public void setDuration(int p_19735_) {\n      this.duration = p_19735_;\n   }\n\n",
+      "semantic_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/AreaEffectCloud.java",
+      "entry_sha256": "b9d0bc9e52940b50496bacff1faa18c8edba1f90de5040b79b510ab6319e90cb",
+      "lines": [
+        152,
+        285
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3da0f428c27371661723eb89f0718627587c903a74685e8cd3e17cb7a520c35e",
+      "raw_excerpt_utf8": "   public void tick() {\n      super.tick();\n      boolean flag = this.isWaiting();\n      float f = this.getRadius();\n      if (this.level().isClientSide) {\n         if (flag && this.random.nextBoolean()) {\n            return;\n         }\n\n         ParticleOptions particleoptions = this.getParticle();\n         int i;\n         float f1;\n         if (flag) {\n            i = 2;\n            f1 = 0.2F;\n         } else {\n            i = Mth.ceil((float)Math.PI * f * f);\n            f1 = f;\n         }\n\n         for(int j = 0; j < i; ++j) {\n            float f2 = this.random.nextFloat() * ((float)Math.PI * 2F);\n            float f3 = Mth.sqrt(this.random.nextFloat()) * f1;\n            double d0 = this.getX() + (double)(Mth.cos(f2) * f3);\n            double d2 = this.getY();\n            double d4 = this.getZ() + (double)(Mth.sin(f2) * f3);\n            double d5;\n            double d6;\n            double d7;\n            if (particleoptions.getType() == ParticleTypes.ENTITY_EFFECT) {\n               int k = flag && this.random.nextBoolean() ? 16777215 : this.getColor();\n               d5 = (double)((float)(k >> 16 & 255) / 255.0F);\n               d6 = (double)((float)(k >> 8 & 255) / 255.0F);\n               d7 = (double)((float)(k & 255) / 255.0F);\n            } else if (flag) {\n               d5 = 0.0D;\n               d6 = 0.0D;\n               d7 = 0.0D;\n            } else {\n               d5 = (0.5D - this.random.nextDouble()) * 0.15D;\n               d6 = (double)0.01F;\n               d7 = (0.5D - this.random.nextDouble()) * 0.15D;\n            }\n\n            this.level().addAlwaysVisibleParticle(particleoptions, d0, d2, d4, d5, d6, d7);\n         }\n      } else {\n         if (this.tickCount >= this.waitTime + this.duration) {\n            this.discard();\n            return;\n         }\n\n         boolean flag1 = this.tickCount < this.waitTime;\n         if (flag != flag1) {\n            this.setWaiting(flag1);\n         }\n\n         if (flag1) {\n            return;\n         }\n\n         if (this.radiusPerTick != 0.0F) {\n            f += this.radiusPerTick;\n            if (f < 0.5F) {\n               this.discard();\n               return;\n            }\n\n            this.setRadius(f);\n         }\n\n         if (this.tickCount % 5 == 0) {\n            this.victims.entrySet().removeIf((p_287380_) -> {\n               return this.tickCount >= p_287380_.getValue();\n            });\n            List<MobEffectInstance> list = Lists.newArrayList();\n\n            for(MobEffectInstance mobeffectinstance : this.potion.getEffects()) {\n               list.add(new MobEffectInstance(mobeffectinstance.getEffect(), mobeffectinstance.mapDuration((p_267926_) -> {\n                  return p_267926_ / 4;\n               }), mobeffectinstance.getAmplifier(), mobeffectinstance.isAmbient(), mobeffectinstance.isVisible()));\n            }\n\n            list.addAll(this.effects);\n            if (list.isEmpty()) {\n               this.victims.clear();\n            } else {\n               List<LivingEntity> list1 = this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox());\n               if (!list1.isEmpty()) {\n                  for(LivingEntity livingentity : list1) {\n                     if (!this.victims.containsKey(livingentity) && livingentity.isAffectedByPotions()) {\n                        double d8 = livingentity.getX() - this.getX();\n                        double d1 = livingentity.getZ() - this.getZ();\n                        double d3 = d8 * d8 + d1 * d1;\n                        if (d3 <= (double)(f * f)) {\n                           this.victims.put(livingentity, this.tickCount + this.reapplicationDelay);\n\n                           for(MobEffectInstance mobeffectinstance1 : list) {\n                              if (mobeffectinstance1.getEffect().isInstantenous()) {\n                                 mobeffectinstance1.getEffect().applyInstantenousEffect(this, this.getOwner(), livingentity, mobeffectinstance1.getAmplifier(), 0.5D);\n                              } else {\n                                 livingentity.addEffect(new MobEffectInstance(mobeffectinstance1), this);\n                              }\n                           }\n\n                           if (this.radiusOnUse != 0.0F) {\n                              f += this.radiusOnUse;\n                              if (f < 0.5F) {\n                                 this.discard();\n                                 return;\n                              }\n\n                              this.setRadius(f);\n                           }\n\n                           if (this.durationOnUse != 0) {\n                              this.duration += this.durationOnUse;\n                              if (this.duration <= 0) {\n                                 this.discard();\n                                 return;\n                              }\n                           }\n                        }\n                     }\n                  }\n               }\n            }\n         }\n      }\n\n   }\n\n   public float getRadiusOnUse() {\n      return this.radiusOnUse;\n",
+      "semantic_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/AreaEffectCloud.java",
+      "entry_sha256": "b9d0bc9e52940b50496bacff1faa18c8edba1f90de5040b79b510ab6319e90cb",
+      "lines": [
+        312,
+        335
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8ff21912150adecd5c1bc5ee48694d8ea3887451f5c6a408fb3bd87e9bce1441",
+      "raw_excerpt_utf8": "   public void setWaitTime(int p_19741_) {\n      this.waitTime = p_19741_;\n   }\n\n   public void setOwner(@Nullable LivingEntity p_19719_) {\n      this.owner = p_19719_;\n      this.ownerUUID = p_19719_ == null ? null : p_19719_.getUUID();\n   }\n\n   @Nullable\n   public LivingEntity getOwner() {\n      if (this.owner == null && this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         Entity entity = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         if (entity instanceof LivingEntity) {\n            this.owner = (LivingEntity)entity;\n         }\n      }\n\n      return this.owner;\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_19727_) {\n      this.tickCount = p_19727_.getInt(\"Age\");\n      this.duration = p_19727_.getInt(\"Duration\");\n",
+      "semantic_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/alchemy/PotionUtils.java",
+      "entry_sha256": "417a68f87eceb4ad97a661184d691617b82455138b0f1fbe5e2b629c3149a175",
+      "lines": [
+        25,
+        75
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0f83387c77e2fd1379dd7025bde54f3562be738c7dfa6747e1c6f8c95f709eb4",
+      "raw_excerpt_utf8": "   public static final String TAG_CUSTOM_POTION_EFFECTS = \"CustomPotionEffects\";\n   public static final String TAG_CUSTOM_POTION_COLOR = \"CustomPotionColor\";\n   public static final String TAG_POTION = \"Potion\";\n   private static final int EMPTY_COLOR = 16253176;\n   private static final Component NO_EFFECT = Component.translatable(\"effect.none\").withStyle(ChatFormatting.GRAY);\n\n   public static List<MobEffectInstance> getMobEffects(ItemStack p_43548_) {\n      return getAllEffects(p_43548_.getTag());\n   }\n\n   public static List<MobEffectInstance> getAllEffects(Potion p_43562_, Collection<MobEffectInstance> p_43563_) {\n      List<MobEffectInstance> list = Lists.newArrayList();\n      list.addAll(p_43562_.getEffects());\n      list.addAll(p_43563_);\n      return list;\n   }\n\n   public static List<MobEffectInstance> getAllEffects(@Nullable CompoundTag p_43567_) {\n      List<MobEffectInstance> list = Lists.newArrayList();\n      list.addAll(getPotion(p_43567_).getEffects());\n      getCustomEffects(p_43567_, list);\n      return list;\n   }\n\n   public static List<MobEffectInstance> getCustomEffects(ItemStack p_43572_) {\n      return getCustomEffects(p_43572_.getTag());\n   }\n\n   public static List<MobEffectInstance> getCustomEffects(@Nullable CompoundTag p_43574_) {\n      List<MobEffectInstance> list = Lists.newArrayList();\n      getCustomEffects(p_43574_, list);\n      return list;\n   }\n\n   public static void getCustomEffects(@Nullable CompoundTag p_43569_, List<MobEffectInstance> p_43570_) {\n      if (p_43569_ != null && p_43569_.contains(\"CustomPotionEffects\", 9)) {\n         ListTag listtag = p_43569_.getList(\"CustomPotionEffects\", 10);\n\n         for(int i = 0; i < listtag.size(); ++i) {\n            CompoundTag compoundtag = listtag.getCompound(i);\n            MobEffectInstance mobeffectinstance = MobEffectInstance.load(compoundtag);\n            if (mobeffectinstance != null) {\n               p_43570_.add(mobeffectinstance);\n            }\n         }\n      }\n\n   }\n\n   public static int getColor(ItemStack p_43576_) {\n      CompoundTag compoundtag = p_43576_.getTag();\n",
+      "semantic_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/alchemy/PotionUtils.java",
+      "entry_sha256": "417a68f87eceb4ad97a661184d691617b82455138b0f1fbe5e2b629c3149a175",
+      "lines": [
+        119,
+        153
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "74428f5522f4d0d4650ca52f6089aa2e1b2f4f8c1e7976a87814edb7e06dc452",
+      "raw_excerpt_utf8": "   public static Potion getPotion(ItemStack p_43580_) {\n      return getPotion(p_43580_.getTag());\n   }\n\n   public static Potion getPotion(@Nullable CompoundTag p_43578_) {\n      return p_43578_ == null ? Potions.EMPTY : Potion.byName(p_43578_.getString(\"Potion\"));\n   }\n\n   public static ItemStack setPotion(ItemStack p_43550_, Potion p_43551_) {\n      ResourceLocation resourcelocation = BuiltInRegistries.POTION.getKey(p_43551_);\n      if (p_43551_ == Potions.EMPTY) {\n         p_43550_.removeTagKey(\"Potion\");\n      } else {\n         p_43550_.getOrCreateTag().putString(\"Potion\", resourcelocation.toString());\n      }\n\n      return p_43550_;\n   }\n\n   public static ItemStack setCustomEffects(ItemStack p_43553_, Collection<MobEffectInstance> p_43554_) {\n      if (p_43554_.isEmpty()) {\n         return p_43553_;\n      } else {\n         CompoundTag compoundtag = p_43553_.getOrCreateTag();\n         ListTag listtag = compoundtag.getList(\"CustomPotionEffects\", 9);\n\n         for(MobEffectInstance mobeffectinstance : p_43554_) {\n            listtag.add(mobeffectinstance.save(new CompoundTag()));\n         }\n\n         compoundtag.put(\"CustomPotionEffects\", listtag);\n         return p_43553_;\n      }\n   }\n\n",
+      "semantic_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/ThrowablePotionItem.java",
+      "entry_sha256": "b5152be226a29b86000da429ce2633841cb13f0c89126700624f50ff06ec8b46",
+      "lines": [
+        1,
+        31
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b5152be226a29b86000da429ce2633841cb13f0c89126700624f50ff06ec8b46",
+      "raw_excerpt_utf8": "package net.minecraft.world.item;\n\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.ThrownPotion;\nimport net.minecraft.world.level.Level;\n\npublic class ThrowablePotionItem extends PotionItem {\n   public ThrowablePotionItem(Item.Properties p_43301_) {\n      super(p_43301_);\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_43303_, Player p_43304_, InteractionHand p_43305_) {\n      ItemStack itemstack = p_43304_.getItemInHand(p_43305_);\n      if (!p_43303_.isClientSide) {\n         ThrownPotion thrownpotion = new ThrownPotion(p_43303_, p_43304_);\n         thrownpotion.setItem(itemstack);\n         thrownpotion.shootFromRotation(p_43304_, p_43304_.getXRot(), p_43304_.getYRot(), -20.0F, 0.5F, 1.0F);\n         p_43303_.addFreshEntity(thrownpotion);\n      }\n\n      p_43304_.awardStat(Stats.ITEM_USED.get(this));\n      if (!p_43304_.getAbilities().instabuild) {\n         itemstack.shrink(1);\n      }\n\n      return InteractionResultHolder.sidedSuccess(itemstack, p_43303_.isClientSide());\n   }\n}",
+      "semantic_credit": 0
+    }
+  ],
+  "findings": [
+    "原配方是minecraft:lingering_potion+Potion minecraft:poison+cod4PoisonSmoke；marker/译名/颜色不是原生药效输入。PotionUtils按Potion注册名及CustomPotionEffects生成效果列表，不读取cod4PoisonSmoke。此记录不证明配方实际加载和付款。",
+    "ThrowablePotionItem.use在server构造投掷物并setItem，再请求addFreshEntity，未检查接纳返回；随后统计ITEM_USED、非creative缩减1并返回sidedSuccess。使用统计/扣费/成功交互返回都不能证明投掷物入世或玩家效果成功。setItem具体复制和上游右键事件本轮未展开。",
+    "ThrownPotion.onHit在super之后server读取实际ItemStack药水：WATER且无效果执行applyWater；其他只有效果列表非空才进入linger或splash。isLingering仅检查Items.LINGERING_POTION，不检查marker。即使没有cloud，仍可发出levelEvent并discard，颜色/破碎粒子不作成功回执。",
+    "原生cloud带LivingEntity owner，半径3、每命中radiusOnUse=-0.5、等待10tick、默认duration600及radiusPerTick=-3/600。复制Potion、CustomPotionEffects和可选固定颜色；未转存cod4PoisonSmoke为cloud专用身份。addFreshEntity返回忽略，不等于cloud实际加入。",
+    "AreaEffectCloud.tick客户端粒子与server效果分支分开。server在waitTime+duration到期清理、等待期不施效、半径每tick收缩且低于0.5清理；每5tick查询当前包围盒内living，再检查victims冷却、isAffectedByPotions及水平半径，不能用屏幕粒子覆盖替代实际目标筛选。",
+    "cloud对原Potion效果duration/4（mapDuration），额外custom列表原样追加；每候选先写victims下次tick，再请求instant或addEffect，其后减半径/时长。普通addEffect返回未检查，失败仍可能消耗冷却和半径；本轮不展开LivingEntity原生接受、Forge效果事件、Boss免疫或当前包Mixin。",
+    "本段cloud目标循环没有以owner/team排除投掷者或队友，owner用于效果来源。当前模组事件/当前包实际友伤限制未展开，因此只记录原生所读范围，不能据此宣称实际全包伤害结果。",
+    "获取回执应与实际制作付款及指定玩家持有完整功能身份绑定；使用/命中/实际中毒另行验收。不能把generic ITEM_USED、cloud生成请求、固定颜色或粒子当成该变体获得或技能成功，更不能为新增目标再发旧装备/奖励。"
+  ],
+  "limits": [
+    "This is actual bounded source reading, no claim to full superclass/event/current deployed registry or current pack runtime.",
+    "No independent semantic de-duplication or new 1000-scope acceptance performed; all added research credit zero.",
+    "No game/display/audio/world access; no production/task/asset/sharedJar mutation; no TODO deletion."
+  ],
+  "new_external_semantic_credit": 0,
+  "new_native_acceptance_credit": 0,
+  "production_mutations": 0,
+  "checklist_deletions": 0,
+  "actual_active_hours_claimed": null,
+  "protected_files_sha256": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  }
+}

@@ -1,0 +1,340 @@
+{
+  "schema_version": 1,
+  "created_at": "2026-11-01T05:17:23.411156+00:00",
+  "scope": "Proposal08 concrete machine sidecar physical-stock schema migration with class-cardinality routing; generic wrappers/helper fields add0",
+  "accepted_reference_credit_added": 0,
+  "source_pins": [
+    {
+      "metadata": {
+        "repo": "GregTechCEu/GregTech-Modern",
+        "sha": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+        "archive_url": "https://codeload.github.com/GregTechCEu/GregTech-Modern/zip/6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+        "archive_sha256": "ff4744b64a53fccf13682389562f95b0171924a3a1c7b9c1fb81771c09686fdf",
+        "java_files": 1737
+      },
+      "metadata_sha256": "77f2f912cc9dc7a9f81056dd1c8c96e884420e63d086a07b27ab67ac4d8067cb"
+    }
+  ],
+  "ledger_snapshot": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "accepted_rows": 960,
+    "sha256": "46a2e127e1b8a880a2dafb32242cb790d53753a1ebaf372eb6606f3b253abc39"
+  },
+  "original_candidates": [
+    {
+      "candidate_id": "1da3ebfc31ea59d12891",
+      "status": "candidate_not_reviewed",
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "method": "load",
+      "start_line": 161,
+      "end_line": 167,
+      "file_sha256": "5198f50592829970843dde3223e84dd382fb67ab2e1256fd6913b0623781f8e1",
+      "method_sha256": "6255cd61b6e9b1a05e6d93d11be1104a2fe2ad3f3c18ea68897ab6b36c6ab62e",
+      "structural_fingerprint": "3ff6ad9320ead951a1b2b64ac37b8d01a3447e2e2c168de6c9c75164104ef01b",
+      "source_url_or_coordinate": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java#L161-L167",
+      "ast_calls": [
+        "contains",
+        "fixTraitTags",
+        "load"
+      ],
+      "ast_guards": [
+        "(isOldMachineData)"
+      ],
+      "context": "@Override\n    public void load(CompoundTag tag) {\n        isOldMachineData = !tag.contains(\"traitHolder\");\n        if (isOldMachineData) TagCompatibilityFixer.fixTraitTags(this, tag);\n\n        super.load(tag);\n    }",
+      "class_has_migration_marker": true,
+      "parse_has_error": false
+    }
+  ],
+  "comparators": [
+    {
+      "candidate_id": "26f551d9625ad5992c6e",
+      "family": "enderio-old-attachment-to-owned-machine-state-reader",
+      "input": "saved inventory and optional legacy IO_CONFIG/REDSTONE_CONTROL attachments or newer direct tag fields, owner UUID",
+      "output": "legacy attachment takes precedence, transfers field then removes old attachment; otherwise direct field codec; inventory parsed by bounded MachineInventory helper",
+      "preservation": "MachineInventory support exact body restores only valid slots and successful ItemStack.parse, logs invalid indexes. Ownership migration removes old store after transferring value, not creating new item/reward.",
+      "application_limit": "Source attachment values assigned by reference; no promise deep copy. Bad owner UUID/codec errors may abort. Borrow avoid two competing owners, but Dynasty already-owned PlayerPersisted must be untouched."
+    },
+    {
+      "candidate_id": "3c9d48c52e0d1b40e1e4",
+      "family": "gtceu-quantum-owned-stock-type-and-long-quantity-item-roundtrip",
+      "input": "original typed stored stack/template with long storedAmount, independent maxAmount and lock/void runtime config",
+      "output": "nonclone block drop stores type/payload+longquantity once for first matching dropped machine; server placement setsowner then calls loadFromItem. Creative clone skips payload. Rebound cache presents saturated int amount yet consumes true long amount",
+      "preservation": "One conceptual bulk custody implementation including item/fluid variants, not two code-port credits. Physical quantity deliberately outside native per-stack count; dynamic consumer uses insert/extract/real hand bucket interaction and keeps original metadata in template. Config/lock not copied by this item route, lifetime separated.",
+      "application_limit": "Malformed storedAmount accepted raw without nonnegative/max clamp, missing long0 can accompany nonempty template. Void accepts full offered amount and clamps stored physical quantity, explicit discard policy. SaveField engine disk path not fully audited; this reference covers explicit block↔item path and actual cache, not all machine save. Deep adjacent transfer/FluidUtil not reviewed."
+    },
+    {
+      "candidate_id": "07cbd0caf57312403886",
+      "family": "gtceu-old-charger-to-battery-buffer-inventory-with-physical-energy-custody",
+      "input": "Legacy chargerInventory tag versus new batteryInventory; SaveField battery inventory and working-enabled; actual per-stack electric capability",
+      "output": "Legacy presence overwrites current batteryInventory before generic annotated reader; fixed-size handler forces Size to constructor slots before native load. Real battery capability charging/discharging and energy totals consume restored inventory, derived visual state rebuilt; destruction drops and clears inventory",
+      "preservation": "One actual renamed physical inventory recovery with real consumer, not static alias table or extra credit for generic sync infrastructure. Old keys are not removed locally. Generic serializer skips absent/empty compound, retains defaults, catches each field exception; configuration versus paid battery payload distinguished.",
+      "application_limit": "Mixed old/new oldcharger wins even if malformed. Constructor slot capacity change truncation delegated native handler; no overflow recovery. Sync field discovery and full trait compatibility fixer not reread this batch, no complete machine migration coverage. Generic NBT transformer mutates current handler and native callbacks/subscription order not runtime validated. No API version/binary equivalence or transaction guarantee."
+    },
+    {
+      "candidate_id": "6446a11b2dcfb7b545aa",
+      "family": "gtceu-old-ldlib-physical-cover-and-attachment-receipt-migration",
+      "input": "旧uid{side numeric,id}+payload.d转换为side/coverType/data；当前side字符串或numeric，registry创建对应行为，data保存attachItem单个物品与行为字段。",
+      "output": "实例按类型创建并setCoverAtSide，再恢复行为数据；移除时清槽后返还getPickItem与additional drops，machine destroyed逐面移除。",
+      "preservation": "已全文CoverBehaviorTransformer/CoverBehavior/ICoverable/MachineCoverContainer/ManagedSyncBlockEntity/CoverPlaceBehavior，另MetaMachine字段段与SyncDataHolder完整serialize/deserialize、注册static后半段。独立真实付费附着物格式升级与取回链1；不是把6方向或同父具体盖板另计。旧多层payload提取与存储owner明确，可借鉴显式旧格式路径与按类型构建，不能据此全拷玩家NBT。",
+      "application_limit": "Direction numeric越界未guard，字符串未知可能null；未知cover registry返回null无旁存。SyncDataHolder逐field catch异常，缺值或null sentinel跳过保持当前而非清空；attachItem==ItemStack.EMPTY用identity，先clear holder但仍return newCover，外层result!=current可再赋回原field，未运行不判定复现。side与当前保存field是否一致无校验；清槽先于返还非事务。MetaMachine及SyncDataHolder仅指明方法/字段已审，不声称整体文件全读；generic注册/同步桥0额外信用。跨版本API仅原则。"
+    }
+  ],
+  "evidence": [
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/utils/data/TagCompatibilityFixer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/utils/data/TagCompatibilityFixer.java",
+      "start_line": 19,
+      "end_line": 78,
+      "file_sha256": "a6e8aa54149410c2f12c8a30708e46f31a194e5a2f939f20d3230c39f07e6b97",
+      "range_sha256": "0f398d5af06412de8245e89f01a1568d6d4b9478cd3196c3067af0c5c3c1ef78",
+      "role": "full owner-routing algorithm and three legacy field transformations",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/utils/data/TagCompatibilityFixer.java#L19-L78"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java",
+      "start_line": 137,
+      "end_line": 178,
+      "file_sha256": "5198f50592829970843dde3223e84dd382fb67ab2e1256fd6913b0623781f8e1",
+      "range_sha256": "7f429d8fbc5fb18a89d65b91d4ab70f0dad54248b445462a3c3cbf5a3b972dd3",
+      "role": "real persistent holder creation, migration before generic reader, trait load callback",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/MetaMachine.java#L137-L178"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "start_line": 34,
+      "end_line": 39,
+      "file_sha256": "21f65d5f9ae66fc9cc3dc596e948148ebade3285d4d6e2699249f9de39546718",
+      "range_sha256": "b4bf4be4c261cf3d5c041be49cc4c1886192797d048cc04bc0a08c8c9232816f",
+      "role": "real per-machine maps creation",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java#L34-L39"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "start_line": 83,
+      "end_line": 107,
+      "file_sha256": "21f65d5f9ae66fc9cc3dc596e948148ebade3285d4d6e2699249f9de39546718",
+      "range_sha256": "e3625df1743c68e422e4f706b418f77c2e64aaacb9936b26650c363d8d0866cd",
+      "role": "installed trait class-cardinality map and ownership binding",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java#L83-L107"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "start_line": 118,
+      "end_line": 165,
+      "file_sha256": "21f65d5f9ae66fc9cc3dc596e948148ebade3285d4d6e2699249f9de39546718",
+      "range_sha256": "9ef4827f2ce9d1d49984eab0447a533275e2354a9b3ac2b8871e54ff9d91dd41",
+      "role": "persistent trait names, duplicate-name rejection and lookup",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java#L118-L165"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "start_line": 198,
+      "end_line": 241,
+      "file_sha256": "21f65d5f9ae66fc9cc3dc596e948148ebade3285d4d6e2699249f9de39546718",
+      "range_sha256": "77155e515bdd5c4a8e6aae550c6524602b52554b3d6cded36890fcc615d545a2",
+      "role": "getTraits cardinality and actual holder disk pair",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java#L198-L241"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java",
+      "start_line": 276,
+      "end_line": 278,
+      "file_sha256": "21f65d5f9ae66fc9cc3dc596e948148ebade3285d4d6e2699249f9de39546718",
+      "range_sha256": "3e759ab7705f090f51ba0a0c4e1f73f9a6f7c14fc80b1264b648093cf19ea70a",
+      "role": "concrete holder transformer registration",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/trait/MachineTraitHolder.java#L276-L278"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/sync_system/managed/ManagedSyncBlockEntity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/managed/ManagedSyncBlockEntity.java",
+      "start_line": 50,
+      "end_line": 72,
+      "file_sha256": "727be9466dcd9860888c1be7edcd77d8f441612dfd91e4edf9f28bdc97c88642",
+      "range_sha256": "98b6d58df0fcaf984542268236af276754546a3ffb14ee48b275bcb309b97829",
+      "role": "actual native blockentity disk bridge",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/managed/ManagedSyncBlockEntity.java#L50-L72"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java",
+      "start_line": 62,
+      "end_line": 107,
+      "file_sha256": "ddd7ef950ba462b9cd2ae865b4900ef784dcb02e6d7a24f7f7aedceec7e6cdb3",
+      "range_sha256": "564236317ef1137054f55e25f21ab318b221b930277cf658a89652bc46c013c6",
+      "role": "complete generic save/read field dispatch and exception boundaries",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java#L62-L107"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java",
+      "start_line": 246,
+      "end_line": 265,
+      "file_sha256": "ddd7ef950ba462b9cd2ae865b4900ef784dcb02e6d7a24f7f7aedceec7e6cdb3",
+      "range_sha256": "981410a305b0f31bfe2d7773cee6b5798afadd886c66cb4f1406fcb0098f6599",
+      "role": "managed object read into already-created instance",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/SyncDataHolder.java#L246-L265"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/sync_system/data_transformers/NBTSerializableTransformer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/data_transformers/NBTSerializableTransformer.java",
+      "start_line": 12,
+      "end_line": 30,
+      "file_sha256": "aacea79e25b8a05c0f76be5d680a2a7d2caff9768f2a9fea4d4ac08bb1505909",
+      "range_sha256": "c4ec78797b713f4e4bf1b4eb7326496463efdd7c276d9df7d2a447c00792af95",
+      "role": "physical handler persistent read/write transformer",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/data_transformers/NBTSerializableTransformer.java#L12-L30"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/sync_system/data_transformers/ValueTransformers.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/sync_system/data_transformers/ValueTransformers.java",
+      "start_line": 183,
+      "end_line": 184,
+      "file_sha256": "dd32c97c5cd1855148f8c1027d5e848f64375c15beee447d0e0ece0a18118c9b",
+      "range_sha256": "9067c6b4ca0bc3e82dbdcf303c6c938ccb464c48e932c14dff5e80ca1aa11621",
+      "role": "real serializer registrations",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/sync_system/data_transformers/ValueTransformers.java#L183-L184"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/common/machine/electric/MinerMachine.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/common/machine/electric/MinerMachine.java",
+      "start_line": 48,
+      "end_line": 85,
+      "file_sha256": "b0887131cd1055266bd21eb71f7eed2676f4ed154e345514f9637657b35430fc",
+      "range_sha256": "0f47fc450d12f3b13328dc91a74c0f5c09a23b65a39977a928b61e92e9170c27",
+      "role": "concrete construction attaches named battery trait, actual machine energy use",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/common/machine/electric/MinerMachine.java#L48-L85"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/common/machine/trait/BatterySlotTrait.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/common/machine/trait/BatterySlotTrait.java",
+      "start_line": 23,
+      "end_line": 89,
+      "file_sha256": "0c02f716e9559926f6561f666e9f17f523f7714f112bd8aa5b862512fad79196",
+      "range_sha256": "dd3aaa87c56169ba6ebd6c873230428bfffe04e83ca3f769e824a2dd4fdbeea0",
+      "role": "complete physical one-slot custody, load subscriptions, real charge consumer and destruction return",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/common/machine/trait/BatterySlotTrait.java#L23-L89"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/common/mui/GTMuiWidgets.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/common/mui/GTMuiWidgets.java",
+      "start_line": 170,
+      "end_line": 175,
+      "file_sha256": "3fb2c6e76a34d50508f98d01979acf74ab2c7f88dc9380950eb4136b1725c07d",
+      "range_sha256": "02a2c3000ad75b7586e31943660cec6801a54af843e443387facec634c15dde2",
+      "role": "UI slot targets actual owned battery handler",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/common/mui/GTMuiWidgets.java#L170-L175"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/transfer/item/CustomItemStackHandler.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/transfer/item/CustomItemStackHandler.java",
+      "start_line": 18,
+      "end_line": 76,
+      "file_sha256": "09f189a5c1aefaafc5b0bc153cac1bd5bafd2d2d17edcb40a359770c10b66d24",
+      "range_sha256": "af9bdca47bf3cdea7dd6540fe08ebfceb5a86a0e25000e1873959a5998189a1b",
+      "role": "real physical item handler, current capacity load override and world-drop clear",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/transfer/item/CustomItemStackHandler.java#L18-L76"
+    },
+    {
+      "repo": "GregTechCEu/GregTech-Modern",
+      "revision": "6ac6cdcf28f942b05d58017298bc4f75e28980e2",
+      "path": "src/main/java/com/gregtechceu/gtceu/api/machine/trait/notifiable/NotifiableEnergyContainer.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/GregTechCEu__GregTech-Modern/src/main/java/com/gregtechceu/gtceu/api/machine/trait/notifiable/NotifiableEnergyContainer.java",
+      "start_line": 180,
+      "end_line": 250,
+      "file_sha256": "3f6c747f9ad10124fa728bd537951b89637dd6f722b00f31acf893243231f4b6",
+      "range_sha256": "39b1b1818909615219c1ffa6e1b9c5e8d7b78e9b4ac016836dfa42cfe2aa113e",
+      "role": "full real electric/FE stack copy, balance charge/discharge and live slot writeback",
+      "credit": 0,
+      "source_url": "https://github.com/GregTechCEu/GregTech-Modern/blob/6ac6cdcf28f942b05d58017298bc4f75e28980e2/src/main/java/com/gregtechceu/gtceu/api/machine/trait/notifiable/NotifiableEnergyContainer.java#L180-L250"
+    }
+  ],
+  "range_hash_convention": "Inclusive splitlines LF-joined without trailing newline; candidate method digest additionally outer-strips",
+  "proposals": [
+    {
+      "candidate_id": "1da3ebfc31ea59d12891",
+      "recommended_max_credit": 1,
+      "accepted_reference_credit_added": 0,
+      "proposed_family": "gtceu-installed-machine-sidecar-stock-class-cardinality-to-named-trait-owner-migration",
+      "mechanism": "Concrete MinerMachine constructor installs one persistent BatterySlotTrait named batterySlot with real one-slot storage; UI targets same physical handler, not ghost template. On legacy disk load lacking traitHolder, MetaMachine invokes fixTraitTags before generic annotated reader. chargerInventory is wrapped as storage. putTraitTag queries actual installed traits by class: exactly one named persistent trait sends old payload to traitHolder[actualTraitName]; otherwise sends to root fallback batterySlot. Same routing supports old circuit and auto-output policy fields as one ownership-schema change, not three credits. Actual holder decoder selects existing named trait and feeds same generic reader into its constructed storage. New disk writer stores named trait envelope. On machine load, physical restored battery triggers subscription; real charge/discharge mutates a copy of original stack then writes it back to live slot, updating external machine energy. Destruction emits carried stack then clears.",
+      "dedup": "07cbd already credits ChargerMachine old chargerInventory→batteryInventory field rename and native charge consumer; those primitive inventory/energy mechanics are support0 here. Increment proposed only for observed assembled-sidecar ownership migration: class-cardinality determines whether old physically owned stock must become nested named instance state or remain a root annotated field, before runtime subscriptions bind. 6446 migrates per-side covers through explicit side/type, not installed class cardinality;26f moves an attachment into one fixed object then removes attachment, no ambiguous multi-trait route. No separate credit for helper, @SaveField engine, each trait/slot/key or charge function. If coordinator considers cardinality owner-rehome same existing semantic family, downgrade0 rather than counting this wrapper alone.",
+      "limits": [
+        "Proposed1 is an upper bound pending independent review; total ledger unchanged. Unnamed/multiple/no matching traits use root defaultName rather than select one or retain explicit unresolved migration escrow. If root default field absent, generic reader ignores and next writer may lose orphaned old payload. Concrete verified successful route is one named Miner battery trait only, not every fallback machine.",
+        "Presence of any traitHolder suppresses all legacy fixes, even wrong type/empty/partial modern container. Mixed-format root old fields then do not merge. Old source keys not removed locally; helper shares original Tag object under new key rather than deep copy. No crash-safe in-place commit or repeated-load normalization proof.",
+        "Circuit and auto-output rewrites read as same algorithm support only. No extra credit requested for their actual consumers; arbitrary machine trait inventories and duplicates not runtime exercised.",
+        "Unknown saved trait names warned and skipped, not retained raw. Generic field reader catches errors, skips absent/empty compounds and null sentinel; holder-level exception can stop later entries and be caught only at outer field. No all-entry recovery guarantee.",
+        "CustomItemStackHandler overwrites incoming Size with current1 and delegates native ItemStackHandler. Oversized legacy slots may be truncated; native capability/NBT remapping and exact Forge binary codec not expanded here. UI modular slot framework and annotations discovery previously credited support, not runtime tested.",
+        "Actual electric charging helper passes false as simulate to electricItem.charge even during simulation, but operates on copied stack and only writes it back when !simulate. Do not claim provider callbacks/capabilities have no external side effects, or that all modded battery implementations are lossless. Native FE branch honors simulate.",
+        "BatterySlot storage listener manages subscription; onMachineDestroyed drops then clears without spawn acknowledgment. No transactional delivery guarantee. Entire raw MetaMachine file and generic sync class discovery not audited; only bounded disk bridge, attachment, migration and concrete consumer paths.",
+        "No production Java, ledgers, checklist, assets, saves, game, network or Git commit/push modified. Static source research cannot substitute Dynasty native migration/clone tests."
+      ]
+    }
+  ],
+  "verification": {
+    "candidate_hashes_verified": true,
+    "evidence_hashes_verified": true,
+    "recommended_credit_upper_bound": 1,
+    "actual_credit_added": 0,
+    "main_ledger_modified": false,
+    "production_modified": false,
+    "network_used": false,
+    "game_started": false,
+    "git_commit_push": false
+  }
+}

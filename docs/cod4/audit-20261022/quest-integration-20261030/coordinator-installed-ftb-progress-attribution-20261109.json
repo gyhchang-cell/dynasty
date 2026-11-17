@@ -1,0 +1,359 @@
+{
+  "recorded_at": "2026-11-09T14:19:08.575891+00:00",
+  "status": "ACTUAL_INSTALLED_BINARY_DEFERRED_PLAYER_UUID_TEAM_PROGRESS_BOUNDARY_REVIEW_NOT_NATIVE_RECEIPT",
+  "source_archive": {
+    "path": "modpack/mods/ftb-quests-forge-2001.4.22.jar",
+    "sha256": "9ea9d159a78a2724cfe0457b024680fdb52a2126eff9cfa5280a30578f647a68",
+    "bytes": 1255469
+  },
+  "exact_class_bindings": [
+    {
+      "member": "dev/ftb/mods/ftbquests/quest/BaseQuestFile.class",
+      "exact_extraction": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/classes/dev/ftb/mods/ftbquests/quest/BaseQuestFile.class",
+        "sha256": "af2a1f9ce57862261ae3dcbd49d12d50e86b132545c77c6e658646d6971f65f1",
+        "bytes": 68656
+      }
+    },
+    {
+      "member": "dev/ftb/mods/ftbquests/quest/ServerQuestFile.class",
+      "exact_extraction": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/classes/dev/ftb/mods/ftbquests/quest/ServerQuestFile.class",
+        "sha256": "ca6fe191766018a52ce29f2dff0510f724ee2c7ac88dc06e08ab83d0e83e8d1b",
+        "bytes": 18171
+      }
+    },
+    {
+      "member": "dev/ftb/mods/ftbquests/quest/TeamData.class",
+      "exact_extraction": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/classes/dev/ftb/mods/ftbquests/quest/TeamData.class",
+        "sha256": "0876303aad06bfb1b2a7b8ddb4b9bc2e5af39ddc52abf23a9a82a66ac5ad0c1d",
+        "bytes": 42521
+      }
+    },
+    {
+      "member": "dev/ftb/mods/ftbquests/util/DeferredInventoryDetection.class",
+      "exact_extraction": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/classes/dev/ftb/mods/ftbquests/util/DeferredInventoryDetection.class",
+        "sha256": "e026ef3ef6208b8f50cc86147f5603f96471d33a98b6094fdbb9834a9bc53945",
+        "bytes": 3503
+      }
+    }
+  ],
+  "actual_decompiled_source_reads": [
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/util/DeferredInventoryDetection.java",
+        "sha256": "a24564bbffe91ac28821228f265c2ea9358b4d5eb9ecf6942d4e7fedf5f95ecd",
+        "bytes": 1403
+      },
+      "actually_read_lines": [
+        1,
+        41
+      ],
+      "raw_excerpt": "package dev.ftb.mods.ftbquests.util;\n\nimport it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;\nimport it.unimi.dsi.fastutil.objects.ObjectIterator;\nimport java.util.HashSet;\nimport java.util.Set;\nimport java.util.UUID;\nimport net.minecraft.server.MinecraftServer;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.item.ItemStack;\n\npublic class DeferredInventoryDetection {\n   private static final long MILLIS_IN_TICK = 50L;\n   private static final Object2LongOpenHashMap<UUID> playerMap = new Object2LongOpenHashMap();\n\n   public static void tick(MinecraftServer server) {\n      if (!playerMap.isEmpty()) {\n         Set<UUID> toRemove = new HashSet<>();\n         long now = System.currentTimeMillis();\n         ObjectIterator var4 = playerMap.keySet().iterator();\n\n         while (var4.hasNext()) {\n            UUID id = (UUID)var4.next();\n            if (now >= playerMap.getLong(id)) {\n               ServerPlayer sp = server.m_6846_().m_11259_(id);\n               if (sp != null) {\n                  FTBQuestsInventoryListener.detect(sp, ItemStack.f_41583_, 0L);\n               }\n\n               toRemove.add(id);\n            }\n         }\n\n         toRemove.forEach(playerMap::removeLong);\n      }\n   }\n\n   static void scheduleInventoryCheck(ServerPlayer sp, int delay) {\n      playerMap.putIfAbsent(sp.m_20148_(), System.currentTimeMillis() + (long)delay * 50L);\n   }\n}\n",
+      "range_sha256": "a24564bbffe91ac28821228f265c2ea9358b4d5eb9ecf6942d4e7fedf5f95ecd",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/BaseQuestFile.java",
+        "sha256": "2d1f00ae1b9d8999eaec8da885fb0391624b8269e387f338e4e03598243be0af",
+        "bytes": 53863
+      },
+      "actually_read_lines": [
+        995,
+        1020
+      ],
+      "raw_excerpt": "      return 0L;\n   }\n\n   @Nullable\n   public TeamData getNullableTeamData(UUID id) {\n      return this.teamDataMap.get(id);\n   }\n\n   public TeamData getOrCreateTeamData(UUID teamId) {\n      return this.teamDataMap.computeIfAbsent(teamId, k -> new TeamData(teamId, this));\n   }\n\n   public TeamData getOrCreateTeamData(Team team) {\n      return this.getOrCreateTeamData(Objects.requireNonNull(team, \"Non-null team required!\").getId());\n   }\n\n   public TeamData getOrCreateTeamData(Entity player) {\n      return player.m_9236_().f_46443_ && player instanceof Player p\n         ? this.getClientTeamData(p).orElse(null)\n         : FTBTeamsAPI.api().getManager().getTeamForPlayerID(player.m_20148_()).map(this::getOrCreateTeamData).orElse(null);\n   }\n\n   private Optional<TeamData> getClientTeamData(Player player) {\n      ClientTeamManager mgr = FTBTeamsAPI.api().getClientManager();\n      return mgr.getKnownPlayer(player.m_20148_()).map(kcp -> mgr.getTeamByID(kcp.teamId())).flatMap(team -> team.map(this::getOrCreateTeamData));\n   }\n",
+      "range_sha256": "aa619e6adfa6c9e4c23f3c5c661eebcb938bf35af71a98874568170ccf61ed09",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/TeamData.java",
+        "sha256": "38dbf449f2c4950cc122a2669e6499f3003ce7e83a17969757dc89a5c963a58c",
+        "bytes": 32347
+      },
+      "actually_read_lines": [
+        70,
+        121
+      ],
+      "raw_excerpt": "   private static final Comparator<it.unimi.dsi.fastutil.longs.Long2LongMap.Entry> LONG2LONG_COMPARATOR = (e1, e2) -> Long.compareUnsigned(\n         e1.getLongValue(), e2.getLongValue()\n      );\n   private static final Comparator<Entry<QuestKey>> OBJECT2LONG_COMPARATOR = (e1, e2) -> Long.compareUnsigned(e1.getLongValue(), e2.getLongValue());\n   private final UUID teamId;\n   private final BaseQuestFile file;\n   private String name;\n   private boolean shouldSave;\n   private boolean locked;\n   private boolean rewardsBlocked;\n   private final Long2LongMap taskProgress;\n   private final Object2LongMap<QuestKey> claimedRewards;\n   private final Long2LongMap started;\n   private final Long2LongMap completed;\n   private final Long2IntMap completionCount;\n   private final Long2LongMap questRepeatableTime;\n   private final Object2ObjectMap<UUID, PerPlayerData> perPlayerData;\n   private final Long2ByteMap areDependenciesCompleteCache;\n   private final Long2ByteMap areDependenciesVisibleCache;\n   private final Object2ByteMap<QuestKey> unclaimedRewardsCache;\n   private final Long2BooleanMap exclusionCache;\n\n   public TeamData(UUID teamId, BaseQuestFile file) {\n      this(teamId, file, \"\");\n   }\n\n   public TeamData(UUID teamId, BaseQuestFile file, String name) {\n      this.teamId = teamId;\n      this.file = file;\n      this.name = name;\n      this.shouldSave = false;\n      this.taskProgress = new Long2LongOpenHashMap();\n      this.taskProgress.defaultReturnValue(0L);\n      this.claimedRewards = new Object2LongOpenHashMap();\n      this.claimedRewards.defaultReturnValue(0L);\n      this.started = new Long2LongOpenHashMap();\n      this.started.defaultReturnValue(0L);\n      this.completed = new Long2LongOpenHashMap();\n      this.completionCount = new Long2IntOpenHashMap();\n      this.completed.defaultReturnValue(0L);\n      this.perPlayerData = new Object2ObjectOpenHashMap();\n      this.areDependenciesCompleteCache = new Long2ByteOpenHashMap();\n      this.areDependenciesVisibleCache = new Long2ByteOpenHashMap();\n      this.unclaimedRewardsCache = new Object2ByteOpenHashMap();\n      this.exclusionCache = new Long2BooleanOpenHashMap();\n      this.questRepeatableTime = new Long2LongOpenHashMap();\n   }\n\n   public UUID getTeamId() {\n      return this.teamId;\n   }\n\n",
+      "range_sha256": "d9a778dbade7776803f3b9b673a1a4c835783763d1a6cb01703bba7107e14371",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/TeamData.java",
+        "sha256": "38dbf449f2c4950cc122a2669e6499f3003ce7e83a17969757dc89a5c963a58c",
+        "bytes": 32347
+      },
+      "actually_read_lines": [
+        158,
+        164
+      ],
+      "raw_excerpt": "   public long getProgress(long taskId) {\n      return this.taskProgress.get(taskId);\n   }\n\n   public long getProgress(Task task) {\n      return this.getProgress(task.id);\n   }\n",
+      "range_sha256": "cd097c4964c92468809e70ec9cf3cfed4971b2d7e6329b695446375024de04d6",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/TeamData.java",
+        "sha256": "38dbf449f2c4950cc122a2669e6499f3003ce7e83a17969757dc89a5c963a58c",
+        "bytes": 32347
+      },
+      "actually_read_lines": [
+        266,
+        310
+      ],
+      "raw_excerpt": "         long when = this.questRepeatableTime.getOrDefault(quest.getId(), 0L);\n         return now >= when ? 0L : when - now;\n      } else {\n         return 0L;\n      }\n   }\n\n   public boolean hasUnclaimedRewards(UUID player, QuestObject object) {\n      QuestKey key = QuestKey.create(player, object.id);\n      byte b = this.unclaimedRewardsCache.getOrDefault(key, (byte)-1);\n      if (b == -1) {\n         b = (byte)(object.hasUnclaimedRewardsRaw(this, player) ? 1 : 0);\n         this.unclaimedRewardsCache.put(key, b);\n      }\n\n      return b == 1;\n   }\n\n   public boolean markRewardAsClaimed(UUID player, Reward reward, long date) {\n      if (!this.locked && !this.isRewardBlocked(reward)) {\n         QuestKey key = QuestKey.forReward(player, reward);\n         if (!this.claimedRewards.containsKey(key)) {\n            this.claimedRewards.put(key, date);\n            this.clearCachedProgress();\n            this.markDirty();\n            if (this.file.isServerSide()) {\n               new ClaimRewardResponseMessage(this.teamId, player, reward.id).sendTo(this.getOnlineMembers());\n            }\n\n            if (reward.getQuest().checkRepeatable(this, player)) {\n               long questId = reward.getQuest().getId();\n               this.completionCount.merge(questId, 1, Integer::sum);\n               if (reward.getQuest().getRepeatCooldown() > 0) {\n                  this.questRepeatableTime.put(questId, System.currentTimeMillis() + (long)reward.getQuest().getRepeatCooldown() * 1000L);\n               }\n            }\n\n            return true;\n         } else {\n            return false;\n         }\n      } else {\n         return false;\n      }\n   }\n",
+      "range_sha256": "1707e109585677865e3aba0d3e50aa2c4c78321c1d59e142d65defe86494e1f7",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/TeamData.java",
+        "sha256": "38dbf449f2c4950cc122a2669e6499f3003ce7e83a17969757dc89a5c963a58c",
+        "bytes": 32347
+      },
+      "actually_read_lines": [
+        614,
+        634
+      ],
+      "raw_excerpt": "   public boolean canStartTasks(Quest quest) {\n      return (quest.getProgressionMode() == ProgressionMode.FLEXIBLE || this.areDependenciesComplete(quest))\n         && !this.isExcludedByOtherQuestline(quest)\n         && this.getMilliSecondsUntilRepeatable(quest) == 0L;\n   }\n\n   public void claimReward(ServerPlayer player, Reward reward, boolean notify, long when) {\n      if (this.markRewardAsClaimed(player.m_20148_(), reward, when)) {\n         reward.claim(player, notify);\n      }\n   }\n\n   public void claimReward(ServerPlayer player, Reward reward, boolean notify) {\n      this.claimReward(player, reward, notify, System.currentTimeMillis());\n   }\n\n   public Collection<ServerPlayer> getOnlineMembers() {\n      return FTBTeamsAPI.api().getManager().getTeamByID(this.teamId).<List<ServerPlayer>>map(Team::getOnlineMembers).orElse(List.of());\n   }\n\n   public void checkAutoCompletion(Quest quest) {\n",
+      "range_sha256": "638210b7ac4f3a8eb5294e5315f9740fe184dfc8f093a2429252ce353b6555d9",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/TeamData.java",
+        "sha256": "38dbf449f2c4950cc122a2669e6499f3003ce7e83a17969757dc89a5c963a58c",
+        "bytes": 32347
+      },
+      "actually_read_lines": [
+        669,
+        736
+      ],
+      "raw_excerpt": "   public void resetProgress(Task task) {\n      if (this.taskProgress.remove(task.id) > 0L) {\n         this.markDirty();\n      }\n   }\n\n   public final void setProgress(Task task, long progress) {\n      if (!this.locked) {\n         long maxProgress = task.getMaxProgress();\n         progress = Math.max(0L, Math.min(progress, maxProgress));\n         long prevProgress = this.getProgress(task);\n         if (prevProgress != progress || progress == 0L && this.isStarted(task)) {\n            if (progress == 0L) {\n               this.taskProgress.remove(task.id);\n               this.started.remove(task.id);\n               this.completed.remove(task.id);\n            } else {\n               this.taskProgress.put(task.id, progress);\n            }\n\n            this.clearCachedProgress();\n            if (this.file.isServerSide()) {\n               Date now = new Date();\n               Collection<ServerPlayer> onlineMembers = this.getOnlineMembers();\n               new UpdateTaskProgressMessage(this, task.id, progress).sendTo(onlineMembers);\n               if (prevProgress == 0L) {\n                  task.onStarted(new QuestProgressEventData(now, this, task, onlineMembers, Collections.emptyList()));\n               }\n\n               if (progress >= maxProgress && this.areDependenciesComplete(task.getQuest())) {\n                  this.markTaskCompleted(task);\n               }\n            }\n\n            this.markDirty();\n         }\n      }\n   }\n\n   public void markTaskCompleted(Task task) {\n      if (!this.isCompleted(task)) {\n         Collection<ServerPlayer> onlineMembers = this.getOnlineMembers();\n         Collection<ServerPlayer> notifiedPlayers;\n         if (!task.getQuest().getChapter().isAlwaysInvisible() && QuestObjectBase.shouldSendNotifications()) {\n            notifiedPlayers = onlineMembers;\n         } else {\n            notifiedPlayers = List.of();\n         }\n\n         task.onCompleted(new QuestProgressEventData(new Date(), this, task, onlineMembers, notifiedPlayers));\n\n         for (ServerPlayer player : onlineMembers) {\n            FTBQuestsInventoryListener.detect(player, ItemStack.f_41583_, task.id);\n         }\n\n         if (this.isCompleted(task.getQuest())) {\n            this.perPlayerData.values().forEach(data -> data.pinnedQuests.remove(task.getQuest().id));\n            this.markDirty();\n            new TogglePinnedResponseMessage(task.getQuest().id, false).sendTo(onlineMembers);\n         }\n      }\n   }\n\n   public final void addProgress(Task task, long progress) {\n      this.setProgress(task, this.getProgress(task) + progress);\n   }\n\n   public boolean isLocked() {\n",
+      "range_sha256": "4c7c1d625c9afe9e5d6720b806f4925ba95e0b1aa59869f8fd3f4525fe323213",
+      "derived_not_original_author_source": true
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/decompiled/dev/ftb/mods/ftbquests/quest/ServerQuestFile.java",
+        "sha256": "ad54ac3657f393e5143a0577d198b1f55e6c543b99cb91a1846263c7e7b93f31",
+        "bytes": 9187
+      },
+      "actually_read_lines": [
+        175,
+        248
+      ],
+      "raw_excerpt": "               if (!data.isCompleted(quest) && quest.getProgressionMode() == ProgressionMode.FLEXIBLE && data.areDependenciesComplete(quest)) {\n                  for (Task task : quest.getTasks()) {\n                     if (!data.isCompleted(task) && data.getProgress(task) >= task.getMaxProgress()) {\n                        data.markTaskCompleted(task);\n                     }\n                  }\n               }\n\n               if (!data.isCompleted(quest) && quest.isCompletedRaw(data)) {\n                  quest.onCompleted(new QuestProgressEventData(new Date(), data, quest, data.getOnlineMembers(), Collections.singletonList(player)));\n               }\n\n               data.checkAutoCompletion(quest);\n               if (data.canStartTasks(quest)) {\n                  quest.getTasks().stream().filter(Task::checkOnLogin).forEach(taskx -> taskx.submitTask(data, player));\n               }\n            }));\n      }\n   }\n\n   public void teamCreated(TeamCreatedEvent event) {\n      UUID id = event.getTeam().getId();\n      TeamData data = this.teamDataMap.computeIfAbsent(id, k -> {\n         TeamData newTeamData = new TeamData(id, this);\n         newTeamData.markDirty();\n         return newTeamData;\n      });\n      data.setName(event.getTeam().getShortName());\n      this.addData(data, false);\n      if (event.getTeam() instanceof PartyTeam) {\n         FTBTeamsAPI.api().getManager().getPlayerTeamForPlayerID(event.getCreator().m_20148_()).ifPresent(playerTeam -> {\n            TeamData oldTeamData = this.getOrCreateTeamData(playerTeam);\n            data.copyData(oldTeamData);\n         });\n      }\n\n      TeamDataUpdate self = new TeamDataUpdate(data);\n      new CreateOtherTeamDataMessage(self).sendToAll(this.server);\n   }\n\n   public void playerChangedTeam(PlayerChangedTeamEvent event) {\n      event.getPreviousTeam().ifPresent(prevTeam -> {\n         Team curTeam = event.getTeam();\n         TeamData oldTeamData = this.getOrCreateTeamData(prevTeam);\n         TeamData newTeamData = this.getOrCreateTeamData(curTeam);\n         if (prevTeam.isPlayerTeam() && curTeam.isPartyTeam() && !curTeam.getOwner().equals(event.getPlayerId())) {\n            newTeamData.mergeData(oldTeamData);\n            this.withPlayerContext(event.getPlayer(), () -> this.forAllQuests(newTeamData::checkAutoCompletion));\n         } else if (prevTeam.isPartyTeam() && curTeam.isPlayerTeam()) {\n            newTeamData.mergeClaimedRewards(oldTeamData);\n         }\n\n         new TeamDataChangedMessage(new TeamDataUpdate(oldTeamData), new TeamDataUpdate(newTeamData)).sendToAll(this.server);\n         new SyncTeamDataMessage(newTeamData, true).sendTo(curTeam.getOnlineMembers());\n      });\n   }\n\n   @Override\n   public boolean isPlayerOnTeam(Player player, TeamData teamData) {\n      return FTBTeamsAPI.api().getManager().getTeamForPlayerID(player.m_20148_()).map(team -> team.getTeamId().equals(teamData.getTeamId())).orElse(false);\n   }\n\n   @Override\n   public boolean moveChapterGroup(long id, boolean movingUp) {\n      if (super.moveChapterGroup(id, movingUp)) {\n         this.markDirty();\n         this.clearCachedData();\n         new MoveChapterGroupResponseMessage(id, movingUp).sendToAll(this.server);\n         return true;\n      } else {\n         return false;\n      }\n   }\n}\n",
+      "range_sha256": "3a7e52c495962de5327a5318499f36dee340be6fb17064dee02d2fa824a13e82",
+      "derived_not_original_author_source": true
+    }
+  ],
+  "actual_bytecode_reads": [
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/DeferredInventoryDetection.javap.txt",
+        "sha256": "72a343fa6d2dc277c9e23a4e4283f2aa74bd33f503df8efaa3d570fe87da48ad",
+        "bytes": 5001
+      },
+      "method": "public static void tick",
+      "actually_read_lines": [
+        13,
+        65
+      ],
+      "raw_excerpt": "  public static void tick(net.minecraft.server.MinecraftServer);\n    Code:\n       0: getstatic     #28                 // Field playerMap:Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;\n       3: invokevirtual #34                 // Method it/unimi/dsi/fastutil/objects/Object2LongOpenHashMap.isEmpty:()Z\n       6: ifne          125\n       9: new           #36                 // class java/util/HashSet\n      12: dup\n      13: invokespecial #37                 // Method java/util/HashSet.\"<init>\":()V\n      16: astore_1\n      17: invokestatic  #43                 // Method java/lang/System.currentTimeMillis:()J\n      20: lstore_2\n      21: getstatic     #28                 // Field playerMap:Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;\n      24: invokevirtual #47                 // Method it/unimi/dsi/fastutil/objects/Object2LongOpenHashMap.keySet:()Lit/unimi/dsi/fastutil/objects/ObjectSet;\n      27: invokeinterface #53,  1           // InterfaceMethod it/unimi/dsi/fastutil/objects/ObjectSet.iterator:()Lit/unimi/dsi/fastutil/objects/ObjectIterator;\n      32: astore        4\n      34: aload         4\n      36: invokeinterface #60,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z\n      41: ifeq          106\n      44: aload         4\n      46: invokeinterface #64,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;\n      51: checkcast     #66                 // class java/util/UUID\n      54: astore        5\n      56: lload_2\n      57: getstatic     #28                 // Field playerMap:Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;\n      60: aload         5\n      62: invokevirtual #70                 // Method it/unimi/dsi/fastutil/objects/Object2LongOpenHashMap.getLong:(Ljava/lang/Object;)J\n      65: lcmp\n      66: iflt          103\n      69: aload_0\n      70: invokevirtual #76                 // Method net/minecraft/server/MinecraftServer.m_6846_:()Lnet/minecraft/server/players/PlayerList;\n      73: aload         5\n      75: invokevirtual #82                 // Method net/minecraft/server/players/PlayerList.m_11259_:(Ljava/util/UUID;)Lnet/minecraft/server/level/ServerPlayer;\n      78: astore        6\n      80: aload         6\n      82: ifnull        94\n      85: aload         6\n      87: getstatic     #88                 // Field net/minecraft/world/item/ItemStack.f_41583_:Lnet/minecraft/world/item/ItemStack;\n      90: lconst_0\n      91: invokestatic  #94                 // Method dev/ftb/mods/ftbquests/util/FTBQuestsInventoryListener.detect:(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/item/ItemStack;J)V\n      94: aload_1\n      95: aload         5\n      97: invokeinterface #102,  2          // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z\n     102: pop\n     103: goto          34\n     106: aload_1\n     107: getstatic     #28                 // Field playerMap:Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;\n     110: dup\n     111: invokestatic  #108                // Method java/util/Objects.requireNonNull:(Ljava/lang/Object;)Ljava/lang/Object;\n     114: pop\n     115: invokedynamic #127,  0            // InvokeDynamic #0:accept:(Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;)Ljava/util/function/Consumer;\n     120: invokeinterface #131,  2          // InterfaceMethod java/util/Set.forEach:(Ljava/util/function/Consumer;)V\n     125: return\n\n",
+      "range_sha256": "c4aee9a18b36a4a99b580aac77de8c81e6efe6f6f816702f5afe07d08bb0b246"
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/DeferredInventoryDetection.javap.txt",
+        "sha256": "72a343fa6d2dc277c9e23a4e4283f2aa74bd33f503df8efaa3d570fe87da48ad",
+        "bytes": 5001
+      },
+      "method": "static void scheduleInventoryCheck",
+      "actually_read_lines": [
+        66,
+        88
+      ],
+      "raw_excerpt": "  static void scheduleInventoryCheck(net.minecraft.server.level.ServerPlayer, int);\n    Code:\n       0: getstatic     #28                 // Field playerMap:Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;\n       3: aload_0\n       4: invokevirtual #147                // Method net/minecraft/server/level/ServerPlayer.m_20148_:()Ljava/util/UUID;\n       7: invokestatic  #43                 // Method java/lang/System.currentTimeMillis:()J\n      10: iload_1\n      11: i2l\n      12: ldc2_w        #13                 // long 50l\n      15: lmul\n      16: ladd\n      17: invokevirtual #151                // Method it/unimi/dsi/fastutil/objects/Object2LongOpenHashMap.putIfAbsent:(Ljava/lang/Object;J)J\n      20: pop2\n      21: return\n\n  static {};\n    Code:\n       0: new           #30                 // class it/unimi/dsi/fastutil/objects/Object2LongOpenHashMap\n       3: dup\n       4: invokespecial #154                // Method it/unimi/dsi/fastutil/objects/Object2LongOpenHashMap.\"<init>\":()V\n       7: putstatic     #28                 // Field playerMap:Lit/unimi/dsi/fastutil/objects/Object2LongOpenHashMap;\n      10: return\n}\n",
+      "range_sha256": "83adad68bd5770f3e1c5cb8670e0166e1c03a9ff4107464b52c5fc354d1fb91a"
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/BaseQuestFile.javap.txt",
+        "sha256": "1f7cca934c3840b631ade6cdfa80dcd50c7f17761934713c307144ee53848a78",
+        "bytes": 255630
+      },
+      "method": "public dev.ftb.mods.ftbquests.quest.TeamData getNullableTeamData",
+      "actually_read_lines": [
+        2594,
+        2602
+      ],
+      "raw_excerpt": "  public dev.ftb.mods.ftbquests.quest.TeamData getNullableTeamData(java.util.UUID);\n    Code:\n       0: aload_0\n       1: getfield      #116                // Field teamDataMap:Ljava/util/Map;\n       4: aload_1\n       5: invokeinterface #1278,  2         // InterfaceMethod java/util/Map.get:(Ljava/lang/Object;)Ljava/lang/Object;\n      10: checkcast     #1342               // class dev/ftb/mods/ftbquests/quest/TeamData\n      13: areturn\n\n",
+      "range_sha256": "f02d01e6dede8f1b3e10dd8b48f8e094cfb1875dac3f961aaa4f724804aec819"
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/TeamData.javap.txt",
+        "sha256": "b6efe8d2d0c430f94f33c4f09f5f18e7bfdc0e4d09363ca85455ab9e9ca5d168",
+        "bytes": 144419
+      },
+      "method": "public long getProgress(long)",
+      "actually_read_lines": [
+        247,
+        254
+      ],
+      "raw_excerpt": "  public long getProgress(long);\n    Code:\n       0: aload_0\n       1: getfield      #106                // Field taskProgress:Lit/unimi/dsi/fastutil/longs/Long2LongMap;\n       4: lload_1\n       5: invokeinterface #262,  3          // InterfaceMethod it/unimi/dsi/fastutil/longs/Long2LongMap.get:(J)J\n      10: lreturn\n\n",
+      "range_sha256": "31c01d7fb3f5d7dddbecbd11dbbd7c8786e45e450a429e237046d74247f708ce"
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/TeamData.javap.txt",
+        "sha256": "b6efe8d2d0c430f94f33c4f09f5f18e7bfdc0e4d09363ca85455ab9e9ca5d168",
+        "bytes": 144419
+      },
+      "method": "public final void setProgress",
+      "actually_read_lines": [
+        1815,
+        1927
+      ],
+      "raw_excerpt": "  public final void setProgress(dev.ftb.mods.ftbquests.quest.task.Task, long);\n    Code:\n       0: aload_0\n       1: getfield      #298                // Field locked:Z\n       4: ifeq          8\n       7: return\n       8: aload_1\n       9: invokevirtual #1047               // Method dev/ftb/mods/ftbquests/quest/task/Task.getMaxProgress:()J\n      12: lstore        4\n      14: lconst_0\n      15: lload_2\n      16: lload         4\n      18: invokestatic  #1052               // Method java/lang/Math.min:(JJ)J\n      21: invokestatic  #1055               // Method java/lang/Math.max:(JJ)J\n      24: lstore_2\n      25: aload_0\n      26: aload_1\n      27: invokevirtual #1057               // Method getProgress:(Ldev/ftb/mods/ftbquests/quest/task/Task;)J\n      30: lstore        6\n      32: lload         6\n      34: lload_2\n      35: lcmp\n      36: ifne          53\n      39: lload_2\n      40: lconst_0\n      41: lcmp\n      42: ifne          220\n      45: aload_0\n      46: aload_1\n      47: invokevirtual #862                // Method isStarted:(Ldev/ftb/mods/ftbquests/quest/QuestObject;)Z\n      50: ifeq          220\n      53: lload_2\n      54: lconst_0\n      55: lcmp\n      56: ifne          104\n      59: aload_0\n      60: getfield      #106                // Field taskProgress:Lit/unimi/dsi/fastutil/longs/Long2LongMap;\n      63: aload_1\n      64: getfield      #270                // Field dev/ftb/mods/ftbquests/quest/task/Task.id:J\n      67: invokeinterface #301,  3          // InterfaceMethod it/unimi/dsi/fastutil/longs/Long2LongMap.remove:(J)J\n      72: pop2\n      73: aload_0\n      74: getfield      #118                // Field started:Lit/unimi/dsi/fastutil/longs/Long2LongMap;\n      77: aload_1\n      78: getfield      #270                // Field dev/ftb/mods/ftbquests/quest/task/Task.id:J\n      81: invokeinterface #301,  3          // InterfaceMethod it/unimi/dsi/fastutil/longs/Long2LongMap.remove:(J)J\n      86: pop2\n      87: aload_0\n      88: getfield      #120                // Field completed:Lit/unimi/dsi/fastutil/longs/Long2LongMap;\n      91: aload_1\n      92: getfield      #270                // Field dev/ftb/mods/ftbquests/quest/task/Task.id:J\n      95: invokeinterface #301,  3          // InterfaceMethod it/unimi/dsi/fastutil/longs/Long2LongMap.remove:(J)J\n     100: pop2\n     101: goto          119\n     104: aload_0\n     105: getfield      #106                // Field taskProgress:Lit/unimi/dsi/fastutil/longs/Long2LongMap;\n     108: aload_1\n     109: getfield      #270                // Field dev/ftb/mods/ftbquests/quest/task/Task.id:J\n     112: lload_2\n     113: invokeinterface #328,  5          // InterfaceMethod it/unimi/dsi/fastutil/longs/Long2LongMap.put:(JJ)J\n     118: pop2\n     119: aload_0\n     120: invokevirtual #304                // Method clearCachedProgress:()V\n     123: aload_0\n     124: getfield      #97                 // Field file:Ldev/ftb/mods/ftbquests/quest/BaseQuestFile;\n     127: invokevirtual #307                // Method dev/ftb/mods/ftbquests/quest/BaseQuestFile.isServerSide:()Z\n     130: ifeq          216\n     133: new           #285                // class java/util/Date\n     136: dup\n     137: invokespecial #1058               // Method java/util/Date.\"<init>\":()V\n     140: astore        8\n     142: aload_0\n     143: invokevirtual #316                // Method getOnlineMembers:()Ljava/util/Collection;\n     146: astore        9\n     148: new           #1060               // class dev/ftb/mods/ftbquests/net/UpdateTaskProgressMessage\n     151: dup\n     152: aload_0\n     153: aload_1\n     154: getfield      #270                // Field dev/ftb/mods/ftbquests/quest/task/Task.id:J\n     157: lload_2\n     158: invokespecial #1063               // Method dev/ftb/mods/ftbquests/net/UpdateTaskProgressMessage.\"<init>\":(Ldev/ftb/mods/ftbquests/quest/TeamData;JJ)V\n     161: aload         9\n     163: invokevirtual #1064               // Method dev/ftb/mods/ftbquests/net/UpdateTaskProgressMessage.sendTo:(Ljava/lang/Iterable;)V\n     166: lload         6\n     168: lconst_0\n     169: lcmp\n     170: ifne          193\n     173: aload_1\n     174: new           #1066               // class dev/ftb/mods/ftbquests/events/QuestProgressEventData\n     177: dup\n     178: aload         8\n     180: aload_0\n     181: aload_1\n     182: aload         9\n     184: invokestatic  #1071               // Method java/util/Collections.emptyList:()Ljava/util/List;\n     187: invokespecial #1074               // Method dev/ftb/mods/ftbquests/events/QuestProgressEventData.\"<init>\":(Ljava/util/Date;Ldev/ftb/mods/ftbquests/quest/TeamData;Ldev/ftb/mods/ftbquests/quest/QuestObject;Ljava/util/Collection;Ljava/util/Collection;)V\n     190: invokevirtual #1078               // Method dev/ftb/mods/ftbquests/quest/task/Task.onStarted:(Ldev/ftb/mods/ftbquests/events/QuestProgressEventData;)V\n     193: lload_2\n     194: lload         4\n     196: lcmp\n     197: iflt          216\n     200: aload_0\n     201: aload_1\n     202: invokevirtual #1079               // Method dev/ftb/mods/ftbquests/quest/task/Task.getQuest:()Ldev/ftb/mods/ftbquests/quest/Quest;\n     205: invokevirtual #928                // Method areDependenciesComplete:(Ldev/ftb/mods/ftbquests/quest/Quest;)Z\n     208: ifeq          216\n     211: aload_0\n     212: aload_1\n     213: invokevirtual #1082               // Method markTaskCompleted:(Ldev/ftb/mods/ftbquests/quest/task/Task;)V\n     216: aload_0\n     217: invokevirtual #196                // Method markDirty:()V\n     220: return\n\n",
+      "range_sha256": "14ea0729af56371ba36ba28c456716c4832915a55fdb9431f605e9faafa9464c"
+    },
+    {
+      "artifact": {
+        "path": "build/cod4-ftb-progress-attribution-20261109/TeamData.javap.txt",
+        "sha256": "b6efe8d2d0c430f94f33c4f09f5f18e7bfdc0e4d09363ca85455ab9e9ca5d168",
+        "bytes": 144419
+      },
+      "method": "public void markTaskCompleted",
+      "actually_read_lines": [
+        1928,
+        2001
+      ],
+      "raw_excerpt": "  public void markTaskCompleted(dev.ftb.mods.ftbquests.quest.task.Task);\n    Code:\n       0: aload_0\n       1: aload_1\n       2: invokevirtual #859                // Method isCompleted:(Ldev/ftb/mods/ftbquests/quest/QuestObject;)Z\n       5: ifeq          9\n       8: return\n       9: aload_0\n      10: invokevirtual #316                // Method getOnlineMembers:()Ljava/util/Collection;\n      13: astore_2\n      14: aload_1\n      15: invokevirtual #1079               // Method dev/ftb/mods/ftbquests/quest/task/Task.getQuest:()Ldev/ftb/mods/ftbquests/quest/Quest;\n      18: invokevirtual #1089               // Method dev/ftb/mods/ftbquests/quest/Quest.getChapter:()Ldev/ftb/mods/ftbquests/quest/Chapter;\n      21: invokevirtual #1094               // Method dev/ftb/mods/ftbquests/quest/Chapter.isAlwaysInvisible:()Z\n      24: ifne          38\n      27: invokestatic  #1097               // Method dev/ftb/mods/ftbquests/quest/QuestObjectBase.shouldSendNotifications:()Z\n      30: ifeq          38\n      33: aload_2\n      34: astore_3\n      35: goto          42\n      38: invokestatic  #981                // InterfaceMethod java/util/List.of:()Ljava/util/List;\n      41: astore_3\n      42: aload_1\n      43: new           #1066               // class dev/ftb/mods/ftbquests/events/QuestProgressEventData\n      46: dup\n      47: new           #285                // class java/util/Date\n      50: dup\n      51: invokespecial #1058               // Method java/util/Date.\"<init>\":()V\n      54: aload_0\n      55: aload_1\n      56: aload_2\n      57: aload_3\n      58: invokespecial #1074               // Method dev/ftb/mods/ftbquests/events/QuestProgressEventData.\"<init>\":(Ljava/util/Date;Ldev/ftb/mods/ftbquests/quest/TeamData;Ldev/ftb/mods/ftbquests/quest/QuestObject;Ljava/util/Collection;Ljava/util/Collection;)V\n      61: invokevirtual #1100               // Method dev/ftb/mods/ftbquests/quest/task/Task.onCompleted:(Ldev/ftb/mods/ftbquests/events/QuestProgressEventData;)V\n      64: aload_2\n      65: invokeinterface #993,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;\n      70: astore        4\n      72: aload         4\n      74: invokeinterface #604,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z\n      79: ifeq          109\n      82: aload         4\n      84: invokeinterface #608,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;\n      89: checkcast     #938                // class net/minecraft/server/level/ServerPlayer\n      92: astore        5\n      94: aload         5\n      96: getstatic     #1106               // Field net/minecraft/world/item/ItemStack.f_41583_:Lnet/minecraft/world/item/ItemStack;\n      99: aload_1\n     100: getfield      #270                // Field dev/ftb/mods/ftbquests/quest/task/Task.id:J\n     103: invokestatic  #1112               // Method dev/ftb/mods/ftbquests/util/FTBQuestsInventoryListener.detect:(Lnet/minecraft/server/level/ServerPlayer;Lnet/minecraft/world/item/ItemStack;J)V\n     106: goto          72\n     109: aload_0\n     110: aload_1\n     111: invokevirtual #1079               // Method dev/ftb/mods/ftbquests/quest/task/Task.getQuest:()Ldev/ftb/mods/ftbquests/quest/Quest;\n     114: invokevirtual #859                // Method isCompleted:(Ldev/ftb/mods/ftbquests/quest/QuestObject;)Z\n     117: ifeq          163\n     120: aload_0\n     121: getfield      #130                // Field perPlayerData:Lit/unimi/dsi/fastutil/objects/Object2ObjectMap;\n     124: invokeinterface #1116,  1         // InterfaceMethod it/unimi/dsi/fastutil/objects/Object2ObjectMap.values:()Lit/unimi/dsi/fastutil/objects/ObjectCollection;\n     129: aload_1\n     130: invokedynamic #1128,  0           // InvokeDynamic #8:accept:(Ldev/ftb/mods/ftbquests/quest/task/Task;)Ljava/util/function/Consumer;\n     135: invokeinterface #1133,  2         // InterfaceMethod it/unimi/dsi/fastutil/objects/ObjectCollection.forEach:(Ljava/util/function/Consumer;)V\n     140: aload_0\n     141: invokevirtual #196                // Method markDirty:()V\n     144: new           #1135               // class dev/ftb/mods/ftbquests/net/TogglePinnedResponseMessage\n     147: dup\n     148: aload_1\n     149: invokevirtual #1079               // Method dev/ftb/mods/ftbquests/quest/task/Task.getQuest:()Ldev/ftb/mods/ftbquests/quest/Quest;\n     152: getfield      #882                // Field dev/ftb/mods/ftbquests/quest/Quest.id:J\n     155: iconst_0\n     156: invokespecial #1138               // Method dev/ftb/mods/ftbquests/net/TogglePinnedResponseMessage.\"<init>\":(JZ)V\n     159: aload_2\n     160: invokevirtual #1139               // Method dev/ftb/mods/ftbquests/net/TogglePinnedResponseMessage.sendTo:(Ljava/lang/Iterable;)V\n     163: return\n\n",
+      "range_sha256": "508d40eda129b8b976410df5f586fddb9bb4b6085c7f8e12bce01d4239a3f044"
+    }
+  ],
+  "actual_SRG_name_mapping": {
+    "artifact": {
+      "path": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/de/oceanlabs/mcp/mcp_config/1.20.1-20230612.114412/srg_to_official_1.20.1.tsrg",
+      "sha256": "f44ff54ae6accb5a61c90562190afa68f69e36cc2450730272505538abc06954"
+    },
+    "lines": [
+      {
+        "line": 88586,
+        "raw": "\tm_6846_ ()Lnet/minecraft/server/players/PlayerList; getPlayerList"
+      },
+      {
+        "line": 95627,
+        "raw": "\tm_6846_ ()Lnet/minecraft/server/players/PlayerList; getPlayerList"
+      },
+      {
+        "line": 95628,
+        "raw": "\tm_6846_ ()Lnet/minecraft/server/dedicated/DedicatedPlayerList; getPlayerList"
+      },
+      {
+        "line": 101777,
+        "raw": "\tm_11259_ (Ljava/util/UUID;)Lnet/minecraft/server/level/ServerPlayer; getPlayer"
+      },
+      {
+        "line": 119393,
+        "raw": "\tm_20148_ ()Ljava/util/UUID; getUUID"
+      },
+      {
+        "line": 151067,
+        "raw": "\tf_41583_ EMPTY"
+      },
+      {
+        "line": 183329,
+        "raw": "\tm_20148_ ()Ljava/util/UUID; getUUID"
+      }
+    ]
+  },
+  "prior_contracts_reused_without_whole_source_replay": [
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-installed-ftb-itemtask-nbt-contract-20261109.json",
+      "sha256": "cf19baf04a825bead865545548c4b7147c6bef7e0eeef0a8fa189e77a2e736ab",
+      "bytes": 68799
+    },
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-native-crafting-payment-boundary-20261109.json",
+      "sha256": "4e678128c0186e9cd6f19e757ff60ce7091f95127af038f739a8fe0c5c8cf1e0",
+      "bytes": 28307
+    },
+    {
+      "path": "docs/cod4/audit-20261022/quest-integration-20261030/coordinator-installed-architectury-crafting-bridge-delta-20261109.json",
+      "sha256": "66ce83468d7e8615a4861e684f159793f94b9f7eb23d0eaff750eee5c8c85fdd",
+      "bytes": 7135
+    }
+  ],
+  "findings": [
+    "Deferred queue stores only playerUUID->wall-clock deadline. scheduleInventoryCheck uses putIfAbsent(now+delay*50ms), so another inventory update does not replace an existing earlier deadline in this method. This is not a durable item acquisition log or exact simulated tick duration.",
+    "At due tick, lookup onlineServerPlayer by same UUID, call detect(sp,EMPTY,0) if found, then remove dueUUID even if offline. The queue retains no ItemEntityUUID, configured functional variant, recipeID, payment/debit result, transaction nonce or team snapshot. No guarantee about disconnected pending checks or actual runtime scheduling is inferred.",
+    "Prior actual inventory listener selects current team using the player context and submits into that TeamData. BaseQuestFile exact getter is map.get(teamUUID). TeamData owns taskProgress longtaskID->longprogress separately from its UUID-indexed perPlayerData and QuestKey claimedRewards.",
+    "TeamData.setProgress has no contributing-player argument; it clamps against taskMax, updates/removes taskID progress, synchronizes online team members, starts/completes via team context and marks dirty. Thus a task progress value alone cannot certify which member paid or personally received a particular item. Team progress sharing may be intended; preserve original policy rather than relabel it personal receipt.",
+    "markTaskCompleted triggers actual task.onCompleted team context then requests inventory detection for each current online member with EMPTY and sourceTask=currenttaskID. Reuse prior listener sourceTask exclusion; do not interpret that fanout as each member independently crafting, paying or receiving the same item. Deeper callback recursion and max progress lifecycle not executed.",
+    "ServerQuestFile teamCreated requests copyData from creator personalteam for a new party; playerChangedTeam requests mergeData when joining another owner party and mergeClaimedRewards when returning to personalteam. Only call sites read here: merge/copy helper implementation and event order were not studied, and no new migration1000credit or oldworld native acceptance is claimed.",
+    "Claim path marks reward key before reward.claim(player,notify). Actual QuestKey.forReward policy, external reward delivery rollback, permissions and all original reward types were not expanded; no duplicate reward or exploit claim. Keep original rewards/IDs. Task progress and reward bookkeeping must remain separate from intended-player acquisition evidence."
+  ],
+  "integration_requirements": [
+    "Keep material-source and existing prerequisite tasks. Use actual recipe/trade native debit once; ordinary inventory/craft notifications are not payment certification.",
+    "For new functional NBT variant acquisition, independently establish full consumer-valid variant and intended player/target acquisition outcome; retain transaction/source/ItemEntity linkage as appropriate. Team-wide progress can reflect existing design but cannot replace that individual evidence.",
+    "Do not add a second consuming task or duplicate item reward merely to work around attribution. Applicable1000 variant-production and independent native gates remain unresolved; no production node added."
+  ],
+  "limits": [
+    "Only41-line deferred class was read whole; the other three large derived files were read solely at listed ranges. Unprinted source is not credited.",
+    "Offline Temurin17 decompiler256m/45s and javap20s, exit0, not game or upstream program execution; no classes recompiled/installed. Initial guessed QuestFile.class missing failed before any Java; corrected to actual BaseQuestFile/ServerQuestFile with exact partial extracts retained.",
+    "Source, bytecode, mapping and tool artifact counts add0 semantic reference credit. No framework start-hook/team implementation/native tag/adapters/permissions/gameplay acceptance inferred."
+  ],
+  "tool_invocations": {
+    "path": "build/cod4-ftb-progress-attribution-20261109/tool-invocations.json",
+    "sha256": "45cb0efcb9c3052e30d48ed8222d5c89c6ad868a967adb36d3e1c37635b2ed74",
+    "bytes": 1027
+  },
+  "tool_outputs": [
+    {
+      "path": "build/cod4-ftb-progress-attribution-20261109/BaseQuestFile.javap.txt",
+      "sha256": "1f7cca934c3840b631ade6cdfa80dcd50c7f17761934713c307144ee53848a78",
+      "bytes": 255630
+    },
+    {
+      "path": "build/cod4-ftb-progress-attribution-20261109/DeferredInventoryDetection.javap.txt",
+      "sha256": "72a343fa6d2dc277c9e23a4e4283f2aa74bd33f503df8efaa3d570fe87da48ad",
+      "bytes": 5001
+    },
+    {
+      "path": "build/cod4-ftb-progress-attribution-20261109/ServerQuestFile.javap.txt",
+      "sha256": "76b3ba52431bb31cb7222b0891aa2cfa1f6e5a5c7e2d10f8c38bcc55a4a9b5dc",
+      "bytes": 39875
+    },
+    {
+      "path": "build/cod4-ftb-progress-attribution-20261109/TeamData.javap.txt",
+      "sha256": "b6efe8d2d0c430f94f33c4f09f5f18e7bfdc0e4d09363ca85455ab9e9ca5d168",
+      "bytes": 144419
+    },
+    {
+      "path": "build/cod4-ftb-progress-attribution-20261109/decompile.stderr.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "build/cod4-ftb-progress-attribution-20261109/decompile.stdout.txt",
+      "sha256": "3cc89a4b3dc92523317f2a7f0b8f12a14766fc2ca44266541e4d691a1508ebd8",
+      "bytes": 353
+    }
+  ],
+  "formal_research_credit": 0,
+  "native_acceptance": false,
+  "production_changes": 0,
+  "game_starts": 0,
+  "task_nodes_added": 0,
+  "checklist_deletions": 0,
+  "actual_active_hours_claimed": null
+}
