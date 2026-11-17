@@ -1,0 +1,296 @@
+{
+  "recorded_at": "2026-11-03T21:50:08.627383+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_OFFLINE_READ_CHECKPOINT_NOT_COMPLETE_PROPOSAL_NO_PACKAGE",
+  "semantic_key": "owned-bedside-rest-to-stop-triggered-sleep-clock-conditioned-material-gift-without-delivery-receipt",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Cat.java",
+      "entry_sha256": "196ffb796d5b6dde4d08ab5c694d76b537f5fad7fe3ff38a07b73ee8848fbb2e",
+      "lines": [
+        460,
+        573
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "12b9ee2f03eb0ebc132d37948d65d0ab95675f8704ab5a4395e412272e82b136",
+      "raw_excerpt_utf8": "   static class CatRelaxOnOwnerGoal extends Goal {\n      private final Cat cat;\n      @Nullable\n      private Player ownerPlayer;\n      @Nullable\n      private BlockPos goalPos;\n      private int onBedTicks;\n\n      public CatRelaxOnOwnerGoal(Cat p_28203_) {\n         this.cat = p_28203_;\n      }\n\n      public boolean canUse() {\n         if (!this.cat.isTame()) {\n            return false;\n         } else if (this.cat.isOrderedToSit()) {\n            return false;\n         } else {\n            LivingEntity livingentity = this.cat.getOwner();\n            if (livingentity instanceof Player) {\n               this.ownerPlayer = (Player)livingentity;\n               if (!livingentity.isSleeping()) {\n                  return false;\n               }\n\n               if (this.cat.distanceToSqr(this.ownerPlayer) > 100.0D) {\n                  return false;\n               }\n\n               BlockPos blockpos = this.ownerPlayer.blockPosition();\n               BlockState blockstate = this.cat.level().getBlockState(blockpos);\n               if (blockstate.is(BlockTags.BEDS)) {\n                  this.goalPos = blockstate.getOptionalValue(BedBlock.FACING).map((p_28209_) -> {\n                     return blockpos.relative(p_28209_.getOpposite());\n                  }).orElseGet(() -> {\n                     return new BlockPos(blockpos);\n                  });\n                  return !this.spaceIsOccupied();\n               }\n            }\n\n            return false;\n         }\n      }\n\n      private boolean spaceIsOccupied() {\n         for(Cat cat : this.cat.level().getEntitiesOfClass(Cat.class, (new AABB(this.goalPos)).inflate(2.0D))) {\n            if (cat != this.cat && (cat.isLying() || cat.isRelaxStateOne())) {\n               return true;\n            }\n         }\n\n         return false;\n      }\n\n      public boolean canContinueToUse() {\n         return this.cat.isTame() && !this.cat.isOrderedToSit() && this.ownerPlayer != null && this.ownerPlayer.isSleeping() && this.goalPos != null && !this.spaceIsOccupied();\n      }\n\n      public void start() {\n         if (this.goalPos != null) {\n            this.cat.setInSittingPose(false);\n            this.cat.getNavigation().moveTo((double)this.goalPos.getX(), (double)this.goalPos.getY(), (double)this.goalPos.getZ(), (double)1.1F);\n         }\n\n      }\n\n      public void stop() {\n         this.cat.setLying(false);\n         float f = this.cat.level().getTimeOfDay(1.0F);\n         if (this.ownerPlayer.getSleepTimer() >= 100 && (double)f > 0.77D && (double)f < 0.8D && (double)this.cat.level().getRandom().nextFloat() < 0.7D) {\n            this.giveMorningGift();\n         }\n\n         this.onBedTicks = 0;\n         this.cat.setRelaxStateOne(false);\n         this.cat.getNavigation().stop();\n      }\n\n      private void giveMorningGift() {\n         RandomSource randomsource = this.cat.getRandom();\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();\n         blockpos$mutableblockpos.set(this.cat.isLeashed() ? this.cat.getLeashHolder().blockPosition() : this.cat.blockPosition());\n         this.cat.randomTeleport((double)(blockpos$mutableblockpos.getX() + randomsource.nextInt(11) - 5), (double)(blockpos$mutableblockpos.getY() + randomsource.nextInt(5) - 2), (double)(blockpos$mutableblockpos.getZ() + randomsource.nextInt(11) - 5), false);\n         blockpos$mutableblockpos.set(this.cat.blockPosition());\n         LootTable loottable = this.cat.level().getServer().getLootData().getLootTable(BuiltInLootTables.CAT_MORNING_GIFT);\n         LootParams lootparams = (new LootParams.Builder((ServerLevel)this.cat.level())).withParameter(LootContextParams.ORIGIN, this.cat.position()).withParameter(LootContextParams.THIS_ENTITY, this.cat).create(LootContextParamSets.GIFT);\n\n         for(ItemStack itemstack : loottable.getRandomItems(lootparams)) {\n            this.cat.level().addFreshEntity(new ItemEntity(this.cat.level(), (double)blockpos$mutableblockpos.getX() - (double)Mth.sin(this.cat.yBodyRot * ((float)Math.PI / 180F)), (double)blockpos$mutableblockpos.getY(), (double)blockpos$mutableblockpos.getZ() + (double)Mth.cos(this.cat.yBodyRot * ((float)Math.PI / 180F)), itemstack));\n         }\n\n      }\n\n      public void tick() {\n         if (this.ownerPlayer != null && this.goalPos != null) {\n            this.cat.setInSittingPose(false);\n            this.cat.getNavigation().moveTo((double)this.goalPos.getX(), (double)this.goalPos.getY(), (double)this.goalPos.getZ(), (double)1.1F);\n            if (this.cat.distanceToSqr(this.ownerPlayer) < 2.5D) {\n               ++this.onBedTicks;\n               if (this.onBedTicks > this.adjustedTickDelay(16)) {\n                  this.cat.setLying(true);\n                  this.cat.setRelaxStateOne(false);\n               } else {\n                  this.cat.lookAt(this.ownerPlayer, 45.0F, 45.0F);\n                  this.cat.setRelaxStateOne(true);\n               }\n            } else {\n               this.cat.setLying(false);\n            }\n         }\n\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Cat.java",
+      "entry_sha256": "196ffb796d5b6dde4d08ab5c694d76b537f5fad7fe3ff38a07b73ee8848fbb2e",
+      "lines": [
+        100,
+        117
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9c9cf2ae82e4a02f77e14926609ab36740217ae80caa301cd494a72fadf76cd1",
+      "raw_excerpt_utf8": "   protected void registerGoals() {\n      this.temptGoal = new Cat.CatTemptGoal(this, 0.6D, TEMPT_INGREDIENT, true);\n      this.goalSelector.addGoal(1, new FloatGoal(this));\n      this.goalSelector.addGoal(1, new PanicGoal(this, 1.5D));\n      this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));\n      this.goalSelector.addGoal(3, new Cat.CatRelaxOnOwnerGoal(this));\n      this.goalSelector.addGoal(4, this.temptGoal);\n      this.goalSelector.addGoal(5, new CatLieOnBedGoal(this, 1.1D, 8));\n      this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0D, 10.0F, 5.0F, false));\n      this.goalSelector.addGoal(7, new CatSitOnBlockGoal(this, 0.8D));\n      this.goalSelector.addGoal(8, new LeapAtTargetGoal(this, 0.3F));\n      this.goalSelector.addGoal(9, new OcelotAttackGoal(this));\n      this.goalSelector.addGoal(10, new BreedGoal(this, 0.8D));\n      this.goalSelector.addGoal(11, new WaterAvoidingRandomStrollGoal(this, 0.8D, 1.0000001E-5F));\n      this.goalSelector.addGoal(12, new LookAtPlayerGoal(this, Player.class, 10.0F));\n      this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Rabbit.class, false, (Predicate<LivingEntity>)null));\n      this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Turtle.class, false, Turtle.BABY_ON_LAND_SELECTOR));\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Cat.java",
+      "entry_sha256": "196ffb796d5b6dde4d08ab5c694d76b537f5fad7fe3ff38a07b73ee8848fbb2e",
+      "lines": [
+        127,
+        141
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6da8f95fa63003b1cc28b286d69e50ea9aeeb1d6555d6b3e8a0310e50ffeb349",
+      "raw_excerpt_utf8": "   public void setLying(boolean p_28182_) {\n      this.entityData.set(IS_LYING, p_28182_);\n   }\n\n   public boolean isLying() {\n      return this.entityData.get(IS_LYING);\n   }\n\n   public void setRelaxStateOne(boolean p_28186_) {\n      this.entityData.set(RELAX_STATE_ONE, p_28186_);\n   }\n\n   public boolean isRelaxStateOne() {\n      return this.entityData.get(RELAX_STATE_ONE);\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Cat.java",
+      "entry_sha256": "196ffb796d5b6dde4d08ab5c694d76b537f5fad7fe3ff38a07b73ee8848fbb2e",
+      "lines": [
+        159,
+        176
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d437d5680b95ab92828c31a147fe9bcd156aedeef9539e661f1d08570f2cb02f",
+      "raw_excerpt_utf8": "   public void addAdditionalSaveData(CompoundTag p_28156_) {\n      super.addAdditionalSaveData(p_28156_);\n      p_28156_.putString(\"variant\", BuiltInRegistries.CAT_VARIANT.getKey(this.getVariant()).toString());\n      p_28156_.putByte(\"CollarColor\", (byte)this.getCollarColor().getId());\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_28142_) {\n      super.readAdditionalSaveData(p_28142_);\n      CatVariant catvariant = BuiltInRegistries.CAT_VARIANT.get(ResourceLocation.tryParse(p_28142_.getString(\"variant\")));\n      if (catvariant != null) {\n         this.setVariant(catvariant);\n      }\n\n      if (p_28142_.contains(\"CollarColor\", 99)) {\n         this.setCollarColor(DyeColor.byId(p_28142_.getInt(\"CollarColor\")));\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/OwnableEntity.java",
+      "entry_sha256": "c9b5069caf2dc7a29c95aa525f61ef2b12918524a0dfef91ff86ab061958e3b3",
+      "lines": [
+        1,
+        18
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "c9b5069caf2dc7a29c95aa525f61ef2b12918524a0dfef91ff86ab061958e3b3",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity;\n\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.level.EntityGetter;\n\npublic interface OwnableEntity {\n   @Nullable\n   UUID getOwnerUUID();\n\n   EntityGetter level();\n\n   @Nullable\n   default LivingEntity getOwner() {\n      UUID uuid = this.getOwnerUUID();\n      return uuid == null ? null : this.level().getPlayerByUUID(uuid);\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/TamableAnimal.java",
+      "entry_sha256": "ec0eaa8460efb17ee0536933aede2800a1f70a20b3c6b03dfe694aea23145f08",
+      "lines": [
+        132,
+        139
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e4e4ed33979eaab4fe1ff37ad331c0e32ad6d1b7749f76ed56a22bd1f08b5e43",
+      "raw_excerpt_utf8": "   @Nullable\n   public UUID getOwnerUUID() {\n      return this.entityData.get(DATA_OWNERUUID_ID).orElse((UUID)null);\n   }\n\n   public void setOwnerUUID(@Nullable UUID p_21817_) {\n      this.entityData.set(DATA_OWNERUUID_ID, Optional.ofNullable(p_21817_));\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "lines": [
+        224,
+        237
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "848bfc4304fb8efc6f0bc982c16336cd2863c8f55b04b804e43f7fe45a4cb545",
+      "raw_excerpt_utf8": "      if (this.isSleeping()) {\n         ++this.sleepCounter;\n         if (this.sleepCounter > 100) {\n            this.sleepCounter = 100;\n         }\n\n         if (!this.level().isClientSide && !net.minecraftforge.event.ForgeEventFactory.fireSleepingTimeCheck(this, getSleepingPos())) {\n            this.stopSleepInBed(false, true);\n         }\n      } else if (this.sleepCounter > 0) {\n         ++this.sleepCounter;\n         if (this.sleepCounter >= 110) {\n            this.sleepCounter = 0;\n         }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "lines": [
+        1319,
+        1326
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ff7042eaf8eabbfb2012ee73f249832949b31d915073b6d6522a8bc6cf031dfa",
+      "raw_excerpt_utf8": "      net.minecraftforge.event.ForgeEventFactory.onPlayerWakeup(this, p_36226_, p_36227_);\n      super.stopSleeping();\n      if (this.level() instanceof ServerLevel && p_36227_) {\n         ((ServerLevel)this.level()).updateSleepingPlayerList();\n      }\n\n      this.sleepCounter = p_36226_ ? 0 : 100;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "lines": [
+        1354,
+        1360
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "41b1cb15190311051dbd6409a4da2fc7123f2b4a297100ca4756f59c0dd74224",
+      "raw_excerpt_utf8": "   public boolean isSleepingLongEnough() {\n      return this.isSleeping() && this.sleepCounter >= 100;\n   }\n\n   public int getSleepTimer() {\n      return this.sleepCounter;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/BuiltInLootTables.java",
+      "entry_sha256": "f3bb195559ff2549d931517aa7c8645d9072cbb139f74b2030c15e185ce6585f",
+      "lines": [
+        75,
+        75
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f46f8cd4e685351418673642cf72fabddf83454351235a19671c6a11669e48e2",
+      "raw_excerpt_utf8": "   public static final ResourceLocation CAT_MORNING_GIFT = register(\"gameplay/cat_morning_gift\");\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/tags/BlockTags.java",
+      "entry_sha256": "e6a28c0e361ed0fac2fe66b5561ba4f87a27ed8eedf0bdd850ec306c2e7b420c",
+      "lines": [
+        51,
+        51
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "49fa97901a5024907bc73ba33485f71c362a5665285be49e65b682538114d92f",
+      "raw_excerpt_utf8": "   public static final TagKey<Block> BEDS = create(\"beds\");\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_read_range_count": 11,
+  "actual_read_entry_count": 6,
+  "actual_full_file_count": 1,
+  "actual_cited_lines": 222,
+  "actual_complete_nested_goal": [
+    {
+      "entry": "net/minecraft/world/entity/animal/Cat.java",
+      "lines": [
+        460,
+        573
+      ],
+      "source_credit": 0
+    }
+  ],
+  "actual_raw_base_resources": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/loot_tables/gameplay/cat_morning_gift.json",
+      "entry_sha256": "29b46f7aff8092bcd0c0c53e8563aedf9bf2d43a2533ab9543f17706f8784ae8",
+      "raw_utf8": "{\n  \"type\": \"minecraft:gift\",\n  \"pools\": [\n    {\n      \"bonus_rolls\": 0.0,\n      \"entries\": [\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:rabbit_hide\",\n          \"weight\": 10\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:rabbit_foot\",\n          \"weight\": 10\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:chicken\",\n          \"weight\": 10\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:feather\",\n          \"weight\": 10\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:rotten_flesh\",\n          \"weight\": 10\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:string\",\n          \"weight\": 10\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:phantom_membrane\",\n          \"weight\": 2\n        }\n      ],\n      \"rolls\": 1.0\n    }\n  ],\n  \"random_sequence\": \"minecraft:gameplay/cat_morning_gift\"\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/tags/blocks/beds.json",
+      "entry_sha256": "aeab40ccdf3fa735e4229bad0a60b604e0930bdfd368037d6346ab300fa8b73c",
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:red_bed\",\n    \"minecraft:black_bed\",\n    \"minecraft:blue_bed\",\n    \"minecraft:brown_bed\",\n    \"minecraft:cyan_bed\",\n    \"minecraft:gray_bed\",\n    \"minecraft:green_bed\",\n    \"minecraft:light_blue_bed\",\n    \"minecraft:light_gray_bed\",\n    \"minecraft:lime_bed\",\n    \"minecraft:magenta_bed\",\n    \"minecraft:orange_bed\",\n    \"minecraft:pink_bed\",\n    \"minecraft:purple_bed\",\n    \"minecraft:white_bed\",\n    \"minecraft:yellow_bed\"\n  ]\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    }
+  ],
+  "existing_global_whole_decisions_for_pending_comparison": [
+    {
+      "candidate_id": "4bdca222fd8e18d9104a",
+      "canonical_complete_row_sha256": "b59eb424b4aff5efae7ac7960ff731ad1a5c65fcb23199cba39fa5b743ff4bd1",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "4bdca222fd8e18d9104a",
+        "status": "accepted",
+        "family": "native-paid-pet-collar-selection-cat-wolf-group",
+        "trigger": "Cat/Wolf full diskpair/mobInteract; wolf setTame/aiStep",
+        "input": "paid collar numeric optional byte; cat registry variant",
+        "output": "numeric type guard before dye lookup, absent retains ctor; cat unknown variant retains default; actual owner-only dye use changes saved choice then consumes survival item",
+        "preservation": "Cat and Wolf same paid-collar policy grouped1; full tame/feeding consumers read but prior parent ownership chain no extra credit. Separate static oldwolfpalette fix does not credit this actual owned choice consumer.",
+        "application_limit": "Variant lookup null safety registry internals not verified. Generic ownership/anger delegates remain prior chain0. Tame Wolf setter sets full20 health while native parent load order not deeply revalidated here; no fresh guarantee of health restore. Transient shaking/lying omitted.",
+        "supporting_candidates": [
+          "ad48a55fa8cbf6540d1f"
+        ],
+        "credit": 1
+      },
+      "old_original_source_chains_reread": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "070ec5dd27d56bac403e",
+      "canonical_complete_row_sha256": "3b15b81d0dcf58471e6b190a66f78d0c419cf8ab112509f093e5a80f5f446199",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "070ec5dd27d56bac403e",
+        "status": "accepted",
+        "family": "paper-legacy-ocelot-earned-ownership-to-cat-or-trust-role",
+        "trigger": "Complete V1904 register/convert at V18W43C+1 ENTITY ocelot; actual native Cat/Ocelot save/read/goal consumers",
+        "input": "legacy CatType and optional Owner/OwnerUUID strings",
+        "output": "type0 with either nonempty owner field gains Trusting; types1..3 become registered minecraft:cat with OwnerUUID default empty, unrelated fields remain",
+        "preservation": "Earned companion identity is preserved by role split, not blind ID replacement for all ocelots. Ocelot setTrusting rebuilds avoidance goals, Cat delegates parent owner read and optional collar/registry variant. One split all cat variants; native ocelot reader already accepted separately, support0.",
+        "application_limit": "Legacy owner string is not resolved here; invalid/missing UUID can remain empty. Later CatType→variant stages not traced; do not claim all appearance or ownership forms migrated end-to-end.",
+        "supporting_candidates": [
+          "4bdca222fd8e18d9104a",
+          "1a5644672b2110cf3e45"
+        ],
+        "credit": 1
+      },
+      "old_original_source_chains_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "observed_so_far": [
+    "Complete nested CatRelaxOnOwnerGoal460..573114lines read, not full outer Cat603. Register priority3 and own transient lying/relax state+additionalpair read. canUse tame/notordered sit, resolves ownerPlayer, sleeping, distanceSquared<=100, actual taggedbed, oppositeFACING adjacent goal (orbedblock fallback), current localCat lying-orrelax occupancy veto.",
+    "Continue uses cachedowner sleeping and goalpos/notoccupied, tame/notordered, no explicit current ownerUUID rereresolution or distance/bed/tag recheck. Ownable default getOwner UUID→currentlevel getPlayerByUUID and Tamable syncedUUID accessor read; complete entitygetter/world/backend and actualownership transfer not audited.",
+    "start requests sitfalse and navigation. Tick distanceSquared<2.5 increments cumulative onBedTicks, >adjustedTickDelay16 requests lying; away only lyingfalse, notcounterreset. Constructor shown noflags; completegeneric Goal/scheduler unexpanded. onBedTicks is NOT tested in stop gift condition.",
+    "stop first lyingfalse, then cachedowner sleepTimer>=100, strict floatdayphase>.77&&<.8 and randomfloat<.7 attempts gift. Ownstop has no explicit actualarrival/ownlying/giftGiven/once-day or completed-sleep-victory gate. Stopcause/clock/effective cadence not proved; not guaranteed one gift per sleep or actual player acquisition.",
+    "Player bounded tick sleepingcounter increments capped100; nonsleepingpositive increments to110 then0. Bounded wake-body sets counter immediate?0:100 and getter returns rawcounter. Full server sleep/day-skip/Forge wake/time pipeline unexpanded; wakefragment1319..1326 is partialmethod context, not fullmethod read.",
+    "Gift requests randomTeleport from leashholder-or-current block offsetsXZ[-5,5]/Y[-2,2], ignoresreturn, then rereads actualcatblock. Requests named CAT_MORNING_GIFT underCAT THIS_ENTITY+ORIGIN/GIFT, not ownerplayer context. For each stack creates ItemEntity near resultingblock/yBodyRot and ignores addresult, no explicit target/thrower/pickup binding here. Full teleport/admission/loot engine not newly read.",
+    "Full derivedraw gift table onepool/oneroll, six weight10 entries andphantom_membraneweight2; fullbedtag16beds. Fixedrawsource only, no loaded data/item availability/actual draw/distribution/physical inventoryproof. Full registration/helper assembly and priorLoot context needed before completeproposal.",
+    "Own Catpair writes variant/collar, no goalcachedPlayer/goalpos/onBedTicks orlying/relax flags; fresh/reused object differs, parent completepersistence not newlyread. Existing paidcat/wolfcollar andlegacyocelot role-split completecurrent ownerjudgments/canonical retained0, not newmigration. Wholecomparison toHero/Seal gifting still pending."
+  ],
+  "pending": [
+    "Full nearest Hero/Seal whole comparison and source loot-registration/teleport dependencies before proposal.",
+    "No complete Cat603, genericgoal/AI/bed/owner/sleep/time/mobcontext/teleport/admission graph read; wakebody partial only.",
+    "Switch to authorized actual installed Hero EA0040 original-author confirmation, no other package."
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

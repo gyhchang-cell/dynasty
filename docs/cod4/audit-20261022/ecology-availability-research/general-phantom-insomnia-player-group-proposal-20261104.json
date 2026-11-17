@@ -1,0 +1,721 @@
+{
+  "schema_version": "General-original-native-PhantomSpawner-insomnia-source-policy-proposal-v1",
+  "recorded_at": "2026-11-03T18:15:14.673412+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ORIGINAL_WHOLE_SOURCE_PROPOSAL_PENDING_DISTINCT_MAIN_INDEPENDENT_REVIEW",
+  "formal_candidate_id": null,
+  "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+  "proposed_maximum_whole_mechanisms": 1,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_or_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "runtime_native_material_payment_credit": 0,
+  "source": {
+    "kind": "native_fixed_local_artifact",
+    "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+    "primary_entry": "net/minecraft/world/level/levelgen/PhantomSpawner.java",
+    "git_revision": null,
+    "git_tree": null,
+    "fresh_upstream_authentication": false
+  },
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/levelgen/PhantomSpawner.java",
+      "entry_sha256": "786b4cbc2cdd60b48b2b24e3a38dbc5f9e79271cd954e0209c6b157893e38de9",
+      "lines": [
+        1,
+        83
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "786b4cbc2cdd60b48b2b24e3a38dbc5f9e79271cd954e0209c6b157893e38de9",
+      "raw_excerpt_utf8": "package net.minecraft.world.level.levelgen;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.stats.ServerStatsCounter;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.monster.Phantom;\nimport net.minecraft.world.level.CustomSpawner;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.NaturalSpawner;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.material.FluidState;\n\npublic class PhantomSpawner implements CustomSpawner {\n   private int nextTick;\n\n   public int tick(ServerLevel p_64576_, boolean p_64577_, boolean p_64578_) {\n      if (!p_64577_) {\n         return 0;\n      } else if (!p_64576_.getGameRules().getBoolean(GameRules.RULE_DOINSOMNIA)) {\n         return 0;\n      } else {\n         RandomSource randomsource = p_64576_.random;\n         --this.nextTick;\n         if (this.nextTick > 0) {\n            return 0;\n         } else {\n            this.nextTick += (60 + randomsource.nextInt(60)) * 20;\n            if (p_64576_.getSkyDarken() < 5 && p_64576_.dimensionType().hasSkyLight()) {\n               return 0;\n            } else {\n               int i = 0;\n\n               for(ServerPlayer serverplayer : p_64576_.players()) {\n                  if (!serverplayer.isSpectator()) {\n                     BlockPos blockpos = serverplayer.blockPosition();\n                     DifficultyInstance difficultyinstance = p_64576_.getCurrentDifficultyAt(blockpos);\n                     var event = new net.minecraftforge.event.entity.player.PlayerSpawnPhantomsEvent(serverplayer, 1 + randomsource.nextInt(difficultyinstance.getDifficulty().getId() + 1));\n                     net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(event);\n                     if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.DENY) continue;\n                     if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.ALLOW || !p_64576_.dimensionType().hasSkyLight() || blockpos.getY() >= p_64576_.getSeaLevel() && p_64576_.canSeeSky(blockpos)) {\n                        if (difficultyinstance.isHarderThan(randomsource.nextFloat() * 3.0F)) {\n                           ServerStatsCounter serverstatscounter = serverplayer.getStats();\n                           int j = Mth.clamp(serverstatscounter.getValue(Stats.CUSTOM.get(Stats.TIME_SINCE_REST)), 1, Integer.MAX_VALUE);\n                           int k = 24000;\n                           if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.ALLOW || randomsource.nextInt(j) >= 72000) {\n                              BlockPos blockpos1 = blockpos.above(20 + randomsource.nextInt(15)).east(-10 + randomsource.nextInt(21)).south(-10 + randomsource.nextInt(21));\n                              BlockState blockstate = p_64576_.getBlockState(blockpos1);\n                              FluidState fluidstate = p_64576_.getFluidState(blockpos1);\n                              if (NaturalSpawner.isValidEmptySpawnBlock(p_64576_, blockpos1, blockstate, fluidstate, EntityType.PHANTOM)) {\n                                 SpawnGroupData spawngroupdata = null;\n                                 int l = event.getPhantomsToSpawn();\n\n                                 for(int i1 = 0; i1 < l; ++i1) {\n                                    Phantom phantom = EntityType.PHANTOM.create(p_64576_);\n                                    if (phantom != null) {\n                                       phantom.moveTo(blockpos1, 0.0F, 0.0F);\n                                       spawngroupdata = phantom.finalizeSpawn(p_64576_, difficultyinstance, MobSpawnType.NATURAL, spawngroupdata, (CompoundTag)null);\n                                       p_64576_.addFreshEntityWithPassengers(phantom);\n                                       ++i;\n                                    }\n                                 }\n                              }\n                           }\n                        }\n                     }\n                  }\n               }\n\n               return i;\n            }\n         }\n      }\n   }\n}\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/player/PlayerSpawnPhantomsEvent.java",
+      "entry_sha256": "b9e49c1e85dd144d5f7edfe412fb675439cf7f760f6c9beb3fe56ed93f578703",
+      "lines": [
+        1,
+        68
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b9e49c1e85dd144d5f7edfe412fb675439cf7f760f6c9beb3fe56ed93f578703",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.player;\n\nimport net.minecraft.world.level.levelgen.PhantomSpawner;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Event;\nimport org.jetbrains.annotations.NotNull;\n\nimport net.minecraftforge.eventbus.api.Event.Result;\n\n/**\n * This event is fired from {@link PhantomSpawner#tick}, once per player, when phantoms would attempt to be spawned.<br>\n * This event is not fired for spectating players.\n * <p>\n * This event is fired before any per-player checks (but <i>after<i/> {@link Player#isSpectator()}), but after all global checks.<br>\n * The behavior of {@link PhantomSpawner} is determined by the result of this event.<br>\n * See {@link #setResult} for documentation.<br>\n * <p>\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n * @see PlayerSpawnPhantomsEvent#setResult for the effects of each result.\n */\n@Event.HasResult\npublic class PlayerSpawnPhantomsEvent extends PlayerEvent\n{\n    private int phantomsToSpawn;\n\n    public PlayerSpawnPhantomsEvent(Player player, int phantomsToSpawn)\n    {\n        super(player);\n        this.phantomsToSpawn = phantomsToSpawn;\n    }\n\n    /**\n     * @return How many phantoms will be spawned, if spawning is successful. The default value is randomly generated.\n     */\n    public int getPhantomsToSpawn()\n    {\n        return phantomsToSpawn;\n    }\n\n    /**\n     * Sets the number of phantoms to be spawned.\n     * @param phantomsToSpawn How many phantoms should spawn, given checks are passed.\n     */\n    public void setPhantomsToSpawn(int phantomsToSpawn)\n    {\n        this.phantomsToSpawn = phantomsToSpawn;\n    }\n\n    /**\n     * The result of this event controls if phantoms will be spawned.<br>\n     * <ul>\n     * <li>If the result is {@link Result#ALLOW}, phantoms will always be spawned;</li>\n     * <li>If the result is {@link Result#DENY}, phantoms will never be spawned;</li>\n     * <li>If the result is {@link Result#DEFAULT}, vanilla checks will be run to determine if the spawn may occur.</li>\n     * </ul>\n     */\n    @Override\n    public void setResult(@NotNull Result result)\n    {\n        super.setResult(result);\n    }\n}\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/DifficultyInstance.java",
+      "entry_sha256": "39a114eff4e849e1d451e82b3ed3a83c03104ab5f421fd6d573ce0074cf3d4d8",
+      "lines": [
+        1,
+        62
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "39a114eff4e849e1d451e82b3ed3a83c03104ab5f421fd6d573ce0074cf3d4d8",
+      "raw_excerpt_utf8": "package net.minecraft.world;\n\nimport javax.annotation.concurrent.Immutable;\nimport net.minecraft.util.Mth;\n\n@Immutable\npublic class DifficultyInstance {\n   private static final float DIFFICULTY_TIME_GLOBAL_OFFSET = -72000.0F;\n   private static final float MAX_DIFFICULTY_TIME_GLOBAL = 1440000.0F;\n   private static final float MAX_DIFFICULTY_TIME_LOCAL = 3600000.0F;\n   private final Difficulty base;\n   private final float effectiveDifficulty;\n\n   public DifficultyInstance(Difficulty p_19044_, long p_19045_, long p_19046_, float p_19047_) {\n      this.base = p_19044_;\n      this.effectiveDifficulty = this.calculateDifficulty(p_19044_, p_19045_, p_19046_, p_19047_);\n   }\n\n   public Difficulty getDifficulty() {\n      return this.base;\n   }\n\n   public float getEffectiveDifficulty() {\n      return this.effectiveDifficulty;\n   }\n\n   public boolean isHard() {\n      return this.effectiveDifficulty >= (float)Difficulty.HARD.ordinal();\n   }\n\n   public boolean isHarderThan(float p_19050_) {\n      return this.effectiveDifficulty > p_19050_;\n   }\n\n   public float getSpecialMultiplier() {\n      if (this.effectiveDifficulty < 2.0F) {\n         return 0.0F;\n      } else {\n         return this.effectiveDifficulty > 4.0F ? 1.0F : (this.effectiveDifficulty - 2.0F) / 2.0F;\n      }\n   }\n\n   private float calculateDifficulty(Difficulty p_19052_, long p_19053_, long p_19054_, float p_19055_) {\n      if (p_19052_ == Difficulty.PEACEFUL) {\n         return 0.0F;\n      } else {\n         boolean flag = p_19052_ == Difficulty.HARD;\n         float f = 0.75F;\n         float f1 = Mth.clamp(((float)p_19053_ + -72000.0F) / 1440000.0F, 0.0F, 1.0F) * 0.25F;\n         f += f1;\n         float f2 = 0.0F;\n         f2 += Mth.clamp((float)p_19054_ / 3600000.0F, 0.0F, 1.0F) * (flag ? 1.0F : 0.75F);\n         f2 += Mth.clamp(p_19055_ * 0.25F, 0.0F, f1);\n         if (p_19052_ == Difficulty.EASY) {\n            f2 *= 0.5F;\n         }\n\n         f += f2;\n         return (float)p_19052_.getId() * f;\n      }\n   }\n}",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/stats/StatsCounter.java",
+      "entry_sha256": "37059e0e28f4462e666bcd08d9084f57f29cc0b0be7c5c12e1fecb20e3146852",
+      "lines": [
+        1,
+        31
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "37059e0e28f4462e666bcd08d9084f57f29cc0b0be7c5c12e1fecb20e3146852",
+      "raw_excerpt_utf8": "package net.minecraft.stats;\n\nimport it.unimi.dsi.fastutil.objects.Object2IntMap;\nimport it.unimi.dsi.fastutil.objects.Object2IntMaps;\nimport it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;\nimport net.minecraft.world.entity.player.Player;\n\npublic class StatsCounter {\n   protected final Object2IntMap<Stat<?>> stats = Object2IntMaps.synchronize(new Object2IntOpenHashMap<>());\n\n   public StatsCounter() {\n      this.stats.defaultReturnValue(0);\n   }\n\n   public void increment(Player p_13024_, Stat<?> p_13025_, int p_13026_) {\n      int i = (int)Math.min((long)this.getValue(p_13025_) + (long)p_13026_, 2147483647L);\n      this.setValue(p_13024_, p_13025_, i);\n   }\n\n   public void setValue(Player p_13020_, Stat<?> p_13021_, int p_13022_) {\n      this.stats.put(p_13021_, p_13022_);\n   }\n\n   public <T> int getValue(StatType<T> p_13018_, T p_13019_) {\n      return p_13018_.contains(p_13019_) ? this.getValue(p_13018_.get(p_13019_)) : 0;\n   }\n\n   public int getValue(Stat<?> p_13016_) {\n      return this.stats.getInt(p_13016_);\n   }\n}",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/stats/ServerStatsCounter.java",
+      "entry_sha256": "04a3b2728630c8d36b0453360dfec5f88ac4495196f308dca6545385127fcbb5",
+      "lines": [
+        31,
+        75
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "50c3ea0cd060f612b31232feac3537143edca3695f4168cf2d807caf0dac9244",
+      "raw_excerpt_utf8": "import net.minecraft.world.entity.player.Player;\nimport org.apache.commons.io.FileUtils;\nimport org.slf4j.Logger;\n\npublic class ServerStatsCounter extends StatsCounter {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private final MinecraftServer server;\n   private final File file;\n   private final Set<Stat<?>> dirty = Sets.newHashSet();\n\n   public ServerStatsCounter(MinecraftServer p_12816_, File p_12817_) {\n      this.server = p_12816_;\n      this.file = p_12817_;\n      if (p_12817_.isFile()) {\n         try {\n            this.parseLocal(p_12816_.getFixerUpper(), FileUtils.readFileToString(p_12817_));\n         } catch (IOException ioexception) {\n            LOGGER.error(\"Couldn't read statistics file {}\", p_12817_, ioexception);\n         } catch (JsonParseException jsonparseexception) {\n            LOGGER.error(\"Couldn't parse statistics file {}\", p_12817_, jsonparseexception);\n         }\n      }\n\n   }\n\n   public void save() {\n      try {\n         FileUtils.writeStringToFile(this.file, this.toJson());\n      } catch (IOException ioexception) {\n         LOGGER.error(\"Couldn't save stats\", (Throwable)ioexception);\n      }\n\n   }\n\n   public void setValue(Player p_12827_, Stat<?> p_12828_, int p_12829_) {\n      super.setValue(p_12827_, p_12828_, p_12829_);\n      this.dirty.add(p_12828_);\n   }\n\n   private Set<Stat<?>> getDirty() {\n      Set<Stat<?>> set = Sets.newHashSet(this.dirty);\n      this.dirty.clear();\n      return set;\n   }\n\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "lines": [
+        240,
+        267
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ba461b0027ad6cacd1cf6610cb6ba750f78d72a6cfd64b11c6477d4e417cd4d5",
+      "raw_excerpt_utf8": "      this.updateIsUnderwater();\n      super.tick();\n      if (!this.level().isClientSide && this.containerMenu != null && !this.containerMenu.stillValid(this)) {\n         this.closeContainer();\n         this.containerMenu = this.inventoryMenu;\n      }\n\n      this.moveCloak();\n      if (!this.level().isClientSide) {\n         this.foodData.tick(this);\n         this.awardStat(Stats.PLAY_TIME);\n         this.awardStat(Stats.TOTAL_WORLD_TIME);\n         if (this.isAlive()) {\n            this.awardStat(Stats.TIME_SINCE_DEATH);\n         }\n\n         if (this.isDiscrete()) {\n            this.awardStat(Stats.CROUCH_TIME);\n         }\n\n         if (!this.isSleeping()) {\n            this.awardStat(Stats.TIME_SINCE_REST);\n         }\n      }\n\n      int i = 29999999;\n      double d0 = Mth.clamp(this.getX(), -2.9999999E7D, 2.9999999E7D);\n      double d1 = Mth.clamp(this.getZ(), -2.9999999E7D, 2.9999999E7D);\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "lines": [
+        585,
+        605
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "50b4f861dad798b02cfb36f8f0853dba1f93da07486e78a6df106c8a520eb3b6",
+      "raw_excerpt_utf8": "   public void die(DamageSource p_36152_) {\n      if (net.minecraftforge.common.ForgeHooks.onLivingDeath(this, p_36152_)) return;\n      super.die(p_36152_);\n      this.reapplyPosition();\n      if (!this.isSpectator()) {\n         this.dropAllDeathLoot(p_36152_);\n      }\n\n      if (p_36152_ != null) {\n         this.setDeltaMovement((double)(-Mth.cos((this.getHurtDir() + this.getYRot()) * ((float)Math.PI / 180F)) * 0.1F), (double)0.1F, (double)(-Mth.sin((this.getHurtDir() + this.getYRot()) * ((float)Math.PI / 180F)) * 0.1F));\n      } else {\n         this.setDeltaMovement(0.0D, 0.1D, 0.0D);\n      }\n\n      this.awardStat(Stats.DEATHS);\n      this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_DEATH));\n      this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));\n      this.clearFire();\n      this.setSharedFlagOnFire(false);\n      this.setLastDeathLocation(Optional.of(GlobalPos.of(this.level().dimension(), this.blockPosition())));\n   }\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "lines": [
+        1365,
+        1379
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c4854f02b82c104e097eaacfcfb12f02f91d75f9395f5d1c2f88b44c2418d3c7",
+      "raw_excerpt_utf8": "   public void awardStat(ResourceLocation p_36221_) {\n      this.awardStat(Stats.CUSTOM.get(p_36221_));\n   }\n\n   public void awardStat(ResourceLocation p_36223_, int p_36224_) {\n      this.awardStat(Stats.CUSTOM.get(p_36223_), p_36224_);\n   }\n\n   public void awardStat(Stat<?> p_36247_) {\n      this.awardStat(p_36247_, 1);\n   }\n\n   public void awardStat(Stat<?> p_36145_, int p_36146_) {\n   }\n\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        249,
+        255
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a71a80b34759db76b13ca9c2218212a07250ccf5bb2711846c093c26a5e08d52",
+      "raw_excerpt_utf8": "      super(p_254435_, p_254435_.getSharedSpawnPos(), p_254435_.getSharedSpawnAngle(), p_253651_);\n      this.textFilter = p_254143_.createTextFilterForPlayer(this);\n      this.gameMode = p_254143_.createGameModeForPlayer(this);\n      this.server = p_254143_;\n      this.stats = p_254143_.getPlayerList().getPlayerStats(this);\n      this.advancements = p_254143_.getPlayerList().getPlayerAdvancements(this);\n      this.setMaxUpStep(1.0F);\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        609,
+        627
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "bf01299a921927a575083f47f71e1a16bb07291ac9ef3a25eeef0f80ab0876c7",
+      "raw_excerpt_utf8": "      this.getScoreboard().forAllObjectives(ObjectiveCriteria.DEATH_COUNT, this.getScoreboardName(), Score::increment);\n      LivingEntity livingentity = this.getKillCredit();\n      if (livingentity != null) {\n         this.awardStat(Stats.ENTITY_KILLED_BY.get(livingentity.getType()));\n         livingentity.awardKillScore(this, this.deathScore, p_9035_);\n         this.createWitherRose(livingentity);\n      }\n\n      this.level().broadcastEntityEvent(this, (byte)3);\n      this.awardStat(Stats.DEATHS);\n      this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_DEATH));\n      this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));\n      this.clearFire();\n      this.setTicksFrozen(0);\n      this.setSharedFlagOnFire(false);\n      this.getCombatTracker().recheckStatus();\n      this.setLastDeathLocation(Optional.of(GlobalPos.of(this.level().dimension(), this.blockPosition())));\n   }\n\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        875,
+        892
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0c46b152b009374bd98b87b16b0b0f52a427cb19b1967ad28f1fe7a0d4d18461",
+      "raw_excerpt_utf8": "               }\n\n               ((ServerLevel)this.level()).updateSleepingPlayerList();\n               return either;\n            }\n         }\n      } else {\n         return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);\n      }\n   }\n\n   public void startSleeping(BlockPos p_9190_) {\n      this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));\n      super.startSleeping(p_9190_);\n   }\n\n   private boolean bedInRange(BlockPos p_9117_, Direction p_9118_) {\n      if (p_9118_ == null) return false;\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        1032,
+        1058
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f755db42c48843a0b529ef194648467e874361d6be76e311a9ab0be2d3d61b73",
+      "raw_excerpt_utf8": "\n         this.jumping = p_8983_;\n         this.setShiftKeyDown(p_8984_);\n      }\n\n   }\n\n   public void awardStat(Stat<?> p_9026_, int p_9027_) {\n      this.stats.increment(this, p_9026_, p_9027_);\n      this.getScoreboard().forAllObjectives(p_9026_, this.getScoreboardName(), (p_8996_) -> {\n         p_8996_.add(p_9027_);\n      });\n   }\n\n   public void resetStat(Stat<?> p_9024_) {\n      this.stats.setValue(this, p_9024_, 0);\n      this.getScoreboard().forAllObjectives(p_9024_, this.getScoreboardName(), Score::reset);\n   }\n\n   public int awardRecipes(Collection<Recipe<?>> p_9129_) {\n      return this.recipeBook.addRecipes(p_9129_, this);\n   }\n\n   public void triggerRecipeCrafted(Recipe<?> p_283176_, List<ItemStack> p_282336_) {\n      CriteriaTriggers.RECIPE_CRAFTED.trigger(this, p_283176_.getId(), p_282336_);\n   }\n\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        1344,
+        1349
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5768c88a172a95b4351ac53d9c94108faff5a1a97bd8d65a2515bb86f77b0a6c",
+      "raw_excerpt_utf8": "   }\n\n   public ServerStatsCounter getStats() {\n      return this.stats;\n   }\n\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Phantom.java",
+      "entry_sha256": "e6bc709db6be435434a21fbab82963b6268a2c54bb453b91d205cdf82f2dd7de",
+      "lines": [
+        130,
+        158
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d4151b42e904de9fbad75fc2a0a233a83ddf60ddcb6e70924920102bd68cd055",
+      "raw_excerpt_utf8": "   public void aiStep() {\n      if (this.isAlive() && this.isSunBurnTick()) {\n         this.setSecondsOnFire(8);\n      }\n\n      super.aiStep();\n   }\n\n   protected void customServerAiStep() {\n      super.customServerAiStep();\n   }\n\n   public SpawnGroupData finalizeSpawn(ServerLevelAccessor p_33126_, DifficultyInstance p_33127_, MobSpawnType p_33128_, @Nullable SpawnGroupData p_33129_, @Nullable CompoundTag p_33130_) {\n      this.anchorPoint = this.blockPosition().above(5);\n      this.setPhantomSize(0);\n      return super.finalizeSpawn(p_33126_, p_33127_, p_33128_, p_33129_, p_33130_);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_33132_) {\n      super.readAdditionalSaveData(p_33132_);\n      if (p_33132_.contains(\"AX\")) {\n         this.anchorPoint = new BlockPos(p_33132_.getInt(\"AX\"), p_33132_.getInt(\"AY\"), p_33132_.getInt(\"AZ\"));\n      }\n\n      this.setPhantomSize(p_33132_.getInt(\"Size\"));\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_33141_) {\n      super.addAdditionalSaveData(p_33141_);\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/stats/Stats.java",
+      "entry_sha256": "90813cb95d76c1a1528fd9cae7a162fb166199cf7d39cf9396eef092f0fd61f7",
+      "lines": [
+        24,
+        24
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8369f412019b53fb7c4d58171bfb3d26f0dd97e9a08528ae1d52a3465f216d17",
+      "raw_excerpt_utf8": "   public static final ResourceLocation TIME_SINCE_REST = makeCustomStat(\"time_since_rest\", StatFormatter.TIME);\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/GameRules.java",
+      "entry_sha256": "d28eb8f9ccedbe5917b831f0299ec5b2ff1c5f2df606f15e1812596a0d8b69cc",
+      "lines": [
+        65,
+        65
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "dcd984f633bfa8cc34675a284bbe8d4f21ecc325f25aa968b78f439ef8b7a9cc",
+      "raw_excerpt_utf8": "   public static final GameRules.Key<GameRules.BooleanValue> RULE_DOINSOMNIA = register(\"doInsomnia\", GameRules.Category.SPAWNING, GameRules.BooleanValue.create(true));\n",
+      "range_or_file_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        239,
+        239
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "57a2fcfd994be0112f4070fb1a854a26fe0efb58ae863cc9a5d2f7fc967362f5",
+      "raw_excerpt_utf8": "   public static final EntityType<Phantom> PHANTOM = register(\"phantom\", EntityType.Builder.of(Phantom::new, MobCategory.MONSTER).sized(0.9F, 0.5F).clientTrackingRange(8));\n",
+      "range_or_file_credit": 0
+    }
+  ],
+  "prior_actual_native_context_reused_not_new_read_credit": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/ServerLevelAccessor.java",
+      "entry_sha256": "a9ee244c0bd76d9db422cf7fb5edcf5e4073df98ec4ba14952cab6076deec2fc",
+      "lines": [
+        1,
+        12
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a9ee244c0bd76d9db422cf7fb5edcf5e4073df98ec4ba14952cab6076deec2fc",
+      "raw_excerpt_utf8": "package net.minecraft.world.level;\n\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.Entity;\n\npublic interface ServerLevelAccessor extends LevelAccessor {\n   ServerLevel getLevel();\n\n   default void addFreshEntityWithPassengers(Entity p_47206_) {\n      p_47206_.getSelfAndPassengers().forEach(this::addFreshEntity);\n   }\n}",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/MinecraftServer.java",
+      "entry_sha256": "2eda23dd693039b22af48e5a793a551530b8e5cfcfa6cb6c9f1f371e2f55d4fe",
+      "lines": [
+        323,
+        407
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "00403bcebd7ad35b7b6aaa8daffdee735f280ce53031aec6a017763ffe8b506a",
+      "raw_excerpt_utf8": "   }\n\n   protected void forceDifficulty() {\n   }\n\n   protected void createLevels(ChunkProgressListener p_129816_) {\n      ServerLevelData serverleveldata = this.worldData.overworldData();\n      boolean flag = this.worldData.isDebugWorld();\n      Registry<LevelStem> registry = this.registries.compositeAccess().registryOrThrow(Registries.LEVEL_STEM);\n      WorldOptions worldoptions = this.worldData.worldGenOptions();\n      long i = worldoptions.seed();\n      long j = BiomeManager.obfuscateSeed(i);\n      List<CustomSpawner> list = ImmutableList.of(new PhantomSpawner(), new PatrolSpawner(), new CatSpawner(), new VillageSiege(), new WanderingTraderSpawner(serverleveldata));\n      LevelStem levelstem = registry.get(LevelStem.OVERWORLD);\n      ServerLevel serverlevel = new ServerLevel(this, this.executor, this.storageSource, serverleveldata, Level.OVERWORLD, levelstem, p_129816_, flag, j, list, true, (RandomSequences)null);\n      this.levels.put(Level.OVERWORLD, serverlevel);\n      DimensionDataStorage dimensiondatastorage = serverlevel.getDataStorage();\n      this.readScoreboard(dimensiondatastorage);\n      this.commandStorage = new CommandStorage(dimensiondatastorage);\n      WorldBorder worldborder = serverlevel.getWorldBorder();\n      net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.level.LevelEvent.Load(levels.get(Level.OVERWORLD)));\n      if (!serverleveldata.isInitialized()) {\n         try {\n            setInitialSpawn(serverlevel, serverleveldata, worldoptions.generateBonusChest(), flag);\n            serverleveldata.setInitialized(true);\n            if (flag) {\n               this.setupDebugLevel(this.worldData);\n            }\n         } catch (Throwable throwable1) {\n            CrashReport crashreport = CrashReport.forThrowable(throwable1, \"Exception initializing level\");\n\n            try {\n               serverlevel.fillReportDetails(crashreport);\n            } catch (Throwable throwable) {\n            }\n\n            throw new ReportedException(crashreport);\n         }\n\n         serverleveldata.setInitialized(true);\n      }\n\n      this.getPlayerList().addWorldborderListener(serverlevel);\n      if (this.worldData.getCustomBossEvents() != null) {\n         this.getCustomBossEvents().load(this.worldData.getCustomBossEvents());\n      }\n\n      RandomSequences randomsequences = serverlevel.getRandomSequences();\n\n      for(Map.Entry<ResourceKey<LevelStem>, LevelStem> entry : registry.entrySet()) {\n         ResourceKey<LevelStem> resourcekey = entry.getKey();\n         if (resourcekey != LevelStem.OVERWORLD) {\n            ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());\n            DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);\n            ServerLevel serverlevel1 = new ServerLevel(this, this.executor, this.storageSource, derivedleveldata, resourcekey1, entry.getValue(), p_129816_, flag, j, ImmutableList.of(), false, randomsequences);\n            worldborder.addListener(new BorderChangeListener.DelegateBorderChangeListener(serverlevel1.getWorldBorder()));\n            this.levels.put(resourcekey1, serverlevel1);\n            net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.level.LevelEvent.Load(levels.get(resourcekey)));\n         }\n      }\n\n      worldborder.applySettings(serverleveldata.getWorldBorder());\n   }\n\n   private static void setInitialSpawn(ServerLevel p_177897_, ServerLevelData p_177898_, boolean p_177899_, boolean p_177900_) {\n      if (p_177900_) {\n         p_177898_.setSpawn(BlockPos.ZERO.above(80), 0.0F);\n      } else {\n         ServerChunkCache serverchunkcache = p_177897_.getChunkSource();\n         if (net.minecraftforge.event.ForgeEventFactory.onCreateWorldSpawn(p_177897_, p_177898_)) return;\n         ChunkPos chunkpos = new ChunkPos(serverchunkcache.randomState().sampler().findSpawnPosition());\n         int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);\n         if (i < p_177897_.getMinBuildHeight()) {\n            BlockPos blockpos = chunkpos.getWorldPosition();\n            i = p_177897_.getHeight(Heightmap.Types.WORLD_SURFACE, blockpos.getX() + 8, blockpos.getZ() + 8);\n         }\n\n         p_177898_.setSpawn(chunkpos.getWorldPosition().offset(8, i, 8), 0.0F);\n         int k1 = 0;\n         int j = 0;\n         int k = 0;\n         int l = -1;\n         int i1 = 5;\n\n         for(int j1 = 0; j1 < Mth.square(11); ++j1) {\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        179,
+        207
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d89da0111f068d67930c3b96061a4d19d88bc2cfcb7339ef72dd5a37006946ba",
+      "raw_excerpt_utf8": "   private final PortalForcer portalForcer;\n   private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());\n   private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded, this.getProfilerSupplier());\n   final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();\n   volatile boolean isUpdatingNavigations;\n   protected final Raids raids;\n   private final ObjectLinkedOpenHashSet<BlockEventData> blockEvents = new ObjectLinkedOpenHashSet<>();\n   private final List<BlockEventData> blockEventsToReschedule = new ArrayList<>(64);\n   private boolean handlingTick;\n   private final List<CustomSpawner> customSpawners;\n   @Nullable\n   private EndDragonFight dragonFight;\n   final Int2ObjectMap<net.minecraftforge.entity.PartEntity<?>> dragonParts = new Int2ObjectOpenHashMap<>();\n   private final StructureManager structureManager;\n   private final StructureCheck structureCheck;\n   private final boolean tickTime;\n   private final RandomSequences randomSequences;\n   private net.minecraftforge.common.util.LevelCapabilityData capabilityData;\n\n   public ServerLevel(MinecraftServer p_214999_, Executor p_215000_, LevelStorageSource.LevelStorageAccess p_215001_, ServerLevelData p_215002_, ResourceKey<Level> p_215003_, LevelStem p_215004_, ChunkProgressListener p_215005_, boolean p_215006_, long p_215007_, List<CustomSpawner> p_215008_, boolean p_215009_, @Nullable RandomSequences p_288977_) {\n      super(p_215002_, p_215003_, p_214999_.registryAccess(), p_215004_.type(), p_214999_::getProfiler, false, p_215006_, p_215007_, p_214999_.getMaxChainedNeighborUpdates());\n      this.tickTime = p_215009_;\n      this.server = p_214999_;\n      this.customSpawners = p_215008_;\n      this.serverLevelData = p_215002_;\n      ChunkGenerator chunkgenerator = p_215004_.generator();\n      boolean flag = p_214999_.forceSynchronousWrites();\n      DataFixer datafixer = p_214999_.getFixerUpper();\n      EntityPersistentStorage<Entity> entitypersistentstorage = new EntityStorage(this, p_215001_.getDimensionPath(p_215003_).resolve(\"entities\"), datafixer, flag, p_214999_);\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        379,
+        386
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "14594a5e07cdcf52fe82b486d908d5e1b6c6fea76f50b46a0631d6928e285567",
+      "raw_excerpt_utf8": "   public void tickCustomSpawners(boolean p_8800_, boolean p_8801_) {\n      for(CustomSpawner customspawner : this.customSpawners) {\n         customspawner.tick(this, p_8800_, p_8801_);\n      }\n\n   }\n\n   private boolean shouldDiscardEntity(Entity p_143343_) {\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerChunkCache.java",
+      "entry_sha256": "3658618336074dc769471db67935f8d175cbf5238c034145b6494b4b52a27f4c",
+      "lines": [
+        321,
+        379
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "427b9f182e8ea76a350535305a7601679e19cc815b892fce044fb0b6c8004543",
+      "raw_excerpt_utf8": "   private void tickChunks() {\n      long i = this.level.getGameTime();\n      long j = i - this.lastInhabitedUpdate;\n      this.lastInhabitedUpdate = i;\n      boolean flag = this.level.isDebug();\n      if (flag) {\n         this.chunkMap.tick();\n      } else {\n         LevelData leveldata = this.level.getLevelData();\n         ProfilerFiller profilerfiller = this.level.getProfiler();\n         profilerfiller.push(\"pollingChunks\");\n         int k = this.level.getGameRules().getInt(GameRules.RULE_RANDOMTICKING);\n         boolean flag1 = leveldata.getGameTime() % 400L == 0L;\n         profilerfiller.push(\"naturalSpawnCount\");\n         int l = this.distanceManager.getNaturalSpawnChunkCount();\n         NaturalSpawner.SpawnState naturalspawner$spawnstate = NaturalSpawner.createState(l, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));\n         this.lastSpawnState = naturalspawner$spawnstate;\n         profilerfiller.popPush(\"filteringLoadedChunks\");\n         List<ServerChunkCache.ChunkAndHolder> list = Lists.newArrayListWithCapacity(l);\n\n         for(ChunkHolder chunkholder : this.chunkMap.getChunks()) {\n            LevelChunk levelchunk = chunkholder.getTickingChunk();\n            if (levelchunk != null) {\n               list.add(new ServerChunkCache.ChunkAndHolder(levelchunk, chunkholder));\n            }\n         }\n\n         profilerfiller.popPush(\"spawnAndTick\");\n         boolean flag2 = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING);\n         Collections.shuffle(list);\n\n         for(ServerChunkCache.ChunkAndHolder serverchunkcache$chunkandholder : list) {\n            LevelChunk levelchunk1 = serverchunkcache$chunkandholder.chunk;\n            ChunkPos chunkpos = levelchunk1.getPos();\n            if ((this.level.isNaturalSpawningAllowed(chunkpos) && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkpos)) || this.distanceManager.shouldForceTicks(chunkpos.toLong())) {\n               levelchunk1.incrementInhabitedTime(j);\n               if (flag2 && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkpos)) {\n                  NaturalSpawner.spawnForChunk(this.level, levelchunk1, naturalspawner$spawnstate, this.spawnFriendlies, this.spawnEnemies, flag1);\n               }\n\n               if (this.level.shouldTickBlocksAt(chunkpos.toLong())) {\n                  this.level.tickChunk(levelchunk1, k);\n               }\n            }\n         }\n\n         profilerfiller.popPush(\"customSpawners\");\n         if (flag2) {\n            this.level.tickCustomSpawners(this.spawnEnemies, this.spawnFriendlies);\n         }\n\n         profilerfiller.popPush(\"broadcast\");\n         list.forEach((p_184022_) -> {\n            p_184022_.holder.broadcastChanges(p_184022_.chunk);\n         });\n         profilerfiller.pop();\n         profilerfiller.pop();\n         this.chunkMap.tick();\n      }\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/NaturalSpawner.java",
+      "entry_sha256": "11159c13b29819509dc42859ac3d481358045dba655ad38507aca795400714e5",
+      "lines": [
+        280,
+        334
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d1fec7e05dc85f83127e2dc79e877ad3bfbc68941f15dcb61ad95444723634e0",
+      "raw_excerpt_utf8": "      int l = Mth.randomBetweenInclusive(p_47063_.random, p_47063_.getMinBuildHeight(), k);\n      return new BlockPos(i, l, j);\n   }\n\n   public static boolean isValidEmptySpawnBlock(BlockGetter p_47057_, BlockPos p_47058_, BlockState p_47059_, FluidState p_47060_, EntityType<?> p_47061_) {\n      if (p_47059_.isCollisionShapeFullBlock(p_47057_, p_47058_)) {\n         return false;\n      } else if (p_47059_.isSignalSource()) {\n         return false;\n      } else if (!p_47060_.isEmpty()) {\n         return false;\n      } else if (p_47059_.is(BlockTags.PREVENT_MOB_SPAWNING_INSIDE)) {\n         return false;\n      } else {\n         return !p_47061_.isBlockDangerous(p_47059_);\n      }\n   }\n\n   public static boolean isSpawnPositionOk(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {\n      if (p_47052_ == SpawnPlacements.Type.NO_RESTRICTIONS) {\n         return true;\n      } else if (p_47055_ != null && p_47053_.getWorldBorder().isWithinBounds(p_47054_)) {\n         return p_47052_.canSpawnAt(p_47053_, p_47054_, p_47055_);\n      }\n      return false;\n   }\n\n   public static boolean canSpawnAtBody(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {\n      {\n         BlockState blockstate = p_47053_.getBlockState(p_47054_);\n         FluidState fluidstate = p_47053_.getFluidState(p_47054_);\n         BlockPos blockpos = p_47054_.above();\n         BlockPos blockpos1 = p_47054_.below();\n         switch (p_47052_) {\n            case IN_WATER:\n               return fluidstate.is(FluidTags.WATER) && !p_47053_.getBlockState(blockpos).isRedstoneConductor(p_47053_, blockpos);\n            case IN_LAVA:\n               return fluidstate.is(FluidTags.LAVA);\n            case ON_GROUND:\n            default:\n               BlockState blockstate1 = p_47053_.getBlockState(blockpos1);\n            if (!blockstate1.isValidSpawn(p_47053_, blockpos1, p_47052_, p_47055_)) {\n                  return false;\n               } else {\n                  return isValidEmptySpawnBlock(p_47053_, p_47054_, blockstate, fluidstate, p_47055_) && isValidEmptySpawnBlock(p_47053_, blockpos, p_47053_.getBlockState(blockpos), p_47053_.getFluidState(blockpos), p_47055_);\n               }\n         }\n      }\n   }\n\n   public static void spawnMobsForChunkGeneration(ServerLevelAccessor p_220451_, Holder<Biome> p_220452_, ChunkPos p_220453_, RandomSource p_220454_) {\n      MobSpawnSettings mobspawnsettings = p_220452_.value().getMobSettings();\n      WeightedRandomList<MobSpawnSettings.SpawnerData> weightedrandomlist = mobspawnsettings.getMobs(MobCategory.CREATURE);\n      if (!weightedrandomlist.isEmpty()) {\n         int i = p_220453_.getMinBlockX();\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        523,
+        526
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "21b24072e2e118578751b095a745bc8f916c369af8c39220531adbf8b267a8e3",
+      "raw_excerpt_utf8": "   @Nullable\n   public T create(Level p_20616_) {\n      return (T)(!this.isEnabled(p_20616_.enabledFeatures()) ? null : this.factory.create(this, p_20616_));\n   }\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        1061,
+        1080
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "221b940f1edaa037f501e78db1b04b3fa93f78b670fd74b3265527e9398e04da",
+      "raw_excerpt_utf8": "   @Deprecated\n   @org.jetbrains.annotations.ApiStatus.OverrideOnly\n   @Nullable\n   public SpawnGroupData finalizeSpawn(ServerLevelAccessor p_21434_, DifficultyInstance p_21435_, MobSpawnType p_21436_, @Nullable SpawnGroupData p_21437_, @Nullable CompoundTag p_21438_) {\n      RandomSource randomsource = p_21434_.getRandom();\n      this.getAttribute(Attributes.FOLLOW_RANGE).addPermanentModifier(new AttributeModifier(\"Random spawn bonus\", randomsource.triangle(0.0D, 0.11485000000000001D), AttributeModifier.Operation.MULTIPLY_BASE));\n      if (randomsource.nextFloat() < 0.05F) {\n         this.setLeftHanded(true);\n      } else {\n         this.setLeftHanded(false);\n      }\n\n      this.spawnType = p_21436_;\n      return p_21437_;\n   }\n\n   public void setPersistenceRequired() {\n      this.persistenceRequired = true;\n   }\n\n",
+      "reading_basis": "actual saved Cat checkpoint plus actual bounded continuation; contiguous ranges merged only after all covered text was read; support0, not globally fresh reference counts",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+        "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        1201,
+        1204
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "80d355c1d429ba79a5c4707e231a3e0d14f50cb75389d9da2f34852b935ead43",
+      "raw_excerpt_utf8": "   public List<ServerPlayer> players() {\n      return this.players;\n   }\n\n",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-village-siege-attempt-wave-proposal-20261104.json",
+        "sha256": "a38d2e0d8e3c9a899781ff191b051eefbf2937cb0083051453b9ccf36a1055cb"
+      },
+      "reuse_credit": 0,
+      "new_prior_whole_chain_read_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        855,
+        867
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+      "raw_excerpt_utf8": "   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n",
+      "reading_basis": "actual_current_chain_source_read; some prior native support was actually reread, not fresh global novelty",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-allay-music-duplication-proposal-20261104.json",
+        "sha256": "c35628c04c30ff4e33eb2de8f6f37250249516328dc5b1ab1baf3cf9c20e6574"
+      },
+      "reuse_credit": 0,
+      "new_complete_prior_chain_read_claimed": false,
+      "continued_reuse_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "entry_sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "lines": [
+        61,
+        106
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "668d70ebb01431ef18c8ffa890db136fa2027c4d16bf062f1546f56c73904068",
+      "raw_excerpt_utf8": "   private boolean addEntityUuid(T p_157558_) {\n      if (!this.knownUuids.add(p_157558_.getUUID())) {\n         LOGGER.warn(\"UUID of added entity already exists: {}\", (Object)p_157558_);\n         return false;\n      } else {\n         return true;\n      }\n   }\n\n   public boolean addNewEntity(T p_157534_) {\n      return this.addEntity(p_157534_, false);\n   }\n\n   public boolean addNewEntityWithoutEvent(T entity) {\n      return this.addEntityWithoutEvent(entity, false);\n   }\n\n   private boolean addEntity(T p_157539_, boolean p_157540_) {\n      if (p_157539_ instanceof Entity entity && net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityJoinLevelEvent(entity, entity.level(), p_157540_))) return false;\n      return addEntityWithoutEvent(p_157539_, p_157540_);\n   }\n\n   private boolean addEntityWithoutEvent(T p_157539_, boolean p_157540_) {\n      if (!this.addEntityUuid(p_157539_)) {\n         return false;\n      } else {\n         long i = SectionPos.asLong(p_157539_.blockPosition());\n         EntitySection<T> entitysection = this.sectionStorage.getOrCreateSection(i);\n         entitysection.add(p_157539_);\n         p_157539_.setLevelCallback(new PersistentEntitySectionManager.Callback(p_157539_, i, entitysection));\n         if (!p_157540_) {\n            this.callbacks.onCreated(p_157539_);\n         }\n\n         Visibility visibility = getEffectiveStatus(p_157539_, entitysection.getStatus());\n         if (visibility.isAccessible()) {\n            this.startTracking(p_157539_);\n         }\n\n         if (visibility.isTicking()) {\n            this.startTicking(p_157539_);\n         }\n\n         return true;\n      }\n   }\n",
+      "reading_basis": "actual_current_chain_source_read; some prior native support was actually reread, not fresh global novelty",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-allay-music-duplication-proposal-20261104.json",
+        "sha256": "c35628c04c30ff4e33eb2de8f6f37250249516328dc5b1ab1baf3cf9c20e6574"
+      },
+      "reuse_credit": 0,
+      "new_complete_prior_chain_read_claimed": false,
+      "continued_reuse_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "entry_sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "lines": [
+        134,
+        142
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d02adce02f7ff38affe094588d90d6ba246490a062679e9dac8e2ddb4b696465",
+      "raw_excerpt_utf8": "   void startTracking(T p_157576_) {\n      this.visibleEntityStorage.add(p_157576_);\n      this.callbacks.onTrackingStart(p_157576_);\n   }\n\n   void stopTracking(T p_157581_) {\n      this.callbacks.onTrackingEnd(p_157581_);\n      this.visibleEntityStorage.remove(p_157581_);\n   }\n",
+      "reading_basis": "actual_current_chain_source_read; some prior native support was actually reread, not fresh global novelty",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-allay-music-duplication-proposal-20261104.json",
+        "sha256": "c35628c04c30ff4e33eb2de8f6f37250249516328dc5b1ab1baf3cf9c20e6574"
+      },
+      "reuse_credit": 0,
+      "new_complete_prior_chain_read_claimed": false,
+      "continued_reuse_credit": 0
+    }
+  ],
+  "actual_reading": {
+    "current_policy_ranges": 17,
+    "native_entry_files": 11,
+    "whole_entry_files": 4,
+    "cited_current_range_lines": 462,
+    "prior_exact_context_ranges_reused": 12,
+    "range_file_stat_helper_values_not_reference_credits": true,
+    "scope": "Actual bounded source text, whole83 spawner/event68/difficulty62/statCounter31. ServerStatsCounter/Player/ServerPlayer/Phantom classes partial, not whole file or full lifecycle."
+  },
+  "observed_chain": [
+    "One whole source family: global enabled object timer/night gate, per-player insomnia stat and exposure/local-difficulty gates with Forge result override, one aerial candidate and mutable requested group count, then unchecked native additions. Per-player/species/clock/helper/event/Phantom size or each stat field are supporting0, not separate policies.",
+    "Reused actual native startup installs PhantomSpawner in overworld custom-spawner list; ServerChunkCache calls custom dispatch only under doMobSpawning and non-debug path, without SpawnState/category budget or400-tick creature flag, and ServerLevel ignores custom count return. No full world/cap composition or current actual natural-spawn success claim.",
+    "Own tick rejects hostilefalse or doInsomniafalse before decrement, ignoring friendly argument. Enabled evaluation predecrements nextTick; positive returns, otherwise ADDS (60+nextInt60)*20 to current value before global sky check. Fresh int0 reaches-1 and first stored delay becomes1199..2379, not assignment1200..2380; subsequent ordinary zero crossings add1200..2380. Disabled calls freeze counter and skipped bright-sky opportunities still consume delay. These are delivered-source-call counts, not wall duration or guaranteed nighttime retry.",
+    "Global check rejects skyDarken<5 only if dimension hasSkyLight. Only after that does it iterate current world players, skip spectators and construct PlayerSpawnPhantomsEvent. No own alive/creative filter, no player sleeping/counter reset here. GameRules source declares doInsomnia defaulttrue but loaded current rule is not verified.",
+    "For every reached nonspectator it computes DifficultyInstance at player position and constructs requested count1+nextInt(baseDifficultyId+1) BEFORE posting event. DENY continues. ALLOW bypasses per-player hasSkyLight/sea-level/canSeeSky condition and rest-counter random threshold; it does not bypass hostile/doInsomnia/timer/global sky gate, spectator filter, local difficulty test, candidate empty-block guard or nullable factory/admission. Event docs say always spawned for ALLOW, but literal caller retains these gates; docs alone are not native birth proof.",
+    "Event has Result, own int setter/getter with no clamping, and no Cancelable annotation here; full event bus/base external composition not audited. getPhantomsToSpawn can be0/negative (zero loop) or arbitrary positive after handlers, not fixed vanilla group bound. Requested count is not entity result, successful authorization, population reservation or persisted encounter receipt.",
+    "Local difficulty gate remains effectiveDifficulty>random.nextFloat()*3 even for ALLOW. Complete DifficultyInstance calculates PEACEFUL0, time/inhabited/moon-influenced effective values otherwise; no static HARD-only condition. getCurrentDifficultyAt inputs/current values and RNG implementation are not complete runtime evidence. Do not infer ALLOW ensures any local chance.",
+    "Actual input reads player.getStats().getValue(CUSTOM TIME_SINCE_REST), clamps1..Integer.MAX_VALUE, then DEFAULT requires nextInt(j)>=72000. Thus j<=72000 cannot pass that source random comparison; j72001 is first eligible positive-domain value, not a guaranteed three-day spawn. ALLOW skips this comparison but stat read still executes before it. Unused local k24000 is not an extra day counter or separate gate.",
+    "Bounded Player.tick on server awards TIME_SINCE_REST when !isSleeping, outside own isAlive condition used for TIME_SINCE_DEATH. Actual ResourceLocation→CUSTOM→award1 dispatch reaches ServerPlayer.stats.increment; StatsCounter uses long addition then max-int saturation and map default0, getValue direct map. ServerPlayer resetStat writes0; shown startSleeping does so BEFORE super.startSleeping, and reached Player/ServerPlayer death branches also reset. These methods do not prove a successful completed night, live death, exact elapsed offline/rest period, command behavior or full tick dispatch.",
+    "ServerPlayer constructor obtains stats via server PlayerList and getStats returns that field. Bounded ServerStatsCounter constructor calls parser if file exists, save requests file write with caught IOException, setValue delegates then marks dirty. parseLocal/toJson/PlayerList identity, actual saved file, complete lifecycle/Clone/commands are not read or executed; this proposal certifies current counter consumer, not reliable durable entitlement or migration roundtrip.",
+    "Each passing player chooses exactly one candidate at above20..34 and X/Z offsets-10..10, no surface height, retry or per-actor reselection. Native isValidEmptySpawnBlock checks that block for collision-full/signal-source/fluid/PREVENT_MOB_SPAWNING_INSIDE/type danger; no full entity AABB, above block, path/worldborder or full spawn-rule/light/cap check in own branch. No safe position or actual loaded region guarantee.",
+    "After candidate gate it starts groupData=null and loops event count; each nonnull PHANTOM.create moves to SAME BlockPos then finalizes NATURAL with player-position difficulty, chaining returned groupData. Phantom.finalizeSpawn sets anchor currentblock+5 and size0 before super; this is source spawn setup, existing size/anchor NBT whole owner is retained separately at0. No new model/texture/cosmetic or birth reference.",
+    "Void addFreshEntityWithPassengers return is ignored and result i increments for every nonnull factory after normal helper return, independent of actual admission. Null factory skips count but consumes loop iteration; event count/returned i/NATURAL/finalize are not accepted births. Reused actual ServerLevel/manager support includes removed/entity-join cancellation/UUID rejection. No own duplicate player receipt, world reservation or replay/persist latch; positive group can overlap exact position.",
+    "Full83-line spawner owns only transient nextTick and no save/read method; no source debit or reset of insomnia after spawn. Later eligibility remains conditional and counters can keep accruing through actual non-sleeping tick delivery; this is not guaranteed repeated farm, stable global pressure or sustainable economy. World reconstruction/schedule/cross-mod handlers/stat loading and inherited entity persistence remain bounded.",
+    "Whole comparison: EA1 weather independent encounter uses weather/chance/rate/terrain attempts, not authoritative per-player rest state with event override and retained local gates; EA7 shared predicate/table injection differs from this dedicated player-conditioned custom encounter. Pending VillageSiege first-eligible village finite wave consumes its remaining budget; Phantom checks all reached players independently with no finite active-wave latch. Pending Cat is occupiedHOME/local density population replenishment. Shared RNG/timers/caps/event failure/body helpers alone add0."
+  ],
+  "mandatory_constraints": [
+    "One whole source family: global enabled object timer/night gate, per-player insomnia stat and exposure/local-difficulty gates with Forge result override, one aerial candidate and mutable requested group count, then unchecked native additions. Per-player/species/clock/helper/event/Phantom size or each stat field are supporting0, not separate policies.",
+    "Reused actual native startup installs PhantomSpawner in overworld custom-spawner list; ServerChunkCache calls custom dispatch only under doMobSpawning and non-debug path, without SpawnState/category budget or400-tick creature flag, and ServerLevel ignores custom count return. No full world/cap composition or current actual natural-spawn success claim.",
+    "Own tick rejects hostilefalse or doInsomniafalse before decrement, ignoring friendly argument. Enabled evaluation predecrements nextTick; positive returns, otherwise ADDS (60+nextInt60)*20 to current value before global sky check. Fresh int0 reaches-1 and first stored delay becomes1199..2379, not assignment1200..2380; subsequent ordinary zero crossings add1200..2380. Disabled calls freeze counter and skipped bright-sky opportunities still consume delay. These are delivered-source-call counts, not wall duration or guaranteed nighttime retry.",
+    "Global check rejects skyDarken<5 only if dimension hasSkyLight. Only after that does it iterate current world players, skip spectators and construct PlayerSpawnPhantomsEvent. No own alive/creative filter, no player sleeping/counter reset here. GameRules source declares doInsomnia defaulttrue but loaded current rule is not verified.",
+    "For every reached nonspectator it computes DifficultyInstance at player position and constructs requested count1+nextInt(baseDifficultyId+1) BEFORE posting event. DENY continues. ALLOW bypasses per-player hasSkyLight/sea-level/canSeeSky condition and rest-counter random threshold; it does not bypass hostile/doInsomnia/timer/global sky gate, spectator filter, local difficulty test, candidate empty-block guard or nullable factory/admission. Event docs say always spawned for ALLOW, but literal caller retains these gates; docs alone are not native birth proof.",
+    "Event has Result, own int setter/getter with no clamping, and no Cancelable annotation here; full event bus/base external composition not audited. getPhantomsToSpawn can be0/negative (zero loop) or arbitrary positive after handlers, not fixed vanilla group bound. Requested count is not entity result, successful authorization, population reservation or persisted encounter receipt.",
+    "Local difficulty gate remains effectiveDifficulty>random.nextFloat()*3 even for ALLOW. Complete DifficultyInstance calculates PEACEFUL0, time/inhabited/moon-influenced effective values otherwise; no static HARD-only condition. getCurrentDifficultyAt inputs/current values and RNG implementation are not complete runtime evidence. Do not infer ALLOW ensures any local chance.",
+    "Actual input reads player.getStats().getValue(CUSTOM TIME_SINCE_REST), clamps1..Integer.MAX_VALUE, then DEFAULT requires nextInt(j)>=72000. Thus j<=72000 cannot pass that source random comparison; j72001 is first eligible positive-domain value, not a guaranteed three-day spawn. ALLOW skips this comparison but stat read still executes before it. Unused local k24000 is not an extra day counter or separate gate.",
+    "Bounded Player.tick on server awards TIME_SINCE_REST when !isSleeping, outside own isAlive condition used for TIME_SINCE_DEATH. Actual ResourceLocation→CUSTOM→award1 dispatch reaches ServerPlayer.stats.increment; StatsCounter uses long addition then max-int saturation and map default0, getValue direct map. ServerPlayer resetStat writes0; shown startSleeping does so BEFORE super.startSleeping, and reached Player/ServerPlayer death branches also reset. These methods do not prove a successful completed night, live death, exact elapsed offline/rest period, command behavior or full tick dispatch.",
+    "ServerPlayer constructor obtains stats via server PlayerList and getStats returns that field. Bounded ServerStatsCounter constructor calls parser if file exists, save requests file write with caught IOException, setValue delegates then marks dirty. parseLocal/toJson/PlayerList identity, actual saved file, complete lifecycle/Clone/commands are not read or executed; this proposal certifies current counter consumer, not reliable durable entitlement or migration roundtrip.",
+    "Each passing player chooses exactly one candidate at above20..34 and X/Z offsets-10..10, no surface height, retry or per-actor reselection. Native isValidEmptySpawnBlock checks that block for collision-full/signal-source/fluid/PREVENT_MOB_SPAWNING_INSIDE/type danger; no full entity AABB, above block, path/worldborder or full spawn-rule/light/cap check in own branch. No safe position or actual loaded region guarantee.",
+    "After candidate gate it starts groupData=null and loops event count; each nonnull PHANTOM.create moves to SAME BlockPos then finalizes NATURAL with player-position difficulty, chaining returned groupData. Phantom.finalizeSpawn sets anchor currentblock+5 and size0 before super; this is source spawn setup, existing size/anchor NBT whole owner is retained separately at0. No new model/texture/cosmetic or birth reference.",
+    "Void addFreshEntityWithPassengers return is ignored and result i increments for every nonnull factory after normal helper return, independent of actual admission. Null factory skips count but consumes loop iteration; event count/returned i/NATURAL/finalize are not accepted births. Reused actual ServerLevel/manager support includes removed/entity-join cancellation/UUID rejection. No own duplicate player receipt, world reservation or replay/persist latch; positive group can overlap exact position.",
+    "Full83-line spawner owns only transient nextTick and no save/read method; no source debit or reset of insomnia after spawn. Later eligibility remains conditional and counters can keep accruing through actual non-sleeping tick delivery; this is not guaranteed repeated farm, stable global pressure or sustainable economy. World reconstruction/schedule/cross-mod handlers/stat loading and inherited entity persistence remain bounded.",
+    "Whole comparison: EA1 weather independent encounter uses weather/chance/rate/terrain attempts, not authoritative per-player rest state with event override and retained local gates; EA7 shared predicate/table injection differs from this dedicated player-conditioned custom encounter. Pending VillageSiege first-eligible village finite wave consumes its remaining budget; Phantom checks all reached players independently with no finite active-wave latch. Pending Cat is occupiedHOME/local density population replenishment. Shared RNG/timers/caps/event failure/body helpers alone add0."
+  ],
+  "prior_whole_decisions": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "ids": [
+        "EA-0001",
+        "EA-0002",
+        "EA-0003"
+      ],
+      "actual_decision_fields_read": [
+        "observation",
+        "limits",
+        "deduplication"
+      ],
+      "prior_own_whole_source_review_reused": false,
+      "complete_old_source_chains_reread_claimed": false,
+      "difference": "Weather-gated beached encounter is not habitat occupied-ticket/local-density replenishment; unique seed-selected habitat and structure table replacement differ from directly constructing one Cat. Shared timers, player selection, structure indexing and ignored adds are supporting0.",
+      "support_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "ids": [
+        "EA-0007"
+      ],
+      "actual_decision_fields_read": [
+        "observation",
+        "limits",
+        "deduplication"
+      ],
+      "prior_own_whole_source_review_reused": false,
+      "complete_old_source_chains_reread_claimed": false,
+      "difference": "Shared configurable spawn predicate/table injection differs from dedicated custom tick scheduler using occupied homes/local Cats; ON_GROUND helper reused0.",
+      "support_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-cat-village-hut-replenishment-proposal-20261104.json",
+      "sha256": "577d3d619673d13ef50ce178962a2d79a3d6a51dcd509bc6af8fc908f38132de",
+      "difference": "Pending Cat whole policy versus per-player rest-debt aerial group; no old full chain reread or extra credit",
+      "support_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-village-siege-attempt-wave-proposal-20261104.json",
+      "sha256": "a38d2e0d8e3c9a899781ff191b051eefbf2937cb0083051453b9ccf36a1055cb",
+      "difference": "Pending exact-time village finite wave versus independent per-player rest debt opportunities; shared custom dispatch/support0",
+      "support_credit": 0
+    }
+  ],
+  "existing_global_migration_whole_owners": [
+    {
+      "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+      "candidate_id": "9281e81a29d92f86964f",
+      "canonical_complete_row_sha256": "841f219644e9f7c5c8a626066d348632d0d4e5d06f8d581a765328085ea4d7a7",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "9281e81a29d92f86964f",
+        "status": "accepted",
+        "family": "native-phantom-anchor-size-derived-damage-and-navigation-recovery",
+        "trigger": "Phantom pair/setSize/onSyncedDataUpdated/updateSizeInfo/circleGoal/selectNext",
+        "input": "AX/Y/Z and Size",
+        "output": "sizeclamp0..64, syncedchange refreshdimensions and attackdamage6+size; savedanchor steers actual orbit, zeroanchor correctedcurrentposition",
+        "preservation": "One independent movingmonster stat+territory checkpoint. Actual consumers prove savedsize is damage not presentationonly; allanchor/size one owner.",
+        "application_limit": "onlyAX presenceguard; absentothers0, reusedmissinganchorstale. Attackphase resetsCIRCLE and nextsweeptimerunsaved; no flightpath fidelity, no paidprogress claim.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "embedded_prior_evidence_newly_read": false,
+      "new_credit": 0
+    }
+  ],
+  "global_named_owner_screen": {
+    "ledger": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "ledger_sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "PhantomSpawner": [],
+    "TIME_SINCE_REST": [],
+    "screen_not_semantic_novelty_proof": true,
+    "new_credit": 0
+  },
+  "application": [
+    "Later Dynasty threat chain must distinguish current player-state input, global/local gates, event recommendation, requested group and actual admitted encounter. Preserve task/reward/registeredID/native acquisition semantics and existing global owners.",
+    "Treat source timer/rest values as input semantics, not walltime/performance/population acceptance. Do not implement below applicable1000 accepted references or bypass original native pressure to manufacture task completion."
+  ],
+  "limits": [
+    "One original-author source policy recommendation only, pending distinct Main complete semantic review. No formal ID/package/schema/cache/tool/receipt/aggregation or production/checklist change by this author.",
+    "All local bytes source evidence only, not upstream authentication, current rules/configs/stat file/resources/deployed world or runtime native birth/kill/pickup/material payment. Explicit missing full stat parse/write/Clone and scheduling/world/cap/event/AI/collision/admission composition remain.",
+    "Do not turn ALLOW docs into guaranteed spawn, timer bounds into walltime, j72000 into positive DEFAULT chance, mutable event group count into fixed totalcap, current stat into validated saved whitelist, or return count into successful admitted encounter. Applicable1000 unmet.",
+    "No Java/Gradle/game/network/download/process/display/focus/wake/sound/brightness/model/texture/building/sharedJar/userworld/Git/master/session/prompt deletion action. No active-hour claim."
+  ],
+  "baseline_observed_only": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "95623353c2fafa4bfcf11f47a31a12ef63c83cbbfebe4759fd4b30f8a0eee152",
+    "accepted": 29,
+    "1000_gate_met": false,
+    "changed_by_this_author": false
+  },
+  "production_changes": 0,
+  "art_changes": 0,
+  "formal_ledger_changes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

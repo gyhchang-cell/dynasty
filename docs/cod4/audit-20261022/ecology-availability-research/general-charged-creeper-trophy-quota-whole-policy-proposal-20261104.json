@@ -1,0 +1,620 @@
+{
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Creeper.java",
+      "entry_sha256": "ce3799cb8a0fdbec10801073edcb67538fc8d64f09c8e866f7243368eee6913d",
+      "lines": [
+        1,
+        269
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "ce3799cb8a0fdbec10801073edcb67538fc8d64f09c8e866f7243368eee6913d",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.Collection;\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.AreaEffectCloud;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.PowerableMob;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.AvoidEntityGoal;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.SwellGoal;\nimport net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.animal.Cat;\nimport net.minecraft.world.entity.animal.Ocelot;\nimport net.minecraft.world.entity.animal.goat.Goat;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class Creeper extends Monster implements PowerableMob {\n   private static final EntityDataAccessor<Integer> DATA_SWELL_DIR = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.INT);\n   private static final EntityDataAccessor<Boolean> DATA_IS_POWERED = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_IS_IGNITED = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.BOOLEAN);\n   private int oldSwell;\n   private int swell;\n   private int maxSwell = 30;\n   private int explosionRadius = 3;\n   private int droppedSkulls;\n\n   public Creeper(EntityType<? extends Creeper> p_32278_, Level p_32279_) {\n      super(p_32278_, p_32279_);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(1, new FloatGoal(this));\n      this.goalSelector.addGoal(2, new SwellGoal(this));\n      this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Ocelot.class, 6.0F, 1.0D, 1.2D));\n      this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Cat.class, 6.0F, 1.0D, 1.2D));\n      this.goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8D));\n      this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));\n      this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));\n      this.targetSelector.addGoal(2, new HurtByTargetGoal(this));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D);\n   }\n\n   public int getMaxFallDistance() {\n      return this.getTarget() == null ? 3 : 3 + (int)(this.getHealth() - 1.0F);\n   }\n\n   public boolean causeFallDamage(float p_149687_, float p_149688_, DamageSource p_149689_) {\n      boolean flag = super.causeFallDamage(p_149687_, p_149688_, p_149689_);\n      this.swell += (int)(p_149687_ * 1.5F);\n      if (this.swell > this.maxSwell - 5) {\n         this.swell = this.maxSwell - 5;\n      }\n\n      return flag;\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_SWELL_DIR, -1);\n      this.entityData.define(DATA_IS_POWERED, false);\n      this.entityData.define(DATA_IS_IGNITED, false);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_32304_) {\n      super.addAdditionalSaveData(p_32304_);\n      if (this.entityData.get(DATA_IS_POWERED)) {\n         p_32304_.putBoolean(\"powered\", true);\n      }\n\n      p_32304_.putShort(\"Fuse\", (short)this.maxSwell);\n      p_32304_.putByte(\"ExplosionRadius\", (byte)this.explosionRadius);\n      p_32304_.putBoolean(\"ignited\", this.isIgnited());\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_32296_) {\n      super.readAdditionalSaveData(p_32296_);\n      this.entityData.set(DATA_IS_POWERED, p_32296_.getBoolean(\"powered\"));\n      if (p_32296_.contains(\"Fuse\", 99)) {\n         this.maxSwell = p_32296_.getShort(\"Fuse\");\n      }\n\n      if (p_32296_.contains(\"ExplosionRadius\", 99)) {\n         this.explosionRadius = p_32296_.getByte(\"ExplosionRadius\");\n      }\n\n      if (p_32296_.getBoolean(\"ignited\")) {\n         this.ignite();\n      }\n\n   }\n\n   public void tick() {\n      if (this.isAlive()) {\n         this.oldSwell = this.swell;\n         if (this.isIgnited()) {\n            this.setSwellDir(1);\n         }\n\n         int i = this.getSwellDir();\n         if (i > 0 && this.swell == 0) {\n            this.playSound(SoundEvents.CREEPER_PRIMED, 1.0F, 0.5F);\n            this.gameEvent(GameEvent.PRIME_FUSE);\n         }\n\n         this.swell += i;\n         if (this.swell < 0) {\n            this.swell = 0;\n         }\n\n         if (this.swell >= this.maxSwell) {\n            this.swell = this.maxSwell;\n            this.explodeCreeper();\n         }\n      }\n\n      super.tick();\n   }\n\n   public void setTarget(@Nullable LivingEntity p_149691_) {\n      if (!(p_149691_ instanceof Goat)) {\n         super.setTarget(p_149691_);\n      }\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_32309_) {\n      return SoundEvents.CREEPER_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.CREEPER_DEATH;\n   }\n\n   protected void dropCustomDeathLoot(DamageSource p_32292_, int p_32293_, boolean p_32294_) {\n      super.dropCustomDeathLoot(p_32292_, p_32293_, p_32294_);\n      Entity entity = p_32292_.getEntity();\n      if (entity != this && entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(Items.CREEPER_HEAD);\n         }\n      }\n\n   }\n\n   public boolean doHurtTarget(Entity p_32281_) {\n      return true;\n   }\n\n   public boolean isPowered() {\n      return this.entityData.get(DATA_IS_POWERED);\n   }\n\n   public float getSwelling(float p_32321_) {\n      return Mth.lerp(p_32321_, (float)this.oldSwell, (float)this.swell) / (float)(this.maxSwell - 2);\n   }\n\n   public int getSwellDir() {\n      return this.entityData.get(DATA_SWELL_DIR);\n   }\n\n   public void setSwellDir(int p_32284_) {\n      this.entityData.set(DATA_SWELL_DIR, p_32284_);\n   }\n\n   public void thunderHit(ServerLevel p_32286_, LightningBolt p_32287_) {\n      super.thunderHit(p_32286_, p_32287_);\n      this.entityData.set(DATA_IS_POWERED, true);\n   }\n\n   protected InteractionResult mobInteract(Player p_32301_, InteractionHand p_32302_) {\n      ItemStack itemstack = p_32301_.getItemInHand(p_32302_);\n      if (itemstack.is(ItemTags.CREEPER_IGNITERS)) {\n         SoundEvent soundevent = itemstack.is(Items.FIRE_CHARGE) ? SoundEvents.FIRECHARGE_USE : SoundEvents.FLINTANDSTEEL_USE;\n         this.level().playSound(p_32301_, this.getX(), this.getY(), this.getZ(), soundevent, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);\n         if (!this.level().isClientSide) {\n            this.ignite();\n            if (!itemstack.isDamageableItem()) {\n               itemstack.shrink(1);\n            } else {\n               itemstack.hurtAndBreak(1, p_32301_, (p_32290_) -> {\n                  p_32290_.broadcastBreakEvent(p_32302_);\n               });\n            }\n         }\n\n         return InteractionResult.sidedSuccess(this.level().isClientSide);\n      } else {\n         return super.mobInteract(p_32301_, p_32302_);\n      }\n   }\n\n   private void explodeCreeper() {\n      if (!this.level().isClientSide) {\n         float f = this.isPowered() ? 2.0F : 1.0F;\n         this.dead = true;\n         this.level().explode(this, this.getX(), this.getY(), this.getZ(), (float)this.explosionRadius * f, Level.ExplosionInteraction.MOB);\n         this.discard();\n         this.spawnLingeringCloud();\n      }\n\n   }\n\n   private void spawnLingeringCloud() {\n      Collection<MobEffectInstance> collection = this.getActiveEffects();\n      if (!collection.isEmpty()) {\n         AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());\n         areaeffectcloud.setRadius(2.5F);\n         areaeffectcloud.setRadiusOnUse(-0.5F);\n         areaeffectcloud.setWaitTime(10);\n         areaeffectcloud.setDuration(areaeffectcloud.getDuration() / 2);\n         areaeffectcloud.setRadiusPerTick(-areaeffectcloud.getRadius() / (float)areaeffectcloud.getDuration());\n\n         for(MobEffectInstance mobeffectinstance : collection) {\n            areaeffectcloud.addEffect(new MobEffectInstance(mobeffectinstance));\n         }\n\n         this.level().addFreshEntity(areaeffectcloud);\n      }\n\n   }\n\n   public boolean isIgnited() {\n      return this.entityData.get(DATA_IS_IGNITED);\n   }\n\n   public void ignite() {\n      this.entityData.set(DATA_IS_IGNITED, true);\n   }\n\n   public boolean canDropMobsSkull() {\n      return this.isPowered() && this.droppedSkulls < 1;\n   }\n\n   public void increaseDroppedSkulls() {\n      ++this.droppedSkulls;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Zombie.java",
+      "entry_sha256": "89cb879e634cce1ffb7d23ed14d22a188280ac599b03edeb12cfe85f24418e5e",
+      "lines": [
+        501,
+        518
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0f55075a949624ff4775ea732d90a17938b71427c165bf72dfbc2470035c5dee",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_34291_, int p_34292_, boolean p_34293_) {\n      super.dropCustomDeathLoot(p_34291_, p_34292_, p_34293_);\n      Entity entity = p_34291_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            ItemStack itemstack = this.getSkull();\n            if (!itemstack.isEmpty()) {\n               creeper.increaseDroppedSkulls();\n               this.spawnAtLocation(itemstack);\n            }\n         }\n      }\n\n   }\n\n   protected ItemStack getSkull() {\n      return new ItemStack(Items.ZOMBIE_HEAD);\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Skeleton.java",
+      "entry_sha256": "7d7332f3fc7e247ecef6fe604f64f8a19c1f9aabe27089cd2df1afd65b8a8c1d",
+      "lines": [
+        113,
+        123
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c61cd937f6ddc7b337ada426257c5a2b502600533d16152324c3aee2e0353dd6",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_33574_, int p_33575_, boolean p_33576_) {\n      super.dropCustomDeathLoot(p_33574_, p_33575_, p_33576_);\n      Entity entity = p_33574_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(Items.SKELETON_SKULL);\n         }\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/WitherSkeleton.java",
+      "entry_sha256": "1a248237a091012280b2ba8d85fe47316e66e9a5fdd33e1819b81b8186294f09",
+      "lines": [
+        57,
+        67
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3ff77c206073f8ba7570e3f855ad734c8a35ed5ce6efa6348bcb25750a690730",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_34174_, int p_34175_, boolean p_34176_) {\n      super.dropCustomDeathLoot(p_34174_, p_34175_, p_34176_);\n      Entity entity = p_34174_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(Items.WITHER_SKELETON_SKULL);\n         }\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        1303,
+        1336
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b6075fcfc280780ca555c32643962fccc7754caa8f034c00f59c5e0710c73ac2",
+      "raw_excerpt_utf8": "   public void die(DamageSource p_21014_) {\n      if (net.minecraftforge.common.ForgeHooks.onLivingDeath(this, p_21014_)) return;\n      if (!this.isRemoved() && !this.dead) {\n         Entity entity = p_21014_.getEntity();\n         LivingEntity livingentity = this.getKillCredit();\n         if (this.deathScore >= 0 && livingentity != null) {\n            livingentity.awardKillScore(this, this.deathScore, p_21014_);\n         }\n\n         if (this.isSleeping()) {\n            this.stopSleeping();\n         }\n\n         if (!this.level().isClientSide && this.hasCustomName()) {\n            LOGGER.info(\"Named entity {} died: {}\", this, this.getCombatTracker().getDeathMessage().getString());\n         }\n\n         this.dead = true;\n         this.getCombatTracker().recheckStatus();\n         Level level = this.level();\n         if (level instanceof ServerLevel) {\n            ServerLevel serverlevel = (ServerLevel)level;\n            if (entity == null || entity.killedEntity(serverlevel, this)) {\n               this.gameEvent(GameEvent.ENTITY_DIE);\n               this.dropAllDeathLoot(p_21014_);\n               this.createWitherRose(livingentity);\n            }\n\n            this.level().broadcastEntityEvent(this, (byte)3);\n         }\n\n         this.setPose(Pose.DYING);\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        1360,
+        1378
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6d41871a1da2e9e12291d8819c5e27db0031a2b8207d30f31c1275b7f2ea893e",
+      "raw_excerpt_utf8": "   protected void dropAllDeathLoot(DamageSource p_21192_) {\n      Entity entity = p_21192_.getEntity();\n\n      int i = net.minecraftforge.common.ForgeHooks.getLootingLevel(this, entity, p_21192_);\n      this.captureDrops(new java.util.ArrayList<>());\n\n      boolean flag = this.lastHurtByPlayerTime > 0;\n      if (this.shouldDropLoot() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {\n         this.dropFromLootTable(p_21192_, flag);\n         this.dropCustomDeathLoot(p_21192_, i, flag);\n      }\n\n      this.dropEquipment();\n      this.dropExperience();\n\n      Collection<ItemEntity> drops = captureDrops(null);\n      if (!net.minecraftforge.common.ForgeHooks.onLivingDrops(this, p_21192_, drops, i, lastHurtByPlayerTime > 0))\n         drops.forEach(e -> level().addFreshEntity(e));\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        559,
+        561
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ed984833ce8b69f92820cc0e626961bc28290e3198e1dbec584eb4038270cd34",
+      "raw_excerpt_utf8": "   protected boolean shouldDropLoot() {\n      return !this.isBaby();\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        1804,
+        1833
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "1307d7e52b8ef3bea0897400a1034ede4b6112a193dc698224ec03d2e52949c0",
+      "raw_excerpt_utf8": "   @Nullable\n   public ItemEntity spawnAtLocation(ItemLike p_19999_) {\n      return this.spawnAtLocation(p_19999_, 0);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemLike p_20001_, int p_20002_) {\n      return this.spawnAtLocation(new ItemStack(p_20001_), (float)p_20002_);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemStack p_19984_) {\n      return this.spawnAtLocation(p_19984_, 0.0F);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemStack p_19985_, float p_19986_) {\n      if (p_19985_.isEmpty()) {\n         return null;\n      } else if (this.level().isClientSide) {\n         return null;\n      } else {\n         ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY() + (double)p_19986_, this.getZ(), p_19985_);\n         itementity.setDefaultPickUpDelay();\n         if (captureDrops() != null) captureDrops().add(itementity);\n         else\n         this.level().addFreshEntity(itementity);\n         return itementity;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        2328,
+        2330
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9d44694865ddb80168b819cb3ac2ef7f9b75846b52036918a2e3a655321168ce",
+      "raw_excerpt_utf8": "   public boolean killedEntity(ServerLevel p_216988_, LivingEntity p_216989_) {\n      return true;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        3408,
+        3417
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c491f449e9a61c83ace766e14c8f5f0f46b393a88f0361bc370aa3f8a846a080",
+      "raw_excerpt_utf8": "   @Override\n   public java.util.Collection<ItemEntity> captureDrops() {\n      return captureDrops;\n   }\n   @Override\n   public java.util.Collection<ItemEntity> captureDrops(java.util.Collection<ItemEntity> value) {\n      java.util.Collection<ItemEntity> ret = captureDrops;\n      this.captureDrops = value;\n      return ret;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/common/ForgeHooks.java",
+      "entry_sha256": "e21acd3d13778b54be47ed9b4f8407bfbad3957206281c085219c166e405102c",
+      "lines": [
+        304,
+        312
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9f401d1ef9d6b84c2f140cb9277a581da6f3ac066dd806e33f751de58634af21",
+      "raw_excerpt_utf8": "    public static boolean onLivingDeath(LivingEntity entity, DamageSource src)\n    {\n        return MinecraftForge.EVENT_BUS.post(new LivingDeathEvent(entity, src));\n    }\n\n    public static boolean onLivingDrops(LivingEntity entity, DamageSource source, Collection<ItemEntity> drops, int lootingLevel, boolean recentlyHit)\n    {\n        return MinecraftForge.EVENT_BUS.post(new LivingDropsEvent(entity, source, drops, lootingLevel, recentlyHit));\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/damagesource/DamageSource.java",
+      "entry_sha256": "8b19b3cb51c9139b48464bb0c6700ea27a652a677afde0e8daf812f08b3e4dd1",
+      "lines": [
+        58,
+        66
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "639ba92e86fbaf192619d9d01c86762baa147cd7bb435eba2258c93d4ccb9505",
+      "raw_excerpt_utf8": "   @Nullable\n   public Entity getDirectEntity() {\n      return this.directEntity;\n   }\n\n   @Nullable\n   public Entity getEntity() {\n      return this.causingEntity;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Monster.java",
+      "entry_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+      "lines": [
+        112,
+        114
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "1e05f8056988d4703c0bc27e258ec260aedde39e34bb8bdf6149697622146634",
+      "raw_excerpt_utf8": "   protected boolean shouldDropLoot() {\n      return true;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/living/LivingDropsEvent.java",
+      "entry_sha256": "6fbcc14f8cf95ec2dbad23b2d4b1cdc04e38452e5a9321703795830ae0574c95",
+      "lines": [
+        1,
+        72
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "6fbcc14f8cf95ec2dbad23b2d4b1cdc04e38452e5a9321703795830ae0574c95",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.living;\n\nimport java.util.Collection;\n\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraftforge.common.ForgeHooks;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\n/**\n * LivingDropsEvent is fired when an Entity's death causes dropped items to appear.<br>\n * This event is fired whenever an Entity dies and drops items in\n * {@link LivingEntity#die(DamageSource)}.<br>\n * <br>\n * This event is fired via the {@link ForgeHooks#onLivingDrops(LivingEntity, DamageSource, Collection, int, boolean)} .<br>\n * <br>\n * {@link #source} contains the DamageSource that caused the drop to occur.<br>\n * {@link #drops} contains the ArrayList of EntityItems that will be dropped.<br>\n * {@link #lootingLevel} contains the amount of loot that will be dropped.<br>\n * {@link #recentlyHit} determines whether the Entity doing the drop has recently been damaged.<br>\n * <br>\n * This event is {@link Cancelable}.<br>\n * If this event is canceled, the Entity does not drop anything.<br>\n * <br>\n * This event does not have a result. {@link HasResult}<br>\n * <br>\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.\n **/\n@net.minecraftforge.eventbus.api.Cancelable\npublic class LivingDropsEvent extends LivingEvent\n{\n    private final DamageSource source;\n    private final Collection<ItemEntity> drops;\n    private final int lootingLevel;\n    private final boolean recentlyHit;\n\n    public LivingDropsEvent(LivingEntity entity, DamageSource source, Collection<ItemEntity> drops, int lootingLevel, boolean recentlyHit)\n    {\n        super(entity);\n        this.source = source;\n        this.drops = drops;\n        this.lootingLevel = lootingLevel;\n        this.recentlyHit = recentlyHit;\n    }\n\n    public DamageSource getSource()\n    {\n        return source;\n    }\n\n    public Collection<ItemEntity> getDrops()\n    {\n        return drops;\n    }\n\n    public int getLootingLevel()\n    {\n        return lootingLevel;\n    }\n\n    public boolean isRecentlyHit()\n    {\n        return recentlyHit;\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        897,
+        914
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5235df5faae4f155422767a38a34043d6a187d069c4364caa231ac51f7527217",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_21385_, int p_21386_, boolean p_21387_) {\n      super.dropCustomDeathLoot(p_21385_, p_21386_, p_21387_);\n\n      for(EquipmentSlot equipmentslot : EquipmentSlot.values()) {\n         ItemStack itemstack = this.getItemBySlot(equipmentslot);\n         float f = this.getEquipmentDropChance(equipmentslot);\n         boolean flag = f > 1.0F;\n         if (!itemstack.isEmpty() && !EnchantmentHelper.hasVanishingCurse(itemstack) && (p_21387_ || flag) && Math.max(this.random.nextFloat() - (float)p_21386_ * 0.01F, 0.0F) < f) {\n            if (!flag && itemstack.isDamageableItem()) {\n               itemstack.setDamageValue(itemstack.getMaxDamage() - this.random.nextInt(1 + this.random.nextInt(Math.max(itemstack.getMaxDamage() - 3, 1))));\n            }\n\n            this.spawnAtLocation(itemstack);\n            this.setItemSlot(equipmentslot, ItemStack.EMPTY);\n         }\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_read_range_count": 15,
+  "actual_read_entry_count": 11,
+  "actual_full_file_count": 2,
+  "actual_cited_lines": 519,
+  "prior_actual_own_support_reused_zero": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-zombie-villager-treatment-read-checkpoint-20261104.json",
+      "sha256": "8c1b3a2467a9e85f350b3ceedb69e93ecf2c9c1e1fc0c6940e5e6fb13943797b",
+      "entry": "net/minecraft/world/entity/monster/ZombieVillager.java",
+      "lines": [
+        279,
+        281
+      ],
+      "scope": "actual prior own whole317-line read: getSkull returns EMPTY; no repeated source read",
+      "credit": 0
+    }
+  ],
+  "recorded_at": "2026-11-03T21:27:52.533270+00:00",
+  "status": "ORIGINAL_AUTHOR_COMPLETE_BOUNDED_SOURCE_POLICY_PROPOSAL_PENDING_DISTINCT_MAIN_REVIEW",
+  "continuation_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-charged-creeper-trophy-quota-read-checkpoint-20261104.json",
+    "sha256": "caeb0e92176d9a3abd516598d1e618fd1a743fba277046a38512a717d219e4fa"
+  },
+  "prior_whole_decisions": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0016.json",
+      "sha256": "b54ae99f2fdaa3d94e292f820e247b8cb937f854d81d80574ca1d345ca4cacfd",
+      "actual_complete_decision_fields": {
+        "id": "EA-0016",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION_GENERAL_WITH_EXPLICIT_LIMITS",
+        "accepted_credit": 1,
+        "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+        "observed_chain": [
+          "Actual registry constructor and entry instantiate Skreecher as CREATURE despite Monster superclass. Own static placement checks nonpeaceful/darkness/SCULK and instance roll uses config with SPAWNER bypass; class/max cluster1 does not prove deployed natural biome pool/cap. These support a real called mechanism, not NATURAL spawn success.",
+          "Registered HurtByTargetGoal and player NearestTarget3D consumer can feed FollowTargetGoal. Anonymous target search uses bounding box inflated16 inX/Z and fixedY[-64,320], overriding helper cube. Follow canUse needs own live target and clingCooldown<=0; tick moves/looks and sets clapping within horizontal2.5 when cooldown==0. Target may come from retaliation, not necessarily a player. Base Goal/TargetGoal/GoalSelector scheduling/continuation and AI reachability remain unexpanded.",
+          "Qualified own tick needs clapping+ownalive+cooldown<=0. Counter starts0; modulo8 branch requests clap sound, ENTITY_ROAR, anger-nearby and particle; else-if15 gives other call. Multiples of both take8 branch. These are alarm requests, not add success, and100 is local qualifying-counter threshold rather than a guaranteed100 world-tick duration.",
+          "At clapTick>=100, configtrue and !hasAttempted immediately write attemptedtrue BEFORE downward support search, biome lookup, server guard, local existing-Warden and allowed-tag checks. False config leaves flag unspent while counter may continue; later enabling can enter without a fresh100-count period. Config default/assignment do not prove loaded value.",
+          "Search begins own block below, descends whileY>-64 and not sturdyUP, and can end at/below-64 with no supported floor. Holder biome is read at search ground position before server guard, not proof the actual child bounding box orY+1 position is safe/eligible. Hardcoded lower bound is not world min-height. No obstruction, full-body free-space or natural cap admission check shown.",
+          "Only when server, local Warden query empty and holder tag matches does create occur. No null guard. It moves to own exactX/Z and searchY+1, calls finalizeSpawn(TRIGGERED) using difficulty at original Skreecher block, sets attack target to THIS Skreecher, requests79 anger then calls unchecked addFreshEntity. The originally followed living target is not the target assigned to new Warden. Rejection/null/failed add do not refund flag.",
+          "After possible spawn it increments clapTick then server revalidates target alive/LOS/notinvisible/selfnotblind and horizontal<=20; failure calls setClapping(false), which resets counter. This order permits no source-level guarantee target was still eligible before spawn; it is not a reproduced stale-target gameplay event. Target reset and clap interruption do not reset attempted flag.",
+          "Nearby Warden AABB is X/Z±35 withY endpoints ownY+(cling?5:25) and-64. Native constructor normalizes all endpoints, so reverse-writtenY does not make it empty. Query is current local returned list, not radius35 sphere, whole-world count, alive/available encounter guarantee, durable lock or atomic reservation. Every8 qualifying iteration requests anger100 for returned Wardens with LOS. No cross-actor exclusivity/duplicate race or actual anger outcome is established.",
+          "NBT SummonedWarden serializes hasAttempted, not child UUID/add-result. Clinging/CeilDist/ClingCooldown also saved; clapTick/CLAPPING/jump progress not in own additional data. Complete class has no normal reset of attempted besides reading saved value; setClapping(false) resets counter only. Persistence/reload is conditional on actual engine save/load, not verified. Existing-Warden/biome rejection consumes opportunity; lack of sturdy support is not a post-search rejection gate; repeated ordinary clapping will not retry for an already flagged instance.",
+          "Own hurt first clears cling/clap and sets200..399 cooldown before delegating super.hurt, without checking its result. Therefore a rejected hurt may still request interruption; neither actual HP decrease nor authoritative successful damage is required by these local mutations. No universal control immunity or native sound/particle rendering guarantee is inferred.",
+          "Native Warden.finalizeSpawn sets DIG_COOLDOWN1200, TRIGGERED EMERGING pose and temporary IS_EMERGING plus sound request before parent. setAttackTarget writes Brain attack target and resets roar/reach/sonic cooldown. increaseAngerAt requires !noAI and native canTargetEntity, then changes anger and optional listening feedback. Requests occur before actual add; not successful population/attack receipts. Warden hurt separately can request anger/target after super call independent of its returnedflag; contextual0 credit.",
+          "Native ServerLevel addFreshEntity returns addEntity boolean; removed entities rejected, failed entityManager add returnsfalse, success then onAddedToWorld. Caller ignores boolean. EntityManager/Forge join, UUID and chunk/saving internals unexpanded. Warden removeWhenFarAway=false only rejects that ordinary removal policy; complete emerging/digging/Brain lifetime/peaceful/external removal and postspawn survival are not proved.",
+          "Actual fixed tag67 bytes declares replacefalse and minecraft:deep_dark. Fixed Git blob/source checks bind resource content, not installed merged tag, dimension rules, config or loaded biome deployment. All registry/native/tag/sound/threshold/attempt/serialization support belongs to at most one AI-alarm/local-suppression/attempt-latch encounter family.",
+          "There is NO explicit post-search sturdy-floor rejection gate. The loop may stop atY<=-64 without a sturdyUP face, then still performs biome/server/local-Warden tests and can proceed to create/move/finalize/add if those pass. Unsupported ground is not a demonstrated independent rejection path.",
+          "The attempt flag is consumed before search. Biome/local-existing-Warden rejection or a subsequent failed create/add cannot restore it; lack of sturdy support itself does not block the shown spawn path. Do not infer a safe-floor guarantee or a ground-failure no-spawn guard."
+        ],
+        "proposal_corrections": [
+          {
+            "kind": "bounded_addition",
+            "source": "EntitySkreecher246-247",
+            "finding": "Explicitly identify the summoned Warden initial target/anger recipient as Skreecher itself, not the followed player/living target.",
+            "blocks_recommendation": false
+          },
+          {
+            "kind": "bounded_addition",
+            "source": "EntitySkreecher236-245",
+            "finding": "Biome holder sampled at downward ground position; new entity placement uses ownX/Z,Y+1 and difficulty uses original Skreecher block. These are different positions, not a proven safe-volume/spawn-position biome check.",
+            "blocks_recommendation": false
+          },
+          {
+            "kind": "threshold_limit",
+            "source": "EntitySkreecher233-253",
+            "finding": "100 is qualifying clap-counter threshold; configfalse does not consume flag and need not restart counter when changedtrue. No exact100tick schedule claimed.",
+            "blocks_recommendation": false
+          },
+          {
+            "kind": "terminology",
+            "finding": "Proposal core role says complete native entity; source_kind correctly says fixed_mod_git. This review calls it actual mod entity code, reserving native for archive-backed Minecraft/Forge source.",
+            "blocks_recommendation": false
+          }
+        ],
+        "mandatory_floor_clarification": {
+          "proposal_target": "observation3 phrase Ground/biome/existing-Warden rejection",
+          "review_target": "observed_chain9 phrase Existing-Warden/biome/support failure consumes opportunity",
+          "source": "EntitySkreecher.java234-248, already fully read and hash-bound in review",
+          "exact_finding": "There is NO explicit post-search sturdy-floor rejection gate. The loop may stop atY<=-64 without a sturdyUP face, then still performs biome/server/local-Warden tests and can proceed to create/move/finalize/add if those pass. Unsupported ground is not a demonstrated independent rejection path.",
+          "replacement_interpretation": "The attempt flag is consumed before search. Biome/local-existing-Warden rejection or a subsequent failed create/add cannot restore it; lack of sturdy support itself does not block the shown spawn path. Do not infer a safe-floor guarantee or a ground-failure no-spawn guard."
+        },
+        "source_review_historical_limitations": [
+          "At most one whole AI-alarm/local-suppression/persisted-attempt encounter family proposed; helper, roar, native methods, registration, tag, spawnroll, counter constants and species each support0. No accepted EA identifier/ledger credit created by this file. Existing build_tenth EA16 is a draft association only.",
+          "Unlike EA1 world/weather/chance recurring encounter, this is an individual active-target alarm and durable consumed attempt before environment/local suppression. Unlike EA9 structure postProcess cohorts, no structure start/pieces. EA11 is rider-associated expiry, EA14 host effect brood, EA17 paired pregnancy/world egg. These actual old decision fields were compared, not their full source chains reread.",
+          "No loaded tags/config, engine AI/GoalSelector scheduling, target-predicate consumers, EntityType.create internals, Warden complete Brain/anger management/emerging/digging behavior, parent finalizeSpawn, entityManager/Forge entity-join event path, chunk reload or post-reload replay was executed or fully expanded.",
+          "One single fixed-commit verified-HTTPS request fetched only67byte tag with exact pinned Git blob match; no API retry/TLS bypass, acquisition/file/range count earns0. All other inputs local, actual new source read recorded; constructor binding explicitly reused at same hash.",
+          "No Java/Gradle/game/GUI/server, no native spawn/birth/kill/material/performance/cap success, no production/asset/sharedJar/world/TODO change, no hours claimed. Master remains15/1000; independent semantic review and proper formal receipt required.",
+          "This reviewer made0 network/process/display/Java/Gradle/game calls. Author acquisition claim is preserved only as a claim; local fixed-byte identity independently checked.",
+          "Compared only five stated old substantive decision records for this proposal, not all15 old sources. Prior broader reviews are not relabeled new study. EA11 historical four-air wording has previously accepted correction to single above4 cell; this review does not reuse it as a claim.",
+          "No formal accepted EA identifier or general-role receipt created. Current v3 general scope is EA17 only and is not expanded by this independent proposal receipt. build_tenth.py not executed or used as completion proof.",
+          "No production cap/category/probability/asset/world/sharedJar/checklist/ledger/aggregator edits, native birth/kill/material acceptance or active-hours claim."
+        ],
+        "semantic_comparison_binding": {
+          "receipt": "docs/cod4/audit-20261022/ecology-availability-research/independent-skreecher-alarm-latch-review-20261102.json",
+          "sha256": "78c301cd11633efbde13f25ca7020f880352c3fc153f11766c76626c75bcaa82",
+          "nearest_decision_comparisons": 5,
+          "old_source_chains_reread_claimed": false
+        },
+        "actual_formal_packaging_review": {
+          "coordinator_install_review": {
+            "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-v4-install-review-20261102.json",
+            "sha256": "6932e7befadd0fded7aa4ea290eda6d1cd1b8e937b2d9085a790472fb5ab7252"
+          },
+          "validator_sha256": "7e6f0121d8b572a4dafb296b224b0bff004c895a968802fbd3b49756a8b332fc",
+          "summarize_sha256": "36f74cf758429e4751945d1822238e5e4b89efada3922953754bea8fe20af8a6",
+          "protocol": {
+            "path": "docs/cod4/audit-20261022/ecology-availability-research/AGGREGATION-PROTOCOL-v4.md",
+            "sha256": "e57bde862cdac6ec75f2178c097f0b2182ba0fbb17f1922002b93158914efb0d"
+          },
+          "formal_record_identical_to_draft": true,
+          "only_top_level_changes": [
+            "status",
+            "coordinator_publication"
+          ],
+          "native_archive_and_entries_replayed": true,
+          "source_ranges_replay_count": 24,
+          "new_source_read_credit": 0,
+          "synthetic_snapshot": false,
+          "memory_audit_rerun": false
+        },
+        "limits": [
+          "Accept exactly one whole related source implementation family under actual v4 General authorization, reaffirming this reviewer own prior complete source/semantic judgment after actual formal-package review. This is not a synthetic positive receipt. Ledger credit applied by this writer0; coordinator alone publishes aggregation.",
+          "Original24 ranges were actually text-read in immutable complete review. Current segment rechecks formal observations/limits, exact same record, three immutable bindings,15 formal mod ranges/tree/blob/revision/excerpts and9 native ranges/four archive entries. No second source-chain reading, extra implementation or native/gameplay evidence is claimed.",
+          "There is no post-search sturdy-floor rejection. Attempt is spent before search/biome/server/local suppression; unsupported Y<=-64 can proceed when remaining tests pass. No safe-floor/full-body-space guarantee. New Warden target and anger recipient is THIS Skreecher, not the followed living target.",
+          "AABB normalizes endpoints but is not a radius35 sphere, global census, durable lock or atomic/cross-actor reservation. Existing Warden/biome rejection, null create or failed add cannot restore attempted. Saved SummonedWarden means attempted, not successful population/child UUID. Own clapping flag/counter are not additionally serialized.",
+          "AI GoalSelector/TargetGoal/native scheduling, loaded config/tag/biome deployment, child factory/parent initialization internals, complete Warden Brain/anger/emerging/digging/lifetime and entityManager/Forge join/event/chunk/save/reload/postspawn survival remain unexpanded or unverified. Conditional hurt mutation precedes super result; no actual damage/control/anger/attack outcome established.",
+          "Counter100 is a qualifying own-tick threshold, not guaranteed100 world ticks. Alarm/audio/particle/anger/init/add requests and unchecked booleans do not prove actual admission, successful encounter or birth/kill/material/cap/performance acceptance. Every registration/helper/tag/source-copy/native/archive/range is support0.",
+          "Five nearest accepted decisions were compared in substantive observation/application/dedup fields in original review; this segment binds that judgment. No reread of all old accepted source chains is claimed. Species/counter/serialization/generic create-add variations cannot split this one family further.",
+          "Formal record exactly matches isolated reviewed draft; only top-level status and actual coordinator-publication descriptor changed. Original proposal has no candidate id; none invented here. Actual coordinator author and existing General reviewer remain distinct.",
+          "No Java/Gradle/game/server/GUI/upstream execution, source fetch/network/process/display query, production/asset/sharedJar/world/checklist/main-ledger/summary mutation, commit/push/schedule or active-hours claim. This writer creates only this authorized receipt."
+        ]
+      },
+      "complete_old_source_chains_reread_claimed": false,
+      "support_credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0026.json",
+      "sha256": "94f1a10ac9e7c34614998c35be2c2b1d22c75397b57fc04ae7823e8481d01333",
+      "actual_complete_decision_fields": {
+        "id": "EA-0026",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION_GENERAL_WITH_EXPLICIT_LIMITS",
+        "accepted_credit": 1,
+        "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+        "observed_chain": [
+          "{\"registered_actor_and_access\": \"Actual SEAL registry is CREATURE, NO_RESTRICTIONS placement invokes concrete canSealSpawn: frozen/deep frozen ocean uses ice+brightness>8; other biomes tag substrate+brightness>8. This is a placement predicate only, not native spawn opportunity/cap/biome population proof. Species climate finalization sets Arctic/variant and air. Native resource tags not locally available.\"}",
+          "{\"payment_entry\": \"No own mobInteract implementation. Own dropped-item target accepts offerings OR breedables. Existing complete CreatureAITargetItems/ITargetsDroppedItems callback-before-one-shrink chain is reused via Crow record, not newly read/counted. OnGetItem offerings increments persistent fishFeedings, EAT/CAT_EAT; at>=3, only currently resolving ItemEntity.getOwner (native thrower entity, not pickup target or necessarily Player) overwrites feederUUID, then count resets0 even absent thrower. Non-offering branch clears feederUUID; all accepted callback items heal10. No own baby/creative/feeder-null/server guard. Third payer receives service identity even if first two were others; absent third thrower preserves old feederUUID.\"}",
+          "{\"eligibility_and_scheduler\": \"Dive goal priority6, constructor sets no flags. Reused exact native Goal/GoalSelector/WrappedGoal empty flag set means it does not reserve MOVE/JUMP/LOOK, not priority exclusivity. canUse only checks feederUUID resolves in current level player list and revengeCooldown<=0, then samples location; no fishFeedings>=3, adult, empty-hand, target or lastHurt check there. Native EntityGetter UUID loop has no alive/spectator test. canContinue checks no target/revenge/lastHurt, cached thrower nonnull, feederUUID nonnull, digPos and water above. It does not re-resolve player, alive/dimension/UUID equality; water condition applies also during return.\"}",
+          "{\"location_and_count\": \"Water actor:15 random x/z offsets in[-7,7], descend while water and y>1 to tagged dig substrate. Land actor:15 water probes starting y+3 descend through empty space; each successful water probe may start independent15 seafloor search, so nested bounded sampling not225 references or guaranteed reachable substrate. Initial seafloor selection does not itself require water above; continuation does. Dig counts only evaluated close distanceSquared<2 updates, persists across moving away within same goal; no requiresUpdateEveryTick override. >=100 cumulative close evaluations, not100worldticks, asks named gameplay seal_reward loot with only THIS_ENTITY under PIGLIN_BARTER.\"}",
+          "{\"loot_and_handoff\": \"Reused actual LootDataManager/Resolver/Params/Table/ForgeHooks boundaries: missing table resolves empty, params require THIS_ENTITY/default luck and global modifiers possible. Raw exact loot content absent. Nonempty list: first stack copy replaces current main hand without prior hand reconciliation; remaining stack copies spawn unchecked. Return flagtrue; empty loot resets digTime0 but leaves entitlement and retry enabled with no own cap. dig feedback false each100; intermediate true and periodic substrate hit sound, not player reward receipt.\"}",
+          "{\"return_and_stop\": \"Return moves cached Player until distance<2. Copies hand then clears hand BEFORE nullable spawnAtLocation, optionally velocity toward player, clears feederUUID and stop regardless of spawn or pickup. Native spawn helper only returns an object after capture/unchecked add, no admission guarantee. It sets no pickup target/owner or exact same ItemEntityUUID player receipt. Native playerTouch separately requires delay/target/Forge gate/inventory insertion. stop clears goal-local state,digTime,return flag and fishFeedings, drops nonempty hand unchecked+clears it but does NOT clear feederUUID. Interrupted retained entitlement can retry; not lossless escrow or guaranteed once payout.\"}",
+          "{\"persistence\": \"Own save/read persists FishFeedings/optional FeederUUID plus Arctic/Basking/baskingTimer/swimTimer/Variant. Missing FeederUUID does not clear same-object old field; fresh object defaultnull. Own data does not save revenge,Digging,goal digPos/cached Player/digTime/returnToPlayer. Actual native Mob whole additional writer365..439/reader441..499 serializes handItems independently. Fresh loaded entity may retain hand reward+feeder but new goal starts dig rather than resume return, and first new loot can overwrite hand; this is a conditional static boundary, no exploit/native restart tested. Read on reused goal object is distinct and no goal reset claim.\"}",
+          "{\"dedup\": \"Migration already has the SAME whole threshold/feeder/payload/delivery owner6280c8bfd261f72241e9; preserve its1 and add0 migration/global novelty. Only potential ecology service applicability max1, not helpers/constants/3fish/15samples/tags/skin variants. Closest own complete prior Platypus, Hummingbird, Raccoon judgments reused; no independent formal ecological credit until actual second review. All20accepted label screen alone is not20whole-source reading.\"}",
+          "Actual complete EntitySeal485, SealAIDiveForItems174 and SealAIBask35 plus eight bounded declaration ranges were independently read. Actual registry CREATURE1.45x0.9 and NO_RESTRICTIONS placement still invoke concrete biome/ice-or-tag+brightness>8 predicate. Finalize arctic/variant/air does not prove native biome spawn opportunity/cap/source material availability; all6 raw resource files absent in both known source roots.",
+          "Whole class has no own mobInteract. Dropped-item predicate accepts offerings OR breedables; callback offering branch increments fishFeedings with EAT/CAT_EAT. At>=3 only current native resolved thrower entity can overwrite feederUUID and counter resets0 even no thrower. Firsttwo payers need not match third. Missing thirdthrower leaves old feederUUID, not necessarily null; nonoffering accepted branch clears feederUUID but DOES NOT reset partial fishFeedings. Every callback heals10. No own age/side/creative/currentfeeder guard. Native getOwner is server thrower-entity lookup, not pickup-target UUID or necessarilyplayer.",
+          "Prior actual whole CreatureAITargetItems167/interface23 reused: callback runs before actual targetstack shrink1, so feedback/counter assignment itself is not payment receipt; handbreeding inheritedAnimal does not inherently increment this dropped-offering counter. Source does not tie all material ownership/debits to one beneficiary. Existing pending rewards can be reassigned by a later third offering or cleared by nonoffering callback.",
+          "Dive constructor has empty native goalflags; priority6 does not reserve MOVE/JUMP/LOOK. Actual Bask priority0 reservesMOVE/JUMP and stopsnavigation, but emptyflag Dive is not excluded by that alone; Dive tick also clears basking and moves. Find/leavewater/breed/panic/melee/air goals can affect state/navigation. Their exact controller/path/execution interleavings were not run or fully expanded; no reachability/exclusivity/strict timedelivery claim.",
+          "canUse requires feederUUID that resolves through current level players list and revengeCooldown<=0, samplesdigpos then caches Player. No fishFeedings>=3, emptyhand, adult, target/lastHurt check in entry. Actual EntityGetter loop matchesUUID only, no explicit alive/spectator guard. Continue checks targetnull,revenge0,lastHurtnull,cachedPlayernonnull,feedernonnull,digPosnonnull,waterabove. It does not re-resolve player or require currentUUID equals cachedPlayer UUID, playeralive/samedimension. Changed entitlement during active service may differ from cached beneficiary; no late ownership proof.",
+          "Inwater seafloor search15 x/z[-7,7] attempts descends while water/y>1 then tests diggabletag. Land15 probes starty+3 and descendempty; each water probe may call another15 seafloor sampler. Samples may repeat, not225 references or guaranteed distinct/water-above/pathreachable positions. Initial candidate lacks explicit waterabove check; continuation adds it but entry/start tick ordering is separate. Move target digPos differs from distancecenter(digPos.above); no arrival/admission guarantee.",
+          "Digging qualifying distanceSquared<2 increments digTime, navigationstop and every5 feedback; separation does not reset counter in tick. At>=100 cumulative close deliveredgoalupdates requests table, not100worldticks/seconds/consecutiveframes because no own requiresUpdateEveryTick override and native scheduling conditional. Stop resetsprogress. Source sampling/feedback/counter thresholds each0 reference.",
+          "Named seal_reward lookup under THIS_ENTITY/PIGLIN_BARTER uses defaultluck unless lower behavior alters it. Own actual Platypus whole LootDataManager/Resolver/Params/Table plus ForgeHooks reused: missingtable EMPTY, pool/function/feature and Forge globalmodifier behavior can change output. Raw seal rewardcontent absent; no guaranteed fish/reward/listquantity/admission. Actual PIGLIN_BARTER requiresTHIS_ENTITY; this is not fishing context or player luck linkage.",
+          "Only list.size>0 triggers return: removefirst then copy replaces mainhand WITHOUT reconciling old hand; remaining copies spawn unchecked. Listnonempty is not proof firststacknonempty/admitted. Emptylist resetsdigTime0 and leaves returnfalse+entitlement for further attempts under conditions, with no shown own retrycap. Old retained reward on reconstruction can be overwritten by newfirstloot; this is a conditional source boundary, not reproduced loss/dupe exploit.",
+          "Return navigates cachedPlayer untildistance<2, copies hand then CLEARS hand before nullable spawnAtLocation; optional velocity merely throws toward target. feederUUID is cleared and ownstop called after normal helper return regardless nullable result/pickup. No setTarget/setThrower/actualItemEntityUUID acquisition link. Native Entity spawn helper reused: captureDrops/unchecked addFreshEntity/non-null pointer differ from successful world admission. Actual ItemEntity.playerTouch343..367 additionally gates side/delay/target/Forge/inventory, may partialpickup; no actual correlated inventory receipt.",
+          "stop clears Digging,digPos,cachedPlayer,digTime,returnflag,fishFeedings and if handnonempty requests spawn then clears it, but does NOT clear feederUUID. Therefore interruption can discard progress/partial offering count while retaining entitlement for retry; not fully rolledback/refunded/once-only escrow. Return explicitly clears feeder beforestop, so handoffattempt and cancellation differ. Unhandled lower exceptions/reentrancy can interrupt source order; no guaranteed atomicity inferred.",
+          "Own NBT persistsFishFeedings,optionalFeederUUID,Arctic/Basking/timers/variant. MissingvalidUUID leaves old feeder in same object, fresh constructor null; count is rawint notclamped. Own DIGGING/revenge and goal progress/return/cachedPlayer/digPos omitted. Actual nativeMob350..505 containingcontext includes whole additional writer365..439 andreader441..499, retains hand independently. Fresh retainedhand+feeder can begin newdig not resume return; same-object NBTread need not resetexistinggoal. No universal save safety/payloadloss/native reloadproof.",
+          "Existing migrationowner6280c8bfd261f72241e9 already accepted EXACT SAME threshold/recipient/heldpayload/return lifecycle. Full actual current row matched precise ID and originalproposal row, with canonical binding; globalnovelty0/newmigration0. At mostone PARAMETERIZED ecology applicability entry may reuse wholemechanism after mainclosure. Whole thirdpayer pooledentitlement→retriable underwater loot→cachedbeneficiary handreturn differs from Platypus onecharge tier+finite rolls/direct worlddrops, Crow commanded frameinventory, Raccoon shorewash/delayedpetowner, Hummingbird sharedcropcounter. Helpers, species, offeringthresholds, variants/keys/failures do not create extra refs."
+        ],
+        "limits": [
+          "No actual produceradmission/ownedpickup/materialreceipt/reload/playeralive/AIpath runtime verification.",
+          "No exact6rawcontents/currentdeployedconfiguration or positive naturalpopulation/cap proof.",
+          "Surroundinggoal/navigation/nativeinventorystore/chunk/permission/crossmod consumers not fully expanded; sourcepolicyonly.",
+          "Existingmigrationowner notnewglobalreference; independentreview0applied; 1000gate/native/taskacceptance remainunmet.",
+          "Bind originalc71546, this true independent review and mainclosure. Atmostone parameterized whole ecology applicability; applied0 until main accepts. Existingmigration6280samewhole remains1previous, newmigration/globalnovelty0. No helper/species/threshold/tag/lootrow/defect splitting.",
+          "All6 rawtag/loot gaps and parameterized_source_policy_only remain. Registry/spawnpredicate/finalize are not current biome/cap/natural supply proof; no concrete offering, intersection or rewardcontents/quantity/deployedconfig claim. Localabsence not upstreamabsence.",
+          "Callback-before-shrink, nativeowner=resolvedthrowerentity, thirdofferingoverwriteonlywhennonnull and counterreset0 even noowner; nonoffering clearsfeeder but retains partialcount. No unique payer conservation/validplayer/paymentreceipt, no age/side/creative guarantee.",
+          "Emptygoalflags mean no exclusive navigation despitepriority; exact surroundingBask/air/findleave/panic/melee conditions remain unexecuted. Entryandcontinue differ; cachedPlayer not re-resolved nor UUID-matched later. No exclusivity, guaranteed beneficiary/reachability or strictseconds.",
+          "15/15x15 samples may repeat; initialcandidate lacks waterabove check later continuation has; close cumulative100 deliveredupdates not100worldticks. No finite arrival/workdeadline, no unconditional suitable substrate success.",
+          "Loot resolverEMPTY/defaultluck/THIS_ENTITY+PIGLIN_BARTER/globalmodifier boundaries retained. Emptylist retry, firststacknotnecessarilynonempty, overwriteoldhand and extras uncheckedspawn. Rolls/listcontents/admitteditems/playerreceipts separate.",
+          "Return clears hand before request and clearsfeeder after normal helperreturn even null. Directedvelocity not targetownership/receipt; captureDrops/uncheckedadd and playerTouchdelay/target/Forge/inventory/partialpickup need actual correlated native proof. No guaranteed transactional/once-only/refund/runtime loss or exploit.",
+          "Interruptedstop clears partialcounter/work and drops/clearsheldcargo unchecked but preservesfeeder; returnnormal explicitlyclearsfeeder. Lowerexception/reentrancy may break sourceorder. Do not claim cancellation equal successful reward or complete rollback.",
+          "Keep inheritedHandItems alongside ownFishFeedings/FeederUUID; missingUUID oldobjectretention versusfreshnull; omittedgoalprogress/return/revenge state differs fresh vs in-place. No fullreloadcontinuation/save safety/universal payloadloss claim.",
+          "No production/cap/category/probability/quest/art/world/sharedJar/Java/Gradle/network/Git/master/checklist changes. No nativebirth/strictkill/material/playerpickup credit, no1000gate/taskdeletion or activehour claim. Exact sourcechecks/oldwhole judgments reused0, labelscreen not fullsource semantics.",
+          "No actual produceradmission/ownedpickup/materialreceipt/reload/playeralive/AIpath runtime verification.",
+          "No exact6rawcontents/currentdeployedconfiguration or positive naturalpopulation/cap proof.",
+          "Surroundinggoal/navigation/nativeinventorystore/chunk/permission/crossmod consumers not fully expanded; sourcepolicyonly.",
+          "Existingmigrationowner notnewglobalreference; independentreview0applied; 1000gate/native/taskacceptance remainunmet."
+        ],
+        "mandatory_package_constraints": [
+          "Bind originalc71546, this true independent review and mainclosure. Atmostone parameterized whole ecology applicability; applied0 until main accepts. Existingmigration6280samewhole remains1previous, newmigration/globalnovelty0. No helper/species/threshold/tag/lootrow/defect splitting.",
+          "All6 rawtag/loot gaps and parameterized_source_policy_only remain. Registry/spawnpredicate/finalize are not current biome/cap/natural supply proof; no concrete offering, intersection or rewardcontents/quantity/deployedconfig claim. Localabsence not upstreamabsence.",
+          "Callback-before-shrink, nativeowner=resolvedthrowerentity, thirdofferingoverwriteonlywhennonnull and counterreset0 even noowner; nonoffering clearsfeeder but retains partialcount. No unique payer conservation/validplayer/paymentreceipt, no age/side/creative guarantee.",
+          "Emptygoalflags mean no exclusive navigation despitepriority; exact surroundingBask/air/findleave/panic/melee conditions remain unexecuted. Entryandcontinue differ; cachedPlayer not re-resolved nor UUID-matched later. No exclusivity, guaranteed beneficiary/reachability or strictseconds.",
+          "15/15x15 samples may repeat; initialcandidate lacks waterabove check later continuation has; close cumulative100 deliveredupdates not100worldticks. No finite arrival/workdeadline, no unconditional suitable substrate success.",
+          "Loot resolverEMPTY/defaultluck/THIS_ENTITY+PIGLIN_BARTER/globalmodifier boundaries retained. Emptylist retry, firststacknotnecessarilynonempty, overwriteoldhand and extras uncheckedspawn. Rolls/listcontents/admitteditems/playerreceipts separate.",
+          "Return clears hand before request and clearsfeeder after normal helperreturn even null. Directedvelocity not targetownership/receipt; captureDrops/uncheckedadd and playerTouchdelay/target/Forge/inventory/partialpickup need actual correlated native proof. No guaranteed transactional/once-only/refund/runtime loss or exploit.",
+          "Interruptedstop clears partialcounter/work and drops/clearsheldcargo unchecked but preservesfeeder; returnnormal explicitlyclearsfeeder. Lowerexception/reentrancy may break sourceorder. Do not claim cancellation equal successful reward or complete rollback.",
+          "Keep inheritedHandItems alongside ownFishFeedings/FeederUUID; missingUUID oldobjectretention versusfreshnull; omittedgoalprogress/return/revenge state differs fresh vs in-place. No fullreloadcontinuation/save safety/universal payloadloss claim.",
+          "No production/cap/category/probability/quest/art/world/sharedJar/Java/Gradle/network/Git/master/checklist changes. No nativebirth/strictkill/material/playerpickup credit, no1000gate/taskdeletion or activehour claim. Exact sourcechecks/oldwhole judgments reused0, labelscreen not fullsource semantics."
+        ],
+        "resource_membership_boundary": [
+          {
+            "repo_path": "src/main/resources/data/alexsmobs/tags/items/seal_offerings.json",
+            "tree_blob_sha1_metadata_only": "3bf9d9bcfe37fc20f11fd58617212d688d278a3f",
+            "raw_file_present_in_two_known_source_copies": false,
+            "raw_membership_or_loot_content_read": false
+          },
+          {
+            "repo_path": "src/main/resources/data/alexsmobs/tags/items/seal_breedables.json",
+            "tree_blob_sha1_metadata_only": "3dbea27c548b000be0cdb4024dfee0e279cd01c8",
+            "raw_file_present_in_two_known_source_copies": false,
+            "raw_membership_or_loot_content_read": false
+          },
+          {
+            "repo_path": "src/main/resources/data/alexsmobs/tags/blocks/seal_digables.json",
+            "tree_blob_sha1_metadata_only": "7efc63a20f43d1cdcf66b2fe3e34c5d8654c6c99",
+            "raw_file_present_in_two_known_source_copies": false,
+            "raw_membership_or_loot_content_read": false
+          },
+          {
+            "repo_path": "src/main/resources/data/alexsmobs/tags/blocks/seal_spawns.json",
+            "tree_blob_sha1_metadata_only": "51cea7e1ac559cde66b6aab18e48a04387a7b665",
+            "raw_file_present_in_two_known_source_copies": false,
+            "raw_membership_or_loot_content_read": false
+          },
+          {
+            "repo_path": "src/main/resources/data/alexsmobs/tags/worldgen/biome/spawns_white_seals.json",
+            "tree_blob_sha1_metadata_only": "2e32237ce88cd5efb5ee3d553133947c9482a429",
+            "raw_file_present_in_two_known_source_copies": false,
+            "raw_membership_or_loot_content_read": false
+          },
+          {
+            "repo_path": "src/main/resources/data/alexsmobs/loot_tables/gameplay/seal_reward.json",
+            "tree_blob_sha1_metadata_only": "5ed506efd6817289a518fa418e73e644d679dc84",
+            "raw_file_present_in_two_known_source_copies": false,
+            "raw_membership_or_loot_content_read": false
+          }
+        ],
+        "migration_owner": {
+          "ledger": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+          "ledger_sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+          "candidate_id": "6280c8bfd261f72241e9",
+          "canonical_full_row_sha256": "fa07745af8df9d2d3a5f85aaa9edf1f8ffb915023ec8a195624c80203fe283c1",
+          "precise_ID_filter_and_entire_row_equal_original_proposal": true,
+          "substantive_fields": {
+            "status": "accepted",
+            "family": "alexsmobs-seal-paid-fish-threshold-and-feeder-reward-identity",
+            "trigger": "EntitySeal pair/onGetItem plus complete SealAIDiveForItems",
+            "input": "FishFeedings partial count, FeederUUID earned by three offerings, stored equipment reward stack",
+            "output": "restores partial paid count and recipient UUID; AI requires recipient online and persisted UUID before undertaking reward delivery",
+            "preservation": "Full reader/writer/onGetItem and complete AI read. Third feeding resets counter0 while establishing feeder identity. AI generates reward into main hand and returns to feeder; payout clears feederUUID. Same threshold+recipient+delivery chain1, not separate per fish.",
+            "application_limit": "AI returnToPlayer/digTime not saved; reload with hand payload+feeder may initiate fresh dig instead of resumed return. Payout clears main hand before spawn and feeder even if spawn fails. Invalid/missing feeder UUID on reused load leaves stale identity. No claim lossless full skill coverage.",
+            "credit": 1
+          },
+          "old_migration_source_chain_reread": false,
+          "new_global_or_migration_credit": 0
+        },
+        "actual_independent_judgment": [
+          "本人已实际阅读Seal身体485行、Dive174行、Bask35行及原生掉落/玩家查找/手持读写支持，详见不可变独立审阅d4b478a4；exact先前读取的父类/Goal/拾物回调支持复用不重计。",
+          "仅接受一个投喂阈值/收件身份/采掘抽取/交付终止的参数化整体。第三offer仅在有thrower时换feeder，普通非offer清feeder却保留partial count；canUse取到player不等于后续持续重解析身份。",
+          "鱼次数、主手loot、returnToPlayer/digTime、持久FeederUUID为不同状态；输出清手早于spawn且feeder仍清，空表重试/未校验addFreshEntity/未拾取均不能当成付款或成功交付收据。六个raw缺口与已计migrationowner不增global/migration。"
+        ],
+        "authoring_basis": "New formal receipt authored after actual approved installation, from this existing reviewer own actual source-chain reading and immutable own independent judgment plus current installed bytes. No synthetic RAM receipt was read/copied/published; no claim of new fresh rereading or human identity authentication.",
+        "source_semantic_rereading_credit_this_action": 0
+      },
+      "complete_old_source_chains_reread_claimed": false,
+      "support_credit": 0
+    }
+  ],
+  "existing_global_migration_whole_owners": [
+    {
+      "candidate_id": "8ad211e564c4feac13fe",
+      "canonical_complete_row_sha256": "5295f514235813275d330165374e77bb0c01511195113231ec8a1464bb24b03d",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "8ad211e564c4feac13fe",
+        "status": "accepted",
+        "family": "native-armed-explosive-fuse-storage-contrasted-with-unsaved-elapsed-charge",
+        "trigger": "Full PrimedTnt/MinecartTNT/Creeper pairs and tick/explode/igniter consumers",
+        "input": "TNT short remaining Fuse; cart int TNTFuse default-1; creeper maxFuse/radius/powered/ignited",
+        "output": "TNT actual decrements to discard+explode; cart positive decrements then zero explodes using current speed; creeper ignition persists but current swell notsaved",
+        "preservation": "Group related explosive timers ONE family, avoids per-key countdown clones. Concrete timing unit/default contrast: TNT absent0 immediatelydetonates, cart absent retains-1, creeper missing max retains30.",
+        "application_limit": "PrimedTnt owner notsaved; creeper elapsed swell/droppedSkulls absent, so save is not complete encounter receipt. TNT signedshort truncation and cart arbitrarynegative can disable countdown; creeper byte radius signed. No explosions/testworld started.",
+        "supporting_candidates": [
+          "c28050c6f64a70919dc1",
+          "3c326d84f463e0669541"
+        ],
+        "credit": 1
+      },
+      "complete_current_judgment_previously_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    },
+    {
+      "candidate_id": "50baaef9f4ca718c77da",
+      "canonical_complete_row_sha256": "d2d5e543b22e947290dfc2b64491ee1c9ef7821182b27c6777bd087ceccd2acc",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "50baaef9f4ca718c77da",
+        "status": "accepted",
+        "family": "native-retained-adult-frog-phenotype-to-prey-death-material-conversion",
+        "trigger": "Adult biome phenotype survives ordinary save/load and actual frog-caused prey death supplies material loot",
+        "input": "Namespaced FrogVariant saved identity, actual attacker DamageSource, actual victim loot context",
+        "output": "Resolved variant restored without local biome reroll; actual magma-cube loot selects retained-phenotype-specific froglight through registered source_entity type_specific predicate",
+        "preservation": "Real biome-tag-selected adult FrogVariant namespacedidentity persists; ordinary load updates only when registryresolves and subsequentAI doesnotrecomputecurrentbiome phenotype. RealFrogcanEat admits size1 SlimeinclMagmaCube fromactualjarfoodtag. Sensor/AI activity choosesrealprey andShootTongue makesnormalMobAttack; actualDamageSource retains same frog direct/causingentity. NativeLivingEntitydeath sendsDAMAGE_SOURCE to actualvictimlootcontext. Exactminecraft1.20.1 client.jar magma_cube lootfulltext hasactualwarm/cold/temperate sourceentityvariantpredicates selectingpearlescent/verdant/ochre stacks. EntityPredicate.fromJson calls type_specific parser; actualEntitySubPredicate.Types map registers frog toFROGvariantpredicate andgetterFrog.getVariant; recordequals determinesmatching. The retained trait actually changes repeatable products fromanotherentitydeath afterreload, notcolor/UI or3independentbranches. Onewholeadultretainedphenotype as crossentitymaterialproduction selector, no extra registry/helper/loot/phenotypepervaluecredit. Dedup: Tadpolepaidgrowth createsadult handoff, but no lateradultpredator phenotype-dependentexternalvictimlootwas credited. Sheepresource depletion/regrowth consumesownboundedstock; thisFrogtrait persists withoutperkillcounterandclassifiesanotherentity actualdeathmaterial. Mooshroomspendschosenpendingstewonce; here no nextmealpayload toclear. Beanplant ownstatefood/clone selection differs from actualattacker-phenotype→victimcause-of-death attribution channel. Panda inheritedgene drivesownbehavior/attributes, notmaterial conversion by preydeath. Native8ad armedexplosive includesCreeperpowered and omittedskullcounter assupport; itscreditedinvariant is fuse/currentcharge timing, notFrogsbiome-acquired adultclass feedingregisteredvictimloot. ChargedCreepercanillustrate similar killer-state-to-head reward but wedonotproposenewCreepercredit/attributecredit; noledgerexistingfullpredator-phenotype-to-preymaterialownerfound. Mostimportantdifference is sourceentityphenotype selection onthevictimslootcontext; variant+prettytexturesalonewould0. Independentworldsourceimplementationmax1 ratherthanallanimalvariant wrappers.",
+        "application_limit": "Whole Frog355/FrogAi141/ShootTongue149/FrogVariant15/AttackablesSensor25/EntityVariantPredicate70/DamageSourcePredicate134/DamageSourceCondition51 actualread; onlyselectedothers. Firstwrong ShootTongue path missed thencorrectanimal/frog file read fully. ActualVanillaEntityLoot onlyline78, NOTentiremonsterloottables. Sourcehash/registry/candidatecountnotsemanticcredits. Twojarresourcesfullyread, outputnotgame. No actualgame/two-player/entitykill/lootdelivery/saveflush/survival/renderer tests orproductionchanges. Currentpack canoverride vanillaJSON/tag/damage/events; exactvanillaarchivemembers donotprove currentDynastyrecipe/dropbalance or ecologyavailability. Lootdrop bool/onLivingDrops cancancel, addFreshEntityreturnignored, no exactlyonce/perkill delivery guarantee. Persistedkey absent/wrongstring/invalid/unresolved lookupdoesnotcallsetVariant, freshobjectinitialTEMPERATE; reusedobjectkeepsoldvariant. ReaderdoesnotquarantineunknownID. Detailedregistryregistrationmapimplementation/codecunknownaliases notfullyunfolded, no arbitraryformatmigration guarantee. BuiltInregisterSimpledeclarationselected, lookupMappedRegistryselected. Variantrownamesstable, no versionaliasesexamined. FrogVariantrecord equalscomparestexture ResourceLocation, andEntityVariantPredicate comparesrecordequals, notexplicitregisteredkeyidentity. Customvariantwithsame texture maycompareequal; externaldynamicregistry/customregistrationnotreproduced. Savedconstructorname outputandpredicatecomparison distinct semantic surfaces, no universalcustomvariantguarantee. BiomevariantassignedonlywhenfinalizeSpawn called. Here wholeFrog offspringcreatesnewentityandinitMemories, no directparentvariantinheritance; priorTadpoleconversioncallsfinalizeSpawn inthatpriorreceipt butthisproposaldoesnotre-readitsentirechain orcountagain. Do not describegeneticparentphenotypeinheritance/paidbreedledger orplayerownershipUUID. Frog.canEat requires tagand ifSlimesize==1; vanillafoodtag isSlime+MagmaCube. Sensorhuntingcooldown/attackable/reach/10distance andactualtonguepathdistance<1.75 gate; completeenginepathfinder/Mob.hurt hooksnotread. No guaranteedpredation/proximity/nativeAIperformance. LootJSON froglightbranches onlycheck frogvariant, NOTexplicitvictimsize; unnaturalfrogcausedlargemagmakillcouldstillmatch table. NaturalAI sizegate isseparateauthority, no blanketloot-sizeenforcementclaim. ShootTongue attack attempts onlyifcurrentlyalive, ignoresbooleanhurtreturn thenchecksentityalive andremoveKILLED. ForgeLivingDeath veto, targethealth/armoreffects canpreventdeath; no killreceipt merelyfromcandidate/animation. Slime.remove onlysplitswhen size>1anddead; no splittingofordinaryAI-targetsize1. WholeMagmaCubeclassnotread, onlyextendsSlimeandselectedheader through100; additionaloverride absence searchnotwholebehaviorreview. ActualdamageSource constructor ties frogcausingentity. DamageSourceCondition consumesactualcontextDAMAGE_SOURCE, sourceEntitypredicate ultimatelyFrogVariant getter. LivingEntity.death usesactuallastcause, notarbitraryKillCredit; customsourceoverride orsameownerprojectile canmeet sourcepredicate withouttongueattack, noexclusiveactionproof. MobcustomLootTable overridesdefault and datapacks/hooks canreplace/dropdeny. No fullenginecrash-atomicproof. Persistentvariantpolicy NOTallFrogbrainfields! Frog inheritsnativeBrainserialization; pregnancy/AI memories notauditedforpersistencehere, no assertionallunsaved. TongueDATA targetnumericID andanimationstate notwritteninlocaladditionalpair; wholeparentreadmayownotherfields. No transfer of temporarytarget/flight/QAflags intoDynastyplayerClone. No newcredit percolor/frog/sensor/lootcondition/helper. This isonlyproposedwholematerialconversioninvariant beyondcosmetics, notautomaticacceptbecausefilesorlines. Sharedgenericregistry/damage/drop/codec allsupport0, no architecture/model/texture/ecology credit. Actualreifiedarchive isvanillabase, not proofcurrentDynastyalloverridedatapacks/materialproduction tested. NoJava/game/entityspawn/kill/sound/worldmutation. Readzipbytesonly. Packet/lootdispatch/Gsonregistrytop-level engine notfullaudit; supplementalEntityPredicateparser/type-mapclosesconcretebinding butallgenericcodec machinerysupport0. SourceclaimedfullFrog355 andFrogAi141 ranges omitfinalouterclosingbrace inactualsplitlines356/142; independentalreadyreadwhole356/142 priorreview. No executablelogic omitted; evidencecounts1245 refer listedexactranges, not bytecountingimprovedcredit. ShootTongue149similarlyincludesinnerenumclosebutouterbrace150exists; actualfullbehaviorsemanticsread, no completenessclaimforgenericparentclasses. Frog.canEat Slime size1 isAI targetselection, lootfroglightbranches doNOTsizecheck. Lootallowsanyfrog-causingDamageSource, notexclusiveTongueAbility or guaranteedlastplayerkillcredit. Genericdamage hooks/killveto/dropcancel/addentity failure remain. Selection doesnotestablish globallyoneitemperactualpredation acrossmods/crash. FrogVariantJava record equality comparesitssoletextureResourceLocation, notregisteredID. Customsame-texture registeredvariant couldequal vanilla predicate; no unseenmodalias compatibilityclaim. Mainreaderreturnsnochangeifresolvednull, defaultTEMPERATEfresh vsoldvalue reused; unknownIDsnotroundtripped/quarantined. No proposednewDyastyecology/variant/asset/recipe/Clonepolicy. Retainedphenotype iscreaturefact, notperplayerownedentitlement; innatebiomeassignmentnotearnedpaidprogress itself. Sourceillustrates semanticretention affectingactualmaterial, notpermissiontocopyarbitrarycooldown/brainstate.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "complete_current_judgment_previously_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    }
+  ],
+  "observed_chain": [
+    "One complete causing-actor shared trophy-attempt quota across shown qualified monster death callbacks. Creeper/Zombie/Skeleton/WitherSkeleton head branches, base death/capture/event helpers and own unsaved counter are one proposed family maximum1. This is not one credit per victim species/head/item/helper/field or generic unchecked-add defect.",
+    "Full269-line Creeper defines private droppedSkulls (implicit0), canDropMobsSkull returns powered && droppedSkulls<1, increaseDroppedSkulls increments. The getter has no explicit alive/removed/explosion-state or damage-type check. Own thunderHit calls parent then sets powered; current loaded/lightning/combat behavior is not executed or fully certified.",
+    "Actual Creeper victim custom drop calls super first, then DamageSource.getEntity; additionally entity!=this and causing actor instanceof Creeper. If quota guard passes, killer counter increments BEFORE victim spawnAtLocation(CREEPER_HEAD). Other shown victim branches similarly share that causing Creeper object rather than independent per-victim counters.",
+    "Zombie complete custom drop plus getSkull501..518 checks causing Creeper/quota, then virtual skull nonempty before increment and spawn. Base returns ZOMBIE_HEAD. Reused prior own complete ZombieVillager317 read returns EMPTY at279..281, so that override does not debit this shown skull branch; all other Zombie subtype overrides are not audited.",
+    "Skeleton113..123 and WitherSkeleton57..67 each call super, then same causing-Creeper guard/debit-before-output, requesting SKELETON_SKULL or WITHER_SKELETON_SKULL. Their species-specific outputs do not create extra policies. No explicit recentlyHit/looting-level test appears in these dedicated branches, but upstream death/loot gates still apply.",
+    "DamageSource.getEntity returns causingEntity while getDirectEntity returns directEntity. These callbacks do not explicitly require IS_EXPLOSION or a particular DamageType. Standard charged-explosion association is not generalized into exactly one total skull per explosion, all victim types or all damage sources; explosion propagation/attribution producer is not fully expanded.",
+    "LivingEntity.die1303..1336 first Forge onLivingDeath; then !removed&&!dead, credit/sleep/dead bookkeeping and server block. Only null causingEntity or its killedEntity(server,victim) true enters dropAllDeathLoot. Base Entity.killedEntity returns true; full virtual inheritance/event graph is bounded. Cancelled earlier death or veto can skip shown path.",
+    "Full shown dropAllDeathLoot1360..1378 first gets looting and captureDrops(new ArrayList), recent-player flag; shouldDropLoot && doMobLoot gates loot-table then custom-death callbacks. Monster shouldDropLoot override is true, unlike LivingEntity base !isBaby. No inappropriate blanket adult-only gate or player-hit prerequisite is added.",
+    "Mob custom drop897..914 performs superclass call and equipment iteration/drop/clear under chance/curse/recent-hit-or-forced rules before subclass dedicated head. Base LivingEntity custom callback empty. These equipment/loot branches are additional output paths, not necessarily governed by attacker trophy quota; named normal loot raw tables are not read here.",
+    "After custom and dropEquipment/dropExperience, dropAllDeathLoot captureDrops(null) retrieves collection then posts Forge onLivingDrops. Entity capture getter/setter directly returns/swaps collection field. Full72-line cancellable LivingDropsEvent retains and exposes mutable drops; event cancellation/mutation occurs AFTER dedicated head counter debit. Event handlers and exact bus ordering/reentrancy are not expanded.",
+    "Entity spawnAtLocation ItemLike wrappers create ItemStack and delegate; helper rejects empty/client, constructs ItemEntity at victim position with default delay, appends to capture collection if present or otherwise calls addFreshEntity ignoring Boolean, then returns pointer. Canceled/removed captured item or refused later add does not refund shown killer quota. No native accepted ItemEntityUUID or player acquisition receipt.",
+    "Under ordinary sequential shown callbacks from fresh counter0, first qualifying nonempty dedicated head request consumes shared opportunity before later victims reach their guard. No global atomic compare-and-set, ordering fairness, concurrent/reentrant handler safety, exactly-once physical output or all-loot skull upper bound is proven. Capture collection is not inventory ownership/payment.",
+    "Full own Creeper save writes powered conditionally/Fuse short/ExplosionRadius byte/ignited; read handles those but neither reads nor writes droppedSkulls or elapsed swell. Fresh counter starts0, read-on-existing does not explicitly clear it. No actual reload of an attacking/exploding object, complete inherited save correctness or unlimited-farming exploit is tested.",
+    "Full explodeCreeper server branch marks dead before Level.explode(MOB), then discards and makes cloud. Victim self exclusion/quota predicates remain literal; their relation to all concurrent collateral deaths and removed causing actor is not runtime proven. Ignite input tag and fuse/power behavior are supporting context0, not additional new persistence family.",
+    "Whole global comparison: existing8ad211e564c4feac13fe owns TNT/cart/Creeper armed-fuse/powered/ignited versus unsaved elapsed charge, and explicitly notes absent droppedSkulls. It retains sole prior credit; missing counter alone is not new migration. Existing50baaef9f4ca718c77da owns retained adult Frog phenotype selecting prey-death material loot. Current candidate instead uses a shared transient consuming killer budget across qualifying victim callbacks before captured output. Those complete current non-evidence judgments and canonical rows retained0, old source chains not reread; distinct ecology applicability still requires Main whole review.",
+    "Whole accepted ecology comparison: EA0016 target-driven alarm consumes persistent attempt before terrain/local encounter veto, no victim-death shared item budget; its unsupported-floor and Warden-target corrections retained. EA0026 third-offering pooled feeder entitlement funds retriable underwater loot and cached recipient hand-return, with six raw gaps and existing sole migrationowner. Current death callbacks have no offered material funding/assigned beneficiary/retry or stored cargo continuation. Shared precommit/unchecked output/persistence hazards alone earn0; this bounded comparison is not exhaustive global novelty."
+  ],
+  "mandatory_constraints": [
+    "Maximum one whole charged-causing-actor shared dedicated-trophy-attempt policy, preformal0; victim species/head constants, source/range counts and common helpers0.",
+    "Only literal powered && droppedSkulls<1 guard and counter increment-before-output; no alive-only, all-victims, explosion-only, whole-world or strict admitted-item guarantee.",
+    "DamageSource causingEntity distinct from directEntity; full explosion source producer/propagation not read. Keep broad literal predicate without fabricating actual unusual-damage scenario.",
+    "Creeper self victim excluded; Zombie nonempty virtual skull required before debit. Reuse actual prior ZombieVillager EMPTY override0; do not infer all Zombie subclasses or all players/entities drop heads.",
+    "Upstream death event/removed/dead/server/virtual killedEntity and shouldDropLoot/doMobLoot gates preserved; Monster override true prevents false adult-only generalization. No player kill/looting prerequisite inferred from recentlyHit argument alone.",
+    "Loot table before custom; superclass equipment drops and other output paths may produce additional skulls. Shared counter bounds dedicated shown branch attempts, not all skulls/items per explosion or loot list.",
+    "Captured ItemEntity construction and pointer are not world admission; mutable cancellable LivingDropsEvent happens after counter debit. No refund/rollback or recipient pickup proof.",
+    "Source ordinary callback order only; no concurrent/reentrant exclusivity, fairness, atomic reservation or exactly-once physical delivery demonstrated.",
+    "droppedSkulls omitted own save/read: fresh implicit0 vs existing read no explicit reset. Absence is already part of old fuse-owner boundary, not new migration or proven reload exploit.",
+    "Full Creeper explode marks dead then requests MOB explosion, then discard/cloud; no complete active encounter/lifecycle/current config or native explosion/kill experiment.",
+    "Bind actual complete EA0016 corrected whole judgment and EA0026 complete constraints/limits/resource/migration boundaries. No replay of old accepted tests or full original source chains.",
+    "Keep current full global8ad fuse-family and50baa Frog phenotype-to-material judgments/canonical rows at0 new credit; no exhaustive novelty claim and allow Main merge0.",
+    "No raw loot/tag membership read in this proposal, no assertion current loaded inputs or reward tables. Creeper igniter tag name alone not concrete member proof.",
+    "Only source-reference proposal; no current project mechanic implementation, production fix, acceptance of birth/kill/payment/pickup or 1000-reference gate/task completion."
+  ],
+  "mandatory_corrections": [],
+  "limits": [
+    "Fixed local native source archive and exact ranges only, no fresh upstream authentication or current pack loaded configuration/data/world/handlers/inheritance graph proof.",
+    "Full Creeper and LivingDropsEvent plus bounded victim/death/helper methods; other subtypes, explosion propagation, complete superclass/death/loot event scheduling and item admission/pickup backend not fully expanded.",
+    "No one-head-per-explosion/total-output bound, complete adult/player-hit/looting requirement, atomicity/refund/fairness/beneficiary or physical-delivery claim.",
+    "No actual loaded save reconstruction, exploded attacker persistence, exploit/crash/native sound/animation/explosion/combat/kill/drop/inventory experiment.",
+    "Global owners existing full policies preserved0; closest two accepted ecology whole decisions compared, not all old source chains or entire mod universe. Main can merge/reject0 after semantic review.",
+    "No Java/Gradle/game/server/network/download/process/UI/focus/display/wake/sound/brightness/Git/production/art/sharedJar/userworld/main session/active/pending/ownership/checklist/master mutation. No active-hours claim.",
+    "Applicable1000 gate remains unmet (current formal37 at checkpoint); proposal/read ranges/support/variants do not automatically increment it. Main alone controls formal package and aggregation."
+  ],
+  "actual_raw_base_resource_reads": [],
+  "application": "Source reference for limited adversary-causal drop opportunities: separate shared eligibility/debit from later mutable capture/admission and actual player acquisition. Retain original gameplay until applicable research gate and distinct production authorization. No implemented change.",
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

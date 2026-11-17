@@ -1,0 +1,1242 @@
+{
+  "recorded_at": "2026-11-09T20:16:32.420812+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "PRIVATE_WHOLE_RITUAL_SOURCE_POLICY_PENDING_MAIN_RELEVANCE_AND_OVERLAP_REVIEW",
+  "semantic_key": "captured-live-sacrifice-carrier-procession-praying-quorum-to-victim-local-delayed-conversion-with-preresult-celebration-and-asymmetric-dismount-retry",
+  "source_provenance": {
+    "repo": "AlexModGuy/AlexsCaves",
+    "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+    "acquisition": "fixed local cached source; verified against pinned Git tree",
+    "research_credit": 0,
+    "source_metadata": {
+      "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/source.json",
+      "sha256": "b853ce996c1f7a668679343404f0784c4ce3850f8b4454902a51113ed1078794",
+      "bytes": 116312
+    },
+    "pinned_tree": {
+      "path": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/tree.json",
+      "sha256": "144ccb5437d0b2128f00ee57c6334069babadf14c2b0fdb414d843b9801c5042",
+      "bytes": 2825313
+    },
+    "selected_source_hash_and_git_blob_verified": true,
+    "all_manifest_or_whole_repository_read_claimed": false,
+    "native_exact_build_dependency_proved": false
+  },
+  "actual_mod_read_ranges": [
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/UnderzealotEntity.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/UnderzealotEntity.java#L1-L521",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/UnderzealotEntity.java",
+      "file_sha256": "495dd4e37de7610898f07a439e885460ccce9d554bcd009c51add8a21075a633",
+      "git_blob_sha1": "336172629c970ef333042c85292629f3b9666d53",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        521
+      ],
+      "total_file_lines": 521,
+      "full_file": true,
+      "raw_excerpt_sha256": "495dd4e37de7610898f07a439e885460ccce9d554bcd009c51add8a21075a633",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.living;\n\nimport com.github.alexmodguy.alexscaves.AlexsCaves;\nimport com.github.alexmodguy.alexscaves.client.particle.ACParticleRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ACEntityRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.*;\nimport com.github.alexmodguy.alexscaves.server.entity.util.PackAnimal;\nimport com.github.alexmodguy.alexscaves.server.entity.util.UnderzealotSacrifice;\nimport com.github.alexmodguy.alexscaves.server.misc.ACAdvancementTriggerRegistry;\nimport com.github.alexmodguy.alexscaves.server.misc.ACSoundRegistry;\nimport com.github.alexthe666.citadel.animation.Animation;\nimport com.github.alexthe666.citadel.animation.AnimationHandler;\nimport com.github.alexthe666.citadel.animation.IAnimatedEntity;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.particles.BlockParticleOption;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.damagesource.DamageTypes;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.RandomStrollGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.Vec3;\n\nimport javax.annotation.Nullable;\nimport java.util.Optional;\n\npublic class UnderzealotEntity extends Monster implements PackAnimal, IAnimatedEntity {\n\n    private static final EntityDataAccessor<Boolean> BURIED = SynchedEntityData.defineId(UnderzealotEntity.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> CARRYING = SynchedEntityData.defineId(UnderzealotEntity.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> PRAYING = SynchedEntityData.defineId(UnderzealotEntity.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Optional<BlockPos>> SACRIFICE_POS = SynchedEntityData.defineId(UnderzealotEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);\n    private static final EntityDataAccessor<Optional<BlockPos>> PARTICLE_POS = SynchedEntityData.defineId(UnderzealotEntity.class, EntityDataSerializers.OPTIONAL_BLOCK_POS);\n    private static final EntityDataAccessor<Integer> WORSHIP_TIME = SynchedEntityData.defineId(UnderzealotEntity.class, EntityDataSerializers.INT);\n    public static final Animation ANIMATION_ATTACK_0 = Animation.create(15);\n    public static final Animation ANIMATION_ATTACK_1 = Animation.create(15);\n    public static final Animation ANIMATION_BREAKTORCH = Animation.create(15);\n    public static final int MAX_WORSHIP_TIME = 500;\n    public int sacrificeCooldown;\n    public int cloudCooldown;\n    private Animation currentAnimation;\n    private int animationTick;\n    private float buriedProgress;\n    private float prevBuriedProgress;\n    private float carryingProgress;\n    private float prevCarryingProgress;\n    private float prayingProgress;\n    private float prevPrayingProgress;\n    private UnderzealotEntity priorPackMember;\n    private UnderzealotEntity afterPackMember;\n    private int idleBuryIn = 400 + random.nextInt(800);\n    private int reemergeTime = 0;\n    private BlockPos remergePos = null;\n\n    public UnderzealotEntity(EntityType type, Level level) {\n        super(type, level);\n        this.buriedProgress = 20.0F;\n        this.prevBuriedProgress = 20.0F;\n    }\n\n    public static AttributeSupplier.Builder createAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D).add(Attributes.MAX_HEALTH, 20.0D).add(Attributes.ATTACK_DAMAGE, 4).add(Attributes.FOLLOW_RANGE, 20);\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new AnimalJoinPackGoal(this, 60, 11));\n        this.goalSelector.addGoal(2, new UnderzealotOpenDoorGoal(this));\n        this.goalSelector.addGoal(3, new UnderzealotSacrificeGoal(this));\n        this.goalSelector.addGoal(4, new UnderzealotMeleeGoal(this));\n        this.goalSelector.addGoal(5, new UnderzealotCaptureSacrificeGoal(this));\n        this.goalSelector.addGoal(6, new UnderzealotProcessionGoal(this, 1.0F));\n        this.goalSelector.addGoal(7, new UnderzealotBreakLightGoal(this, 32));\n        this.goalSelector.addGoal(9, new RandomStrollGoal(this, 1.0D, 100));\n        this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, 15.0F));\n        this.goalSelector.addGoal(10, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, (new UnderzealotHurtByTargetGoal(this)));\n        this.targetSelector.addGoal(2, new MobTargetClosePlayers(this, 40, 12){\n            @Override\n            public boolean canUse() {\n                return !UnderzealotEntity.this.isTargetingBlocked() && super.canUse();\n            }\n        });\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(BURIED, false);\n        this.entityData.define(CARRYING, false);\n        this.entityData.define(PRAYING, false);\n        this.entityData.define(SACRIFICE_POS, Optional.empty());\n        this.entityData.define(PARTICLE_POS, Optional.empty());\n        this.entityData.define(WORSHIP_TIME, 0);\n    }\n\n    public void calculateEntityAnimation(boolean flying) {\n        float f1 = (float) Mth.length(this.getX() - this.xo, this.getY() - this.yo, this.getZ() - this.zo);\n        float f2 = Math.min(f1 * 8.0F, 1.0F);\n        this.walkAnimation.update(f2, 0.4F);\n    }\n\n    public void travel(Vec3 vec3d) {\n        if (this.isBuried() || this.isDiggingInProgress()) {\n            vec3d = Vec3.ZERO;\n        }\n        super.travel(vec3d);\n    }\n\n    protected PathNavigation createNavigation(Level level) {\n        return new GroundPathNavigatorNoSpin(this, level);\n    }\n\n    public void tick() {\n        super.tick();\n        prevBuriedProgress = buriedProgress;\n        prevCarryingProgress = carryingProgress;\n        prevPrayingProgress = prayingProgress;\n        if(!this.isNoAi() && (buriedProgress == 0.0F && this.isBuried() || buriedProgress == 20.0F && !this.isBuried())){\n            this.playSound(ACSoundRegistry.UNDERZEALOT_DIG.get());\n        }\n        if (isBuried() && buriedProgress < 20.0F) {\n            buriedProgress = Math.min(20.0F, buriedProgress + 1.5F);\n        }\n        if (!isBuried() && buriedProgress > 0.0F) {\n            buriedProgress = Math.max(0.0F, buriedProgress - 1.5F);\n        }\n        if (isCarrying() && carryingProgress < 5.0F) {\n            carryingProgress++;\n        }\n        if (!isCarrying() && carryingProgress > 0.0F) {\n            carryingProgress--;\n        }\n        if (isPraying() && prayingProgress < 5.0F) {\n            prayingProgress++;\n        }\n        if (!isPraying() && prayingProgress > 0.0F) {\n            prayingProgress--;\n        }\n        if (!level().isClientSide) {\n            if (this.isCarrying() && this.isPackFollower()) {\n                for (Entity passenger : this.getPassengers()) {\n                    passenger.stopRiding();\n                }\n            }\n            this.setCarrying(!this.getPassengers().isEmpty());\n            if (this.isBuried() && buriedProgress >= 20.0F) {\n                if (reemergeTime-- < 0) {\n                    this.moveTo(remergePos.getX() + 0.5F, remergePos.getY(), remergePos.getZ() + 0.5F);\n                    idleBuryIn = 400 + random.nextInt(800);\n                    reemergeTime = 0;\n                    this.setBuried(false);\n                }\n                Vec3 centerOf = Vec3.atBottomCenterOf(this.blockPosition()).subtract(this.position());\n                this.getDeltaMovement().add(centerOf.x * 0.1F, 0, centerOf.z * 0.1F);\n            } else if (digsIdle() && idleBuryIn-- < 0) {\n                if (this.onGround()) {\n                    this.setBuried(true);\n                    idleBuryIn = 0;\n                    reemergeAt(findReemergePos(this.blockPosition(), 10), 40 + random.nextInt(60));\n                }\n            }\n            if (isDiggingInProgress()) {\n                this.setDeltaMovement(this.getDeltaMovement().multiply(0.0D, 1.0D, 0.0D));\n            }\n        } else if (isDiggingInProgress()) {\n            BlockState stateOn = this.getBlockStateOn();\n            if (stateOn.isSolid()) {\n                for (int i = 0; i < 3; i++) {\n                    level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, stateOn), true, this.getRandomX(0.8F), this.getY(), this.getRandomZ(0.8F), random.nextFloat() - 0.5F, random.nextFloat() + 0.5F, random.nextFloat() - 0.5F);\n                }\n            }\n            if (isBuried()) {\n                this.setOldPosAndRot();\n            }\n        }\n        if (cloudCooldown > 0) {\n            cloudCooldown--;\n        }\n        if (sacrificeCooldown > 0) {\n            sacrificeCooldown--;\n        }\n        AnimationHandler.INSTANCE.updateAnimations(this);\n    }\n\n    public void handleEntityEvent(byte b) {\n        if (b == 61) {\n            Vec3 eye = this.getEyePosition();\n            Vec3 leftHand = eye.add(new Vec3(0.8F, 0, 0).yRot(-yBodyRot * ((float) Math.PI / 180F)));\n            Vec3 rightHand = eye.add(new Vec3(-0.8F, 0, 0).yRot(-yBodyRot * ((float) Math.PI / 180F)));\n            Vec3 target = this.getParticlePos() == null ? this.position().add(0, 4, 0) : Vec3.atCenterOf(getParticlePos());\n            this.level().addParticle(ACParticleRegistry.UNDERZEALOT_MAGIC.get(), leftHand.x, leftHand.y, leftHand.z, target.x, target.y, target.z);\n            this.level().addParticle(ACParticleRegistry.UNDERZEALOT_MAGIC.get(), rightHand.x, rightHand.y, rightHand.z, target.x, target.y, target.z);\n        } else if (b == 62) {\n            Vec3 particleAt = this.getParticlePos() == null ? this.position().add(0, 4, 0) : Vec3.atCenterOf(getParticlePos());\n            int carryingId = -1;\n            if (this.isVehicle()) {\n                carryingId = this.getFirstPassenger() == null ? -1 : this.getFirstPassenger().getId();\n            }\n            this.level().addParticle(ACParticleRegistry.VOID_BEING_CLOUD.get(), particleAt.x, particleAt.y, particleAt.z, 1F, carryingId, 5 + random.nextInt(4));\n        } else if(b == 77){\n            if(this.isAlive()){\n                AlexsCaves.PROXY.playWorldSound(this, (byte) 5);\n            }\n        }else {\n            super.handleEntityEvent(b);\n        }\n    }\n\n    public void remove(Entity.RemovalReason removalReason) {\n        AlexsCaves.PROXY.clearSoundCacheFor(this);\n        super.remove(removalReason);\n    }\n\n    public BlockPos findReemergePos(BlockPos origin, int range) {\n        for (int i = 0; i < 15; i++) {\n            BlockPos blockPos = origin.offset(this.getRandom().nextInt(range) - range / 2, this.getRandom().nextInt(range) - range / 2, this.getRandom().nextInt(range) - range / 2);\n            while (!level().isEmptyBlock(blockPos) && blockPos.getY() < level().getMaxBuildHeight()) {\n                blockPos = blockPos.above();\n            }\n            while (level().isEmptyBlock(blockPos.below()) && blockPos.getY() > level().getMinBuildHeight()) {\n                blockPos = blockPos.below();\n            }\n            if (!level().isEmptyBlock(blockPos.below()) && blockPos.distSqr(origin) < range * range + 10) {\n                return blockPos;\n            }\n        }\n        return origin;\n    }\n\n    public void triggerIdleDigging() {\n        idleBuryIn = 0;\n    }\n\n    public boolean digsIdle() {\n        LivingEntity target = this.getTarget();\n        return !this.isCarrying() && !this.isPackFollower() && !this.isPraying() && this.getAnimation() == NO_ANIMATION && (target == null || !target.isAlive());\n    }\n\n    public void reemergeAt(BlockPos pos, int time) {\n        this.remergePos = pos;\n        this.reemergeTime = time;\n    }\n\n    public void positionRider(Entity entity, MoveFunction moveFunction) {\n        super.positionRider(entity, moveFunction);\n        entity.setYRot(this.yBodyRot);\n        entity.setYHeadRot(this.yBodyRot);\n        entity.setYBodyRot(this.yBodyRot);\n    }\n\n    public boolean isBuried() {\n        return this.entityData.get(BURIED);\n    }\n\n    public void setBuried(boolean bool) {\n        this.entityData.set(BURIED, bool);\n    }\n\n    public boolean isCarrying() {\n        return this.entityData.get(CARRYING);\n    }\n\n    public BlockPos getLastSacrificePos() {\n        return this.entityData.get(SACRIFICE_POS).orElse(null);\n    }\n\n    public void setLastSacrificePos(BlockPos lastAltarPos) {\n        this.entityData.set(SACRIFICE_POS, Optional.ofNullable(lastAltarPos));\n    }\n\n    public BlockPos getParticlePos() {\n        return this.entityData.get(PARTICLE_POS).orElse(null);\n    }\n\n    public void setParticlePos(BlockPos lastAltarPos) {\n        this.entityData.set(PARTICLE_POS, Optional.ofNullable(lastAltarPos));\n    }\n\n    public void setCarrying(boolean bool) {\n        this.entityData.set(CARRYING, bool);\n    }\n\n    public boolean isPraying() {\n        return this.entityData.get(PRAYING);\n    }\n\n    public void setPraying(boolean bool) {\n        this.entityData.set(PRAYING, bool);\n    }\n\n    public int getWorshipTime() {\n        return this.entityData.get(WORSHIP_TIME);\n    }\n\n    public void setWorshipTime(int worship) {\n        this.entityData.set(WORSHIP_TIME, worship);\n    }\n\n    @Nullable\n    public LivingEntity getControllingPassenger() {\n        return null;\n    }\n\n    public float getBuriedProgress(float partialTick) {\n        return this.isNoAi() ? 0.0F : (prevBuriedProgress + (buriedProgress - prevBuriedProgress) * partialTick) * 0.05F;\n    }\n\n    public float getCarryingProgress(float partialTick) {\n        return (prevCarryingProgress + (carryingProgress - prevCarryingProgress) * partialTick) * 0.2F;\n    }\n\n    public float getPrayingProgress(float partialTick) {\n        return (prevPrayingProgress + (prayingProgress - prevPrayingProgress) * partialTick) * 0.2F;\n    }\n\n    @Override\n    public PackAnimal getPriorPackMember() {\n        return this.priorPackMember;\n    }\n\n    @Override\n    public PackAnimal getAfterPackMember() {\n        return afterPackMember;\n    }\n\n    @Override\n    public void setPriorPackMember(PackAnimal animal) {\n        this.priorPackMember = (UnderzealotEntity) animal;\n    }\n\n    @Override\n    public void setAfterPackMember(PackAnimal animal) {\n        this.afterPackMember = (UnderzealotEntity) animal;\n    }\n\n    @Override\n    public boolean isValidLeader(PackAnimal packLeader) {\n        return ((UnderzealotEntity) packLeader).isCarrying() && !packLeader.isPackFollower() && ((LivingEntity) packLeader).isAlive();\n    }\n\n    public boolean isTargetingBlocked(){\n        if(this.isPackFollower() && getPackLeader() instanceof UnderzealotEntity underzealotLeader){\n            return underzealotLeader.isCarrying();\n        }else if(this.isCarrying()){\n            return true;\n        }\n        return this.isPraying();\n    }\n\n    public boolean isDiggingInProgress() {\n        return buriedProgress > 0 && buriedProgress < 20;\n    }\n\n    public void push(Entity entity) {\n        if (!(entity instanceof UnderzealotEntity underzealot && (underzealot.isPraying() || this.isPraying())) && !this.isBuried() && !isDiggingInProgress()) {\n            super.push(entity);\n        }\n    }\n\n    public double getPassengersRidingOffset() {\n        return this.getBbHeight();\n    }\n\n    public boolean isPickable() {\n        return !isBuried();\n    }\n\n    public boolean isPushable() {\n        return !isBuried();\n    }\n\n    public boolean isInvulnerableTo(DamageSource damageSource) {\n        return damageSource.is(DamageTypes.IN_WALL) || super.isInvulnerableTo(damageSource);\n    }\n\n    @Override\n    public int getAnimationTick() {\n        return animationTick;\n    }\n\n    @Override\n    public void setAnimationTick(int tick) {\n        animationTick = tick;\n    }\n\n    @Override\n    public Animation getAnimation() {\n        return currentAnimation;\n    }\n\n    @Override\n    public void setAnimation(Animation animation) {\n        currentAnimation = animation;\n    }\n\n    @Override\n    public Animation[] getAnimations() {\n        return new Animation[]{ANIMATION_ATTACK_0, ANIMATION_ATTACK_1, ANIMATION_BREAKTORCH};\n    }\n\n    public static boolean checkUnderzealotSpawnRules(EntityType<? extends Monster> entityType, ServerLevelAccessor levelAccessor, MobSpawnType mobSpawnType, BlockPos blockPos, RandomSource randomSource) {\n        return checkMonsterSpawnRules(entityType, levelAccessor, mobSpawnType, blockPos, randomSource);\n    }\n\n    @javax.annotation.Nullable\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor worldIn, DifficultyInstance difficultyIn, MobSpawnType reason, @javax.annotation.Nullable SpawnGroupData spawnDataIn, @javax.annotation.Nullable CompoundTag dataTag) {\n        if (reason == MobSpawnType.NATURAL) {\n            spawnReinforcements(worldIn);\n        }\n        return super.finalizeSpawn(worldIn, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n    private void spawnReinforcements(ServerLevelAccessor worldIn) {\n        for (int i = 0; i < 3 + random.nextInt(2); i++) {\n            UnderzealotEntity friend = ACEntityRegistry.UNDERZEALOT.get().create(worldIn.getLevel());\n            friend.copyPosition(this);\n            worldIn.addFreshEntity(friend);\n        }\n    }\n\n    public boolean isSurroundedByPrayers() {\n        PackAnimal leader = this.getPackLeader();\n        int prayers = 0;\n        while (leader.getAfterPackMember() != null) {\n            leader = leader.getAfterPackMember();\n            if (leader instanceof UnderzealotEntity underzealot && underzealot.isPraying()) {\n                prayers++;\n            }\n        }\n        return prayers >= 3;\n    }\n\n    public void addAdditionalSaveData(CompoundTag compound) {\n        super.addAdditionalSaveData(compound);\n        compound.putInt(\"SacrificeCooldown\", this.sacrificeCooldown);\n        compound.putBoolean(\"Buried\", this.isBuried());\n        if (remergePos != null) {\n            compound.putInt(\"RX\", this.remergePos.getX());\n            compound.putInt(\"RY\", this.remergePos.getY());\n            compound.putInt(\"RZ\", this.remergePos.getZ());\n        }\n        BlockPos sacrificePos = this.getLastSacrificePos();\n        if (sacrificePos != null) {\n            compound.putInt(\"SX\", sacrificePos.getX());\n            compound.putInt(\"SY\", sacrificePos.getY());\n            compound.putInt(\"SZ\", sacrificePos.getZ());\n        }\n    }\n\n    public void readAdditionalSaveData(CompoundTag compound) {\n        super.readAdditionalSaveData(compound);\n        this.sacrificeCooldown = compound.getInt(\"SacrificeCooldown\");\n        this.setBuried(compound.getBoolean(\"Buried\"));\n        if (compound.contains(\"RX\") && compound.contains(\"RY\") && compound.contains(\"RZ\")) {\n            this.remergePos = new BlockPos(compound.getInt(\"RX\"), compound.getInt(\"RY\"), compound.getInt(\"RZ\"));\n        }\n        if (compound.contains(\"SX\") && compound.contains(\"SY\") && compound.contains(\"SZ\")) {\n            this.setLastSacrificePos(new BlockPos(compound.getInt(\"SX\"), compound.getInt(\"SY\"), compound.getInt(\"SZ\")));\n        }\n    }\n\n    public boolean hurt(DamageSource damageSource, float f) {\n        boolean prev = super.hurt(damageSource, f);\n        if (prev && this.isVehicle() && this.getRandom().nextFloat() < 0.65F) {\n            this.ejectPassengers();\n            return true;\n        } else {\n            return prev;\n        }\n    }\n\n    public boolean isAttackable() {\n        return super.isAttackable() && !this.isBuried();\n    }\n\n    public void postSacrifice(UnderzealotSacrifice sacrifice) {\n        this.playSound(ACSoundRegistry.UNDERZEALOT_TRANSFORMATION.get(), 8.0F, 1.0F);\n        sacrificeCooldown = 6000 + random.nextInt(6000);\n        float advancementRange = 64.0F;\n        for (Player player : level().getEntitiesOfClass(Player.class, this.getBoundingBox().inflate(advancementRange))) {\n            if (player.distanceTo(this) < advancementRange) {\n                ACAdvancementTriggerRegistry.UNDERZEALOT_SACRIFICE.triggerForEntity(player);\n            }\n        }\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return this.isCarrying() || this.isPraying() || this.isBuried() ? super.getAmbientSound() : ACSoundRegistry.UNDERZEALOT_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSource) {\n        return ACSoundRegistry.UNDERZEALOT_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return ACSoundRegistry.UNDERZEALOT_DEATH.get();\n    }\n\n    public void jumpFromGround() {\n        super.jumpFromGround();\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/VesperEntity.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/VesperEntity.java#L1-L456",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/VesperEntity.java",
+      "file_sha256": "b19b1a92d5515865dc3173effc5dc2f2c6367c9b06928be4fba4cef0c2bb5f8f",
+      "git_blob_sha1": "c5f3f826a0544bbfd57bba6ab60a39bac6ad3a94",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        456
+      ],
+      "total_file_lines": 456,
+      "full_file": true,
+      "raw_excerpt_sha256": "b19b1a92d5515865dc3173effc5dc2f2c6367c9b06928be4fba4cef0c2bb5f8f",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.living;\n\nimport com.github.alexmodguy.alexscaves.client.particle.ACParticleRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ACEntityRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.FlightPathNavigatorNoSpin;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.VesperAttackGoal;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.VesperFlyAndHangGoal;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.VesperTargetUnderneathEntities;\nimport com.github.alexmodguy.alexscaves.server.entity.util.UnderzealotSacrifice;\nimport com.github.alexmodguy.alexscaves.server.misc.ACSoundRegistry;\nimport com.github.alexthe666.citadel.animation.Animation;\nimport com.github.alexthe666.citadel.animation.AnimationHandler;\nimport com.github.alexthe666.citadel.animation.IAnimatedEntity;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.RandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.GroundPathNavigation;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\npublic class VesperEntity extends Monster implements IAnimatedEntity, UnderzealotSacrifice {\n\n    private static final EntityDataAccessor<Boolean> FLYING = SynchedEntityData.defineId(VesperEntity.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> HANGING = SynchedEntityData.defineId(VesperEntity.class, EntityDataSerializers.BOOLEAN);\n    public static final Animation ANIMATION_BITE = Animation.create(15);\n    private float flyProgress;\n    private float prevFlyProgress;\n    private float sleepProgress;\n    private float prevSleepProgress;\n    private float capturedProgress;\n    private float prevCapturedProgress;\n    private float groundProgress = 5.0F;\n    private float prevGroundProgress = 5.0F;\n    private boolean validHangingPos = false;\n    private int checkHangingTime;\n    private BlockPos prevHangPos;\n    public int timeHanging = 0;\n    public int timeFlying = 0;\n    private float flightPitch = 0;\n    private float prevFlightPitch = 0;\n    private float flightRoll = 0;\n    private float prevFlightRoll = 0;\n    private Animation currentAnimation;\n    private int animationTick;\n    public int groundedFor = 0;\n    private boolean isLandNavigator;\n    private boolean isBeingSacrificed = false;\n    private int sacrificeTime = 0;\n    private int lastTargetId = -1;\n\n    public VesperEntity(EntityType entityType, Level level) {\n        super(entityType, level);\n        switchNavigator(true);\n    }\n\n    public static AttributeSupplier.Builder createAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D).add(Attributes.MAX_HEALTH, 16.0D).add(Attributes.ATTACK_DAMAGE, 3.0D).add(Attributes.FOLLOW_RANGE, 52);\n    }\n\n    private void switchNavigator(boolean onLand) {\n        if (onLand) {\n            this.moveControl = new MoveControl(this);\n            this.navigation = new GroundPathNavigation(this, level());\n            this.isLandNavigator = true;\n        } else {\n            this.moveControl = new MoveController();\n            this.navigation = new FlightPathNavigatorNoSpin(this, level(), 1.0F);\n            this.isLandNavigator = false;\n        }\n    }\n\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new VesperAttackGoal(this));\n        this.goalSelector.addGoal(2, new RandomStrollGoal(this, 1.0D, 15, false) {\n\n            @Override\n            public boolean canUse() {\n                return !VesperEntity.this.isFlying() && !VesperEntity.this.isHanging() && super.canUse();\n            }\n\n            @Override\n            public boolean canContinueToUse() {\n                return !VesperEntity.this.isFlying() && !VesperEntity.this.isHanging() && super.canContinueToUse();\n            }\n        });\n        this.goalSelector.addGoal(3, new VesperFlyAndHangGoal(this));\n        this.goalSelector.addGoal(4, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new HurtByTargetGoal(this));\n        this.targetSelector.addGoal(2, new VesperTargetUnderneathEntities(this, 20, Player.class));\n        this.targetSelector.addGoal(3, new VesperTargetUnderneathEntities(this, 32, GloomothEntity.class));\n\n    }\n\n    @Override\n    public void tick() {\n        super.tick();\n        prevFlyProgress = flyProgress;\n        prevSleepProgress = sleepProgress;\n        prevGroundProgress = groundProgress;\n        prevCapturedProgress = capturedProgress;\n        prevFlightPitch = flightPitch;\n        prevFlightRoll = flightRoll;\n        if (isFlying() && flyProgress < 5F) {\n            flyProgress++;\n        }\n        if (!isFlying() && flyProgress > 0F) {\n            flyProgress--;\n        }\n        if (onGround() && groundProgress < 5F) {\n            groundProgress++;\n        }\n        if (!onGround() && groundProgress > 0F) {\n            groundProgress--;\n        }\n        if (isHanging() && sleepProgress < 5F) {\n            sleepProgress++;\n        }\n        if (!isHanging() && sleepProgress > 0F) {\n            sleepProgress--;\n        }\n        boolean captured = this.isPassenger();\n        if (captured && capturedProgress < 5F) {\n            capturedProgress++;\n        }\n        if (!captured && capturedProgress > 0F) {\n            capturedProgress--;\n        }\n        if (!level().isClientSide) {\n            if (captured) {\n                this.setFlying(false);\n                this.setHanging(false);\n            }\n            if (this.isHanging()) {\n                BlockPos above = posAbove();\n                if (checkHangingTime-- < 0 || random.nextFloat() < 0.1F || prevHangPos != above) {\n                    validHangingPos = canHangFrom(above, level().getBlockState(above));\n                    checkHangingTime = 5 + random.nextInt(5);\n                    prevHangPos = above;\n                }\n                if (validHangingPos) {\n                    this.setDeltaMovement(this.getDeltaMovement().multiply(0.1F, 0.3F, 0.1F).add(0, 0.08D, 0));\n                } else {\n                    this.setHanging(false);\n                    this.setFlying(true);\n                }\n                timeHanging++;\n            } else {\n                timeHanging = 0;\n                validHangingPos = false;\n                prevHangPos = null;\n            }\n            if (this.isFlying()) {\n                if(timeFlying % 10 == 0){\n                    this.playSound(ACSoundRegistry.VESPER_FLAP.get());\n                }\n                timeFlying++;\n                this.setNoGravity(true);\n                if (this.isLandNavigator) {\n                    switchNavigator(false);\n                }\n                if (groundedFor > 0) {\n                    this.setFlying(false);\n                }\n            } else {\n                timeFlying = 0;\n                this.setNoGravity(false);\n                if (!this.isLandNavigator) {\n                    switchNavigator(true);\n                }\n            }\n            LivingEntity target = getTarget();\n            if(target == null || !target.isAlive()){\n                lastTargetId = -1;\n            }else if(target.getId() != lastTargetId){\n                lastTargetId = target.getId();\n                this.playSound(ACSoundRegistry.VESPER_SCREAM.get(), 3.0F, 1.0F);\n            }\n        }\n        if (groundedFor > 0) {\n            groundedFor--;\n        }\n        AnimationHandler.INSTANCE.updateAnimations(this);\n        tickRotation((float) this.getDeltaMovement().y * 2 * -(float) (180F / (float) Math.PI));\n        if (isBeingSacrificed && this.isPassenger() && !level().isClientSide) {\n            sacrificeTime--;\n            if (sacrificeTime < 10) {\n                this.level().broadcastEntityEvent(this, (byte) 61);\n            }\n            if (sacrificeTime < 0) {\n                if (this.isPassenger() && this.getVehicle() instanceof UnderzealotEntity underzealot) {\n                    underzealot.postSacrifice(this);\n                    underzealot.triggerIdleDigging();\n                }\n                this.stopRiding();\n                ForsakenEntity forsakenEntity = this.convertTo(ACEntityRegistry.FORSAKEN.get(), true);\n                if (forsakenEntity != null) {\n                    this.playSound(ACSoundRegistry.FORSAKEN_SPAWN.get(), 8.0F, 1.0F);\n                    forsakenEntity.setAnimation(ForsakenEntity.ANIMATION_SUMMON);\n                    net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, forsakenEntity);\n                    forsakenEntity.stopRiding();\n                }\n            }\n        }\n    }\n\n    public void handleEntityEvent(byte b) {\n        if (b == 61) {\n            for (int i = 0; i < 1 + random.nextInt(4); i++) {\n                this.level().addParticle(ACParticleRegistry.UNDERZEALOT_EXPLOSION.get(), this.getRandomX(1), this.getRandomY(), this.getRandomZ(1), 0, 0, 0);\n            }\n        } else {\n            super.handleEntityEvent(b);\n        }\n    }\n\n    private void tickRotation(float yMov) {\n        flightPitch = yMov;\n        float threshold = 1F;\n        boolean flag = false;\n        if (isFlying() && this.yRotO - this.getYRot() > threshold) {\n            flightRoll += 10;\n            flag = true;\n        }\n        if (isFlying() && this.yRotO - this.getYRot() < -threshold) {\n            flightRoll -= 10;\n            flag = true;\n        }\n        if (!flag) {\n            if (flightRoll > 0) {\n                flightRoll = Math.max(flightRoll - 5, 0);\n            }\n            if (flightRoll < 0) {\n                flightRoll = Math.min(flightRoll + 5, 0);\n            }\n        }\n        flightRoll = Mth.clamp(flightRoll, -60, 60);\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(FLYING, false);\n        this.entityData.define(HANGING, false);\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    public boolean isFlying() {\n        return this.entityData.get(FLYING);\n    }\n\n    public void setFlying(boolean flying) {\n        this.entityData.set(FLYING, flying);\n    }\n\n    public boolean isHanging() {\n        return this.entityData.get(HANGING);\n    }\n\n    public void setHanging(boolean hanging) {\n        this.entityData.set(HANGING, hanging);\n    }\n\n    public float getFlightPitch(float partialTick) {\n        return (prevFlightPitch + (flightPitch - prevFlightPitch) * partialTick);\n    }\n\n    public float getFlightRoll(float partialTick) {\n        return (prevFlightRoll + (flightRoll - prevFlightRoll) * partialTick);\n    }\n\n    public float getCapturedProgress(float partialTick) {\n        return (prevCapturedProgress + (capturedProgress - prevCapturedProgress) * partialTick) * 0.2F;\n    }\n\n    public float getSleepProgress(float partialTick) {\n        return (prevSleepProgress + (sleepProgress - prevSleepProgress) * partialTick) * 0.2F;\n    }\n\n    public float getFlyProgress(float partialTick) {\n        return (prevFlyProgress + (flyProgress - prevFlyProgress) * partialTick) * 0.2F;\n    }\n\n    public float getGroundProgress(float partialTick) {\n        return (prevGroundProgress + (groundProgress - prevGroundProgress) * partialTick) * 0.2F;\n    }\n\n    public boolean canHangFrom(BlockPos pos, BlockState state) {\n        return state.isFaceSturdy(level(), pos, Direction.DOWN) && level().isEmptyBlock(pos.below()) && level().isEmptyBlock(pos.below(2));\n    }\n\n    public BlockPos posAbove() {\n        return BlockPos.containing(this.getX(), this.getBoundingBox().maxY + 0.1F, this.getZ());\n    }\n\n\n    @Override\n    public int getAnimationTick() {\n        return animationTick;\n    }\n\n    @Override\n    public void setAnimationTick(int tick) {\n        animationTick = tick;\n    }\n\n    @Override\n    public Animation getAnimation() {\n        return currentAnimation;\n    }\n\n    @Override\n    public void setAnimation(Animation animation) {\n        currentAnimation = animation;\n    }\n\n    @Override\n    public Animation[] getAnimations() {\n        return new Animation[]{ANIMATION_BITE};\n    }\n\n\n    public AABB getBoundingBoxForCulling() {\n        return this.getBoundingBox().inflate(3, 3, 3);\n    }\n\n    public boolean shouldRenderAtSqrDistance(double distance) {\n        return Math.sqrt(distance) < 1024.0D;\n    }\n\n    public void calculateEntityAnimation(boolean flying) {\n        float f1 = (float) Mth.length(this.getX() - this.xo, this.getY() - this.yo, this.getZ() - this.zo);\n        float f2 = Math.min(f1 * 4.0F, 1.0F);\n        this.walkAnimation.update(f2, 0.4F);\n    }\n\n    private void doInitialPosing(LevelAccessor world) {\n        BlockPos above = this.blockPosition();\n        int upBy = 100;\n        int k = 0;\n        while (world.isEmptyBlock(above) && above.getY() < level().getMaxBuildHeight() && k < upBy) {\n            above = above.above();\n            k++;\n        }\n        if (world.isEmptyBlock(above)) {\n            this.setFlying(true);\n        } else {\n            this.setHanging(true);\n        }\n        this.setPos(above.getX() + 0.5F, above.getY() - this.getBoundingBox().getYsize(), above.getZ() + 0.5F);\n    }\n\n    @javax.annotation.Nullable\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor worldIn, DifficultyInstance difficultyIn, MobSpawnType reason, @javax.annotation.Nullable SpawnGroupData spawnDataIn, @javax.annotation.Nullable CompoundTag dataTag) {\n        if (reason == MobSpawnType.NATURAL) {\n            doInitialPosing(worldIn);\n        }\n        return super.finalizeSpawn(worldIn, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n    public static boolean checkVesperSpawnRules(EntityType<? extends Monster> entityType, ServerLevelAccessor levelAccessor, MobSpawnType mobSpawnType, BlockPos blockPos, RandomSource randomSource) {\n        if (checkMonsterSpawnRules(entityType, levelAccessor, mobSpawnType, blockPos, randomSource)) {\n            BlockPos.MutableBlockPos above = new BlockPos.MutableBlockPos();\n            above.set(blockPos);\n            int k = 0;\n            while (levelAccessor.isEmptyBlock(above) && above.getY() < levelAccessor.getMaxBuildHeight()) {\n                above.move(0, 1, 0);\n                k++;\n                if (k > 5) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    @Override\n    public void triggerSacrificeIn(int time) {\n        isBeingSacrificed = true;\n        sacrificeTime = time;\n    }\n\n    @Override\n    public boolean isValidSacrifice(int distanceFromGround) {\n        return distanceFromGround < (isHanging() ? 3 : 9);\n    }\n\n    public int getAmbientSoundInterval() {\n        return this.isHanging() ? 80 : 140;\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return this.isHanging() ? ACSoundRegistry.VESPER_QUIET_IDLE.get() : ACSoundRegistry.VESPER_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSource) {\n        return ACSoundRegistry.VESPER_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return ACSoundRegistry.VESPER_DEATH.get();\n    }\n\n    class MoveController extends MoveControl {\n        private final Mob parentEntity;\n\n\n        public MoveController() {\n            super(VesperEntity.this);\n            this.parentEntity = VesperEntity.this;\n        }\n\n        public void tick() {\n            if (this.operation == MoveControl.Operation.MOVE_TO) {\n                Vec3 vector3d = new Vec3(this.wantedX - parentEntity.getX(), this.wantedY - parentEntity.getY(), this.wantedZ - parentEntity.getZ());\n                double d0 = vector3d.length();\n                double width = parentEntity.getBoundingBox().getSize();\n                Vec3 vector3d1 = vector3d.scale(this.speedModifier * 0.05D / d0);\n                parentEntity.setDeltaMovement(parentEntity.getDeltaMovement().add(vector3d1).scale(0.95D).add(0, -0.01, 0));\n                if (d0 < width) {\n                    this.operation = Operation.WAIT;\n                } else if (d0 >= width) {\n                    float yaw = -((float) Mth.atan2(vector3d1.x, vector3d1.z)) * (180F / (float) Math.PI);\n                    parentEntity.setYRot(Mth.approachDegrees(parentEntity.getYRot(), yaw, 8));\n                }\n            }\n        }\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/GloomothEntity.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/GloomothEntity.java#L1-L402",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/GloomothEntity.java",
+      "file_sha256": "f62c0e3d50d1b9cd42b95dea66f5e74af49f21072c08c15d4eed89b304171f30",
+      "git_blob_sha1": "f3b64f310cfc1b892974e704cc017b5b8c1eac5b",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        402
+      ],
+      "total_file_lines": 402,
+      "full_file": true,
+      "raw_excerpt_sha256": "f62c0e3d50d1b9cd42b95dea66f5e74af49f21072c08c15d4eed89b304171f30",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.living;\n\nimport com.github.alexmodguy.alexscaves.client.particle.ACParticleRegistry;\nimport com.github.alexmodguy.alexscaves.server.block.ACBlockRegistry;\nimport com.github.alexmodguy.alexscaves.server.block.MothBallBlock;\nimport com.github.alexmodguy.alexscaves.server.block.poi.ACPOIRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ACEntityRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.GloomothFindLightGoal;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.GloomothFleeMothBallsGoal;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.GloomothFlightGoal;\nimport com.github.alexmodguy.alexscaves.server.entity.util.UnderzealotSacrifice;\nimport com.github.alexmodguy.alexscaves.server.misc.ACSoundRegistry;\nimport com.github.alexmodguy.alexscaves.server.misc.ACTagRegistry;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;\nimport net.minecraft.world.entity.ai.navigation.GroundPathNavigation;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.ai.village.poi.PoiManager;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LightLayer;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\npublic class GloomothEntity extends PathfinderMob implements UnderzealotSacrifice {\n\n    private static final EntityDataAccessor<Boolean> FLYING = SynchedEntityData.defineId(GloomothEntity.class, EntityDataSerializers.BOOLEAN);\n    private float flyProgress;\n    private float prevFlyProgress;\n    private float flapAmount;\n    private float prevFlapAmount;\n    private float flightPitch = 0;\n    private float prevFlightPitch = 0;\n    private float flightRoll = 0;\n    private float prevFlightRoll = 0;\n    private boolean isLandNavigator;\n\n    public BlockPos lightPos;\n\n    private int refreshLightPosIn = 0;\n\n    private boolean isBeingSacrificed = false;\n    private int sacrificeTime = 0;\n\n    private int flapTime = 0;\n\n    public GloomothEntity(EntityType entityType, Level level) {\n        super(entityType, level);\n        switchNavigator(true);\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(FLYING, false);\n    }\n\n    private void switchNavigator(boolean onLand) {\n        if (onLand) {\n            this.moveControl = new MoveControl(this);\n            this.navigation = new GroundPathNavigation(this, level());\n            this.isLandNavigator = true;\n        } else {\n            this.moveControl = new FlightMoveHelper(this);\n            this.navigation = createNavigation(level());\n            this.isLandNavigator = false;\n        }\n    }\n\n    protected PathNavigation createNavigation(Level worldIn) {\n        return new FlyingPathNavigation(this, worldIn) {\n            public boolean isStableDestination(BlockPos blockPos) {\n                return this.level.getBlockState(blockPos).isAir();\n            }\n        };\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new GloomothFleeMothBallsGoal(this));\n        this.goalSelector.addGoal(2, new GloomothFindLightGoal(this, 32));\n        this.goalSelector.addGoal(3, new GloomothFlightGoal(this));\n    }\n\n    public static AttributeSupplier.Builder createAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.2D).add(Attributes.MAX_HEALTH, 4.0D);\n    }\n\n    @Override\n    public void tick() {\n        super.tick();\n        prevFlyProgress = flyProgress;\n        prevFlightPitch = flightPitch;\n        prevFlightRoll = flightRoll;\n        prevFlapAmount = flapAmount;\n        if (isFlying() && flyProgress < 5F) {\n            flyProgress++;\n        }\n        if (!isFlying() && flyProgress > 0F) {\n            flyProgress--;\n        }\n        float yMov = (float) this.getDeltaMovement().y;\n        float xzMov = (float) this.getDeltaMovement().horizontalDistance();\n        if (xzMov > 0) {\n            if (flapAmount < 5F) {\n                flapAmount += 1F;\n            }\n        } else if (xzMov <= 0.05F) {\n            if (flapAmount > 0) {\n                flapAmount -= 0.5F;\n            }\n        }\n        if (isFlying()) {\n            if (this.isLandNavigator) {\n                switchNavigator(false);\n            }\n            if(flapAmount > 0 && isAlive() && flapTime-- <= 0){\n                flapTime = 8 + random.nextInt(10);\n                this.playSound(ACSoundRegistry.GLOOMOTH_FLAP.get(), 0.7F, 1.0F);\n            }\n        } else {\n            if (!this.isLandNavigator) {\n                switchNavigator(true);\n            }\n        }\n        if (lightPos != null && this.isAlive() && !level().isClientSide) {\n            if (refreshLightPosIn-- < 0) {\n                refreshLightPosIn = 40 + random.nextInt(100);\n                if (this.distanceToSqr(Vec3.atCenterOf(lightPos)) >= 256 || !level().getBlockState(lightPos).is(ACTagRegistry.GLOOMOTH_LIGHT_SOURCES) || level().getLightEmission(lightPos) <= 0) {\n                    lightPos = null;\n                }\n            }\n        }\n        tickRotation(yMov * 2.5F * -(float) (180F / (float) Math.PI));\n        if (isBeingSacrificed && !level().isClientSide) {\n            sacrificeTime--;\n            if (sacrificeTime < 10) {\n                this.level().broadcastEntityEvent(this, (byte) 61);\n            }\n            if (sacrificeTime < 0) {\n                if (this.isPassenger() && this.getVehicle() instanceof UnderzealotEntity underzealot) {\n                    underzealot.postSacrifice(this);\n                    underzealot.triggerIdleDigging();\n                }\n                this.stopRiding();\n                WatcherEntity watcherEntity = this.convertTo(ACEntityRegistry.WATCHER.get(), true);\n                this.playSound(ACSoundRegistry.WATCHER_SPAWN.get(), 8.0F, 1.0F);\n                if (watcherEntity != null) {\n                    net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, watcherEntity);\n                    watcherEntity.stopRiding();\n                }\n            }\n        }\n    }\n\n    public void handleEntityEvent(byte b) {\n        if (b == 61) {\n            for (int i = 0; i < 1 + random.nextInt(4); i++) {\n                this.level().addParticle(ACParticleRegistry.UNDERZEALOT_EXPLOSION.get(), this.getRandomX(1), this.getRandomY(), this.getRandomZ(1), 0, 0, 0);\n            }\n        } else {\n            super.handleEntityEvent(b);\n        }\n    }\n\n    private void tickRotation(float yMov) {\n        flightPitch = yMov;\n        float threshold = 1F;\n        boolean flag = false;\n        if (isFlying() && this.yRotO - this.getYRot() > threshold) {\n            flightRoll += 10;\n            flag = true;\n        }\n        if (isFlying() && this.yRotO - this.getYRot() < -threshold) {\n            flightRoll -= 10;\n            flag = true;\n        }\n        if (!flag) {\n            if (flightRoll > 0) {\n                flightRoll = Math.max(flightRoll - 5, 0);\n            }\n            if (flightRoll < 0) {\n                flightRoll = Math.min(flightRoll + 5, 0);\n            }\n        }\n        flightRoll = Mth.clamp(flightRoll, -60, 60);\n    }\n\n    public boolean isFlying() {\n        return this.entityData.get(FLYING);\n    }\n\n    public void setFlying(boolean flying) {\n        if (flying && this.isBaby()) {\n            flying = false;\n        }\n        this.entityData.set(FLYING, flying);\n    }\n\n    public float getFlapAmount(float partialTick) {\n        return (prevFlapAmount + (flapAmount - prevFlapAmount) * partialTick) * 0.2F;\n    }\n\n    public float getFlyProgress(float partialTick) {\n        return (prevFlyProgress + (flyProgress - prevFlyProgress) * partialTick) * 0.2F;\n    }\n\n    public float getFlightPitch(float partialTick) {\n        return (prevFlightPitch + (flightPitch - prevFlightPitch) * partialTick);\n    }\n\n    public float getFlightRoll(float partialTick) {\n        return (prevFlightRoll + (flightRoll - prevFlightRoll) * partialTick);\n    }\n\n    public boolean causeFallDamage(float distance, float damageMultiplier) {\n        return false;\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    protected void playStepSound(BlockPos pos, BlockState state) {\n    }\n\n    public AABB getBoundingBoxForCulling() {\n        return this.getBoundingBox().inflate(2, 2, 2);\n    }\n\n    public boolean shouldRenderAtSqrDistance(double distance) {\n        return Math.sqrt(distance) < 1024.0D;\n    }\n\n    public void calculateEntityAnimation(boolean flying) {\n        float f1 = (float) Mth.length(this.getX() - this.xo, this.getY() - this.yo, this.getZ() - this.zo);\n        float f2 = Math.min(f1 * 6.0F, 1.0F);\n        this.walkAnimation.update(f2, 0.4F);\n    }\n\n    public MobType getMobType() {\n        return MobType.ARTHROPOD;\n    }\n\n    @Override\n    protected void dropFromLootTable(DamageSource damageSource, boolean idk) {\n        if(!(damageSource.getEntity() instanceof ForsakenEntity || damageSource.getEntity() instanceof VesperEntity)){\n            super.dropFromLootTable(damageSource, idk);\n        }\n    }\n\n    public static boolean isValidLightLevel(ServerLevelAccessor levelAccessor, BlockPos blockPos, RandomSource randomSource) {\n        if (levelAccessor.getBrightness(LightLayer.SKY, blockPos) > randomSource.nextInt(32)) {\n            return false;\n        } else {\n            int lvt_3_1_ = levelAccessor.getLevel().isThundering() ? levelAccessor.getMaxLocalRawBrightness(blockPos, 10) : levelAccessor.getMaxLocalRawBrightness(blockPos);\n            return lvt_3_1_ <= randomSource.nextInt(8);\n        }\n    }\n\n    public static boolean canMonsterSpawnInLight(EntityType<GloomothEntity> entityType, ServerLevelAccessor levelAccessor, MobSpawnType mobSpawnType, BlockPos blockPos, RandomSource randomSource) {\n        return isValidLightLevel(levelAccessor, blockPos, randomSource) && checkMobSpawnRules(entityType, levelAccessor, mobSpawnType, blockPos, randomSource);\n    }\n\n    public static <T extends Mob> boolean checkGloomothSpawnRules(EntityType<GloomothEntity> entityType, ServerLevelAccessor iServerWorld, MobSpawnType reason, BlockPos pos, RandomSource random) {\n        if (canMonsterSpawnInLight(entityType, iServerWorld, reason, pos, random)) {\n            BlockPos.MutableBlockPos above = new BlockPos.MutableBlockPos();\n            above.set(pos);\n            int k = 0;\n            while (iServerWorld.isEmptyBlock(above) && above.getY() < iServerWorld.getMaxBuildHeight()) {\n                above.move(0, 1, 0);\n                k++;\n                if (k > 4) {\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    public BlockPos getNearestMothBall(ServerLevel world, BlockPos to, int range) {\n        PoiManager pointofinterestmanager = world.getPoiManager();\n        return pointofinterestmanager.findClosest(poiTypeHolder -> poiTypeHolder.is(ACPOIRegistry.MOTH_BALL.getKey()), blockPos -> isWithinMothBallRange(blockPos, range), to, range, PoiManager.Occupancy.ANY).orElse(null);\n    }\n\n    private boolean isWithinMothBallRange(BlockPos blockPos, int range) {\n        BlockState state = level().getBlockState(blockPos);\n        if (state.is(ACBlockRegistry.MOTH_BALL.get())) {\n            float balls = state.getValue(MothBallBlock.BALLS) / 5F;\n            int distance = (int) Math.sqrt(blockPos.distSqr(this.blockPosition()));\n            return distance < balls * range;\n        }\n        return false;\n    }\n\n    @Override\n    public void triggerSacrificeIn(int time) {\n        isBeingSacrificed = true;\n        sacrificeTime = time;\n    }\n\n    @Override\n    public boolean isValidSacrifice(int distanceFromGround) {\n        return distanceFromGround < 4;\n    }\n\n    private void doInitialPosing(LevelAccessor world) {\n        BlockPos above = this.blockPosition();\n        int upBy = 3 + random.nextInt(5);\n        int k = 0;\n        while (world.isEmptyBlock(above) && above.getY() < level().getMaxBuildHeight() && k < upBy) {\n            above = above.above();\n            k++;\n        }\n        this.setFlying(true);\n        this.setPos(above.getX() + 0.5F, above.getY(), above.getZ() + 0.5F);\n    }\n\n    @javax.annotation.Nullable\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor worldIn, DifficultyInstance difficultyIn, MobSpawnType reason, @javax.annotation.Nullable SpawnGroupData spawnDataIn, @javax.annotation.Nullable CompoundTag dataTag) {\n        if (reason == MobSpawnType.NATURAL) {\n            doInitialPosing(worldIn);\n        }\n        return super.finalizeSpawn(worldIn, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n\n    protected SoundEvent getHurtSound(DamageSource damageSource) {\n        return ACSoundRegistry.GLOOMOTH_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return ACSoundRegistry.GLOOMOTH_DEATH.get();\n    }\n\n    class FlightMoveHelper extends MoveControl {\n\n        public FlightMoveHelper(GloomothEntity gloomoth) {\n            super(gloomoth);\n        }\n\n        public void tick() {\n            int maxRotChange = 10;\n            boolean flag = false;\n            if (this.operation == Operation.MOVE_TO && !this.mob.getNavigation().isDone()) {\n                //Vec3 ed = this.mob.getNavigation().getTargetPos().getCenter();\n                //((ServerLevel)mob.level).sendParticles(ParticleTypes.HEART, ed.x, ed.y, ed.z, 0, 0, 0, 0, 1);\n                //((ServerLevel)mob.level).sendParticles(ParticleTypes.SNEEZE, wantedX, wantedY, wantedZ, 0, 0, 0, 0, 1);\n                double d0 = this.wantedX - this.mob.getX();\n                double d1 = this.wantedY - this.mob.getY();\n                double d2 = this.wantedZ - this.mob.getZ();\n                double d3 = Mth.sqrt((float) (d0 * d0 + d1 * d1 + d2 * d2));\n                double d4 = Mth.sqrt((float) (d0 * d0 + d2 * d2));\n                d1 /= d3;\n                this.mob.yBodyRot = this.mob.getYRot();\n                float f1 = (float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED) * 3);\n                float rotBy = maxRotChange;\n                this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0D, (double) f1 * d1 * 0.025D, 0.0D));\n                if (d4 < this.mob.getBbWidth() + 1.4F) {\n                    f1 *= 0.7F;\n                    if (d4 < 0.3F) {\n                        rotBy = 0;\n                    } else {\n                        rotBy = Math.max(40, maxRotChange);\n                    }\n                } else {\n                    flag = true;\n                }\n                float f = (float) (Mth.atan2(d2, d0) * 57.2957763671875D) - 90.0F;\n                this.mob.setYRot(this.rotlerp(this.mob.getYRot(), f, rotBy));\n                if (d3 > 0.3) {\n                    this.mob.setSpeed(f1);\n                    flag = true;\n                } else {\n                    this.mob.setSpeed(0.0F);\n                }\n            } else {\n                this.mob.setSpeed(0.0F);\n            }\n            this.mob.setNoGravity(flag);\n        }\n    }\n\n\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotCaptureSacrificeGoal.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotCaptureSacrificeGoal.java#L1-L97",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotCaptureSacrificeGoal.java",
+      "file_sha256": "b89b6470fdf86e0051fbdd9888cce080c5fa1a182ee981deba3dc55ab5b2a10e",
+      "git_blob_sha1": "a7fa7b0f2f239e42a82bcbafc2b9b09c4461afad",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        97
+      ],
+      "total_file_lines": 97,
+      "full_file": true,
+      "raw_excerpt_sha256": "b89b6470fdf86e0051fbdd9888cce080c5fa1a182ee981deba3dc55ab5b2a10e",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.ai;\n\nimport com.github.alexmodguy.alexscaves.server.entity.living.UnderzealotEntity;\nimport com.github.alexmodguy.alexscaves.server.entity.living.VesperEntity;\nimport com.github.alexmodguy.alexscaves.server.entity.util.UnderzealotSacrifice;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.EnumSet;\nimport java.util.List;\n\npublic class UnderzealotCaptureSacrificeGoal extends Goal {\n    private UnderzealotEntity entity;\n    private LivingEntity sacrifice;\n\n    private int validTimeCheck = 0;\n\n    public UnderzealotCaptureSacrificeGoal(UnderzealotEntity underzealot) {\n        this.entity = underzealot;\n        this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));\n    }\n\n    @Override\n    public boolean canUse() {\n        LivingEntity target = entity.getTarget();\n        long worldTime = entity.level().getGameTime() % 10;\n        if (entity.isCarrying() || entity.isPackFollower() || entity.sacrificeCooldown > 0) {\n            return false;\n        }\n        if ((worldTime != 0 || entity.getRandom().nextInt(3) != 0) && (target == null || !target.isAlive())) {\n            return false;\n        }\n        AABB aabb = entity.getBoundingBox().inflate(20);\n        List<LivingEntity> list = entity.level().getEntitiesOfClass(LivingEntity.class, aabb, this::isFirstValidSacrifice);\n        if (!list.isEmpty()) {\n            LivingEntity closest = null;\n            for (LivingEntity mob : list) {\n                if ((closest == null || mob.distanceToSqr(entity) < closest.distanceToSqr(entity)) && entity.hasLineOfSight(mob)) {\n                    closest = mob;\n                }\n            }\n            sacrifice = closest;\n            return sacrifice != null;\n        }\n        return false;\n    }\n\n    private boolean isFirstValidSacrifice(LivingEntity entity) {\n        return isValidSacrifice(entity) && (entity instanceof VesperEntity || entity.getRandom().nextInt(4) == 0);\n    }\n\n    private boolean isValidSacrifice(LivingEntity entity) {\n        return entity instanceof UnderzealotSacrifice sacrifice && !entity.isPassenger() && sacrifice.isValidSacrifice(getDistanceToGround(entity));\n    }\n\n    private int getDistanceToGround(LivingEntity entity) {\n        int downBy = 0;\n        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(entity.getBlockX(), entity.getBlockY(), entity.getBlockZ());\n        while (entity.level().isEmptyBlock(pos) && pos.getY() > entity.level().getMinBuildHeight()) {\n            pos.move(0, -1, 0);\n            downBy++;\n        }\n        return downBy;\n    }\n\n    @Override\n    public boolean canContinueToUse() {\n        return sacrifice != null && sacrifice.isAlive() && !sacrifice.isPassenger() && !entity.isPackFollower() && entity.distanceTo(sacrifice) < 32 && entity.sacrificeCooldown <= 0;\n    }\n\n    public void stop() {\n        this.entity.getNavigation().stop();\n    }\n\n    public void start() {\n        validTimeCheck = 0;\n    }\n\n    public void tick() {\n        double distance = entity.distanceTo(sacrifice);\n        entity.getNavigation().moveTo(sacrifice, 1.0F);\n        if (distance < 1.4F) {\n            sacrifice.startRiding(entity);\n        }\n        Vec3 sub = sacrifice.position().subtract(entity.position());\n        if (!entity.isBuried() && sub.y > 0.5F && sub.horizontalDistance() < 2.0F && entity.onGround()) {\n            entity.jumpFromGround();\n        }\n        validTimeCheck++;\n        if (validTimeCheck % 100 == 0 && !isValidSacrifice(sacrifice)) {\n            sacrifice = null;\n        }\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotSacrificeGoal.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotSacrificeGoal.java#L1-L245",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotSacrificeGoal.java",
+      "file_sha256": "8f4953900e65599cb34d3f58dd60d3990a3d4551d026f01266c481429764d914",
+      "git_blob_sha1": "336bbd7d0d904ddd70cd806f70e692a40736edfb",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        245
+      ],
+      "total_file_lines": 245,
+      "full_file": true,
+      "raw_excerpt_sha256": "8f4953900e65599cb34d3f58dd60d3990a3d4551d026f01266c481429764d914",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.ai;\n\nimport com.github.alexmodguy.alexscaves.server.entity.living.UnderzealotEntity;\nimport com.github.alexmodguy.alexscaves.server.entity.util.PackAnimal;\nimport com.github.alexmodguy.alexscaves.server.entity.util.UnderzealotSacrifice;\nimport net.minecraft.commands.arguments.EntityAnchorArgument;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.level.pathfinder.Node;\nimport net.minecraft.world.level.pathfinder.Path;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.EnumSet;\n\npublic class UnderzealotSacrificeGoal extends Goal {\n\n    private final UnderzealotEntity entity;\n    private int executionCooldown = 10;\n    private int attemptToFollowTicks = 0;\n    private BlockPos center;\n\n    public UnderzealotSacrificeGoal(UnderzealotEntity entity) {\n        this.setFlags(EnumSet.of(Flag.MOVE, Flag.LOOK));\n        this.entity = entity;\n    }\n\n    @Override\n    public boolean canUse() {\n        if (entity.sacrificeCooldown > 0) {\n            return false;\n        }\n        if (entity.isPackFollower()) {\n            UnderzealotEntity leader = (UnderzealotEntity) entity.getPackLeader();\n            if (leader.isCarrying() && leader.getLastSacrificePos() != null && leader.distanceToSqr(Vec3.atCenterOf(leader.getLastSacrificePos())) < 2.5F) {\n                center = leader.getLastSacrificePos();\n                return true;\n            }\n        } else if (entity.isCarrying()) {\n            if (executionCooldown-- > 0) {\n                return false;\n            } else {\n                executionCooldown = 20 + entity.getRandom().nextInt(100);\n                BlockPos pos = null;\n                if (entity.getLastSacrificePos() != null) {\n                    if (isValidSacrificePos(entity.getLastSacrificePos())) {\n                        executionCooldown = 10;\n                        pos = entity.getLastSacrificePos();\n                    } else {\n                        entity.setLastSacrificePos(null);\n                    }\n                }\n                if (pos == null) {\n                    pos = findNearestSacrificePos();\n                }\n                if (pos != null) {\n                    center = pos;\n                    entity.setLastSacrificePos(center);\n                    return true;\n                }\n            }\n        }\n        return false;\n    }\n\n    private BlockPos findNearestSacrificePos() {\n        BlockPos.MutableBlockPos check = new BlockPos.MutableBlockPos();\n        check.move(entity.blockPosition());\n        check.move(0, -1, 0);\n        if (isValidSacrificePos(check)) {\n            return check.immutable();\n        }\n        for (int i = 0; i < 20; i++) {\n            check.move(entity.blockPosition());\n            check.move(entity.getRandom().nextInt(20) - 10, 5, entity.getRandom().nextInt(20) - 10);\n            if (!entity.level().isLoaded(check)) {\n                continue;\n            }\n            while (entity.level().isEmptyBlock(check) && check.getY() > entity.level().getMinBuildHeight()) {\n                check.move(0, -1, 0);\n            }\n            if (isValidSacrificePos(check) && canReach(check)) {\n                return check.immutable();\n            }\n        }\n        return null;\n    }\n\n    public boolean canReach(BlockPos target) {\n        Path path = this.entity.getNavigation().createPath(target, 0);\n        if (path == null) {\n            return false;\n        } else {\n            Node node = path.getEndNode();\n            if (node == null) {\n                return false;\n            } else {\n                int i = node.x - target.getX();\n                int j = node.y - target.getY();\n                int k = node.z - target.getZ();\n                return (double) (i * i + j * j + k * k) <= 3D;\n            }\n        }\n    }\n\n    private boolean isValidSacrificePos(BlockPos pos) {\n        if (entity.level().isEmptyBlock(pos)) {\n            return false;\n        }\n        BlockPos.MutableBlockPos aboveGround = new BlockPos.MutableBlockPos();\n        BlockPos.MutableBlockPos below = new BlockPos.MutableBlockPos();\n        int badSpots = 0;\n        for (int i = -2; i <= -2; i++) {\n            for (int j = -2; j <= -2; j++) {\n                aboveGround.set(pos.getX() + i, pos.getY() + 1, pos.getZ() + j);\n                below.set(pos.getX() + i, pos.getY(), pos.getZ() + j);\n                if (entity.level().isEmptyBlock(below)) {\n                    badSpots++;\n                }\n                if (badSpots > 5) {\n                    return false;\n                }\n            }\n        }\n        return true;\n    }\n\n    @Override\n    public boolean canContinueToUse() {\n        if (center == null) {\n            return false;\n        }\n        if (entity.sacrificeCooldown > 0) {\n            return false;\n        }\n        if (entity.isPackFollower()) {\n            UnderzealotEntity leader = (UnderzealotEntity) entity.getPackLeader();\n            return leader != null && leader.isCarrying() && leader.distanceToSqr(Vec3.atCenterOf(center)) < 5F;\n        } else {\n            return entity.isCarrying();\n        }\n    }\n\n    public void tick() {\n        if (this.entity.isDiggingInProgress() || this.entity.isBuried()) {\n            this.entity.setPraying(false);\n            return;\n        }\n        if (center != null) {\n            int worshippingTicks = this.entity.getWorshipTime();\n            if (entity.isPackFollower()) {\n                UnderzealotEntity leader = (UnderzealotEntity) entity.getPackLeader();\n                float f = getPackPosition() / ((float) entity.getPackSize() - 1);\n                Vec3 offset = new Vec3(2, 0, 0).yRot(f * ((float) Math.PI * 2F));\n                Vec3 at = groundOf(Vec3.atCenterOf(center).add(offset));\n                entity.getNavigation().moveTo(at.x, at.y, at.z, 1);\n                if (entity.isPraying()) {\n                    attemptToFollowTicks = 0;\n                } else if ((entity.getNavigation().isStuck() || attemptToFollowTicks > 60) && this.entity.distanceToSqr(at) > 8) {\n                    entity.setBuried(true);\n                    entity.reemergeAt(BlockPos.containing(at).above(), 20 + entity.getRandom().nextInt(20));\n                }\n                if (leader != null && leader.sacrificeCooldown > 0) {\n                    this.entity.sacrificeCooldown = leader.sacrificeCooldown;\n                }\n                if (leader != null && this.entity.distanceToSqr(at) < 4) {\n                    entity.setPraying(true);\n                    Vec3 slightOffset = at.subtract(entity.position());\n                    if (slightOffset.length() > 1F) {\n                        slightOffset = slightOffset.normalize();\n                    }\n                    this.entity.setDeltaMovement(this.entity.getDeltaMovement().add(slightOffset.scale(0.04F)));\n                    entity.lookAt(EntityAnchorArgument.Anchor.EYES, Vec3.atCenterOf(center));\n                    BlockPos pos = leader.getLastSacrificePos() == null ? leader.blockPosition().above(5) : leader.getLastSacrificePos().above(5);\n                    this.entity.setParticlePos(pos);\n                    entity.level().broadcastEntityEvent(entity, (byte) 77);\n                    if (worshippingTicks % 10 == 0) {\n                        this.entity.level().broadcastEntityEvent(entity, (byte) 61);\n                    }\n                    this.entity.setWorshipTime(worshippingTicks + 1);\n                } else {\n                    this.entity.setWorshipTime(0);\n                    attemptToFollowTicks++;\n                }\n            } else {\n                this.entity.setParticlePos(center.above(5));\n                Vec3 at = Vec3.atCenterOf(center);\n                if (this.entity.distanceToSqr(at) < 4) {\n                    Vec3 slightOffset = at.subtract(entity.position());\n                    if (slightOffset.length() > 1F) {\n                        slightOffset = slightOffset.normalize();\n                    }\n                    this.entity.setWorshipTime(worshippingTicks + 1);\n                    this.entity.setDeltaMovement(this.entity.getDeltaMovement().add(slightOffset.scale(0.04F)));\n                    if (worshippingTicks > UnderzealotEntity.MAX_WORSHIP_TIME - 300 && this.entity.cloudCooldown <= 0 && entity.isSurroundedByPrayers()) {\n                        if (entity.getFirstPassenger() instanceof UnderzealotSacrifice underzealotSacrifice) {\n                            underzealotSacrifice.triggerSacrificeIn(300);\n                            entity.cloudCooldown = 400;\n                            entity.level().broadcastEntityEvent(entity, (byte) 62);\n                        }\n                    }\n                } else {\n                    this.entity.setWorshipTime(0);\n                }\n                entity.getNavigation().moveTo(center.getX(), center.getY(), center.getZ(), 1);\n            }\n        }\n    }\n\n    private Vec3 groundOf(Vec3 in) {\n        BlockPos origin = BlockPos.containing(in);\n        BlockPos.MutableBlockPos blockPos = origin.mutable();\n        while (!entity.level().isEmptyBlock(blockPos) && blockPos.getY() < entity.level().getMaxBuildHeight()) {\n            blockPos.move(0, 1, 0);\n        }\n        while (entity.level().isEmptyBlock(blockPos.below()) && blockPos.getY() > entity.level().getMinBuildHeight()) {\n            blockPos.move(0, -1, 0);\n        }\n        return new Vec3(in.x, blockPos.getY(), in.z);\n    }\n\n    private int getPackPosition() {\n        PackAnimal leader = entity.getPackLeader();\n        int i = 1;\n        while (leader.getAfterPackMember() != null) {\n            if (leader.getAfterPackMember() == entity) {\n                return i;\n            }\n            leader = leader.getAfterPackMember();\n            i++;\n        }\n        return i;\n    }\n\n    public void stop() {\n        attemptToFollowTicks = 0;\n        this.entity.setWorshipTime(0);\n        if (this.entity.sacrificeCooldown == 0) {\n            this.entity.sacrificeCooldown = 100;\n        }\n        this.entity.getNavigation().stop();\n        this.entity.ejectPassengers();\n        this.entity.setPraying(false);\n        this.entity.setParticlePos(null);\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotProcessionGoal.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotProcessionGoal.java#L1-L62",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/UnderzealotProcessionGoal.java",
+      "file_sha256": "9b95b103d6d4a42c5b66803feac569321b305c04d9356da14973301b29df0ce6",
+      "git_blob_sha1": "58eb33d6e5cc87efa6d2145d43cc15b2eda81c66",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        62
+      ],
+      "total_file_lines": 62,
+      "full_file": true,
+      "raw_excerpt_sha256": "9b95b103d6d4a42c5b66803feac569321b305c04d9356da14973301b29df0ce6",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.ai;\n\nimport com.github.alexmodguy.alexscaves.server.entity.living.UnderzealotEntity;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.EnumSet;\n\npublic class UnderzealotProcessionGoal extends Goal {\n    public final UnderzealotEntity entity;\n    private double speedModifier;\n    private int attemptToFollowTicks = 0;\n\n    public UnderzealotProcessionGoal(UnderzealotEntity underzealot, double speed) {\n        this.entity = underzealot;\n        this.speedModifier = speed;\n        this.setFlags(EnumSet.of(Goal.Flag.MOVE));\n    }\n\n    public boolean canUse() {\n        if (this.entity.getRandom().nextInt(20) == 0 && this.entity.isPackFollower() && this.entity.getPriorPackMember() != null) {\n            return true;\n        } else {\n            return false;\n        }\n    }\n\n    public boolean canContinueToUse() {\n        return this.entity.isPackFollower() && this.entity.getPriorPackMember() != null;\n    }\n\n    public void stop() {\n        this.entity.getNavigation().stop();\n        attemptToFollowTicks = 0;\n    }\n\n    public void tick() {\n        if (this.entity.isDiggingInProgress() || this.entity.isBuried()) {\n            this.entity.setPraying(false);\n            return;\n        }\n        if (this.entity.getPriorPackMember() != null) {\n            UnderzealotEntity priorPackMember = (UnderzealotEntity) this.entity.getPriorPackMember();\n            double distanceTo = (double) this.entity.distanceTo(priorPackMember);\n            if (distanceTo > this.entity.getBbWidth() + 0.5F) {\n                Vec3 vec3;\n                vec3 = (new Vec3(priorPackMember.getX() - this.entity.getX(), priorPackMember.getY() - this.entity.getY(), priorPackMember.getZ() - this.entity.getZ())).normalize().scale(Math.max(distanceTo - 1.0D, 0.0D));\n                this.entity.getNavigation().moveTo(this.entity.getX() + vec3.x, this.entity.getY() + vec3.y, this.entity.getZ() + vec3.z, this.speedModifier);\n            }\n            if (distanceTo > 8) {\n                attemptToFollowTicks++;\n                if ((entity.getNavigation().isStuck() || attemptToFollowTicks > 60)) {\n                    entity.setBuried(true);\n                    entity.reemergeAt(priorPackMember.blockPosition(), 20 + entity.getRandom().nextInt(20));\n                }\n            } else {\n                attemptToFollowTicks = 0;\n            }\n        }\n    }\n\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/util/UnderzealotSacrifice.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/util/UnderzealotSacrifice.java#L1-L9",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/util/UnderzealotSacrifice.java",
+      "file_sha256": "6f17e8e4e0e305efb0eda1221c3104c4f577534de23bd2f7f74208bea492e14b",
+      "git_blob_sha1": "e65c5755437d971265f839bb2f2918efa6786c8f",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        9
+      ],
+      "total_file_lines": 9,
+      "full_file": true,
+      "raw_excerpt_sha256": "6f17e8e4e0e305efb0eda1221c3104c4f577534de23bd2f7f74208bea492e14b",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.util;\n\npublic interface UnderzealotSacrifice {\n\n    void triggerSacrificeIn(int time);\n\n    boolean isValidSacrifice(int distanceFromGround);\n\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/util/PackAnimal.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/util/PackAnimal.java#L1-L72",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/util/PackAnimal.java",
+      "file_sha256": "88d29bb0a1fabdde8546a274422d17ef5af5dbfe255fda53f9459e45d65677b6",
+      "git_blob_sha1": "5718a32ee7f9d937aa8e0f6dfd0965c90c83b153",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        72
+      ],
+      "total_file_lines": 72,
+      "full_file": true,
+      "raw_excerpt_sha256": "88d29bb0a1fabdde8546a274422d17ef5af5dbfe255fda53f9459e45d65677b6",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.util;\n\nimport net.minecraft.world.entity.LivingEntity;\n\npublic interface PackAnimal {\n\n    default boolean isPackFollower() {\n        return this.getPriorPackMember() != null;\n    }\n\n    default boolean hasPackFollower() {\n        return this.getAfterPackMember() != null;\n    }\n\n    default PackAnimal getPackLeader() {\n        PackAnimal leader = this;\n        while (leader.getPriorPackMember() != null && leader.getPriorPackMember() != this) {\n            leader = leader.getPriorPackMember();\n        }\n        return leader;\n    }\n\n    default int getPackSize() {\n        PackAnimal leader = getPackLeader();\n        int i = 1;\n        while (leader.getAfterPackMember() != null) {\n            leader = leader.getAfterPackMember();\n            i++;\n        }\n        return i;\n    }\n\n    default boolean isInPack(PackAnimal packAnimal) {\n        PackAnimal leader = getPackLeader();\n        while (leader.getAfterPackMember() != null) {\n            if (packAnimal.equals(leader)) {\n                return true;\n            }\n            leader = leader.getAfterPackMember();\n        }\n        return false;\n    }\n\n    default boolean isValidLeader(PackAnimal packLeader) {\n        return !packLeader.isPackFollower() && ((LivingEntity) packLeader).isAlive();\n    }\n\n    PackAnimal getPriorPackMember();\n\n    PackAnimal getAfterPackMember();\n\n    void setPriorPackMember(PackAnimal animal);\n\n    void setAfterPackMember(PackAnimal animal);\n\n    default void joinPackOf(PackAnimal caravanHeadIn) {\n        setPriorPackMember(caravanHeadIn);\n        caravanHeadIn.setAfterPackMember(this);\n        resetPackFlags();\n    }\n\n    default void leavePack() {\n        if (this.getPriorPackMember() != null) {\n            this.getPriorPackMember().setAfterPackMember(null);\n        }\n        this.setPriorPackMember(null);\n        resetPackFlags();\n    }\n\n    default void resetPackFlags() {\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/AnimalJoinPackGoal.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/AnimalJoinPackGoal.java#L1-L83",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ai/AnimalJoinPackGoal.java",
+      "file_sha256": "534ee3eb65ad95444ed865450758038e87f2f64eeb84bd0293733db116697990",
+      "git_blob_sha1": "0528f849d23af06f45b2483601224b7c157a4971",
+      "pinned_tree_match": true,
+      "lines": [
+        1,
+        83
+      ],
+      "total_file_lines": 83,
+      "full_file": true,
+      "raw_excerpt_sha256": "534ee3eb65ad95444ed865450758038e87f2f64eeb84bd0293733db116697990",
+      "raw_excerpt_utf8": "package com.github.alexmodguy.alexscaves.server.entity.ai;\n\n\nimport com.github.alexmodguy.alexscaves.server.entity.util.PackAnimal;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.goal.Goal;\n\nimport java.util.List;\n\npublic class AnimalJoinPackGoal extends Goal {\n    public final LivingEntity entity;\n    public final PackAnimal packAnimal;\n    private int distCheckCounter;\n\n    private int rate;\n    private int packSize;\n\n    public AnimalJoinPackGoal(LivingEntity animal, int rate, int packSize) {\n        this.entity = animal;\n        this.packAnimal = (PackAnimal) animal;\n        this.rate = rate;\n        this.packSize = packSize;\n    }\n\n    public boolean canUse() {\n        long worldTime = entity.level().getGameTime() % 10;\n        if (worldTime != 0 && entity.getRandom().nextInt(reducedTickDelay(rate)) != 0) {\n            return false;\n        }\n        if (!this.packAnimal.isPackFollower() && !this.packAnimal.hasPackFollower()) {\n            double dist = 30D;\n            List<? extends LivingEntity> list = entity.level().getEntitiesOfClass(entity.getClass(), entity.getBoundingBox().inflate(dist, dist, dist));\n            LivingEntity closestTail = null;\n            double d0 = Double.MAX_VALUE;\n            for (LivingEntity animal : list) {\n                if (!((PackAnimal) animal).hasPackFollower() && ((PackAnimal) animal).isValidLeader(((PackAnimal) animal).getPackLeader()) && !animal.getUUID().equals(entity.getUUID()) && !((PackAnimal) animal).isInPack(packAnimal) && ((PackAnimal) animal).getPackSize() < packSize) {\n                    double d1 = this.entity.distanceToSqr(animal);\n                    if (!(d1 > d0)) {\n                        d0 = d1;\n                        closestTail = animal;\n                    }\n                }\n            }\n            if (closestTail == null) {\n                return false;\n            } else if (d0 < 1.0D) {\n                return false;\n            } else if (!packAnimal.isValidLeader(((PackAnimal) closestTail).getPackLeader())) {\n                return false;\n            } else {\n                this.packAnimal.joinPackOf((PackAnimal) closestTail);\n                return true;\n            }\n        } else {\n            return false;\n        }\n    }\n\n    public boolean canContinueToUse() {\n        if (this.packAnimal.isPackFollower() && packAnimal.isValidLeader(packAnimal.getPackLeader())) {\n            double d0 = this.entity.distanceToSqr((LivingEntity) this.packAnimal.getPriorPackMember());\n            if (d0 > 676.0D) {\n                if (this.distCheckCounter == 0) {\n                    return false;\n                }\n            }\n            if (this.distCheckCounter > 0) {\n                --this.distCheckCounter;\n            }\n\n            return true;\n        } else {\n            return false;\n        }\n    }\n\n    public void stop() {\n        this.packAnimal.leavePack();\n    }\n\n    public void tick() {\n    }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L23-L25",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+      "file_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+      "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+      "pinned_tree_match": true,
+      "lines": [
+        23,
+        25
+      ],
+      "total_file_lines": 206,
+      "full_file": false,
+      "raw_excerpt_sha256": "585ae678050ac48473d162978acb6334aa95db2f349104455d40dcb2858e6a20",
+      "raw_excerpt_utf8": "    public static final DeferredRegister<EntityType<?>> DEF_REG = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, AlexsCaves.MODID);\n    public static final MobCategory CAVE_CREATURE = MobCategory.create(\"cave_creature\", \"alexscaves:cave_creature\", 10, true, true, 128);\n    public static final MobCategory DEEP_SEA_CREATURE = MobCategory.create(\"deep_sea_creature\", \"alexscaves:deep_sea_creature\", 20, true, false, 128);\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L80-L85",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+      "file_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+      "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+      "pinned_tree_match": true,
+      "lines": [
+        80,
+        85
+      ],
+      "total_file_lines": 206,
+      "full_file": false,
+      "raw_excerpt_sha256": "a7e31628cb61a8d9da90a07be40b09a573399a321d29a668ee2fc5d89e89ed6d",
+      "raw_excerpt_utf8": "    public static final RegistryObject<EntityType<GloomothEntity>> GLOOMOTH = DEF_REG.register(\"gloomoth\", () -> (EntityType) EntityType.Builder.of(GloomothEntity::new, MobCategory.AMBIENT).sized(0.99F, 0.99F).setTrackingRange(12).setShouldReceiveVelocityUpdates(true).setUpdateInterval(1).build(\"gloomoth\"));\n    public static final RegistryObject<EntityType<UnderzealotEntity>> UNDERZEALOT = DEF_REG.register(\"underzealot\", () -> (EntityType) EntityType.Builder.of(UnderzealotEntity::new, MobCategory.MONSTER).sized(0.8F, 1.2F).build(\"underzealot\"));\n    public static final RegistryObject<EntityType<WatcherEntity>> WATCHER = DEF_REG.register(\"watcher\", () -> (EntityType) EntityType.Builder.of(WatcherEntity::new, MobCategory.MONSTER).sized(0.9F, 1.9F).build(\"watcher\"));\n    public static final RegistryObject<EntityType<CorrodentEntity>> CORRODENT = DEF_REG.register(\"corrodent\", () -> (EntityType) EntityType.Builder.of(CorrodentEntity::new, MobCategory.MONSTER).sized(0.9F, 0.9F).build(\"corrodent\"));\n    public static final RegistryObject<EntityType<VesperEntity>> VESPER = DEF_REG.register(\"vesper\", () -> (EntityType) EntityType.Builder.of(VesperEntity::new, MobCategory.MONSTER).sized(1.2F, 1.65F).setTrackingRange(12).setShouldReceiveVelocityUpdates(true).setUpdateInterval(1).build(\"vesper\"));\n    public static final RegistryObject<EntityType<ForsakenEntity>> FORSAKEN = DEF_REG.register(\"forsaken\", () -> (EntityType) EntityType.Builder.of(ForsakenEntity::new, MobCategory.MONSTER).sized(3F, 3.5F).setTrackingRange(12).setShouldReceiveVelocityUpdates(true).setUpdateInterval(1).build(\"forsaken\"));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+      "repo": "AlexModGuy/AlexsCaves",
+      "commit": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L189-L194",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+      "file_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+      "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+      "pinned_tree_match": true,
+      "lines": [
+        189,
+        194
+      ],
+      "total_file_lines": 206,
+      "full_file": false,
+      "raw_excerpt_sha256": "234044974ddb7f4fe3a1489a80a2ec956d2406450f7ad4521691aca11aedda58",
+      "raw_excerpt_utf8": "        event.register(GLOOMOTH.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, GloomothEntity::checkGloomothSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);\n        event.register(UNDERZEALOT.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, UnderzealotEntity::checkUnderzealotSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);\n        event.register(WATCHER.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WatcherEntity::checkWatcherSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);\n        event.register(CORRODENT.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, CorrodentEntity::checkCorrodentSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);\n        event.register(VESPER.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, VesperEntity::checkVesperSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);\n        event.register(FORSAKEN.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, ForsakenEntity::checkForsakenSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_native_context_ranges": [
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        1204,
+        1249
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "2a151df860156fc8e005e1337d8d5ede91a7a9b17bac8eb13948ccaeda27e6e1",
+      "raw_excerpt_utf8": "   @Nullable\n   public <T extends Mob> T convertTo(EntityType<T> p_21407_, boolean p_21408_) {\n      if (this.isRemoved()) {\n         return (T)null;\n      } else {\n         T t = p_21407_.create(this.level());\n         if (t == null) {\n            return (T)null;\n         } else {\n            t.copyPosition(this);\n            t.setBaby(this.isBaby());\n            t.setNoAi(this.isNoAi());\n            if (this.hasCustomName()) {\n               t.setCustomName(this.getCustomName());\n               t.setCustomNameVisible(this.isCustomNameVisible());\n            }\n\n            if (this.isPersistenceRequired()) {\n               t.setPersistenceRequired();\n            }\n\n            t.setInvulnerable(this.isInvulnerable());\n            if (p_21408_) {\n               t.setCanPickUpLoot(this.canPickUpLoot());\n\n               for(EquipmentSlot equipmentslot : EquipmentSlot.values()) {\n                  ItemStack itemstack = this.getItemBySlot(equipmentslot);\n                  if (!itemstack.isEmpty()) {\n                     t.setItemSlot(equipmentslot, itemstack.copyAndClear());\n                     t.setDropChance(equipmentslot, this.getEquipmentDropChance(equipmentslot));\n                  }\n               }\n            }\n\n            this.level().addFreshEntity(t);\n            if (this.isPassenger()) {\n               Entity entity = this.getVehicle();\n               this.stopRiding();\n               t.startRiding(entity, true);\n            }\n\n            this.discard();\n            return t;\n         }\n      }\n   }\n",
+      "prior_EA0020_consumer_reread_context_credit": 0,
+      "exact_AlexsCaves_build_dependency_certified": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        841,
+        844
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9c3692c77bbf7ed1012067077b890464f32f03c8625b9feeecc06cca9240561c",
+      "raw_excerpt_utf8": "    public static void onLivingConvert(LivingEntity entity, LivingEntity outcome)\n    {\n        MinecraftForge.EVENT_BUS.post(new LivingConversionEvent.Post(entity, outcome));\n    }\n",
+      "prior_EA0020_consumer_reread_context_credit": 0,
+      "exact_AlexsCaves_build_dependency_certified": false
+    }
+  ],
+  "actual_mod_range_count": 12,
+  "actual_mod_source_files": 10,
+  "actual_mod_full_files": 9,
+  "actual_mod_distinct_cited_lines": 1962,
+  "actual_native_context_lines": 50,
+  "supporting_range_or_file_credit": 0,
+  "incidental_text_not_counted": [
+    "Unrelated registry classes, native leash/teleport methods after complete selected function, generic grep/metadata inventories not semantically claimed.",
+    "Earlier clipped oldEA14/20/37 output recovered by individual complete fourfield reads; no clipped source body claimed complete."
+  ],
+  "unread_local_missing_source_boundaries": [
+    {
+      "expected_path": "gradle.properties",
+      "local_exists": false,
+      "tree_metadata_only": {
+        "path": "gradle.properties",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "89bc3c5686a4d448340d557424e59203b4140078",
+        "size": 96,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsCaves/git/blobs/89bc3c5686a4d448340d557424e59203b4140078"
+      },
+      "raw_content_read": false,
+      "metadata_is_not_reading_or_deployment": true,
+      "credit": 0
+    },
+    {
+      "expected_path": "build.gradle",
+      "local_exists": false,
+      "tree_metadata_only": {
+        "path": "build.gradle",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b8b42137d3a0f7b5a2bee260185a6ef63649c9c5",
+        "size": 5408,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsCaves/git/blobs/b8b42137d3a0f7b5a2bee260185a6ef63649c9c5"
+      },
+      "raw_content_read": false,
+      "metadata_is_not_reading_or_deployment": true,
+      "credit": 0
+    },
+    {
+      "expected_path": "src/main/java/com/github/alexmodguy/alexscaves/server/level/biome/ACBiomeRegistry.java",
+      "local_exists": false,
+      "tree_metadata_only": {
+        "path": "src/main/java/com/github/alexmodguy/alexscaves/server/level/biome/ACBiomeRegistry.java",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "b2c9fe26a80f9e47dd2469b5973d909c978fb6df",
+        "size": 5518,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsCaves/git/blobs/b2c9fe26a80f9e47dd2469b5973d909c978fb6df"
+      },
+      "raw_content_read": false,
+      "metadata_is_not_reading_or_deployment": true,
+      "credit": 0
+    },
+    {
+      "expected_path": "src/main/resources/data/alexscaves/loot_tables/entities/forsaken.json",
+      "local_exists": false,
+      "tree_metadata_only": {
+        "path": "src/main/resources/data/alexscaves/loot_tables/entities/forsaken.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "92e3c57158ce10a61461730f710d3376b3f454b1",
+        "size": 424,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsCaves/git/blobs/92e3c57158ce10a61461730f710d3376b3f454b1"
+      },
+      "raw_content_read": false,
+      "metadata_is_not_reading_or_deployment": true,
+      "credit": 0
+    },
+    {
+      "expected_path": "src/main/resources/data/alexscaves/loot_tables/entities/watcher.json",
+      "local_exists": false,
+      "tree_metadata_only": {
+        "path": "src/main/resources/data/alexscaves/loot_tables/entities/watcher.json",
+        "mode": "100644",
+        "type": "blob",
+        "sha": "a663ba8cdeefb7e09e7639a77a94e2e58fcd27fa",
+        "size": 1149,
+        "url": "https://api.github.com/repos/AlexModGuy/AlexsCaves/git/blobs/a663ba8cdeefb7e09e7639a77a94e2e58fcd27fa"
+      },
+      "raw_content_read": false,
+      "metadata_is_not_reading_or_deployment": true,
+      "credit": 0
+    }
+  ],
+  "current_formal_baseline": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "41b2f04748245e629c35b89616054df0539629bd3f95aec8e250f5f95fb76616",
+    "bytes": 1565858
+  },
+  "formal_accepted": 50,
+  "formal_gap": 950,
+  "gate_met": false,
+  "production_authorized": false,
+  "current_accepted_semantic_index": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    },
+    {
+      "id": "EA-0047",
+      "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+      "batch_sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+      "canonical_record_sha256": "51bb8cdea916d3fc39c13b37ff58fe0f2f786ff661cfbe2cf11f8c2a6f07f0cf"
+    },
+    {
+      "id": "EA-0048",
+      "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-039.json",
+      "batch_sha256": "5368642e47c777bedd8c8298665b73175345b81b75150d1ecfea8593c4fec9e4",
+      "canonical_record_sha256": "d958c35f6ee66c780e579d3bf8230ffb0a84ebb6869bcca13643c8f2a014cced"
+    },
+    {
+      "id": "EA-0049",
+      "semantic_key": "owner-bound-habitat-weather-phased-fishing-window-to-event-vetoable-reel-loot-and-rod-damage-request-without-acquisition-ack",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-040.json",
+      "batch_sha256": "a2bf20337a0f06dc687a690e08f1afb7f593a246a8ca17686b37d9a1b56692bb",
+      "canonical_record_sha256": "dde78c2150e406f98d1579fee1476ecbfcfb5dc2a02b918d0a76b9d0e34c87a8"
+    },
+    {
+      "id": "EA-0050",
+      "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+      "batch_sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b"
+    },
+    {
+      "id": "EA-0051",
+      "semantic_key": "water-associated-raw-damage-prewrite-to-sensor-qualified-playdead-count-recovery-and-positive-count-enemy-eligibility-suppression-without-accepted-health-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-042.json",
+      "batch_sha256": "55342d87e1ace8fe7e773dd7a747d643b52eac5576eee7d57e6846af3a46e57e",
+      "canonical_record_sha256": "6b8e9e550144df28029558eccc076fd00e89c866655fc9123856efbd8e17b82c"
+    }
+  ],
+  "current_index_not_complete_source_rereading": true,
+  "complete_selected_old_ecology_judgments": [
+    {
+      "id": "EA-0007",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0007",
+        "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+        "observation": [
+          "同一共有predicate供多个真实模组生物使用，按一种机制计：额外随机、维度、上下高度、暗度、地块ID或tag、见天/不见天、避开structure_set相交。",
+          "biome名单是白名单先判true、然后黑名单、再各组合OR；组合内条件AND。placement另要求下面可运动阻挡且身体/头部符合原生空位。",
+          "出生表中Lantern用AMBIENT，其他多为MONSTER；配置spawnRate是选种权重而非额外随机概率，extraRarity另在predicate消费。"
+        ],
+        "application": [
+          "静态可达性要展开跨层AND/OR与优先级，尤其矛盾的见天/不见天、地块tag和结构排除；不能按每行参数或每个物种声称独立参考。",
+          "区分注册类别/自然表/placement/额外rarity，记录原生global/local是否先到达；研究类别策略并不授权更改本项目category。"
+        ],
+        "limits": [
+          "源码仅检查ServerLevelAccessor后，稍后无条件cast ServerLevel；WorldGenRegion路径可能失败，不能称它覆盖所有生成原因都安全。",
+          "dimension检查只在world instanceof ServerLevel且非SPAWNER时执行；不把predicate概括成所有路径严格维度绑定。",
+          "invalid/missing avoid structure_set跳过；这是候选placement范围，不是已生成valid start或精确bbox验证。",
+          "额外rarity用rand.nextDouble()>值，0值的注释与极端随机等0的严格比较有差别，不写成数学上绝无成功。",
+          "本地cache未含生成的biome modifier JSON，已核验Java入口/codec链，不声称本轮验证安装后资源或自然出生。NeoForge API与本项目不同。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0009",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+        "sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+        "bytes": 62765
+      },
+      "canonical_complete_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0009",
+        "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+        "observation": [
+          "自然structure_set→结构biome/水体/高度门→generatePieces明确add FirepitPiece；其postProcess每次抽5–9目标，每个最多20位置重试。",
+          "在旋转后的piece坐标上查地表，要求y>0、实例checkSpawnRules和无碰撞，才finalizeSpawn(STRUCTURE)、restrictTo(center,25)、addFreshEntity。",
+          "Minion.requiresCustomPersistence恒true；自身home与交易状态序列化，MowzieEntity.checkDespawn只在非持久化时做距离移除。",
+          "研究重点是结构群落的出生来源、数量预算、重试、定居/持久化生命周期，共有自然结构/栖地/生物三层，不能仅按生物数量或piece数量计参考。"
+        ],
+        "application": [
+          "稀有定居者与普通自然池共存研究，应追溯实体来源、home存档、持久化语义和对应版本原生计数器，而非把已加载实体总数直接当cap数。",
+          "一次性结构植入应有实际加入确认及重入边界证据；仅一次for循环上限不等于整个结构生命周期的一次性上限。",
+          "普通NATURAL与STRUCTURE生成分开验收；本项目六种拒绝CHUNK_GENERATION，不能拿另一来源替代其实际自然出生。"
+        ],
+        "limits": [
+          "源码postProcess没有布尔seeded/UUID集合，也未以传入chunk bbox筛选每个植入位置；只能报告重入风险，不能在无运行证据下宣称已重复出生。",
+          "addFreshEntity返回值忽略且随后break，所以5–9是目标/尝试上限，不是严格成功群落数。",
+          "原生cap常排除requiresCustomPersistence，但本来源较新NeoForge；未核验该版本的全套计数修改，也不声称这是Dynasty可采用的cap修复。",
+          "结构生成数据代码已读；模板NBT、打包资源与实际世界部署未核验。Firepit后处理本身不以marker存在为前提，但能否被实际执行仍需运行期证据。",
+          "不研究/制作营地建筑设计、不下载或复制模型/贴图/模板；只复制Java文本于研究目录。",
+          "generation config里avoidStructures参数在MowzieStructure.checkLocation体中未使用，不能把字段存在当额外避让已经实现。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0014",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+        "sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+        "bytes": 90429
+      },
+      "canonical_complete_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0014",
+        "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+        "observation": [
+          "真实BreedGoal注册且spawnChildFromBreeding覆写不直接出生：设bredBuryFlag、双方age6000/resetLove并给统计/XP；getBreedOffspring返回null。bred flag由AIMelee实际攻击时转成sting amplifier1，普通sting为0。交配反馈、统计、XP均不是幼体出生证据。",
+          "完整AIMelee tick先对目标hurt（结果不查），bred flag且目标低血会heal，然后addEffect（结果不查），2400duration用于arthropod。满足麻痹/驯服及bred条件时可强制骑乘拖载；AIBury另最多15次选sand、dig<200下沉最多3格。沙地/埋葬不是Effect最终出生代码的条件，不能宣称所有幼体必须成功埋葬才出生。",
+          "实际注册ServerEvents.onEntityDespawnAttempt在有DEBILITATING_STING且amplifier>0时DENY。只是AllowDespawn条件，不是NaturalSpawner global/local cap豁免，不保证其他伤害/和平模式/外部移除不生效；可能保留宿主时长须另查原生消费者。",
+          "isDurationEffectTick把当前duration存到效果实例lastDuration。applyEffectTick对arthropod可设置noPhysics/noGravity，下落/禁跳；当lastDuration==1才hurt(amplifier+1)*30；amplifier>0则从宿主处向上找空块至Y256，创建baby、服务端finalize(BREEDING)/addFreshEntity，之后清noGravity/noPhysics。没有验证宿主伤害成功/死亡、沙地或亲本UUID，不能把这次hurt当严格KILLED或把出生绑定某对亲本。",
+          "幼体create无null保护、add返回忽略，无位置checkSpawnRules/noCollision；向上空块搜索不是幼体完整bbox安全检查，硬编码256也非世界max高度。清理效果提前结束时，本removeAttributeModifiers只有属性super移除，未见恢复noPhysics/noGravity；最终tick恢复逻辑不自动证明所有取消路径清理完整。",
+          "BreedFlag有额外NBT读写，但目标引用、AI内部sandPos/digTime和lastDuration不是本类所读额外字段，因此不保证卸载重载后整条寄生周期相位保持。消息handler按运行期entity id再应用默认amplifier0效果，不能替代server amplifier1/实际后代加入证据。"
+        ],
+        "application": [
+          "生态研究需区分配对/奖励、宿主effect状态、宿主暂留、到期发起幼体加入、实际后代存活；被保留的宿主和繁殖统计都不能算已获得新种群。",
+          "可借鉴把延迟后代状态绑定在真实宿主生命过程的设计问题，审查暂留与清理、成功提交、取消/重载及亲本归属；1000前不制作寄生/生成器或改cap/类别。"
+        ],
+        "limits": [
+          "固定Forge源码只作真实玩法生命周期参考；未审native MobEffectInstance→duration/apply的完整调度，不从共享lastDuration字段就断言已发生跨宿主串用，也不保证其线程/重入安全。",
+          "通用vanilla BreedGoal、父mobInteract配对启动与实际breedable食物tag成员未展开，按真实注册/覆写调用边界处理；不证明自然野外亲本可得或玩家材料闭环。",
+          "只全文读取相关AI/效果/注册/consumer；MoveControl/导航、完整Forge AllowDespawn原生消费顺序、出生cancel/cap计数未运行验证，不能宣称解决本项目global cap关闭。",
+          "这一整链至多1项，战斗伤害、客户端消息、注册/getter/埋葬参数均0额外信用；不把常见sting伤害另算生态机制。",
+          "未启动游戏/服务器/GUI，未编译或执行上游，无任何运行出生/击杀/材料信用。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0016",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+        "sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+        "bytes": 106673
+      },
+      "canonical_complete_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0016",
+        "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+        "observation": [
+          "Actual registry constructor and entry instantiate Skreecher as CREATURE despite Monster superclass. Own static placement checks nonpeaceful/darkness/SCULK and instance roll uses config with SPAWNER bypass; class/max cluster1 does not prove deployed natural biome pool/cap. These support a real called mechanism, not NATURAL spawn success.",
+          "Registered HurtByTargetGoal and player NearestTarget3D consumer can feed FollowTargetGoal. Anonymous target search uses bounding box inflated16 inX/Z and fixedY[-64,320], overriding helper cube. Follow canUse needs own live target and clingCooldown<=0; tick moves/looks and sets clapping within horizontal2.5 when cooldown==0. Target may come from retaliation, not necessarily a player. Base Goal/TargetGoal/GoalSelector scheduling/continuation and AI reachability remain unexpanded.",
+          "Qualified own tick needs clapping+ownalive+cooldown<=0. Counter starts0; modulo8 branch requests clap sound, ENTITY_ROAR, anger-nearby and particle; else-if15 gives other call. Multiples of both take8 branch. These are alarm requests, not add success, and100 is local qualifying-counter threshold rather than a guaranteed100 world-tick duration.",
+          "At clapTick>=100, configtrue and !hasAttempted immediately write attemptedtrue BEFORE downward support search, biome lookup, server guard, local existing-Warden and allowed-tag checks. False config leaves flag unspent while counter may continue; later enabling can enter without a fresh100-count period. Config default/assignment do not prove loaded value.",
+          "Search begins own block below, descends whileY>-64 and not sturdyUP, and can end at/below-64 with no supported floor. Holder biome is read at search ground position before server guard, not proof the actual child bounding box orY+1 position is safe/eligible. Hardcoded lower bound is not world min-height. No obstruction, full-body free-space or natural cap admission check shown.",
+          "Only when server, local Warden query empty and holder tag matches does create occur. No null guard. It moves to own exactX/Z and searchY+1, calls finalizeSpawn(TRIGGERED) using difficulty at original Skreecher block, sets attack target to THIS Skreecher, requests79 anger then calls unchecked addFreshEntity. The originally followed living target is not the target assigned to new Warden. Rejection/null/failed add do not refund flag.",
+          "After possible spawn it increments clapTick then server revalidates target alive/LOS/notinvisible/selfnotblind and horizontal<=20; failure calls setClapping(false), which resets counter. This order permits no source-level guarantee target was still eligible before spawn; it is not a reproduced stale-target gameplay event. Target reset and clap interruption do not reset attempted flag.",
+          "Nearby Warden AABB is X/Z±35 withY endpoints ownY+(cling?5:25) and-64. Native constructor normalizes all endpoints, so reverse-writtenY does not make it empty. Query is current local returned list, not radius35 sphere, whole-world count, alive/available encounter guarantee, durable lock or atomic reservation. Every8 qualifying iteration requests anger100 for returned Wardens with LOS. No cross-actor exclusivity/duplicate race or actual anger outcome is established.",
+          "NBT SummonedWarden serializes hasAttempted, not child UUID/add-result. Clinging/CeilDist/ClingCooldown also saved; clapTick/CLAPPING/jump progress not in own additional data. Complete class has no normal reset of attempted besides reading saved value; setClapping(false) resets counter only. Persistence/reload is conditional on actual engine save/load, not verified. Existing-Warden/biome rejection consumes opportunity; absence of sturdy support has no post-search rejection gate; repeated ordinary clapping will not retry for an already flagged instance.",
+          "Own hurt first clears cling/clap and sets200..399 cooldown before delegating super.hurt, without checking its result. Therefore a rejected hurt may still request interruption; neither actual HP decrease nor authoritative successful damage is required by these local mutations. No universal control immunity or native sound/particle rendering guarantee is inferred.",
+          "Native Warden.finalizeSpawn sets DIG_COOLDOWN1200, TRIGGERED EMERGING pose and temporary IS_EMERGING plus sound request before parent. setAttackTarget writes Brain attack target and resets roar/reach/sonic cooldown. increaseAngerAt requires !noAI and native canTargetEntity, then changes anger and optional listening feedback. Requests occur before actual add; not successful population/attack receipts. Warden hurt separately can request anger/target after super call independent of its returnedflag; contextual0 credit.",
+          "Native ServerLevel addFreshEntity returns addEntity boolean; removed entities rejected, failed entityManager add returnsfalse, success then onAddedToWorld. Caller ignores boolean. EntityManager/Forge join, UUID and chunk/saving internals unexpanded. Warden removeWhenFarAway=false only rejects that ordinary removal policy; complete emerging/digging/Brain lifetime/peaceful/external removal and postspawn survival are not proved.",
+          "Actual fixed tag67 bytes declares replacefalse and minecraft:deep_dark. Fixed Git blob/source checks bind resource content, not installed merged tag, dimension rules, config or loaded biome deployment. All registry/native/tag/sound/threshold/attempt/serialization support belongs to at most one AI-alarm/local-suppression/attempt-latch encounter family.",
+          "There is NO explicit post-search sturdy-floor rejection gate. The loop may stop atY<=-64 without a sturdyUP face, then still performs biome/server/local-Warden tests and can proceed to create/move/finalize/add if those pass. Unsupported ground is not a demonstrated independent rejection path.",
+          "The attempt flag is consumed before search. Biome/local-existing-Warden rejection or a subsequent failed create/add cannot restore it; lack of sturdy support itself does not block the shown spawn path. Do not infer a safe-floor guarantee or a ground-failure no-spawn guard."
+        ],
+        "application": [
+          "Separate alarm activity, consumed attempt, environmental/local suppression, initialization requests and actual add result. A persisted variable named Summoned is not sufficient population evidence.",
+          "1000 before any Dynasty ecology implementation; no cap/category/probability workaround or random repeated runtime."
+        ],
+        "limits": [
+          "At most one whole AI-alarm/local-suppression/persisted-attempt encounter family proposed; helper, roar, native methods, registration, tag, spawnroll, counter constants and species each support0. No accepted EA identifier/ledger credit created by this file. Existing build_tenth EA16 is a draft association only.",
+          "Unlike EA1 world/weather/chance recurring encounter, this is an individual active-target alarm and durable consumed attempt before environment/local suppression. Unlike EA9 structure postProcess cohorts, no structure start/pieces. EA11 is rider-associated expiry, EA14 host effect brood, EA17 paired pregnancy/world egg. These actual old decision fields were compared, not their full source chains reread.",
+          "No loaded tags/config, engine AI/GoalSelector scheduling, target-predicate consumers, EntityType.create internals, Warden complete Brain/anger management/emerging/digging behavior, parent finalizeSpawn, entityManager/Forge entity-join event path, chunk reload or post-reload replay was executed or fully expanded.",
+          "One single fixed-commit verified-HTTPS request fetched only67byte tag with exact pinned Git blob match; no API retry/TLS bypass, acquisition/file/range count earns0. All other inputs local, actual new source read recorded; constructor binding explicitly reused at same hash.",
+          "No Java/Gradle/game/GUI/server, no native spawn/birth/kill/material/performance/cap success, no production/asset/sharedJar/world/TODO change, no hours claimed. Master remains15/1000; independent semantic review and proper formal receipt required.",
+          "Draft packaging only. Full review and immutable floor clarification both required; no successful Warden or native/cap credit.",
+          "No ground rejection gate exists after the search. Initial Warden target/anger recipient is this Skreecher.",
+          "Author is original proposal coordinator; packaging draft author is separate existing reviewer thread. No new semantic reading credit."
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0020",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+        "sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+        "bytes": 100803
+      },
+      "canonical_complete_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0020",
+        "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+        "observation": [
+          "Actual fixed AlexsMobs registry/constructor wires Tusklin CREATURE factory, attribute subscriber and ordinary placement; core501-line class was read completely. Natural biome deployment/tags/spawn-roll loaded config and parent acquisition are not established. Ordinary spawn predicates and standard breeding are supporting context only.",
+          "Own isInNether is exact Level.NETHER dimension-key identity AND !isNoAi, not an arbitrary piglinSafe dimension type. tick calls super first then increments conversionTime in both sides whenever this condition holds, but the conversion call is guarded server-side and strictly >300. Initial0 implies301 qualifying invocations under uninterrupted normal execution, not guaranteed301 world ticks or an exact wall time.",
+          "The complete class has no counter else reset and no own NBT encode/reset for conversionTime. Leaving the Nether or noAI true pauses that in-memory counter; it is cumulative across eligible episodes in the same object. Fresh reconstruction initializes0, while invoking the shown readAdditionalSaveData on an existing object does not itself explicitly clear it. Full save/portal object recreation/mixin/capability lifecycle is unexpanded.",
+          "On eligible server branch Tusklin calls inherited convertTo(HOGLIN,false). Native Mob.convertTo returnsnull if old actor removed or factory disabled/returnsnull. There is no own HP/alive gate beyond these local checks, no explicit collision/checkSpawnRules/finalizeSpawn in the shown conversion path; direct-dead-call reachability is not proven.",
+          "Native convertTo copies position/yaw/pitch, baby boolean, noAI, optional custom name/visibility, explicit persistence-required flag and invulnerability. It does not copy full NBT/UUID/HP/love/passiveTicks/saddle/custom cooldowns. Its false equipment parameter skips the equipment/canPickUpLoot transfer branch. Ageable.setBaby maps to age-24000 or0, so boolean stage is preserved but exact age is not; full state conservation is not inferred.",
+          "Crucial consumer order: native convertTo calls level.addFreshEntity(newActor) and ignores boolean, transfers old actor own vehicle membership when isPassenger via unchecked startRiding, then discards old actor and returns newActor. Thus return nonnull does not mean admitted success, and caller already runs after old removal on normal return. Old passengers are not transferred by this method; Entity.setRemoved requests passenger dismount. Neither riding success nor post-callback state conservation is proven.",
+          "Only after nonnull conversion returns does Tusklin request CONFUSION200, invoke own dropEquipment, call addFreshEntity with the SAME returned Hoglin object a second time and remove old Tusklin DISCARDED again. No result checks or rollback. Continuing tick after these calls is visible in complete class, not a proven second population or an ordinary-life exploit.",
+          "Server addFreshEntity dispatches to PersistentEntitySectionManager. It posts EntityJoinLevelEvent before known-UUID insertion; canceled post returnsfalse. Successful first add reserves UUID before callbacks/tracking. If that UUID remains registered and no intervening listener/mutation changes state, second same-instance submission is rejected by knownUuids.add, not a second newborn. If first was canceled with no UUID insertion, the second can be a later attempt on the same object. Actual listeners, callback effects, UUID mutation, section storage failure/reentrancy and loaded-state outcomes remain untested.",
+          "Own dropEquipment delegates to empty LivingEntity.dropEquipment through shown no-override parent inventory, then on server requests saddle and shoe ItemEntity drops and clears saddle/shoes regardless add outcome. Conversion false does not run normal death custom-loot/XP/equipment branch. Entity.spawnAtLocation may capture drops or invoke unchecked item add and return object; no material/pickup reward or successful recovery follows from that request. Other equipment is not explicitly copied or dropped by the shown conversion branch.",
+          "Native discard invokes virtual remove(DISCARDED); LivingEntity.remove invokes Entity.remove/setRemoved/cap invalidation then Brain.clearMemories. First stored reason is retained but passenger/callback work can still be requested on repeat. No death/kill receipt, inherited callback atomicity or universal idempotence follows from the caller repeated remove.",
+          "The actual resulting Hoglin has a distinct native policy: inside customServerAiStep, isConverting tests !dimensionType.piglinSafe, !immune and !noAI; qualifying calls increment timeInOverworld and >300 consult cancellable Forge Pre with timer consumer before finishConversion. False condition resets timer only when that AI method executes. Complete Hoglin NBT writes TimeInOverworld/immune/cannotBeHunted, unlike Tusklin own unsaved exposure field. Do not infer Level.NETHER always has a particular loaded piglinSafe value, or noAI always executes/reset this AI method.",
+          "Hoglin finishConversion calls same native convertTo(ZOGLIN,true), requests confusion after nonnull and publishes Post. The true branch copies-and-clears equipment and drop chances, unlike first-leg false. Pre publication returns !post and permits timer setter; Post is notification, not add success. This downstream policy is bounded support for the first mod conversion unit, not a second source implementation, complete Zoglin-body/Brain/engine scheduler review or observed subsequent Zoglin birth.",
+          "All registration, ordinary breeding, rider/attack/grass/mushroom/animation, native methods, error/duplicate-submit observations and downstream second policy are merged support0. The proposed single unit is environmental cumulative exposure driving a heterogeneous live actor handoff through an engine API that already submits/removes, with a mismatched caller-owned equipment/post-add phase; no production change or natural cap remedy is claimed.",
+          "Tusklin is a registered CREATURE whose complete tick accumulates conversionTime whenever exact Level.NETHER key and !noAI hold, including client increments but server-only conversion call. It uses >300; leaving dimension or noAI pauses this same-object counter because there is no else reset. Own extra-save/read omits timer; does not prove full cross-dimension/reload semantics or exact301 world ticks.",
+          "Complete Mob.convertTo consumer, not method name inference: null iff old removed or target factory null; selected copy of pose/baby/noAI/name/persistence/invulnerability. false equipment flag skips loot/equipment transfer. It then requests new add without checking return, transfers old actor own vehicle if passenger, discards old and returns. This is already a precommitted live handoff before mod caller resumes, not simple entity construction.",
+          "Ageable boolean baby copy normalizes age to-24000 or0, rather than preserving age. Neither current HP, full NBT/UUID, exact age, love, passive state nor saddle/shoes are explicitly copied by shown contract. Vehicle riding is attempted after add; old passengers are not transferred in shown consumer and Entity.setRemoved requests their dismount. External hooks/callbacks/serialization remain outside scope.",
+          "Tusklin nonnull-return phase requests confusion200, invokes own equipment drop (saddle and FEET shoe) and clears those fields, submits exactly same returned Hoglin again, then repeats old remove. Direct callback effects, current creature status and actual item admission/pickup not established. dropEquipment inherited dispatch and removal declarations checked without claiming full parent files.",
+          "Server add routes through PersistentEntitySectionManager, whose EntityJoinLevelEvent precedes known-UUID insertion. Under retained UUID and no external mutation, first admitted entity makes second same-instance add fail knownUuids.add; no second-born object. First-canceled/no-reserved-UUID can allow a second attempt. Event side effects may happen twice, but listeners/reentrancy/callback/UUID changes not audited. add results ignored in both native and caller stages; return is not durable success.",
+          "First Tusklin conversion directly calls Mob.convertTo and shows no caller Conversion Pre/Post publication, unlike complete Hoglin customServerAiStep which tests !dimensionType.piglinSafe/!immune/!noAI, uses reset-on-false timer and cancellable Pre(timer setter), then Post after nonnull convert. EntityJoinLevelEvent still independently can veto admission. This is a static source contract distinction, not a universal cancellation bypass or native runtime exploit.",
+          "Hoglin own TimeInOverworld is serialized and true-equipment convert branch can copyAndClear slots to Zoglin. Full Hoglin body and event definitions were read as downstream support; HoglinAi/Brain scheduler/Zoglin body and complete second lifecycle not expanded. Never another ecology/native Minecraft credit.",
+          "Closest EA13 is a planted/paid-food hunger-plateau maturation whose caller creates adult/adds/discards directly; current whole policy is environment/noAI accumulated exposure plus selected native replacement ownership and post-handoff equipment phase. Distinction depends on this complete state/owner contract, not species name, integer threshold, duplicated submission defect, category or helper counts. EA10 storage successful-release queue, EA11 rider expiry, EA14 hosted brood, EA16 external alarm attempt and EA19 quantitative donor aggregation differ in lifecycle ownership. At most one whole mechanism.",
+          "Native request and callback ordering does not prove entity or item conservation, safe placement, current cap permission, actual natural parent acquisition, exact timing, death/kill/loot/XP, same-UUID pickup, world survival or any Dynasty gameplay behavior. No gameplay checklist entry can be removed for this research."
+        ],
+        "application": [
+          "Future Dynasty ecology evidence should distinguish environmental exposure, requested conversion, engine precommitted old disposal, actual admitted replacement, equipment release and actual pickup. A nonnull conversion return or second add call is not population or reward proof.",
+          "A future implementation would need one clear owner for add/remove/state transfer, stable actual actor identity, conditional admission/retry and material receipts. Current1000-gate is unmet, so no production conversion/cap/category/probability/persistence change authorized."
+        ],
+        "limits": [
+          "At most1 proposed complete mod-related first-leg conversion family, pending independent whole-chain semantic review; accepted/applied credit0. No new EA/candidate identifier, formal batch/receipt/validator/master or checklist change.",
+          "Old18 decisions compared in substantive observation/application/limits/dedup fields. EA17/18/19 own actual earlier readings reused at unchanged batch bytes; no claim of18 renewed complete upstream source-chain readings or1000 references. Native Hoglin/Zoglin leg remains supporting context, never another mod credit.",
+          "Only Tusklin whole501, Ageable whole199, Hoglin whole330 and LivingConversionEvent whole94 are complete-text scopes here. Other large mod/native registries, Mob/LivingEntity/Entity/ServerLevel/ForgeEventFactory/PersistentEntitySectionManager are explicitly bounded. Symbol inventories are machine support, not full-class semantic reading; PathfinderMob77 uses prior immutable actual reading.",
+          "No game/Java/Gradle/server/GUI/network/source download/retry/process/display/sound/brightness/wake/focus/world/asset/sharedJar/Git/automation action, no active-hours claim. Only this immutable proposal is written.",
+          "No actual natural deployment, parent acquisition, biome/merged tag/config, ordinary breeding, dimension travel, scheduler/noAI behavior, 301tick timing, save/reopen/counter persistence, accepted conversion, exactly-once species replacement or cross-dimension live state/UUID conservation proved.",
+          "Engine EntityType creation/selected convertTo/add/event/UUID consumer read as stated, but not all constructor Brain/attribute/capability, event bus internals/listeners, section callback/tracking/storage, loading/unloading, full save/portal transfer or concurrent/reentrant lifecycle. Exception and callback paths may interrupt order; same UUID no-second-add conclusion is conditional on retained UUID and no external state changes.",
+          "No runtime birth/kill/material/drop/XP/payment/pickup/cap/performance/1000-gate acceptance. Core convert return or visual confusion/item feedback is not success. No ordinary death duplication exploit or guaranteed total equipment loss/recovery inference.",
+          "Novelty must be judged for whole exposure/native-handoff/equipment ownership lifecycle, not just another species/threshold or a duplicated add bug. If independent reviewer finds environmental conversion semantically merged with EA13 mature replacement, hold0 rather than split helper/native branches.",
+          "Native Hoglin follow-on is not complete second live cycle: full Hoglin source and Pre/Post definitions read, but AI engine scheduling/HoglinAi behaviors/Zoglin complete downstream body or end-to-end runtime not expanded. No second transition credited.",
+          "Bind immutable original proposal and this actual independent review; do not fabricate reviewer receipt or copy another role.",
+          "At most1 whole family in new draft formal package. No ledger/count change before exact staged validator/source/batch independently reviewed.",
+          "Validate all8mod/22native exact raw source identities, including line endings; missing inputs reject0.",
+          "Replay all18 existing accepted objects unchanged. Reject malformed source, omitted core consumer/native ranges, mismatched semantic key/author/reviewer, duplicates and conflicts. Synthetic cases0 research.",
+          "No production/ecology cap/category/probability/assets/Jar/game/world/task changes. Native gaps and1000 requirements remain."
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0037",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+        "sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+        "bytes": 300967
+      },
+      "canonical_complete_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0037",
+        "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+        "observation": [
+          "One whole root-anchored existing-actor tail-chain attachment/validation/catch-up/leave policy. Actual Main reading8modranges762lines/4files including fullGorilla600 and helper137,4native ranges201lines/3entries including wholeLlamaGoal128. Three whole files total;963citedlines/12ranges are evidence, not12credits. Native-derived Gorilla/Llama skeleton merged maximum1; no formalID or applied credit.",
+          "Actual mod constructor75..85 registers entity DeferredRegister; registry annotation28..31 and concreteGORILLA42 CREATURE1.15x1.35/tracking10, factory149..150, placement165 and attrs253 read. Spawn substrate tag-orAIR+brightness>8 and configuredroll/cluster8/isMaxGroupSizeReachedfalse in core do not prove current biomepool/rule/cap/registereddeployment or actual cohort.",
+          "WholeGorilla registerGoals calls super, installs sitpriority1 and melee/caravan bothpriority2; caravan speed0.8/MOVE. AdvancedPathNavigateNoTeleport constructor and navigation getter are sourcecalls only; Citadel/parent/GoalSelector contention/effective-AI/NoAi/worldquery implementation unexpanded. No activation/pathsuccess guarantee or code execution.",
+          "Own syncedrole/standing/sitting/eating defaultfalse, NBT explicitly Silverback/Standing/GorillaSitting/ForcedToSit. caravanHead/Tail are nullable objectrefs without own save/read or read-clear. New-object own defaults differ from reusing same object; no complete inherited/capability/reload/UUIDformation guarantee or durable party token. Role-storage alone is supporting0, global/migrationcredit0.",
+          "Gorilla finalizeSpawn tests suppliedAgeableGroup BEFOREsuper: size0setsSilverbacktrue, positive size does not forcefalse; nonmatching/null usesrandomboolean. NativeAgeable27..39 createsnullgroup, maybabyafterfirst then increments. GroupData165..199 read. FullTamable/Animal parentchain and naturalcaller sharing not audited; no exactlyone root/adultroot/fixed8naturalcohort promise.",
+          "canUse onlyown !silverback,!inCaravan,!sitting; calls getEntitiesOfClass(EntityGorilla.class,ownBBox.inflate15,7.5,15). This is bounded AABB query with class parameter, not15radius/global census or proven exact-runtime-class-only backend. Nearest currentlylinked free-tail searchedfirst; freeSilverbackroot only ifnone. Equal squared distances replace prior choice; no own candidatealive/seat/age/tame/owner filter and defaultquerydetails not audited.",
+          "Candidate squaredDistance<2 rejects; selected nonsilverback must firstIsSilverback(candidate,1), directSilverback bypasses recursion. Counter>8fails, otherwise recursivelyfollowshead and accepts encounteringSilverbackhead. Wholeactorcardinality/acyclicity/atomicreservation/allrootsalive cannot be inferred. Only immediateheadalive explicit in continuation; a farther role-root can be inspected withoutalive test.",
+          "canUse itself joins beforetrue; own join setshead thenhead.tail. No own start join override, transactionalreservation/displacedlinkcleanup. Externalmutation/selectorordering not reproduced; no duplicate/orphancorruptionruntimeclaim. This helper doesnotcreate/remove/convert actors or debitpaidresources.",
+          "Continuation sittingfalsegate then inCaravan/directhead.isAlive/rootpredicate(this,0). Squaredgap>676 boosts speed*1.2 andsets40 while speed<=1.5 thenreturnstrue. LaterzeroCounterfarfails; positivesdecrementon nonboostsuccessincludingnearhead. Invocationcounts not40worldticks; no confirmedcatchup. stop clearsoldhead.tail whennonnull andownhead, resetsspeed1.5 notinitial0.8; ownTail/counter/downstreamnotexplicitlycleared.",
+          "Tick linked+notsitting computesnormalize(head-self)*max(distance-2,0) and requestsownposition+vector onlywhen navigation.isDone. Staleunfinishedpath canwithholdretarget; narrowNPEcatch enclosesmoveTo only, not allprecedinglookup/computation. No helperownservergate, accepted route/collision/destination/backendmove receipt not established.",
+          "Fullcore eating/interaction/forcedSit/randomrest/riding/target/stand paths alter sitting and thus formationeligibility. Foodhealing/tame chance0.3aftereating>100, heldcopy/remainder/spawn requests and breedfactory are contextonly, notseparate ecology/paidacquisition/immunity/model credits. Somebranches noownsidecheck; runtimeeffects/loadedtags/parenthooks unproved.",
+          "Whole nativeLlamaGoal has same two-pass chain-tail-beforeleashedroot selection, recursive>8bound, >676gap/ramp/counter, canUsejoin andstopunlink/two-unitspacing. NativequeryusesLLAMA/TRADER_LLAMA types9/4/9, threshold4, boosts<=3/reducedTickDelay40, stop2.1, continuouspathrequestsexceptfenceknot. Gorilla role/sit/navDone/parameter changes are one native-derived family, not another semanticcredit.",
+          "Actual complete EA19 observed13/corrections5/limits15 currentsemanticdecision read and compared: quantitativeheadmerge/donorremove/stall-deathfission create/remove actors, unlike noncreating role-rooted transient movement graph. WholePatrolMain findings13/correction1/limits4 read: worldday/player opportunity and captainfirst newcohort attempts unlike later existingactor graph. Shared nearbyselection/navigation/role/clock/helperdefects alone0. Metadata-only current31 semantic-key and migration4llamaowner screen is not exhaustive globalnovelty proof; global/migrationcredit0 and future same caravan family must merge.",
+          "No factory/admission within caravanhelper, no guaranteedpopulation/cohortsurvival/material/killed/itemUUID/payment/nativeencounter receipt. Source roles/counts/stop/reload limitations cannot close Dynasty runtime or codlist tasks. Fullsources/fixedcommit/archive evidence only; no currentpackdeployment/freshupstreamauthentication/nativeexecution."
+        ],
+        "application": "For Dynasty related ecology organisation only, separate natural creation/cap/admission from post-birth group motion and saved role versus transient links. No production until applicable1000 references and actual gameplay receipts; no source-derived cap/category/AI changes now.",
+        "limits": [
+          "At most one whole caravan family recommendation awaiting distinct Main original-source/semantic review; General author is not own independent reviewer. Native Llama/Gorilla fork combined and any similarly structured follow-chain examples must merge, no species/parameters/helper counts.",
+          "Source refs12 across7entry files, full modcore600/fullhelper137/nativebaseline128 only. Bounded ctor/registry/Ageable/Llama primitives and previous checkpoints not extra references. Broad DEF_REG locator output clipped unrelated declarations; only bounded recovered actual declarations included, not entire registry read.",
+          "No complete parent inheritance/GoalSelector/Goal arbitration/Citadel advanced navigation/target goals/effectiveAI/NoAi/world entity query/physics/capability/loaded tag/config/biome/pack runtime or save/reopen graph acceptance. NativeAgeable comparison is bounded context, not proven full Gorilla superclass dispatch.",
+          "No guaranteed natural cohort/root uniqueness, eight-member hard cap, global census, reservation/acyclic links, fair activation,40worldtick catchup, reached destination, surviving party, reload formation, or exact cleanup/idempotence. canUse/stop order conditions are source-only, not reproduced corruption.",
+          "No factory/admission call in caravan helper, so no population increase/conservation, birth/death/kill/loot/itemUUID/native acquisition/material payment claim. Full core contains unrelated food/taming/breeding/combat; those are supporting0 and no separate references.",
+          "Fixed cached source/tree/raw checks do not freshly authenticate upstream commit or installed compatibility. No downloaded code executed. Global/migration novelty0, current applicable1000 gate not met, no production or checklist task completion.",
+          "No Java/Gradle/game/server/network/download/UI/process/display/focus/wake/brightness/sound/world/sharedJar/assets/shared source-cache/tools/master/session/Git/checklist changes. New immutable proposal only; no active-hours claim.",
+          "Main actually read all12originalranges963lines and priorcomplete semanticdecisions; no oldfullsourcechain reread. Gorilla andLlama onefamilymaximum1, later species/parameterforks merge0.",
+          "Original wording exactGorilla.class is literalclassargument only; classquery backend notexpanded. Hash/candidate/globalmetadatascreen adds0, no globalnovelty/migrationcredit or nativeencounter proof.",
+          "Original exact Gorilla.class wording remains immutable historical; current fields state only the literal query class argument, never exact-runtime-class-only membership. No production/game/Git/checklist/master changes."
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0038",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+        "sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+        "bytes": 537726
+      },
+      "canonical_complete_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0038",
+        "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+        "observation": [
+          "One complete source policy is a query-quorum-triggered communal guard request with nearby suppression memory. Panic3 and gossip5 are trigger variants; helper, codecs, sensors, inheritance bodies and numerical differences contribute0. The literal query is not proved to be an all-live/adult-only census or exact-class-only membership.",
+          "Villager actual MEMORY_TYPES/SENSOR_TYPES and full goal packages bind panic in CORE and TradeWithVillager in MEET/IDLE. customServerAiStep dispatches Brain.tick. Full Behavior gates required memories/start predicate, endTimestamp=current+60, then !timedOut&&canStillUse. Panic can start with its empty predicate but only ticks while hurt/hostile memory present, and requests at delivered gameTime%100==0. This is not a guaranteed100-world-tick periodic summon.",
+          "TradeWithVillager requires interaction and visible memories; targetIsValid filters actual registryVILLAGER/alive/visible wrapper. On squared distance<=5, it calls gossip BEFORE food/trade stack branches. Gossip requires both timestamps backward or>=last+1200, transfers then writes BOTH lastGossipTime before threshold5. Neither adequate food nor actual successful golem/payment is required by the shown gossip call.",
+          "wantsToSpawnGolem ignores its parameter and reads actor.level gameTime. LAST_SLEPT must be present and now-last<24000 with no lower bound: future saved timestamps can satisfy local predicate. startSleeping calls parent then immediately writes memory; complete slept night, valid bed retention, grownup/profession/work eligibility are not certified.",
+          "Main additionally read complete Brain.checkMemory212..219: VALUE_PRESENT tests Optional presence, not Boolean value. Thus false GOLEM_DETECTED_RECENTLY also suppresses. Query is actor AABB inflated10 on each axis; its unfiltered list is separate from eligibility-filtered limit5 list. No own explicit isAlive check; backend/self membership not expanded. Actor eligibility is required even if enough neighbors are eligible.",
+          "At threshold, complete SpawnUtil attempts max10 independently sampled columns in horizontal inclusive[-8,8], starting at anchorY+6. Its downward loop6..-6 checks13 floors from anchorY+5 to-7; successful body is floor+1. Attempts can repeat sites, initial border check is not a complete height/chunk/collision proof. Local caller has no explicit population cap/doMobSpawning/material reservation; this does not establish currentpack cap/rule bypass.",
+          "Legacy floor strategy rejects explicit dangerous/fragile/light/glass/leaves literals, otherwise upper air-or-liquid/lower solid-or-powder-snow. EntityType.create uses concrete IRON_GOLEM MISC1.4x2.7, nullable factory, selected position before virtual finalizeSpawn+ambient call. No game/audio ran. This comes before Forge PositionCheck, whose DEFAULT invokes virtual rules+obstruction, ALLOW skips both, other results reject. Effective handlers/inheritance/currentpack remain bounded.",
+          "IronGolem obstruction first entityCanStandOn lower block, checks actual fluid at above1/2 with NaturalSpawner helper, then checks body with literal Fluids.EMPTY.defaultFluidState rather than body actual fluid, plus isUnobstructed. Do not generalize helper nonempty-fluid rejection into a proved dry body/whole boundingbox safety guarantee. AbstractGolem/Pathfinder full support bodies do not prove full concrete inheritance.",
+          "Null factory or denied position advances to next attempt; denied nonnull mob is discarded. After position passes, void addFreshEntityWithPassengers ignores each addFreshEntity Boolean and immediately returns Optional.of. Three exact prior own ServerLevel/manager native ranges reused0 establish removed/canceledJoin/duplicateUUID refusal boundaries; no new old-chain read or actual birth.",
+          "Only Optional.present writes true/TTL600 to ALL unfiltered nearby queried Villagers, not just atmost5 eligibility contributors. No new UUID/post-admission check or local failure rollback; successful object request can suppress neighbors without a proved admitted golem. Source boundary only, no reproduced failure or authorized production repair.",
+          "Full GolemSensor refreshes TTL600 if cached nearest-living list has actual registrytype IRON_GOLEM; no PlayerCreated/visibility/new-live filter at consumption. Full nearestliving sensor excludes self/dead when building AABB16 list, sorts squared distance, writes both list and visibility wrapper. Default20 and golem200 are delivered Sensor.tick calls with random initial phase; cache staleness/order/global wallclock not guaranteed.",
+          "Brain forgets expiry BEFORE decrement; finite ExpirableValue tick decrements, hasExpired<=0. TTL reaching0 survives until next delivered forget pass unless refreshed. It is600 brain deliveries, not certified600 world or wall ticks; freeze/unloading is not wall-time debit. ExpirableValue value immutable, TTL persisted only if finite.",
+          "LAST_SLEPT LONG and GOLEM_DETECTED BOOL have ExpirableValue codecs. Present codec-backed MemoryValue serializes under Brain.memories; decoder resultOrPartial/fallback can lose malformed values. LivingEntity conditionally reads Brain compound through makeBrain and Forge hook; Villager parent pair then refreshBrain copies same present Optional wrappers into new Brain with recreated sensors. Not demonstrated lossless disk roundtrip/clone or hook composition.",
+          "Villager whole own save/read pair persists Gossips and LastGossipDecay but omits lastGossipTime field (no explicit initializer). Fresh object own timestamp defaults0; read into reused object does not explicitly clear it. Absolute LAST_SLEPT and remainingTTL differ; gossip reset is not a separately credited migration. Existing obsoleteType=golem retirement and constructed-material provenance full owners retained0.",
+          "Whole Cat decision14findings/8limits and Siege16findings/4limits actually read: occupiedHOME/structure+density single-actor objectclock versus exact-time hostile setup/veto+finite attempt debit differ from this existing eligible query cohort/shared-memory suppression request. Both currentgolem triggers are one family. Shared Optional/admission/time/codec boundaries are support0; not exhaustive global novelty.",
+          "Both existing migration complete decision rows and canonical full rows are current-bound:591fa0e45d13bd837592 exact obsolete gossip retirement;36d8b00c2ef66ef0897a player material pattern/provenance/harvest. Neither is new here. Recommend atmost1 ecology whole policy only after separate minimalresearch package/Mainreview/actual-author receipt/single strict aggregation; formal0 now."
+        ],
+        "application": "After applicable1000 and actual native QA, use explicit admitted-actor acknowledgment for cohort suppression; preserve sleep timestamp and finite suppression lifetime separately. No source-derived production implementation now.",
+        "limits": [
+          "One whole family maximum1, currently formal0; no counts for sources/1333-line checkpoint/thresholds/sensors/helpers/memory codec/old owners. Applicable1000 not met; do not produce current project mechanics.",
+          "Pinned local source bytes only; no fresh upstream authentication, current loaded pack/rules/config/tags/positions/events/AI/cap/world or complete inheritance/backend verification. No source code executed.",
+          "Input hurt/hostile/visible/sleep memory provenance beyond shown direct calls is bounded. Bed/hostile detection goals, world/chunk/registry/event bus/position mutations and entire scheduler are not full newly read chains. No alive-only query membership, adult-only eligibility, exact query class, global population cap, safe collision, exactly600 elapsed ticks or real birth guarantee.",
+          "Brain codec supports conditional memory reconstruction with partial/fallback loss and Forge hooks; fresh/default versus existing reuse differs. No opaque lossless legacy fallback, walltime expiry or actual world reload/UUID conservation claimed.",
+          "No Java/Gradle/game/server/network/download/process/UI/focus/display/wake/sound/brightness/Git/production/art/sharedJar/userworld/checklist/master/session/ownership change; no active-hours claim.",
+          "Main35ranges1413lines is reading scope, not35 credits; atmost1 conditional new whole ecology implementation, formal0.",
+          "Literal constructor/goal package registration is not actual currentpack loaded behavior; no all-live/adult-only query, fixedwallclock, reliable safe position or admittedspawn assertion.",
+          "Main writes only this research receipt; all protected external prompts/pending/ownership/sharedJar unchanged. No task accepted complete and no checklist deletion."
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "current_global_ledger": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "bytes": 18357046
+  },
+  "complete_selected_global_substantive_judgments": [
+    {
+      "candidate_id": "778db9d6f4efbc8f5d49",
+      "canonical_complete_row_sha256": "43436d86978229214530ae0b38005500a4b1cccbee5f708a8cca1c9de9738dfe",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "778db9d6f4efbc8f5d49",
+        "status": "accepted",
+        "family": "occult-ritual-paid-ingredients-and-sacrifice-receipts-reader",
+        "trigger": "GoldenSacrificialBowl.loadAdditional",
+        "input": "ritual recipeId, castingPlayer UUID, currentTime/active, consumed ingredient payloads and sacrifice/item-use receipts",
+        "output": "resets ingredient list; valid-looking recipe ownership path loads already paid inputs; restoreRemainingAdditionalIngredients derives remaining recipe cost",
+        "preservation": "Complete paired save and restore helper read: absent level defers remaining ingredients null for tick retry, otherwise subtracts consumed ingredients; paid receipts saved only while recipe exists. No consumption/reward triggered in reader itself.",
+        "application_limit": "Condition uses id!=null OR resolvedRecipe!=null; nonnull unresolved ID with live level can dereference null recipe in helper. Missing IDs may leave stale state. This is negative-compatible boundary, not proof all reload paths work.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "8c94eb31304a9349d67c",
+      "canonical_complete_row_sha256": "e1d75b548c571c09fb298489e8d689ea3c7469a9077df34e076405c1710dfa7f",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "8c94eb31304a9349d67c",
+        "status": "accepted",
+        "family": "goety-cauldron-paid-brew-crafting-inflight-state-and-sacrifice-receipts",
+        "trigger": "BrewCauldronBlockEntity.load then lazy getRecipe",
+        "input": "mode, brew stats/capacity, soulTime/totalCost, consumed and craft inventories, sacrificed slot→entity type receipts, currentCraftRecipe",
+        "output": "replaces both inventory and sacrifice owners; postpones recipe lookup until world available; preserves already accumulated payment and crafting mode",
+        "preservation": "Full load/save and sacrifice helpers plus getRecipe and visible crafting consumer read. Unknown sacrificed registry types skipped rather than inventing entity. Each brew stat/slot/type is same owner, no extra counts. Full recipe ID is retained for deferred lookup rather than parsing current global recipe during worldless load.",
+        "application_limit": "Mode.valueOf malformed string throws; amounts not bounded. Pending recipeId cleared on first live lookup even if unknown; save uses recipe object, so resave before resolution may omit pending ID. No assertion all output transaction/reward paths atomic.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "20e135ea75701b85603e",
+      "canonical_complete_row_sha256": "ed04c4a42cd53d8c835c561905bd26b820c0689ef54a09cf3a371484b5b9238d",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "20e135ea75701b85603e",
+        "status": "accepted",
+        "family": "cataclysm-sacrifice-altar-stock-and-success-acknowledged-summon",
+        "trigger": "Abyss/Fire altar full reader/writer pairs and complete tick",
+        "input": "one real sacrificial item slot, Summoningthis bool; summoningticks omitted",
+        "output": "restore original sacrificial stack; actual tick derives summoning eachtime from itemtype. Boss spawn at>121 ticks; consume slot only if addFreshEntity returnedtrue, sethome GlobalPos first",
+        "preservation": "One near-cloned ritualfamily for both altars, not two boss-ID variants. Concrete retainedstock substitutes recomputation of short animation; success acknowledgment preferable to unconditionally clearing receipt.",
+        "application_limit": "Animationcounter notsaved so reload repeatsdelay, bool savedbut immediatelyrecomputed. Blockbreaking precedes spawn success can destroy world despitefailure. Input full payload held but sacrifice consumesentire slot, no countpart consumption. Exact insertion/sourceblock interaction not deeply reviewed.",
+        "supporting_candidates": [
+          "ca1287461686d4808e19"
+        ],
+        "credit": 1
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "global_exact_name_screen_not_uniqueness_proof": {
+    "terms": [
+      "underzealot",
+      "gloomoth",
+      "vesper",
+      "forsaken"
+    ],
+    "matches_in_six_decision_fields": 0,
+    "old_full_sources_reread": false,
+    "credit": 0
+  },
+  "old_whole_comparison": [
+    "EA14 owns bred-flag→sting carrier/drag/burial→host delayed offspring; whole retained, not reduced to effect helper. Current proposed whole is existing live interface-qualified victim captured into a leader and linked praying peers trigger victim species conversion; indirect comparable scope may still require0.",
+    "EA16 owns individual alarm/local existing-warden suppression with consumed persistent attempt; EA20 owns environment cumulative exposure→native precommit add/discard/equipment; neither creates fresh standalone conversion credit here. Only full multi-agent carrier/quorum/timer/cooldown policy could differ.",
+    "EA37 owns full existing-actor role-rooted tail links/catchup/unlink and any species fork merges; PackAnimal/Join/Procession alone0. EA38 owns eligibility query-quorum/shared suppression; generic3peers or timers0.",
+    "EA7 sharednaturalpredicate and EA9 natural cohort/home/reentry retained; natural friend factory/count alone0.",
+    "Global Occultism paid ritual bowl, Goety paid brew sacrifice state and Cataclysm success-acknowledged sacrifice altar retain complete owners0. This proposed mechanism has no player real ingredient wallet/progress credit or new migration claim."
+  ],
+  "observed_chain": [
+    "固定AlexsCaves commit4718f4287c65b810aecb211789b45f54d405a94d；实际12段10文件、9整文件的Java文本，逐字节SHA及Git blob均与pinned tree一致。431条缓存manifest/树不等于431个参考，整个仓库/准确构建依赖/实际部署未读。",
+    "ACEntityRegistry确实注册Underzealot/Vesper/Watcher/Forsaken为MONSTER，Gloomoth为AMBIENT并绑定工厂与尺寸；Placement AND调用各自静态rule。Underzealot委托Monster规则；Vesper另向上空格计数>5才放行；Gloomoth使用自身暗度+checkMobSpawnRules并向上空格>4才放行。不存在已读真实biome注入/权重/当前加载证明，不说这些角色已经自然可得。",
+    "Underzealot自己的finalizeSpawn仅NATURAL时先spawnReinforcements再parent；for条件每轮重抽3+nextInt2，正常完成下3或4次child create/copyPosition/add请求，结果不查、child不finalize、factory无null guard。它不是3或4成功出生，也不证明所有cap/rule被绕过；parent最终加入仍未确认。",
+    "主实体真实注册AnimalJoinPackGoal(60,11)、SacrificeGoal优先3、Capture优先5、Procession优先6。这里只研究其捕获/列队/仪式/转化来源；combat/光效/声音/埋地模型不是额外参考，GoalSelector及导航实际调度未展开。",
+    "Capture.canUse先拒carrying、pack follower和正sacrificeCooldown；没有活target时要求gameTime%10==0且随机1/3，活target可使该时间随机门不阻断。随后AABB inflate20搜LivingEntity，要求实现UnderzealotSacrifice、非passenger、按向下空格距离通过资格，再Vesper优先不受额外1/4、其他随机1/4；从有LOS者中选最近。没有显式完整活/成年/所有权筛选，也不是全世界20半径球。",
+    "distanceToGround从当前block沿empty向下到首个非empty或minBuildHeight，非empty不等solid/安全支撑。Vesper资格distance<(hanging?3:9)，Gloomoth<4；这是选择者空间可抓性，不是祭品会成功骑上/祭场可达证明。",
+    "Capture.tick导航接近，小于1.4时调用sacrifice.startRiding(entity)不查boolean；高于0.5且水平<2、自己onGround可jump。continue只看引用非null、alive、非passenger、自己非follower、distance<32、cooldown<=0；并非每次重跑原有效性，100次tick才重查isValid。stop只停导航。",
+    "主tick服务端若自身carrying且变follower会先逐passenger stopRiding，再setCarrying(!passengers.empty)。carrying flag来自当前骑乘列表不是已保存的有效祭品收据，也不保证passenger实现接口/存活/来自最初捕获。",
+    "PackAnimal用prior/after对象链。AnimalJoinPackGoal只让无上下游者寻找AABB30同class参数对象、无tail且其leader有效、非自身UUID、不在同pack且size<11者，最近且距离平方>=1后在canUse直接join。Underzealot.isValidLeader要求root携带、非follower、alive；不创造新演员、不保证原子reserve或准确一次独占。",
+    "Pack leader/getSize/position/祷告人数为对象链循环，无统一visited集合/硬迭代上限；getPackLeader只挡prior==本对象的局部条件，isInPack不在最后tail上比较。EA37已有非生产性队列组织整机制，这些辅助细节不另计，未复现循环/重复或普遍断链bug。",
+    "跟随continue要求leader有效；距离平方>676且counter0会停，而本类counter从未赋正值。Procession跟前者，距离>8且stuck或attempt>60时请求bury+20..39延迟reemerge；只是重定位请求，实际navigation/世界目标安全或群体到位未证。",
+    "Sacrifice.canUse优先检查cooldown。follower只在leader携带且有LastSacrificePos、leader距其中心平方<2.5时采用该center；非follower携带者通过executionCooldown，先复验旧center，否则搜索新center，并存入自身SACRIFICE_POS。center代表候选位置，不是完成仪式或实际建筑ID。",
+    "findNearest先查当前下方无需canReach；再最多20次，但check.move(entity.blockPosition())是在当前mutable基础加坐标，不是set回原点，后接随机XZ[-10,9]与Y+5。检查loaded后向下empty搜，再isValid+path终点距平方<=3；不能概括成20个准确独立以实体为中心的点或全模板可通行。",
+    "isValidSacrificePos只先拒空的center。两个for都是i/j=-2到<=-2，各运行一次；只查一个偏(-2,-2)below是否empty，badSpots最多1永不>5，aboveGround赋值未消费。代码没有完整5x5地面/头部净空/液体/危险地形保证；只是固定源码条件边界，不是当前项目运行bug。",
+    "Sacrifice continue follower看leader非null、携带且距center平方<5，leader只看自身carrying；未逐次重验center、祭品有效性或全组到位。buried/digging时tick先setPraying(false)并return。",
+    "follower按packPosition/(size-1)计算圆环偏移，向上/下找地面，接近平方<4设置praying、Worship+1，远则清时间并累计跟随失败。canUse与tick所需root携带状态可能变化，不能称全体同步/存活/几何无冲突。",
+    "leader在center平方<4时Worship+1；用旧worshippingTicks>MAX500-300即>200、cloudCooldown<=0、isSurroundedByPrayers判定，再对firstPassenger接口调用triggerSacrificeIn(300)，之后cloudCooldown=400和视觉事件。500常量不是已证500tick仪式；祷告counter/AI调用不是墙钟。",
+    "isSurroundedByPrayers沿leader的after链计isPraying>=3，不计leader、没有此函数内的距离/活/同维度/祷告时间检查。普通goal约束可影响旗标，但不能把链上旗标当实测当前全员就位或实际出生ACK。EA38已有query-quorum guard来源，generic quorum不另计。",
+    "triggerSacrificeIn只将目标private isBeingSacrificed=true并重设sacrificeTime=300；后续cloudCooldown到期如条件仍满足可再请求并重置，没有自己的稳定receipt/事务/子实体UUID。主每tick递减两个cooldown，不是保证实时钟表或不可重入锁。",
+    "两目标同属一个仪式整链而不是两个物种信用。Vesper倒计时需isBeingSacrificed && isPassenger && server；Gloomoth只需flag&&server，脱离搬运仍继续。各自严格timer<0才执行转化，<10视觉反馈不证明入场。",
+    "到期且当前vehicle是Underzealot时，两者先postSacrifice/triggerIdleDigging，再stopRiding，才convertTo(目标,true)。postSacrifice先主祭cooldown=6000..11999，并对AABB64中distance<64的Player触发advancement请求；未绑定原捕获者、材料付款者或随后转化是否成功。",
+    "Gloomoth请求WATCHER，并在nonnull检查外播放转化声；Vesper请求FORSAKEN，仅nonnull后设召唤animation和Post通知，两者返回对象后stopRiding。视觉/声音/成就先后不代表同UUID自然出生/战利品/拾取，未运行任何音频或程序。",
+    "作为当前可用1.20.1对照，实际Mob.convertTo完整方法读回：old removed/factory null可返回null；复制位置/baby布尔/noAI/name/persistence/invulnerable；true会copyAndClear装备和dropChance/canPickUpLoot；请求add忽略结果后discard旧体，再返对象。此原生handoff已EA20全scope，不是新的参考，且本mod准确Gradle依赖未核，不冒称该jar就是其固定编译依赖。",
+    "该1.20.1对照中onLivingConvert只是发布Post，不是把生成成功返回给调用者。caller没见自己的Pre否决/入场ACK。若工厂null，Vesper已经下骑，后续通常因passenger门暂停；Gloomoth flag仍true、timer继续负数可反复请求，无需再有carrier/quorum。若native返回nonnull但add被拒，不能由nonnull认定已得新体；上述为条件性源码边界，未复现。",
+    "主实体自己只保存SacrificeCooldown/Buried、可选RX/RY/RZ与SX/SY/SZ。没有在自己额外save/read中保存prior/after、Worship/Praying/Carrying/cloudCooldown/executionCooldown/attempt或timer；Vesper和Gloomoth完整类没有自己的额外save/read，flag/time无该层序列化。原生Passengers/完整继承/外部cap/世界重建未展开，不称跨重载整个仪式可靠续接。",
+    "stop清跟随计数/Worship/导航/乘客/Praying/particle，self cooldown==0才设100。祭品的trigger flag未在此清除；这与上面的倒计时门不同共同决定中断恢复，不能泛称两种都在解救时取消。没有从源码推导玩家奖励/实际产物必达。",
+    "自然biome接线、固定Gradle构建依赖、WATCHER/FORSAKEN raw loot均本地缺内容，仅有树元数据；目标完整后续AI/掉物/引擎适配未读。不推断任何ectoplasm、鬼油/灯油掉落，不补Dynasty24/30出生和9/10同UUID拾取，不改run12或cap。"
+  ],
+  "mandatory_constraints": [
+    "最多1个捕获活祭品→携带者带队→祷告旗标人数→目标私有倒计时→异种转化前置冷却/成就的整链候选，Main审阅scope/重叠后才可能计数；不按两祭品、两目标、帮手、阈值、源文件分数。",
+    "保留EA14寄生宿主/拖载/延迟后代、EA16消耗alarm尝试、EA20环境计时+原生precommit转化、EA37整体队列图/跟随/脱队、EA38群体quorum和记忆抑制完整旧scope；通用部分全部0，差别只能整套活体协作仪式的所有者/失败边界。",
+    "当前缺真实biome内容与loot，来源链不可被说成当前野外可达的材料渠道；Main认为太偏/重叠则归支持0，不改成又一quorum/convertTo参考凑数。",
+    "不把postSacrifice成就/6000cooldown、视觉cloud、nonnull convertTo或请求add当出生/掉落/实际同UUID拾取；不替代玩家原生材料/任务前置/付款回执。",
+    "自然parent的3..4朋友请求和角色转化分账，NATURAL传参只证明分支，不是当前实际NATURAL验收，更不做cap/category/probability或生态重启调整。",
+    "祭品倒计时门、先post再转换、下骑后潜在重试差异、未保存局部state必须完整保留；具体失败/掉装备/重复不是已复现bug。",
+    "fixed Git blob核验只证所读文件与本地pinned树一致，不证运行部署/完整源码/准确依赖；原生1.20.1是上下文对照0，不混称当前mod精确依赖。",
+    "自然规则、骑乘、路径、quorum、Pre/Post、转化、add、loot和拾取属于不同层，完整Caller并不等于完整世界引擎调用图。",
+    "模板/模型/texture/建筑参考0；不复制、不修改任何专业资产或共享Jar，不启动/窥探用户游戏/世界/屏幕/声音/亮度。",
+    "无ID/包/receipt/validator/fixture/aggregation操作授权，General只写不可变私有研究与checkpoint；主清单删除仍只由Main在真实完成验收后精确做。"
+  ],
+  "application": [
+    "相关仪式生态来源研究仅服务怪物来源、可达资格、群体前置、真实消费/转化和准入/拾取分层验收；以后达到门槛再由Main决定是否与墓地/鬼市设计相关，当前不生产。",
+    "对待运行问题，明确某一步的反馈/flag/cooldown和实际入场是不同分母；保护用户原任务/奖励/ID，不从参考生物名创造物品来源。"
+  ],
+  "limits": [
+    "本地源码静态研究；无Java/Gradle/游戏/server/network/UI/process/display/Git/upstreamcode执行或下载。",
+    "biome/Gradle/loot内容不可用，树行、byte数和hash不是实际阅读；不会填造missing原文或向Main谎报闭环。",
+    "未读完整GoalSelector/导航/ride/查询backend/Forge bus listeners/constructor后续目标AI/存档外层/原生掉物和ItemEntitypickup，不保证行为可达、活体来源、产率、稳定UUID或材料守恒。",
+    "所有观察是条件调用顺序，不是已复现当前bug；没有当前Dynasty实机成功/兼容/性能/平衡或1000门槛达标。",
+    "原生convertTo/post helpers已属EA20，队列普遍框架属EA37，quorum普遍框架属EA38；没有Global/migration/免疫/战斗/视觉新信用。",
+    "不更改源缓存、shared工具/master/session/active/pending/ownership/cod、业务/美术/Jar/世界或提交发布；保护8项前后SHA一致。",
+    "不标记提示词任务完成或删除，不代签他人或执行旧marker，工时/总10小时达标声明0。"
+  ],
+  "Goety_screen_rejected0": {
+    "repo": "Polarice3/Goety-2",
+    "commit": "02adbe7491767210f63857fa763a6f1de1262cbd",
+    "source_metadata": {
+      "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/source.json",
+      "sha256": "b68a9992b3a79404f0c1bc8cf8fa0f16ff3ece154774fed71ed561db4f84fc4b",
+      "bytes": 571845
+    },
+    "actual_complete_files_read": [
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/entities/hostile/Wraith.java",
+        "sha256": "1422339b5423c89598ac6409a3363a9e57c1cd78b5ca1e09f55302097b6de2b3",
+        "bytes": 1298,
+        "actual_read_range": [
+          1,
+          30
+        ],
+        "full_file": true,
+        "credit": 0
+      },
+      {
+        "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/entities/HauntedJugBlockEntity.java",
+        "sha256": "69320c5cac58a259dde0fc7ad15298f317e189b55f05c762d32a8458644fb933",
+        "bytes": 10879,
+        "actual_read_range": [
+          1,
+          206
+        ],
+        "full_file": true,
+        "credit": 0
+      }
+    ],
+    "finding": "Wraith30-line hostile subclass delegates main behavior; no new source/material whole. HauntedJug206-line BE is infinite-water provider/extinguish/cauldron/fluid capability, not haunting spawn source; no unrelated water reference proposed.",
+    "maximum_new_credit": 0
+  },
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "building_reference_credit": 0,
+  "upstream_code_executed": false,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "package_built": false,
+  "shared_tools_changed": false,
+  "validator_or_fixture_or_aggregation_executed": false,
+  "production_changes": 0,
+  "art_changes": 0,
+  "shared_Jar_writes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "Git_operations": 0,
+  "active_hours_claimed": 0,
+  "next": "Main先评相关范围和整链重叠；若偏离当前缺口或已由旧whole覆盖则0。未获明确授权不编号/打包/触发任何正式操作。继续当前缺口相关原源，不等待/重跑旧marker。"
+}

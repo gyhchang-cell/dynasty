@@ -1,0 +1,1765 @@
+{
+  "recorded_at": "2026-11-09T20:06:55.321095+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "PRIVATE_ORIGINAL_SOURCE_WHOLE_CANDIDATE_PENDING_MAIN_SCOPE_AND_SEMANTIC_REVIEW",
+  "semantic_key": "terrain-qualified-grave-cell-finite-guardian-and-lazy-loot-requests-with-consumed-probabilistic-spawner-marker",
+  "source_provenance": {
+    "repo": "TeamTwilight/twilightforest",
+    "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+    "archive_url": "https://codeload.github.com/TeamTwilight/twilightforest/zip/9911cf7c4223ee7909e97659d0621a87683c8272",
+    "archive_sha256": "ca2fc75979a583341bfaa39db56be10403063d6445a40b5972db55cf404e4a8a",
+    "retrieved_utc": "2026-10-24T08:38:13.978837+00:00",
+    "research_credit": 0,
+    "upstream_code_executed": false,
+    "source_metadata": {
+      "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/source.json",
+      "sha256": "69e3ee9a66c59cb94ec16af48ef5afb779304ceb2364c2e1b3e682f0999d7489",
+      "bytes": 1544372
+    },
+    "raw_archive_rehashed_this_round": false,
+    "selected_local_sha_matches_verified": true,
+    "selected_manifest_is_not_full_upstream_tree": true,
+    "matching_native_26_dependency_read": false
+  },
+  "actual_source_read_ranges": [
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/gradle.properties",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/gradle.properties#L1-L28",
+      "path": "gradle.properties",
+      "file_sha256": "948ac0a0504257d42e5d40732082add20baeb3c1123c1cb1a31159c0c831f73b",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        28
+      ],
+      "total_file_lines": 28,
+      "full_file": true,
+      "raw_excerpt_sha256": "948ac0a0504257d42e5d40732082add20baeb3c1123c1cb1a31159c0c831f73b",
+      "raw_excerpt_utf8": "org.gradle.jvmargs=-Xmx4G\norg.gradle.daemon=false\norg.gradle.configuration-cache=true\n\nshadowjar_version=9.4.1\n\n# Mod Info\nmod_version=4.9\nmod_id=twilightforest\ngroup_name=com.github.teamtwilight.twilightforest\n\n# Minecraft\nbase_minecraft_version=26.1\nminecraft_version=26.1.2\n\n# NeoForge: https://projects.neoforged.net/neoforged/neoforge\nneoforge_version=26.1.2.112\nmdg_version=2.0.141\n\n# Deps\nbeanification_version=1.9.136\njei_version=29.35.0.94\nrei_version=16.0.799\nemi_version=1.1.22\ncurios_version=15.0.0-beta.1\ntop_version=1.21_neo-12.0.3-5\n\nenable_tips_mod=false\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/world/components/feature/templates/GraveyardFeature.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/world/components/feature/templates/GraveyardFeature.java#L1-L242",
+      "path": "src/main/java/twilightforest/world/components/feature/templates/GraveyardFeature.java",
+      "file_sha256": "224e74951f67e1caf6188217c35ca12bcb44f249815d166a74905130938afd83",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        242
+      ],
+      "total_file_lines": 242,
+      "full_file": true,
+      "raw_excerpt_sha256": "224e74951f67e1caf6188217c35ca12bcb44f249815d166a74905130938afd83",
+      "raw_excerpt_utf8": "package twilightforest.world.components.feature.templates;\n\nimport com.google.common.math.StatsAccumulator;\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.MapCodec;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Vec3i;\nimport net.minecraft.resources.Identifier;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.EntitySpawnReason;\nimport net.minecraft.world.level.ChunkPos;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.WorldGenLevel;\nimport net.minecraft.world.level.block.*;\nimport net.minecraft.world.level.block.entity.SpawnerBlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.properties.StructureMode;\nimport net.minecraft.world.level.levelgen.Heightmap;\nimport net.minecraft.world.level.levelgen.feature.Feature;\nimport net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;\nimport net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;\nimport net.minecraft.world.level.levelgen.structure.BoundingBox;\nimport net.minecraft.world.level.levelgen.structure.templatesystem.*;\nimport net.neoforged.neoforge.event.EventHooks;\nimport org.apache.commons.lang3.tuple.Pair;\nimport org.jetbrains.annotations.Nullable;\nimport twilightforest.TwilightForestMod;\nimport twilightforest.entity.monster.Wraith;\nimport twilightforest.init.TFEntities;\nimport twilightforest.init.TFStructureProcessors;\nimport twilightforest.loot.TFLootTables;\nimport twilightforest.util.features.FeatureLogic;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class GraveyardFeature extends Feature<NoneFeatureConfiguration> {\n\tprivate static final Identifier GRAVEYARD = TwilightForestMod.prefix(\"feature/graveyard/graveyard\");\n\tprivate static final Identifier TRAP = TwilightForestMod.prefix(\"feature/graveyard/grave_trap\");\n\n\tpublic GraveyardFeature(Codec<NoneFeatureConfiguration> config) {\n\t\tsuper(config);\n\t}\n\n\tprivate static boolean offsetToAverageGroundLevel(WorldGenLevel world, BlockPos.MutableBlockPos startPos, Vec3i size) {\n\t\tStatsAccumulator heights = new StatsAccumulator();\n\n\t\tfor (int dx = 0; dx < size.getX(); dx++) {\n\t\t\tfor (int dz = 0; dz < size.getZ(); dz++) {\n\n\t\t\t\tint x = startPos.getX() + dx;\n\t\t\t\tint z = startPos.getZ() + dz;\n\n\t\t\t\tint y = world.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);\n\n\t\t\t\twhile (y >= 0) {\n\t\t\t\t\tBlockState state = world.getBlockState(new BlockPos(x, y, z));\n\t\t\t\t\tif (FeatureLogic.isBlockNotOk(state))\n\t\t\t\t\t\treturn false;\n\t\t\t\t\tif (FeatureLogic.isBlockOk(state))\n\t\t\t\t\t\tbreak;\n\t\t\t\t\ty--;\n\t\t\t\t}\n\n\t\t\t\tif (y < 0)\n\t\t\t\t\treturn false;\n\n\t\t\t\theights.add(y);\n\t\t\t}\n\t\t}\n\n\t\tif (heights.populationStandardDeviation() > 2.0) {\n\t\t\treturn false;\n\t\t}\n\n\t\tint baseY = (int) Math.round(heights.mean());\n\t\tint maxY = (int) heights.max();\n\n\t\tstartPos.setY(baseY);\n\n\t\treturn FeatureLogic.isAreaClear(world, startPos.above(maxY - baseY + 1), startPos.offset(size));\n\t}\n\n\t@Override\n\tpublic boolean place(FeaturePlaceContext<NoneFeatureConfiguration> ctx) {\n\t\tWorldGenLevel world = ctx.level();\n\t\tBlockPos pos = ctx.origin();\n\t\tRandomSource rand = ctx.random();\n\n\t\tint flags = 16 | 2 | 1;\n\n\t\tStructureTemplateManager templatemanager = world.getLevel().getServer().getStructureManager();\n\t\tStructureTemplate base = templatemanager.getOrCreate(GRAVEYARD);\n\t\tif (base == null)\n\t\t\treturn false;\n\t\tList<Pair<GraveType, StructureTemplate>> graves = new ArrayList<>();\n\t\tStructureTemplate trap = templatemanager.getOrCreate(TRAP);\n\t\tif (trap == null)\n\t\t\treturn false;\n\t\tfor (GraveType type : GraveType.VALUES) {\n\t\t\tStructureTemplate grave = templatemanager.getOrCreate(type.RL);\n\t\t\tif (grave == null)\n\t\t\t\treturn false;\n\t\t\tgraves.add(Pair.of(type, grave));\n\t\t}\n\n\t\tRotation[] rotations = Rotation.values();\n\t\tRotation rotation = rotations[rand.nextInt(rotations.length)];\n\n\t\tMirror[] mirrors = Mirror.values();\n\t\tMirror mirror = mirrors[rand.nextInt(mirrors.length + 1) % mirrors.length];\n\n\t\tVec3i transformedSize = base.getSize(rotation);\n\t\tVec3i transformedGraveSize = graves.get(0).getValue().getSize(rotation);\n\n\t\tChunkPos chunkpos = ChunkPos.containing(pos.offset(-8, 0, -8));\n\t\tChunkPos chunkendpos =ChunkPos.containing(pos.offset(-8, 0, -8).offset(transformedSize));\n\t\tBoundingBox structureboundingbox = new BoundingBox(chunkpos.getMinBlockX() + 8, 0, chunkpos.getMinBlockZ() + 8, chunkendpos.getMaxBlockX() + 8, 255, chunkendpos.getMaxBlockZ() + 8);\n\t\tStructurePlaceSettings placementsettings = (new StructurePlaceSettings()).setMirror(mirror).setRotation(rotation).setBoundingBox(structureboundingbox).setRandom(rand);\n\n\t\tBlockPos posSnap = chunkpos.getWorldPosition().offset(8, pos.getY() - 1, 8); // Verify this is correct. Originally chunkpos.getBlock(8, pos.getY() - 1, 8);\n\t\tBlockPos.MutableBlockPos startPos = new BlockPos.MutableBlockPos(posSnap.getX(), posSnap.getY(), posSnap.getZ());\n\n\t\tif (!offsetToAverageGroundLevel(world, startPos, transformedSize)) {\n\t\t\treturn false;\n\t\t}\n\n\t\tBlockPos placementPos = base.getZeroPositionWithTransform(startPos, mirror, rotation).offset(1, -1, 0);\n\t\tVec3i size = transformedSize.offset(-1, 0, -1);\n\t\tVec3i graveSize = transformedGraveSize.offset(-1, 0, -1);\n\n\t\tbase.placeInWorld(world, placementPos, placementPos, placementsettings.addProcessor(new WebTemplateProcessor()), rand, flags);\n\t\tList<StructureTemplate.StructureBlockInfo> data = new ArrayList<>(base.filterBlocks(placementPos, placementsettings, Blocks.STRUCTURE_BLOCK));\n\n\t\tBlockPos start = startPos.offset(1, 1, 0);\n\t\tBlockPos end = start.offset(size.getX(), 0, size.getZ());\n\n\t\tfor (int x = 1; x <= size.getX() - 1; x++)\n\t\t\tfor (int z = 1; z <= size.getZ() - 1; z++)\n\t\t\t\tif (world.isEmptyBlock(start.offset(x, 0, z)) && rand.nextInt(12) == 0)\n\t\t\t\t\tworld.setBlock(start.offset(x, 0, z), Blocks.COBWEB.defaultBlockState(), flags);\n\n\t\tBlockPos inner = start.offset(2, 0, 2);\n\t\tBlockPos bound = end.offset(-2, 0, -2);\n\t\tBlockPos innerSize = new BlockPos(bound.getX() - inner.getX(), bound.getY() - inner.getY(), bound.getZ() - inner.getZ());\n\t\tBlockPos fixed = inner.offset(\n\n\t\t\t(rotation == Rotation.CLOCKWISE_180 ? graveSize.getX() : 0) + (mirror == Mirror.FRONT_BACK ? transformedGraveSize.getX() - 1 : 0) * (rotation == Rotation.CLOCKWISE_180 ? -1 : 1),\n\n\t\t\t0,\n\n\t\t\t(rotation == Rotation.COUNTERCLOCKWISE_90 ? graveSize.getZ() : 0) + (mirror == Mirror.FRONT_BACK ? transformedGraveSize.getZ() - 1 : 0) * (rotation == Rotation.COUNTERCLOCKWISE_90 ? -1 : 1)\n\n\t\t);\n\t\tBlockPos fixedSize = innerSize.offset(-graveSize.getX(), 0, -graveSize.getZ());\n\t\tBlockPos chestloc = new BlockPos(rand.nextInt(2) - (mirror == Mirror.FRONT_BACK ? 1 : 0), 1, 0).rotate(rotation);\n\n\t\tfor (int x = 0; x <= fixedSize.getX(); x += (rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.COUNTERCLOCKWISE_90 ? 2 : 5)) {\n\t\t\tfor (int z = 0; z <= fixedSize.getZ(); z += (rotation == Rotation.NONE || rotation == Rotation.CLOCKWISE_180 ? 2 : 5)) {\n\t\t\t\tif (x == innerSize.getX() / 2 || z == innerSize.getZ() / 2)\n\t\t\t\t\tcontinue;\n\t\t\t\tBlockPos placement = fixed.offset(x, -2, z);\n\t\t\t\tPair<GraveType, StructureTemplate> grave = graves.get(rand.nextInt(graves.size()));\n\t\t\t\tgrave.getValue().placeInWorld(world, placement, placement, placementsettings, rand, flags);\n\t\t\t\tdata.addAll(grave.getValue().filterBlocks(placement, placementsettings, Blocks.STRUCTURE_BLOCK));\n\t\t\t\tif (grave.getKey() == GraveType.Full) {\n\t\t\t\t\tif (rand.nextBoolean()) {\n\t\t\t\t\t\tif (rand.nextInt(3) == 0) {\n\t\t\t\t\t\t\tplacement = placement.offset(new BlockPos(mirror == Mirror.FRONT_BACK ? 1 : -1, 0, mirror == Mirror.LEFT_RIGHT ? 1 : -1).rotate(rotation));\n\t\t\t\t\t\t\ttrap.placeInWorld(world, placement, placement, placementsettings, rand, flags);\n\t\t\t\t\t\t}\n\t\t\t\t\t\tdata.addAll(trap.filterBlocks(placementPos, placementsettings, Blocks.STRUCTURE_BLOCK));\n\t\t\t\t\t\tif (world.setBlock(placement.offset(chestloc), Blocks.TRAPPED_CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.WEST).rotate(rotation).mirror(mirror), flags)) {\n\t\t\t\t\t\t\tTFLootTables.generateChestContents(world, placement.offset(chestloc), TFLootTables.GRAVEYARD);\n\t\t\t\t\t\t\tworld.setBlock(placement.offset(chestloc).below(), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL);\n\t\t\t\t\t\t}\n\t\t\t\t\t\tWraith wraith = new Wraith(TFEntities.WRAITH.get(), world.getLevel());\n\t\t\t\t\t\twraith.setPos(placement.getX(), placement.getY(), placement.getZ());\n\t\t\t\t\t\tEventHooks.finalizeMobSpawn(wraith, world, world.getCurrentDifficultyAt(placement), EntitySpawnReason.STRUCTURE, null);\n\t\t\t\t\t\tworld.addFreshEntity(wraith);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tdata.forEach(info -> {\n\t\t\tStructureMode mode = StructureMode.valueOf(info.nbt().getString(\"mode\").orElseThrow());\n\t\t\tif (info.nbt() != null && mode == StructureMode.DATA) {\n\t\t\t\tString s = info.nbt().getString(\"metadata\").orElseThrow();\n\t\t\t\tBlockPos p = info.pos();\n\t\t\t\tif (\"spawner\".equals(s)) {\n\t\t\t\t\tworld.removeBlock(p, false);\n\t\t\t\t\tif (rand.nextInt(4) == 0) {\n\t\t\t\t\t\tif (world.setBlock(p, Blocks.SPAWNER.defaultBlockState(), Block.UPDATE_ALL)) {\n\t\t\t\t\t\t\tSpawnerBlockEntity ms = (SpawnerBlockEntity) world.getBlockEntity(p);\n\t\t\t\t\t\t\tif (ms != null)\n\t\t\t\t\t\t\t\tms.setEntityId(TFEntities.RISING_ZOMBIE.get(), rand);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\n\t\treturn true;\n\t}\n\n\tprivate enum GraveType {\n\n\t\tFull(TwilightForestMod.prefix(\"feature/graveyard/grave_full\")),\n\n\t\tUpper(TwilightForestMod.prefix(\"feature/graveyard/grave_upper\")),\n\n\t\tLower(TwilightForestMod.prefix(\"feature/graveyard/grave_lower\"));\n\n\t\tprivate static final GraveType[] VALUES = values();\n\t\tprivate final Identifier RL;\n\n\t\tGraveType(Identifier rl) {\n\t\t\tthis.RL = rl;\n\t\t}\n\t}\n\n\tpublic static class WebTemplateProcessor extends StructureProcessor {\n\t\tpublic static final WebTemplateProcessor INSTANCE = new WebTemplateProcessor();\n\t\tpublic static final MapCodec<WebTemplateProcessor> CODEC = MapCodec.unit(() -> INSTANCE);\n\n\t\tprivate WebTemplateProcessor() {\n\t\t}\n\n\t\t@Override\n\t\tprotected StructureProcessorType<?> getType() {\n\t\t\treturn TFStructureProcessors.WEB.get();\n\t\t}\n\n\t\t@Nullable\n\t\t@Override\n\t\tpublic StructureTemplate.StructureBlockInfo process(LevelReader worldIn, BlockPos pos, BlockPos piecepos, StructureTemplate.StructureBlockInfo p_process_3_, StructureTemplate.StructureBlockInfo blockInfo, StructurePlaceSettings settings, @Nullable StructureTemplate template) {\n\t\t\treturn blockInfo.state().getBlock() == Blocks.GRASS_BLOCK ? blockInfo : settings.getRandom(pos).nextInt(5) == 0 ? new StructureTemplate.StructureBlockInfo(pos, Blocks.COBWEB.defaultBlockState(), null) : blockInfo;\n\t\t}\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/entity/monster/Wraith.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/entity/monster/Wraith.java#L1-L307",
+      "path": "src/main/java/twilightforest/entity/monster/Wraith.java",
+      "file_sha256": "8bc75b04163b774790d37dc4d636c7089f5e032eaefcf2e72965ace703338d9f",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        307
+      ],
+      "total_file_lines": 307,
+      "full_file": true,
+      "raw_excerpt_sha256": "8bc75b04163b774790d37dc4d636c7089f5e032eaefcf2e72965ace703338d9f",
+      "raw_excerpt_utf8": "package twilightforest.entity.monster;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.monster.Enemy;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.storage.ValueInput;\nimport net.minecraft.world.level.storage.ValueOutput;\nimport net.minecraft.world.phys.Vec3;\nimport org.jetbrains.annotations.Nullable;\nimport twilightforest.entity.EnforcedHomePoint;\nimport twilightforest.entity.ai.control.NoClipMoveControl;\nimport twilightforest.entity.ai.goal.SimplifiedAttackGoal;\nimport twilightforest.init.TFDamageTypes;\nimport twilightforest.init.TFSounds;\n\nimport java.util.EnumSet;\nimport java.util.Optional;\n\npublic class Wraith extends Mob implements Enemy, EnforcedHomePoint {\n\n\tprivate static final EntityDataAccessor<Optional<GlobalPos>> HOME_POINT = SynchedEntityData.defineId(Wraith.class, EntityDataSerializers.OPTIONAL_GLOBAL_POS);\n\n\t@SuppressWarnings(\"this-escape\")\n\tpublic Wraith(EntityType<? extends Wraith> type, Level level) {\n\t\tsuper(type, level);\n\t\tthis.moveControl = new NoClipMoveControl(this);\n\t\tthis.noPhysics = true;\n\t}\n\n\t@Override\n\tprotected void registerGoals() {\n\t\tthis.goalSelector.addGoal(2, new MoveTowardsHomeGoal(this, 0.85D));\n\t\tthis.goalSelector.addGoal(4, new SimplifiedAttackGoal(this));\n\t\tthis.goalSelector.addGoal(5, new FlyTowardsTargetGoal(this));\n\t\tthis.goalSelector.addGoal(6, new RandomFloatAroundGoal(this));\n\t\tthis.goalSelector.addGoal(7, new LookAroundGoal(this));\n\t\tthis.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, false));\n\t}\n\n\tpublic static AttributeSupplier.Builder registerAttributes() {\n\t\treturn Mob.createMobAttributes()\n\t\t\t.add(Attributes.MAX_HEALTH, 20.0D)\n\t\t\t.add(Attributes.MOVEMENT_SPEED, 0.5D)\n\t\t\t.add(Attributes.ATTACK_DAMAGE, 5.0D);\n\t}\n\n\t@Override\n\tprotected void defineSynchedData(SynchedEntityData.Builder builder) {\n\t\tsuper.defineSynchedData(builder);\n\t\tbuilder.define(HOME_POINT, Optional.empty());\n\t}\n\n\t@Override\n\tpublic boolean isSteppingCarefully() {\n\t\treturn true;\n\t}\n\n\t@Override\n\tpublic boolean hurtServer(ServerLevel server, DamageSource source, float amount) {\n\t\tif (super.hurtServer(server, source, amount)) {\n\t\t\tEntity entity = source.getEntity();\n\t\t\tif (this.getVehicle() == entity || this.getPassengers().contains(entity)) {\n\t\t\t\treturn true;\n\t\t\t}\n\t\t\tif (entity != this && entity instanceof LivingEntity && !source.isCreativePlayer()) {\n\t\t\t\tthis.setTarget((LivingEntity) entity);\n\t\t\t}\n\t\t\treturn true;\n\t\t} else {\n\t\t\treturn false;\n\t\t}\n\t}\n\n\t@Override\n\tpublic boolean doHurtTarget(ServerLevel server, Entity entity) {\n\t\tentity.hurt(TFDamageTypes.getEntityDamageSource(this.level(), TFDamageTypes.HAUNT, this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n\t\treturn super.doHurtTarget(server, entity);\n\t}\n\n\t@Override\n\tpublic void travel(Vec3 input) {\n\t\tthis.travelFlying(input, 0.2F);\n\t}\n\n\t@Override\n\tprotected boolean canRide(Entity entity) {\n\t\treturn false;\n\t}\n\n\t@Override\n\tprotected SoundEvent getAmbientSound() {\n\t\treturn TFSounds.WRAITH_AMBIENT.get();\n\t}\n\n\t@Override\n\tprotected SoundEvent getHurtSound(DamageSource source) {\n\t\treturn TFSounds.WRAITH_HURT.get();\n\t}\n\n\t@Override\n\tprotected SoundEvent getDeathSound() {\n\t\treturn TFSounds.WRAITH_DEATH.get();\n\t}\n\n\tpublic static boolean checkMonsterSpawnRules(EntityType<? extends Wraith> entity, ServerLevelAccessor world, EntitySpawnReason reason, BlockPos pos, RandomSource random) {\n\t\treturn world.getDifficulty() != Difficulty.PEACEFUL && Monster.isDarkEnoughToSpawn(world, pos, random) && checkMobSpawnRules(entity, world, reason, pos, random);\n\t}\n\n\t@Override\n\tpublic SpawnGroupData finalizeSpawn(ServerLevelAccessor accessor, DifficultyInstance difficulty, EntitySpawnReason type, @Nullable SpawnGroupData data) {\n\t\tif (type == EntitySpawnReason.STRUCTURE || type == EntitySpawnReason.SPAWNER) this.setRestrictionPoint(GlobalPos.of(accessor.getLevel().dimension(), this.blockPosition()));\n\t\treturn super.finalizeSpawn(accessor, difficulty, type, data);\n\t}\n\n\t@Override\n\tpublic void addAdditionalSaveData(ValueOutput tag) {\n\t\tsuper.addAdditionalSaveData(tag);\n\t\tthis.saveHomePointToNbt(tag);\n\t}\n\n\t@Override\n\tpublic void readAdditionalSaveData(ValueInput tag) {\n\t\tsuper.readAdditionalSaveData(tag);\n\t\tthis.loadHomePointFromNbt(tag);\n\t}\n\n\t@Override\n\tpublic @Nullable GlobalPos getRestrictionPoint() {\n\t\treturn this.getEntityData().get(HOME_POINT).orElse(null);\n\t}\n\n\t@Override\n\tpublic void setRestrictionPoint(@Nullable GlobalPos pos) {\n\t\tthis.getEntityData().set(HOME_POINT, Optional.ofNullable(pos));\n\t}\n\n\t@Override\n\tpublic int getHomeRadius() {\n\t\treturn 20;\n\t}\n\n\t@Override\n\tpublic boolean onClimbable() {\n\t\treturn false;\n\t}\n\n\tstatic class FlyTowardsTargetGoal extends Goal {\n\t\tprivate final Wraith wraith;\n\n\t\tFlyTowardsTargetGoal(Wraith wraith) {\n\t\t\tthis.wraith = wraith;\n\t\t\tthis.setFlags(EnumSet.of(Flag.MOVE));\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canUse() {\n\t\t\treturn wraith.getTarget() != null;\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canContinueToUse() {\n\t\t\treturn false;\n\t\t}\n\n\t\t@Override\n\t\tpublic void start() {\n\t\t\tLivingEntity target = wraith.getTarget();\n\t\t\tif (target != null)\n\t\t\t\twraith.getMoveControl().setWantedPosition(target.getX(), target.getY(), target.getZ(), 0.5F);\n\t\t}\n\t}\n\n\t// [VanillaCopy] Ghast.RandomFloatAroundGoal\n\tstatic class RandomFloatAroundGoal extends Goal {\n\t\tprivate final Wraith wraith;\n\n\t\tpublic RandomFloatAroundGoal(Wraith wraith) {\n\t\t\tthis.wraith = wraith;\n\t\t\tthis.setFlags(EnumSet.of(Flag.MOVE));\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canUse() {\n\t\t\tif (this.wraith.getTarget() != null || !this.wraith.isMobWithinHomeArea(this.wraith))\n\t\t\t\treturn false;\n\t\t\tMoveControl control = this.wraith.getMoveControl();\n\t\t\tdouble d0 = control.getWantedX() - this.wraith.getX();\n\t\t\tdouble d1 = control.getWantedY() - this.wraith.getY();\n\t\t\tdouble d2 = control.getWantedZ() - this.wraith.getZ();\n\t\t\tdouble d3 = d0 * d0 + d1 * d1 + d2 * d2;\n\t\t\treturn d3 < 1.0D || d3 > 3600.0D;\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canContinueToUse() {\n\t\t\treturn false;\n\t\t}\n\n\t\t@Override\n\t\tpublic void start() {\n\t\t\tRandomSource random = this.wraith.getRandom();\n\t\t\tdouble d0 = this.wraith.getX() + (random.nextFloat() * 2.0F - 1.0F) * 16.0F;\n\t\t\tdouble d1 = this.wraith.getY() + (random.nextFloat() * 2.0F - 1.0F) * 16.0F;\n\t\t\tdouble d2 = this.wraith.getZ() + (random.nextFloat() * 2.0F - 1.0F) * 16.0F;\n\t\t\tthis.wraith.getMoveControl().setWantedPosition(d0, d1, d2, 0.5D);\n\t\t}\n\t}\n\n\t// [VanillaCopy] Ghast.GhastLookGoal\n\tpublic static class LookAroundGoal extends Goal {\n\t\tprivate final Wraith wraith;\n\n\t\t@SuppressWarnings(\"this-escape\")\n\t\tpublic LookAroundGoal(Wraith wraith) {\n\t\t\tthis.wraith = wraith;\n\t\t\tthis.setFlags(EnumSet.of(Flag.LOOK));\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canUse() {\n\t\t\treturn true;\n\t\t}\n\n\t\t@Override\n\t\tpublic void tick() {\n\t\t\tif (this.wraith.getTarget() == null) {\n\t\t\t\tthis.wraith.setYRot(-((float) Mth.atan2(this.wraith.getDeltaMovement().x(), this.wraith.getDeltaMovement().z())) * (180F / (float) Math.PI));\n\t\t\t\tthis.wraith.setYBodyRot(this.wraith.getYRot());\n\t\t\t} else {\n\t\t\t\tLivingEntity entitylivingbase = this.wraith.getTarget();\n\n\t\t\t\tif (entitylivingbase.distanceToSqr(this.wraith) < 4096.0D) {\n\t\t\t\t\tdouble d1 = entitylivingbase.getX() - this.wraith.getX();\n\t\t\t\t\tdouble d2 = entitylivingbase.getZ() - this.wraith.getZ();\n\t\t\t\t\tthis.wraith.setYRot(-((float) Mth.atan2(d1, d2)) * (180F / (float) Math.PI));\n\t\t\t\t\tthis.wraith.setYBodyRot(this.wraith.getYRot());\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\t//modified version of MoveTowardsRestrictionGoal. We're limited with what we can use since Wraiths arent PathfinderMobs\n\tpublic static class MoveTowardsHomeGoal extends Goal {\n\t\tprivate final Wraith mob;\n\t\tprivate double wantedX;\n\t\tprivate double wantedY;\n\t\tprivate double wantedZ;\n\t\tprivate final double speedModifier;\n\n\t\t@SuppressWarnings(\"this-escape\")\n\t\tpublic MoveTowardsHomeGoal(Wraith mob, double speedModifier) {\n\t\t\tthis.mob = mob;\n\t\t\tthis.speedModifier = speedModifier;\n\t\t\tthis.setFlags(EnumSet.of(Goal.Flag.MOVE));\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canUse() {\n\t\t\tif (this.mob.isMobWithinHomeArea(this.mob) || this.mob.getTarget() != null) {\n\t\t\t\treturn false;\n\t\t\t} else {\n\t\t\t\tBlockPos pos = this.mob.getRestrictionPoint().pos()\n\t\t\t\t\t.relative(Direction.getRandom(this.mob.getRandom()))\n\t\t\t\t\t.offset(this.mob.getRandom().nextInt(5), this.mob.getRandom().nextInt(5), this.mob.getRandom().nextInt(5));\n\t\t\t\tif (!this.mob.level().isLoaded(pos)) {\n\t\t\t\t\treturn false;\n\t\t\t\t} else {\n\t\t\t\t\tthis.wantedX = pos.getX();\n\t\t\t\t\tthis.wantedY = pos.getY();\n\t\t\t\t\tthis.wantedZ = pos.getZ();\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean canContinueToUse() {\n\t\t\treturn false;\n\t\t}\n\n\t\t@Override\n\t\tpublic void start() {\n\t\t\tthis.mob.getMoveControl().setWantedPosition(this.wantedX, this.wantedY, this.wantedZ, this.speedModifier);\n\t\t}\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/world/components/placements/AvoidLandmarkModifier.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/world/components/placements/AvoidLandmarkModifier.java#L1-L164",
+      "path": "src/main/java/twilightforest/world/components/placements/AvoidLandmarkModifier.java",
+      "file_sha256": "2d06bc1f6ccf126bcb6f60d8daae9ecfbc94907e62c1d7df1fb566d2cfa378aa",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        164
+      ],
+      "total_file_lines": 164,
+      "full_file": true,
+      "raw_excerpt_sha256": "2d06bc1f6ccf126bcb6f60d8daae9ecfbc94907e62c1d7df1fb566d2cfa378aa",
+      "raw_excerpt_utf8": "package twilightforest.world.components.placements;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.DataResult;\nimport com.mojang.serialization.MapCodec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport it.unimi.dsi.fastutil.longs.LongSet;\nimport net.minecraft.core.*;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.level.chunk.ChunkAccess;\nimport net.minecraft.world.level.levelgen.placement.PlacementContext;\nimport net.minecraft.world.level.levelgen.placement.PlacementModifier;\nimport net.minecraft.world.level.levelgen.placement.PlacementModifierType;\nimport net.minecraft.world.level.levelgen.structure.Structure;\nimport net.minecraft.world.level.levelgen.structure.StructurePiece;\nimport net.minecraft.world.level.levelgen.structure.StructureStart;\nimport twilightforest.init.TFFeatureModifiers;\nimport twilightforest.util.BoundingBoxUtils;\nimport twilightforest.world.components.structures.UtilityPiece;\nimport twilightforest.world.components.structures.util.DecorationClearance;\n\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.stream.Stream;\n\npublic class AvoidLandmarkModifier extends PlacementModifier {\n\n\tpublic static final MapCodec<AvoidLandmarkModifier> CODEC = RecordCodecBuilder.<AvoidLandmarkModifier>mapCodec(instance -> instance.group(\n\t\tCodec.BOOL.fieldOf(\"occupies_surface\").forGetter(o -> o.occupiesSurface),\n\t\tCodec.BOOL.fieldOf(\"occupies_underground\").forGetter(o -> o.occupiesUnderground),\n\t\tCodec.BOOL.fieldOf(\"occupies_vegetation\").forGetter(o -> o.occupiesVegetation),\n\t\tCodec.INT.fieldOf(\"additional_clearance\").forGetter(o -> o.additionalClearance),\n\t\tRegistryCodecs.homogeneousList(Registries.STRUCTURE).fieldOf(\"structures_allowed\").forGetter(m -> m.structuresAllowed)\n\t).apply(instance, AvoidLandmarkModifier::new)).validate(AvoidLandmarkModifier::validate);\n\n\tprivate final boolean occupiesSurface;\n\tprivate final boolean occupiesUnderground;\n\tprivate final boolean occupiesVegetation;\n\tprivate final int additionalClearance;\n\tprivate final HolderSet<Structure> structuresAllowed;\n\n\tpublic AvoidLandmarkModifier(boolean occupiesSurface, boolean occupiesUnderground, int additionalClearance, HolderSet<Structure> structuresAllowed) {\n\t\tthis(occupiesSurface, occupiesUnderground, false, additionalClearance, structuresAllowed);\n\t}\n\n\tpublic AvoidLandmarkModifier(boolean occupiesSurface, boolean occupiesUnderground, boolean occupiesVegetation, int additionalClearance, HolderSet<Structure> structuresAllowed) {\n\t\tthis.occupiesSurface = occupiesSurface;\n\t\tthis.occupiesUnderground = occupiesUnderground;\n\t\tthis.occupiesVegetation = occupiesVegetation;\n\t\tthis.additionalClearance = additionalClearance;\n\t\tthis.structuresAllowed = structuresAllowed;\n\t}\n\n\tpublic static AvoidLandmarkModifier checkSurface() {\n\t\treturn checkSurface(HolderSet.empty());\n\t}\n\n\tpublic static AvoidLandmarkModifier checkSurface(HolderSet<Structure> structuresAllowed) {\n\t\treturn new AvoidLandmarkModifier(true, false, 0, structuresAllowed);\n\t}\n\n\tpublic static AvoidLandmarkModifier checkUnderground() {\n\t\treturn new AvoidLandmarkModifier(false, true, 0, HolderSet.empty());\n\t}\n\n\tpublic static AvoidLandmarkModifier checkBoth() {\n\t\treturn new AvoidLandmarkModifier(true, true, 0, HolderSet.empty());\n\t}\n\n\tpublic static AvoidLandmarkModifier checkVegetation() {\n\t\treturn new AvoidLandmarkModifier(false, false, true, 0, HolderSet.empty());\n\t}\n\n\t@Override\n\tpublic Stream<BlockPos> getPositions(PlacementContext worldDecoratingHelper, RandomSource random, BlockPos blockPos) {\n\t\tChunkAccess chunk = worldDecoratingHelper.getLevel().getChunk(blockPos);\n\t\tSet<Map.Entry<Structure, LongSet>> structuresOverlappingChunk = chunk.getAllReferences().entrySet();\n\n\t\tfor (Map.Entry<Structure, LongSet> startsForStructure : structuresOverlappingChunk)\n\t\t\tif (this.structureTypeBlocksFeaturePlacement(worldDecoratingHelper, blockPos, startsForStructure.getKey(), startsForStructure.getValue()))\n\t\t\t\treturn Stream.empty();\n\n\t\treturn Stream.of(blockPos);\n\t}\n\n\tprivate boolean structureTypeBlocksFeaturePlacement(PlacementContext worldDecoratingHelper, BlockPos blockPos, Structure structure, LongSet coordsForStarts) {\n\t\tif (this.allowedInsideStructure(structure)\n\t\t\t|| !(structure instanceof DecorationClearance decorationClearance)\n\t\t\t|| this.clearFromStructureZone(decorationClearance))\n\t\t\treturn false;\n\n\t\tfor (long packedChunkCoord : coordsForStarts) {\n\t\t\tint startChunkX = (int) packedChunkCoord;\n\t\t\tint startChunkZ = (int) (packedChunkCoord >> 32);\n\n\t\t\tChunkAccess startChunk = worldDecoratingHelper.getLevel().getChunk(startChunkX, startChunkZ);\n\t\t\t//noinspection ConstantValue\n\t\t\tif (startChunk == null) { // Underlying LevelReader's getChunk() is nullable\n\t\t\t\tcontinue; // FIXME Is the chunk actually never null? Is it possible for the start's chunk to be unloaded? Leave break-point here to find out!\n\t\t\t}\n\n\t\t\tStructureStart startForStructure = startChunk.getStartForStructure(structure);\n\n\t\t\tif (startForStructure == null || !startForStructure.isValid())\n\t\t\t\tcontinue;\n\n\t\t\tBlockPos diff = blockPos.subtract(startForStructure.getBoundingBox().getCenter());\n\t\t\tif (this.placementIsBlocked(blockPos, startForStructure, diff, decorationClearance.chunkClearanceRadius())) {\n\t\t\t\treturn true;\n\t\t\t}\n\t\t}\n\n\t\treturn false;\n\t}\n\n\tprivate boolean allowedInsideStructure(Structure overlappingStructure) {\n\t\tboolean configAllowedOverlap = false;\n\n\t\tfor (Holder<Structure> allowedStructure : this.structuresAllowed) {\n\t\t\tif (allowedStructure.isBound() && overlappingStructure.equals(allowedStructure.value())) {\n\t\t\t\tconfigAllowedOverlap = true;\n\t\t\t}\n\t\t}\n\n\t\treturn configAllowedOverlap;\n\t}\n\n\tprivate boolean clearFromStructureZone(DecorationClearance decorationClearance) {\n\t\tboolean surfaceClear = !this.occupiesSurface || decorationClearance.isSurfaceDecorationsAllowed();\n\t\tboolean undergroundClear = !this.occupiesUnderground || decorationClearance.isUndergroundDecoAllowed();\n\t\tboolean vegetationClear = !this.occupiesVegetation || decorationClearance.isGrassDecoAllowed();\n\n\t\treturn surfaceClear && undergroundClear && vegetationClear;\n\t}\n\n\tprivate boolean placementIsBlocked(BlockPos blockPos, StructureStart startForStructure, BlockPos featureDistanceXZ, float chunkClearanceRadius) {\n\t\tif (chunkClearanceRadius <= 0) {\n\t\t\tfor (StructurePiece piece : startForStructure.getPieces()) {\n\t\t\t\tif (piece instanceof UtilityPiece utilityPiece && utilityPiece.allowFeatures) {\n\t\t\t\t\tcontinue;\n\t\t\t\t}\n\n\t\t\t\tif (BoundingBoxUtils.greatestAxalDistance(piece.getBoundingBox(), blockPos) <= this.additionalClearance) {\n\t\t\t\t\treturn true;\n\t\t\t\t}\n\t\t\t}\n\n\t\t\treturn false;\n\t\t}\n\n\t\tfloat size = chunkClearanceRadius * 16f + this.additionalClearance;\n\t\treturn Math.abs(featureDistanceXZ.getX()) < size && Math.abs(featureDistanceXZ.getZ()) < size;\n\t}\n\n\t@Override\n\tpublic PlacementModifierType<?> type() {\n\t\treturn TFFeatureModifiers.NO_STRUCTURE.get();\n\t}\n\n\tprivate static DataResult<AvoidLandmarkModifier> validate(AvoidLandmarkModifier config) {\n\t\treturn config.occupiesSurface || config.occupiesUnderground || config.occupiesVegetation ? DataResult.success(config) : DataResult.error(() -> \"Feature Decorator cannot have no occupancy\");\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/entity/EnforcedHomePoint.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/entity/EnforcedHomePoint.java#L1-L61",
+      "path": "src/main/java/twilightforest/entity/EnforcedHomePoint.java",
+      "file_sha256": "bb20ce2b48aafb46e3cbd50e6e9270278fb356505e4a9b65a3fe84ad6e15d597",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        61
+      ],
+      "total_file_lines": 61,
+      "full_file": true,
+      "raw_excerpt_sha256": "bb20ce2b48aafb46e3cbd50e6e9270278fb356505e4a9b65a3fe84ad6e15d597",
+      "raw_excerpt_utf8": "package twilightforest.entity;\n\nimport com.mojang.serialization.Codec;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.goal.GoalSelector;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.storage.ValueInput;\nimport net.minecraft.world.level.storage.ValueOutput;\nimport org.jetbrains.annotations.Nullable;\nimport twilightforest.entity.ai.goal.AttemptToGoHomeGoal;\nimport twilightforest.init.TFDimension;\n\nimport java.util.List;\n\npublic interface EnforcedHomePoint {\n\n\tdefault <T extends PathfinderMob & EnforcedHomePoint> void addRestrictionGoals(T entity, GoalSelector selector) {\n\t\tselector.addGoal(5, new AttemptToGoHomeGoal<>(entity, 1.25D));\n\t}\n\n\tdefault void saveHomePointToNbt(ValueOutput tag) {\n\t\tif (this.getRestrictionPoint() != null) {\n\t\t\ttag.store(\"HomePos\", GlobalPos.CODEC, this.getRestrictionPoint());\n\t\t}\n\t}\n\n\tdefault void loadHomePointFromNbt(ValueInput tag) {\n\t\t//properly load old home points, just assume theyre set in TF\n\t\tif (tag.read(\"Home\", Codec.DOUBLE.listOf()).isPresent()) {\n\t\t\tList<Double> nbttaglist = tag.read(\"Home\", Codec.DOUBLE.listOf()).get();\n\t\t\tdouble hx = nbttaglist.get(0);\n\t\t\tdouble hy = nbttaglist.get(1);\n\t\t\tdouble hz = nbttaglist.get(2);\n\t\t\tthis.setRestrictionPoint(GlobalPos.of(TFDimension.DIMENSION_KEY, BlockPos.containing(hx, hy, hz)));\n\t\t} else {\n\t\t\tif (tag.read(\"HomePos\", GlobalPos.CODEC).isPresent()) {\n\t\t\t\tthis.setRestrictionPoint(tag.read(\"HomePos\", GlobalPos.CODEC).get());\n\t\t\t}\n\t\t}\n\t}\n\n\tdefault boolean isMobWithinHomeArea(Entity entity) {\n\t\tif (!this.isRestrictionPointValid(entity.level().dimension())) return true;\n\t\treturn this.getRestrictionPoint().pos().distSqr(entity.blockPosition()) < (double) (this.getHomeRadius() * this.getHomeRadius());\n\t}\n\n\tdefault boolean isRestrictionPointValid(ResourceKey<Level> currentMobLevel) {\n\t\treturn this.getRestrictionPoint() != null && this.getRestrictionPoint().dimension().equals(currentMobLevel);\n\t}\n\n\t@Nullable\n\tGlobalPos getRestrictionPoint();\n\n\tvoid setRestrictionPoint(@Nullable GlobalPos pos);\n\n\tint getHomeRadius();\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/loot/TFLootTables.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/loot/TFLootTables.java#L1-L181",
+      "path": "src/main/java/twilightforest/loot/TFLootTables.java",
+      "file_sha256": "4367e5f4fd1545464ed4124fd0a72ed326ff56d8eea8442bf8ce0824837aeb63",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        181
+      ],
+      "total_file_lines": 181,
+      "full_file": true,
+      "raw_excerpt_sha256": "4367e5f4fd1545464ed4124fd0a72ed326ff56d8eea8442bf8ce0824837aeb63",
+      "raw_excerpt_utf8": "package twilightforest.loot;\n\nimport com.google.common.collect.Sets;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.WorldGenLevel;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.ChestBlock;\nimport net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.LootTable;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport twilightforest.TwilightForestMod;\n\nimport java.util.Collections;\nimport java.util.Set;\n\npublic class TFLootTables {\n\t// For easy testing:\n\t// /give @p chest{BlockEntityTag:{LootTable:\"twilightforest:all_bosses\",CustomName:'{\"text\":\"Master Loot Crate\"}'}} 1\n\tprivate static final Set<ResourceKey<LootTable>> TF_LOOT_TABLES = Sets.newHashSet();\n\tprivate static final Set<ResourceKey<LootTable>> TF_IMMUTABLE_LOCATIONS = Collections.unmodifiableSet(TF_LOOT_TABLES);\n\tpublic static final int DEFAULT_PLACE_FLAG = Block.UPDATE_CLIENTS;\n\n\t// Chest loot\n\tpublic static final ResourceKey<LootTable> SUSPICIOUS_STEW = register(\"chests/suspicious_stew\");\n\tpublic static final ResourceKey<LootTable> SMALL_HOLLOW_HILL = register(\"chests/hill_1\");\n\tpublic static final ResourceKey<LootTable> MEDIUM_HOLLOW_HILL = register(\"chests/hill_2\");\n\tpublic static final ResourceKey<LootTable> LARGE_HOLLOW_HILL = register(\"chests/hill_3\");\n\tpublic static final ResourceKey<LootTable> HEDGE_MAZE = register(\"chests/hedge_maze\");\n\tpublic static final ResourceKey<LootTable> HEDGE_CLOTH = register(\"chests/hedge_cloth\");\n\tpublic static final ResourceKey<LootTable> FANCY_WELL = register(\"chests/fancy_well\");\n\tpublic static final ResourceKey<LootTable> WELL = register(\"chests/well\");\n\tpublic static final ResourceKey<LootTable> LABYRINTH_ROOM = register(\"chests/labyrinth_room\");\n\tpublic static final ResourceKey<LootTable> LABYRINTH_DEAD_END = register(\"chests/labyrinth_dead_end\");\n\tpublic static final ResourceKey<LootTable> TOWER_ROOM = register(\"chests/tower_room\");\n\tpublic static final ResourceKey<LootTable> TOWER_LIBRARY = register(\"chests/tower_library\");\n\tpublic static final ResourceKey<LootTable> TOWER_POTION = register(\"chests/tower_potion\");\n\tpublic static final ResourceKey<LootTable> JUST_BONES = register(\"chests/just_bones\");\n\tpublic static final ResourceKey<LootTable> TOWER_GRAVE_LOWER = register(\"chests/tower_grave_lower\");\n\tpublic static final ResourceKey<LootTable> TOWER_GRAVE_UPPER = register(\"chests/tower_grave_upper\");\n\tpublic static final ResourceKey<LootTable> TOWER_ENCHANTING = register(\"chests/tower_enchanting\");\n\tpublic static final ResourceKey<LootTable> TOWER_JARS = register(\"chests/tower_jars\");\n\tpublic static final ResourceKey<LootTable> TOWER_FOYER = register(\"chests/tower_foyer\");\n\tpublic static final ResourceKey<LootTable> CASKET_LOOT = register(\"chests/casket_loot\");\n\tpublic static final ResourceKey<LootTable> BASEMENT = register(\"chests/basement\");\n\tpublic static final ResourceKey<LootTable> HUT_JUNK = register(\"chests/hut_junk\");\n\tpublic static final ResourceKey<LootTable> FOUNDATION_BASEMENT = register(\"chests/foundation_basement\");\n\tpublic static final ResourceKey<LootTable> LABYRINTH_VAULT = register(\"chests/labyrinth_vault\");\n\tpublic static final ResourceKey<LootTable> LABYRINTH_VAULT_JACKPOT = register(\"chests/labyrinth_vault_jackpot\");\n\tpublic static final ResourceKey<LootTable> DARKTOWER_CACHE = register(\"chests/darktower_cache\");\n\tpublic static final ResourceKey<LootTable> DARKTOWER_KEY = register(\"chests/darktower_key\");\n\tpublic static final ResourceKey<LootTable> DARKTOWER_BOSS = register(\"chests/darktower_boss\");\n\tpublic static final ResourceKey<LootTable> TREE_CACHE = register(\"chests/tree_cache\");\n\tpublic static final ResourceKey<LootTable> FALLEN_TRUNK_LOOT = register(\"chests/fallen_trunk_loot\");\n\tpublic static final ResourceKey<LootTable> STRONGHOLD_CACHE = register(\"chests/stronghold_cache\");\n\tpublic static final ResourceKey<LootTable> STRONGHOLD_ROOM = register(\"chests/stronghold_room\");\n\tpublic static final ResourceKey<LootTable> AURORA_CACHE = register(\"chests/aurora_cache\");\n\tpublic static final ResourceKey<LootTable> AURORA_ROOM = register(\"chests/aurora_room\");\n\tpublic static final ResourceKey<LootTable> TROLL_GARDEN = register(\"chests/troll_garden\");\n\tpublic static final ResourceKey<LootTable> TROLL_VAULT = register(\"chests/troll_vault\");\n\tpublic static final ResourceKey<LootTable> TROLL_VAULT_WITH_LAMP = register(\"chests/troll_vault_with_lamp\");\n\tpublic static final ResourceKey<LootTable> GRAVEYARD = register(\"chests/graveyard\");\n\tpublic static final ResourceKey<LootTable> QUEST_GROVE = register(\"chests/quest_grove_dropper\");\n\tpublic static final ResourceKey<LootTable> USELESS_LOOT = register(\"chests/useless\");\n\tpublic static final ResourceKey<LootTable> CAMP_TENT = register(\"chests/camp_tent\");\n\tpublic static final ResourceKey<LootTable> CAMP_ARMOR_RACK = register(\"chests/camp_armor_rack\");\n\tpublic static final ResourceKey<LootTable> CAMP_DRYING_RACK = register(\"chests/camp_drying_rack\");\n\tpublic static final ResourceKey<LootTable> CAMP_POT = register(\"chests/camp_pot\");\n\n\t// Sheep wool drops\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_WHITE = register(\"entities/bighorn_sheep/white\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_ORANGE = register(\"entities/bighorn_sheep/orange\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_MAGENTA = register(\"entities/bighorn_sheep/magenta\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_LIGHT_BLUE = register(\"entities/bighorn_sheep/light_blue\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_YELLOW = register(\"entities/bighorn_sheep/yellow\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_LIME = register(\"entities/bighorn_sheep/lime\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_PINK = register(\"entities/bighorn_sheep/pink\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_GRAY = register(\"entities/bighorn_sheep/gray\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_LIGHT_GRAY = register(\"entities/bighorn_sheep/light_gray\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_CYAN = register(\"entities/bighorn_sheep/cyan\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_PURPLE = register(\"entities/bighorn_sheep/purple\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_BLUE = register(\"entities/bighorn_sheep/blue\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_BROWN = register(\"entities/bighorn_sheep/brown\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_GREEN = register(\"entities/bighorn_sheep/green\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_RED = register(\"entities/bighorn_sheep/red\");\n\tpublic static final ResourceKey<LootTable> BIGHORN_SHEEP_BLACK = register(\"entities/bighorn_sheep/black\");\n\n\t// Special loot\n\tpublic static final ResourceKey<LootTable> QUESTING_RAM_REWARDS = register(\"gameplay/questing_ram_rewards\");\n\tpublic static final ResourceKey<LootTable> QUESTING_RAM_REWARD_BLOCKS = register(\"gameplay/questing_ram_reward_blocks\");\n\tpublic static final ResourceKey<LootTable> DEATH_TOME_HURT = register(\"gameplay/death_tome_hurt\");\n\tpublic static final ResourceKey<LootTable> DEATH_TOME_BOOKS = register(\"gameplay/death_tome_books\");\n\tpublic static final ResourceKey<LootTable> LIFEDRAIN_SCEPTER_KILL_BONUS = register(\"gameplay/lifedrain_scepter_kill_bonus\");\n\tpublic static final ResourceKey<LootTable> KNIGHT_PHANTOM_DEFEATED = register(\"gameplay/knight_phantom_defeated\");\n\tpublic static final ResourceKey<LootTable> RAVEN_INTERACTION = register(\"gameplay/raven_interaction\");\n\n\tpublic static final ResourceKey<LootTable> OMINOUS_SPAWNER_DROPS = register(\"blocks/ominous_spawner_drops\");\n\n\t// Big bug squish loot\n\tpublic static final ResourceKey<LootTable> CICADA_SQUISH_DROPS = register(\"blocks/cicada_squish\");\n\tpublic static final ResourceKey<LootTable> FIREFLY_SQUISH_DROPS = register(\"blocks/firefly_squish\");\n\tpublic static final ResourceKey<LootTable> MOONWORM_FAILED_TO_PLACE_DROPS = register(\"blocks/moonworm_failed_to_place\");\n\tpublic static final ResourceKey<LootTable> MOONWORM_SQUISH_DROPS = register(\"blocks/moonworm_squish\");\n\n\t//bushes\n\tpublic static final ResourceKey<LootTable> RASPBERRY_BUSH_DROPS = register(\"blocks/raspberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> BLUEBERRY_BUSH_DROPS = register(\"blocks/blueberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> BLACKBERRY_BUSH_DROPS = register(\"blocks/blackberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> MALOBERRY_BUSH_DROPS = register(\"blocks/maloberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> BLIGHTBERRY_BUSH_DROPS = register(\"blocks/blightberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> DUSKBERRY_BUSH_DROPS = register(\"blocks/duskberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> SKYBERRY_BUSH_DROPS = register(\"blocks/skyberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> STINGBERRY_BUSH_DROPS = register(\"blocks/stingberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> COPPER_OREBERRY_BUSH_DROPS = register(\"blocks/copper_oreberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> IRON_OREBERRY_BUSH_DROPS = register(\"blocks/iron_oreberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> GOLD_OREBERRY_BUSH_DROPS = register(\"blocks/gold_oreberry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> ESSENCE_BERRY_BUSH_DROPS = register(\"blocks/essence_berry_bush_berries\");\n\tpublic static final ResourceKey<LootTable> TORCHBERRY_PLANT_DROPS = register(\"blocks/torchberry_plant_berries\");\n\tpublic static final ResourceKey<LootTable> TROLLBER_PLANT_DROPS = register(\"blocks/trollber_plant_berries\");\n\n\tpublic static final ResourceKey<LootTable> LIVEROOT_STRIP_DROPS = register(\"blocks/liveroot_strip\");\n\n\t//public static final Identifier ALL_BOSSES = register(\"entities/all_bosses\");\n\n\tpublic static void generateChest(WorldGenLevel world, BlockPos pos, Direction dir, boolean trapped, ResourceKey<LootTable> lootTable) {\n\t\tgenerateLootContainer(world, pos, (trapped ? Blocks.TRAPPED_CHEST : Blocks.CHEST).defaultBlockState().setValue(ChestBlock.FACING, dir), DEFAULT_PLACE_FLAG, lootTable);\n\t}\n\n\tpublic static void generateLootContainer(WorldGenLevel world, BlockPos pos, BlockState state, int flags, ResourceKey<LootTable> lootTable) {\n\t\tworld.setBlock(pos, state, flags);\n\t\tgenerateChestContents(world, pos, lootTable);\n\t}\n\n\tpublic static void generateLootContainer(LevelAccessor world, BlockPos pos, BlockState state, int flags, long seed, ResourceKey<LootTable> lootTable) {\n\t\tworld.setBlock(pos, state, flags);\n\t\tgenerateChestContents(world, pos, seed, lootTable);\n\t}\n\n\tpublic static void generateChestContents(WorldGenLevel level, BlockPos pos, ResourceKey<LootTable> lootTable) {\n\t\tgenerateChestContents(level, pos, level.getSeed() * pos.getX() + pos.getY() ^ pos.getZ(), lootTable);\n\t}\n\n\tpublic static void generateChestContents(LevelAccessor level, BlockPos pos, long seed, ResourceKey<LootTable> lootTable) {\n\t\tif (level.getBlockEntity(pos) instanceof RandomizableContainerBlockEntity lootContainer) lootContainer.setLootTable(lootTable, seed);\n\t}\n\n\tprivate static ResourceKey<LootTable> register(String id) {\n\t\treturn register(ResourceKey.create(Registries.LOOT_TABLE, TwilightForestMod.prefix(id)));\n\t}\n\n\tprivate static ResourceKey<LootTable> register(ResourceKey<LootTable> id) {\n\t\tif (TF_LOOT_TABLES.add(id)) {\n\t\t\treturn id;\n\t\t} else {\n\t\t\tthrow new IllegalArgumentException(id + \" is already a registered built-in loot table\");\n\t\t}\n\t}\n\n\tpublic static LootParams.Builder createLootParams(LivingEntity entity, boolean checkPlayerKill, DamageSource source) {\n\t\tLootParams.Builder lootcontext$builder = (new LootParams.Builder((ServerLevel) entity.level())).withParameter(LootContextParams.THIS_ENTITY, entity).withParameter(LootContextParams.ORIGIN, entity.position()).withParameter(LootContextParams.DAMAGE_SOURCE, source).withOptionalParameter(LootContextParams.ATTACKING_ENTITY, source.getEntity()).withOptionalParameter(LootContextParams.DIRECT_ATTACKING_ENTITY, source.getDirectEntity());\n\t\tif (checkPlayerKill && entity.getKillCredit() instanceof Player player) {\n\t\t\tlootcontext$builder = lootcontext$builder.withParameter(LootContextParams.LAST_DAMAGE_PLAYER, player).withLuck(player.getLuck());\n\t\t}\n\n\t\treturn lootcontext$builder;\n\t}\n\n\tpublic static Set<ResourceKey<LootTable>> allBuiltin() {\n\t\treturn TF_IMMUTABLE_LOCATIONS;\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/util/features/FeatureLogic.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/util/features/FeatureLogic.java#L92-L108",
+      "path": "src/main/java/twilightforest/util/features/FeatureLogic.java",
+      "file_sha256": "72b2ca5fae63d2ee7734b23c69d77d32cd10daf73144864953bc241edde02b5a",
+      "metadata_sha256_match": true,
+      "lines": [
+        92,
+        108
+      ],
+      "total_file_lines": 202,
+      "full_file": false,
+      "raw_excerpt_sha256": "2c57f9274354e8fca4e4e24c1782b09eda16639e23d33d9601aad2db3ff6d877",
+      "raw_excerpt_utf8": "\tpublic static boolean isAreaClear(BlockGetter world, BlockPos min, BlockPos max) {\n\t\tfor (BlockPos pos : BlockPos.betweenClosed(min, max)) {\n\t\t\tBlockState state = world.getBlockState(pos);\n\t\t\tif (!state.canBeReplaced() && state.isSolid() && !state.liquid()) {\n\t\t\t\treturn false;\n\t\t\t}\n\t\t}\n\t\treturn true;\n\t}\n\n\tpublic static boolean isBlockOk(BlockState state) {\n\t\treturn state.isSolid();\n\t}\n\n\tpublic static boolean isBlockNotOk(BlockState state) {\n\t\treturn state.liquid() || state.is(Blocks.BEDROCK) || state.getBlock() instanceof GiantBlock || state.is(TFBlockTags.CLOUDS) || state.is(TFBlocks.HARDENED_DARK_LEAVES);\n\t}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/data/java/twilightforest/datagen/data/worldgen/TFPlacedFeatureGenerator.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/data/java/twilightforest/datagen/data/worldgen/TFPlacedFeatureGenerator.java#L63-L65",
+      "path": "src/data/java/twilightforest/datagen/data/worldgen/TFPlacedFeatureGenerator.java",
+      "file_sha256": "9ee578d99ced94abd83f4a753e5176ac6cfb3a4c1a3500d25ec96562495882b8",
+      "metadata_sha256_match": true,
+      "lines": [
+        63,
+        65
+      ],
+      "total_file_lines": 240,
+      "full_file": false,
+      "raw_excerpt_sha256": "6fc4e873a2e0bcda2705877d409ebdbc8f44fe716f76c00694d4af799f3a233d",
+      "raw_excerpt_utf8": "    private static ImmutableList.Builder<PlacementModifier> tfFeatureCheckArea(AvoidLandmarkModifier filter, int rarity) {\n        return ImmutableList.<PlacementModifier>builder().add(RarityFilter.onAverageOnceEvery(rarity), InSquarePlacement.spread(), PlacementUtils.HEIGHTMAP_OCEAN_FLOOR, filter, BiomeFilter.biome());\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/data/java/twilightforest/datagen/data/worldgen/TFPlacedFeatureGenerator.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/data/java/twilightforest/datagen/data/worldgen/TFPlacedFeatureGenerator.java#L98-L98",
+      "path": "src/data/java/twilightforest/datagen/data/worldgen/TFPlacedFeatureGenerator.java",
+      "file_sha256": "9ee578d99ced94abd83f4a753e5176ac6cfb3a4c1a3500d25ec96562495882b8",
+      "metadata_sha256_match": true,
+      "lines": [
+        98,
+        98
+      ],
+      "total_file_lines": 240,
+      "full_file": false,
+      "raw_excerpt_sha256": "4a8eb1b9ca0a7a20e2b53b478d2eb53b19a023eb901890f8540a7d41e0a45345",
+      "raw_excerpt_utf8": "        context.register(TFPlacedFeatures.PLACED_GRAVEYARD, new PlacedFeature(features.getOrThrow(TFConfiguredFeatures.GRAVEYARD), tfFeatureCheckArea(AvoidLandmarkModifier.checkSurface(), 70).build()));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/data/java/twilightforest/datagen/data/worldgen/BiomeHelper.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/data/java/twilightforest/datagen/data/worldgen/BiomeHelper.java#L210-L254",
+      "path": "src/data/java/twilightforest/datagen/data/worldgen/BiomeHelper.java",
+      "file_sha256": "a6b6bb36c8db4f284325ebd6bca5212c220404f829ad2bce801e4d1ca7f7b9ac",
+      "metadata_sha256_match": true,
+      "lines": [
+        210,
+        254
+      ],
+      "total_file_lines": 806,
+      "full_file": false,
+      "raw_excerpt_sha256": "1b06ecaf58530eaf25046c79914d9ed12cce6e2e41b0d7e9bff1f284fff8e54c",
+      "raw_excerpt_utf8": "\tpublic static Biome.BiomeBuilder spookyForest(HolderGetter<PlacedFeature> featureGetter, HolderGetter<ConfiguredWorldCarver<?>> carverGetter) {\n\t\tBiomeGenerationSettings.Builder biome = defaultGenSettingBuilder(featureGetter, carverGetter);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PATCH_GRASS_JUNGLE);\n\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_MAYAPPLE);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_TWILIGHT_OAK_TREE);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_LARGE_TWILIGHT_OAK_TREE);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_DEAD_CANOPY_TREE);\n\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_PUMPKIN_LAMPPOST);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_TF_OAK_FALLEN_LOG);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_CANOPY_FALLEN_LOG);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_WEBS);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, TFPlacedFeatures.PLACED_FALLEN_LEAVES);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, VegetationPlacements.PATCH_PUMPKIN);\n\t\tbiome.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, VegetationPlacements.PATCH_DEAD_BUSH);\n\n\t\tbiome.addFeature(GenerationStep.Decoration.SURFACE_STRUCTURES, TFPlacedFeatures.PLACED_GRAVEYARD);\n\n\t\treturn new Biome.BiomeBuilder()\n\t\t\t.temperature(0.5F)\n\t\t\t.downfall(1.0F)\n\t\t\t.putAttributes(EnvironmentAttributeMap.builder()\n\t\t\t\t.set(EnvironmentAttributes.FOG_COLOR, 0x827391)\n\t\t\t\t.set(EnvironmentAttributes.WATER_FOG_COLOR, 0xBC8857)\n\t\t\t\t.set(EnvironmentAttributes.SKY_COLOR, 0x20224A)\n\t\t\t\t.set(EnvironmentAttributes.FOG_START_DISTANCE, 16.0F)\n\t\t\t\t.set(EnvironmentAttributes.FOG_END_DISTANCE, 64.0F)\n\t\t\t\t.set(EnvironmentAttributes.SKY_FOG_END_DISTANCE, 64.0F))\n\t\t\t\t.modifyAttribute(EnvironmentAttributes.WATER_FOG_END_DISTANCE, FloatModifier.MULTIPLY, 0.85F)\n\t\t\t.specialEffects(defaultAmbientBuilder()\n\t\t\t\t.waterColor(0xBC8857)\n\t\t\t\t.grassColorOverride(0xC45123)\n\t\t\t\t.foliageColorOverride(0xFF8501)\n\t\t\t\t.grassColorModifier(grassColorModifierEnumExtension.SPOOKY_FOREST).build())\n\t\t\t.mobSpawnSettings(new MobSpawnSettings.Builder()\n\t\t\t\t.addSpawn(MobCategory.MONSTER, 50, new MobSpawnSettings.SpawnerData(EntityType.SPIDER, 1, 2))\n\t\t\t\t.addMobCharge(EntityType.SPIDER, 0.75D, 0.25D)\n\t\t\t\t.addSpawn(MobCategory.MONSTER, 20, new MobSpawnSettings.SpawnerData(EntityType.SKELETON, 1, 2))\n\t\t\t\t.addMobCharge(EntityType.SKELETON, 0.85D, 0.25D)\n\t\t\t\t.addSpawn(MobCategory.MONSTER, 5, new MobSpawnSettings.SpawnerData(TFEntities.SKELETON_DRUID.get(), 1, 1))\n\t\t\t\t.addMobCharge(TFEntities.SKELETON_DRUID.get(), 0.95D, 0.25D)\n\t\t\t\t.addSpawn(MobCategory.AMBIENT, 20, new MobSpawnSettings.SpawnerData(EntityType.BAT, 2, 4)).build())\n\t\t\t.generationSettings(biome.build());\n\t}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/data/java/twilightforest/datagen/data/loot/EntityLootTables.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/data/java/twilightforest/datagen/data/loot/EntityLootTables.java#L186-L192",
+      "path": "src/data/java/twilightforest/datagen/data/loot/EntityLootTables.java",
+      "file_sha256": "bfe792d232c14554025d4850657a298eef07ef3a41ebf670a8cd7aa05f9805a2",
+      "metadata_sha256_match": true,
+      "lines": [
+        186,
+        192
+      ],
+      "total_file_lines": 645,
+      "full_file": false,
+      "raw_excerpt_sha256": "8170ec2aaac8ef6d14f5991cf31e8b21d3ca669e8ed245933eb6c446c4f78bf0",
+      "raw_excerpt_utf8": "\t\tadd(TFEntities.WRAITH.get(),\n\t\t\tLootTable.lootTable()\n\t\t\t\t.withPool(LootPool.lootPool()\n\t\t\t\t\t.setRolls(ConstantValue.exactly(1))\n\t\t\t\t\t.add(LootItem.lootTableItem(Items.GLOWSTONE_DUST)\n\t\t\t\t\t\t.apply(SetItemCountFunction.setCount(UniformGenerator.between(0.0F, 2.0F)))\n\t\t\t\t\t\t.apply(EnchantedCountIncreaseFunction.lootingMultiplier(this.registries, UniformGenerator.between(0.0F, 1.0F))))));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/init/TFFeatures.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/init/TFFeatures.java#L38-L38",
+      "path": "src/main/java/twilightforest/init/TFFeatures.java",
+      "file_sha256": "c67c301f5d86476233a56296ec40d1252be32ad98de766b383ed8df96744957a",
+      "metadata_sha256_match": true,
+      "lines": [
+        38,
+        38
+      ],
+      "total_file_lines": 67,
+      "full_file": false,
+      "raw_excerpt_sha256": "b090d0599cbbbeebe345544cdceec26c610ac5e4c117a8ed0ed6c9b4e1cde0df",
+      "raw_excerpt_utf8": "\tpublic static final DeferredHolder<Feature<?>, Feature<NoneFeatureConfiguration>> GRAVEYARD = FEATURES.register(\"graveyard\", () -> new GraveyardFeature(NoneFeatureConfiguration.CODEC));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/init/TFConfiguredFeatures.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/init/TFConfiguredFeatures.java#L25-L25",
+      "path": "src/main/java/twilightforest/init/TFConfiguredFeatures.java",
+      "file_sha256": "b69a75d6df2e8414f269a70ca7438df88ef7049dbc3000748f2a8ab2ef6db7c9",
+      "metadata_sha256_match": true,
+      "lines": [
+        25,
+        25
+      ],
+      "total_file_lines": 174,
+      "full_file": false,
+      "raw_excerpt_sha256": "d6e087973fc9dc61c3da1ef46f187591e8417ecd713cef23a37894432c1f0610",
+      "raw_excerpt_utf8": "\tpublic static final ResourceKey<ConfiguredFeature<?, ?>> GRAVEYARD = registerKey(\"graveyard\");\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/init/TFPlacedFeatures.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/init/TFPlacedFeatures.java#L18-L18",
+      "path": "src/main/java/twilightforest/init/TFPlacedFeatures.java",
+      "file_sha256": "65a0f01fbd83d2b85d92a96143026cea2c18465a47f168d14bb8a838c342db7f",
+      "metadata_sha256_match": true,
+      "lines": [
+        18,
+        18
+      ],
+      "total_file_lines": 138,
+      "full_file": false,
+      "raw_excerpt_sha256": "9912ac7d3273f90951320ca78065b8adb2279e6b2ca7af91230e9d89865e0649",
+      "raw_excerpt_utf8": "\tpublic static final ResourceKey<PlacedFeature> PLACED_GRAVEYARD = registerKey(\"graveyard\");\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/data/java/twilightforest/datagen/data/worldgen/TFConfiguredFeatureGenerator.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/data/java/twilightforest/datagen/data/worldgen/TFConfiguredFeatureGenerator.java#L256-L256",
+      "path": "src/data/java/twilightforest/datagen/data/worldgen/TFConfiguredFeatureGenerator.java",
+      "file_sha256": "a232b79515a11579579c340daca11927b024672bb13dcd7c67f720c0016a035d",
+      "metadata_sha256_match": true,
+      "lines": [
+        256,
+        256
+      ],
+      "total_file_lines": 259,
+      "full_file": false,
+      "raw_excerpt_sha256": "19b11f61a3534cd1e46aa6a4254e591a6575b25f1d523aafa2ce7687ff10da6d",
+      "raw_excerpt_utf8": "        context.register(TFConfiguredFeatures.GRAVEYARD, new ConfiguredFeature<>(TFFeatures.GRAVEYARD.get(), FeatureConfiguration.NONE));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/init/TFEntities.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/init/TFEntities.java#L115-L115",
+      "path": "src/main/java/twilightforest/init/TFEntities.java",
+      "file_sha256": "cbf2fcf79f0a9d223828e30e2c7e5caf6de5b64d85aac3c80b181b1f1bc83f90",
+      "metadata_sha256_match": true,
+      "lines": [
+        115,
+        115
+      ],
+      "total_file_lines": 167,
+      "full_file": false,
+      "raw_excerpt_sha256": "2ad2018f332c89fa2eb548a3eb52317fa49956ed167fc937ae40e2e369df8a4f",
+      "raw_excerpt_utf8": "\tpublic static final DeferredHolder<EntityType<?>, EntityType<Wraith>> WRAITH = registerWithEgg(\"wraith\", EntityType.Builder.of(Wraith::new, MobCategory.MONSTER).sized(0.6F, 2.1F).clientTrackingRange(8).fireImmune().notInPeaceful(), Wraith::registerAttributes, Wraith::checkMonsterSpawnRules);\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/init/TFEntities.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/init/TFEntities.java#L154-L167",
+      "path": "src/main/java/twilightforest/init/TFEntities.java",
+      "file_sha256": "cbf2fcf79f0a9d223828e30e2c7e5caf6de5b64d85aac3c80b181b1f1bc83f90",
+      "metadata_sha256_match": true,
+      "lines": [
+        154,
+        167
+      ],
+      "total_file_lines": 167,
+      "full_file": false,
+      "raw_excerpt_sha256": "34d95b61329b02b8582ae85a72e800ee17304274ac604818b6aae1f03b66d0a8",
+      "raw_excerpt_utf8": "\tpublic static <E extends Mob> DeferredHolder<EntityType<?>, EntityType<E>> registerWithEgg(String name, EntityType.Builder<E> builder, Supplier<AttributeSupplier.Builder> attributes, SpawnPlacements.@Nullable SpawnPredicate<E> predicate) {\n\t\tDeferredHolder<EntityType<?>, EntityType<E>> ret = ENTITY_TYPES.register(name, () -> builder.build(createIDFor(name)));\n\t\tSPAWN_EGGS.registerItem(name + \"_spawn_egg\", SpawnEggItem::new, () -> new Item.Properties().spawnEgg(ret.get()));\n\t\tATTRIBUTES.put(ret, attributes);\n\t\tif (predicate != null) {\n\t\t\tSPAWN_PREDICATES.put(ret, predicate);\n\t\t}\n\t\treturn ret;\n\t}\n\n\tprivate static ResourceKey<EntityType<?>> createIDFor(String name) {\n\t\treturn ResourceKey.create(Registries.ENTITY_TYPE, TwilightForestMod.prefix(name));\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/data/java/twilightforest/datagen/data/worldgen/TFBiomeGenerator.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/data/java/twilightforest/datagen/data/worldgen/TFBiomeGenerator.java#L1-L48",
+      "path": "src/data/java/twilightforest/datagen/data/worldgen/TFBiomeGenerator.java",
+      "file_sha256": "7035865c97514b7f1f72b30b3c1894d56d18ffb1694b724c7307a307373a6b71",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        48
+      ],
+      "total_file_lines": 48,
+      "full_file": true,
+      "raw_excerpt_sha256": "7035865c97514b7f1f72b30b3c1894d56d18ffb1694b724c7307a307373a6b71",
+      "raw_excerpt_utf8": "package twilightforest.datagen.data.worldgen;\n\nimport net.minecraft.core.HolderGetter;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.data.worldgen.BootstrapContext;\nimport net.minecraft.world.level.biome.Biome;\nimport net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;\nimport net.minecraft.world.level.levelgen.placement.PlacedFeature;\nimport twilightforest.init.TFBiomes;\n\npublic class TFBiomeGenerator {\n\n    public static void bootstrap(BootstrapContext<Biome> context) {\n        HolderGetter<PlacedFeature> featureGetter = context.lookup(Registries.PLACED_FEATURE);\n        HolderGetter<ConfiguredWorldCarver<?>> carverGetter = context.lookup(Registries.CONFIGURED_CARVER);\n\n        context.register(TFBiomes.FOREST, BiomeHelper.twilightForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.DENSE_FOREST, BiomeHelper.denseForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.FIREFLY_FOREST, BiomeHelper.fireflyForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.CLEARING, BiomeHelper.clearing(featureGetter, carverGetter).build());\n        context.register(TFBiomes.OAK_SAVANNAH, BiomeHelper.oakSavanna(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.MUSHROOM_FOREST, BiomeHelper.mushroomForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.DENSE_MUSHROOM_FOREST, BiomeHelper.denseMushroomForest(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.SPOOKY_FOREST, BiomeHelper.spookyForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.ENCHANTED_FOREST, BiomeHelper.enchantedForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.STREAM, BiomeHelper.stream(featureGetter, carverGetter).build());\n        context.register(TFBiomes.LAKE, BiomeHelper.lake(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.SWAMP, BiomeHelper.swamp(featureGetter, carverGetter).build());\n        context.register(TFBiomes.FIRE_SWAMP, BiomeHelper.fireSwamp(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.DARK_FOREST, BiomeHelper.darkForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.DARK_FOREST_CENTER, BiomeHelper.darkForestCenter(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.SNOWY_FOREST, BiomeHelper.snowyForest(featureGetter, carverGetter).build());\n        context.register(TFBiomes.GLACIER, BiomeHelper.glacier(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.HIGHLANDS, BiomeHelper.highlands(featureGetter, carverGetter).build());\n        context.register(TFBiomes.HIGHLANDS_UNDERGROUND, BiomeHelper.highlandsUnderground(featureGetter, carverGetter).build());\n        context.register(TFBiomes.THORNLANDS, BiomeHelper.thornlands(featureGetter, carverGetter).build());\n        context.register(TFBiomes.FINAL_PLATEAU, BiomeHelper.finalPlateau(featureGetter, carverGetter).build());\n\n        context.register(TFBiomes.UNDERGROUND, BiomeHelper.underground(featureGetter, carverGetter).build());\n    }\n\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/generated/resources/data/twilightforest/worldgen/biome/spooky_forest.json",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/generated/resources/data/twilightforest/worldgen/biome/spooky_forest.json#L1-L126",
+      "path": "src/generated/resources/data/twilightforest/worldgen/biome/spooky_forest.json",
+      "file_sha256": "002d38cde19b51d55c46900ddd4643513712204ecef7ce46e24fd510fd9585d4",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        126
+      ],
+      "total_file_lines": 126,
+      "full_file": true,
+      "raw_excerpt_sha256": "002d38cde19b51d55c46900ddd4643513712204ecef7ce46e24fd510fd9585d4",
+      "raw_excerpt_utf8": "{\n  \"attributes\": {\n    \"minecraft:visual/fog_color\": \"#827391\",\n    \"minecraft:visual/fog_end_distance\": 64.0,\n    \"minecraft:visual/fog_start_distance\": 16.0,\n    \"minecraft:visual/sky_color\": \"#20224a\",\n    \"minecraft:visual/sky_fog_end_distance\": 64.0,\n    \"minecraft:visual/water_fog_color\": \"#bc8857\",\n    \"minecraft:visual/water_fog_end_distance\": {\n      \"argument\": 0.85,\n      \"modifier\": \"multiply\"\n    }\n  },\n  \"carvers\": \"twilightforest:tf_caves\",\n  \"downfall\": 1.0,\n  \"effects\": {\n    \"foliage_color\": \"#ff8501\",\n    \"grass_color\": \"#c45123\",\n    \"grass_color_modifier\": \"twilightforest:spooky_forest\",\n    \"water_color\": \"#bc8857\"\n  },\n  \"features\": [\n    [],\n    [],\n    [],\n    [],\n    [\n      \"twilightforest:graveyard\"\n    ],\n    [],\n    [\n      \"minecraft:disk_sand\",\n      \"minecraft:disk_clay\",\n      \"minecraft:disk_gravel\",\n      \"twilightforest:wood_roots\",\n      \"twilightforest:legacy_coal_ore\",\n      \"twilightforest:legacy_iron_ore\",\n      \"twilightforest:legacy_gold_ore\",\n      \"twilightforest:legacy_redstone_ore\",\n      \"twilightforest:legacy_diamond_ore\",\n      \"twilightforest:legacy_lapis_ore\",\n      \"twilightforest:legacy_copper_ore\",\n      \"twilightforest:small_andesite\",\n      \"twilightforest:small_diorite\",\n      \"twilightforest:small_granite\"\n    ],\n    [\n      \"twilightforest:plant_roots\",\n      \"twilightforest:torch_berries\"\n    ],\n    [],\n    [\n      \"minecraft:patch_tall_grass\",\n      \"twilightforest:patch_grass_badlands\",\n      \"twilightforest:patch_grass_savanna\",\n      \"minecraft:patch_sugar_cane\",\n      \"twilightforest:patch_grass_jungle\",\n      \"twilightforest:mayapple\",\n      \"twilightforest:tree/twilight_oak_tree\",\n      \"twilightforest:tree/large_twilight_oak_tree\",\n      \"twilightforest:tree/dead_canopy_tree\",\n      \"twilightforest:pumpkin_lamppost\",\n      \"twilightforest:tf_oak_fallen_log\",\n      \"twilightforest:canopy_fallen_log\",\n      \"twilightforest:webs\",\n      \"twilightforest:fallen_leaves\",\n      \"minecraft:patch_pumpkin\",\n      \"minecraft:patch_dead_bush\"\n    ],\n    [\n      \"minecraft:freeze_top_layer\"\n    ]\n  ],\n  \"has_precipitation\": true,\n  \"spawn_costs\": {\n    \"minecraft:skeleton\": {\n      \"charge\": 0.85,\n      \"energy_budget\": 0.25\n    },\n    \"minecraft:spider\": {\n      \"charge\": 0.75,\n      \"energy_budget\": 0.25\n    },\n    \"twilightforest:skeleton_druid\": {\n      \"charge\": 0.95,\n      \"energy_budget\": 0.25\n    }\n  },\n  \"spawners\": {\n    \"ambient\": [\n      {\n        \"type\": \"minecraft:bat\",\n        \"maxCount\": 4,\n        \"minCount\": 2,\n        \"weight\": 20\n      }\n    ],\n    \"axolotls\": [],\n    \"creature\": [],\n    \"misc\": [],\n    \"monster\": [\n      {\n        \"type\": \"minecraft:spider\",\n        \"maxCount\": 2,\n        \"minCount\": 1,\n        \"weight\": 50\n      },\n      {\n        \"type\": \"minecraft:skeleton\",\n        \"maxCount\": 2,\n        \"minCount\": 1,\n        \"weight\": 20\n      },\n      {\n        \"type\": \"twilightforest:skeleton_druid\",\n        \"maxCount\": 1,\n        \"minCount\": 1,\n        \"weight\": 5\n      }\n    ],\n    \"underground_water_creature\": [],\n    \"water_ambient\": [],\n    \"water_creature\": []\n  },\n  \"temperature\": 0.5\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/generated/resources/data/twilightforest/worldgen/placed_feature/graveyard.json",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/generated/resources/data/twilightforest/worldgen/placed_feature/graveyard.json#L1-L27",
+      "path": "src/generated/resources/data/twilightforest/worldgen/placed_feature/graveyard.json",
+      "file_sha256": "8f5e210e549582d78d5f31c6ec4ed25e93a4419273f6ded2b84f6fd4ebeb0760",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        27
+      ],
+      "total_file_lines": 27,
+      "full_file": true,
+      "raw_excerpt_sha256": "8f5e210e549582d78d5f31c6ec4ed25e93a4419273f6ded2b84f6fd4ebeb0760",
+      "raw_excerpt_utf8": "{\n  \"feature\": \"twilightforest:graveyard\",\n  \"placement\": [\n    {\n      \"type\": \"minecraft:rarity_filter\",\n      \"chance\": 70\n    },\n    {\n      \"type\": \"minecraft:in_square\"\n    },\n    {\n      \"type\": \"minecraft:heightmap\",\n      \"heightmap\": \"OCEAN_FLOOR\"\n    },\n    {\n      \"type\": \"twilightforest:no_structure\",\n      \"additional_clearance\": 0,\n      \"occupies_surface\": true,\n      \"occupies_underground\": false,\n      \"occupies_vegetation\": false,\n      \"structures_allowed\": []\n    },\n    {\n      \"type\": \"minecraft:biome\"\n    }\n  ]\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/generated/resources/data/twilightforest/worldgen/configured_feature/graveyard.json",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/generated/resources/data/twilightforest/worldgen/configured_feature/graveyard.json#L1-L4",
+      "path": "src/generated/resources/data/twilightforest/worldgen/configured_feature/graveyard.json",
+      "file_sha256": "7e2b599d2a24036e868dbdf38de3ec4025269fd28632bf95198ae343a33ae44b",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        4
+      ],
+      "total_file_lines": 4,
+      "full_file": true,
+      "raw_excerpt_sha256": "7e2b599d2a24036e868dbdf38de3ec4025269fd28632bf95198ae343a33ae44b",
+      "raw_excerpt_utf8": "{\n  \"type\": \"twilightforest:graveyard\",\n  \"config\": {}\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/generated/resources/data/twilightforest/loot_table/entities/wraith.json",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/generated/resources/data/twilightforest/loot_table/entities/wraith.json#L1-L36",
+      "path": "src/generated/resources/data/twilightforest/loot_table/entities/wraith.json",
+      "file_sha256": "eca6becb6f4bc62efc03c959b992ba3421bdf114c5c3bceb832c8a56a6756448",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        36
+      ],
+      "total_file_lines": 36,
+      "full_file": true,
+      "raw_excerpt_sha256": "eca6becb6f4bc62efc03c959b992ba3421bdf114c5c3bceb832c8a56a6756448",
+      "raw_excerpt_utf8": "{\n  \"type\": \"minecraft:entity\",\n  \"pools\": [\n    {\n      \"bonus_rolls\": 0.0,\n      \"entries\": [\n        {\n          \"type\": \"minecraft:item\",\n          \"functions\": [\n            {\n              \"add\": false,\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 2.0,\n                \"min\": 0.0\n              },\n              \"function\": \"minecraft:set_count\"\n            },\n            {\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 1.0,\n                \"min\": 0.0\n              },\n              \"enchantment\": \"minecraft:looting\",\n              \"function\": \"minecraft:enchanted_count_increase\"\n            }\n          ],\n          \"name\": \"minecraft:glowstone_dust\"\n        }\n      ],\n      \"rolls\": 1.0\n    }\n  ],\n  \"random_sequence\": \"twilightforest:entities/wraith\"\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/generated/resources/data/twilightforest/loot_table/chests/graveyard.json",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/generated/resources/data/twilightforest/loot_table/chests/graveyard.json#L1-L116",
+      "path": "src/generated/resources/data/twilightforest/loot_table/chests/graveyard.json",
+      "file_sha256": "eda094cf8c89061aa58ce880b1028bbcdf598ac3b7cafcea2d775e7ad25b2e0d",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        116
+      ],
+      "total_file_lines": 116,
+      "full_file": true,
+      "raw_excerpt_sha256": "eda094cf8c89061aa58ce880b1028bbcdf598ac3b7cafcea2d775e7ad25b2e0d",
+      "raw_excerpt_utf8": "{\n  \"type\": \"minecraft:chest\",\n  \"pools\": [\n    {\n      \"bonus_rolls\": 0.0,\n      \"entries\": [\n        {\n          \"type\": \"minecraft:item\",\n          \"functions\": [\n            {\n              \"add\": false,\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 32.0,\n                \"min\": 1.0\n              },\n              \"function\": \"minecraft:set_count\"\n            }\n          ],\n          \"name\": \"minecraft:pumpkin_seeds\"\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"functions\": [\n            {\n              \"add\": false,\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 6.0,\n                \"min\": 1.0\n              },\n              \"function\": \"minecraft:set_count\"\n            }\n          ],\n          \"name\": \"minecraft:pumpkin_pie\"\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"functions\": [\n            {\n              \"add\": false,\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 16.0,\n                \"min\": 1.0\n              },\n              \"function\": \"minecraft:set_count\"\n            }\n          ],\n          \"name\": \"twilightforest:torchberries\"\n        }\n      ],\n      \"rolls\": 4.0\n    },\n    {\n      \"bonus_rolls\": 0.0,\n      \"entries\": [\n        {\n          \"type\": \"minecraft:item\",\n          \"functions\": [\n            {\n              \"add\": false,\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 6.0,\n                \"min\": 1.0\n              },\n              \"function\": \"minecraft:set_count\"\n            }\n          ],\n          \"name\": \"minecraft:diamond\"\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"twilightforest:moon_dial\"\n        }\n      ],\n      \"rolls\": 2.0\n    },\n    {\n      \"bonus_rolls\": 0.0,\n      \"entries\": [\n        {\n          \"type\": \"minecraft:item\",\n          \"functions\": [\n            {\n              \"add\": false,\n              \"count\": {\n                \"type\": \"minecraft:uniform\",\n                \"max\": 12.0,\n                \"min\": 1.0\n              },\n              \"function\": \"minecraft:set_count\"\n            }\n          ],\n          \"name\": \"twilightforest:transformation_powder\"\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"conditions\": [\n            {\n              \"condition\": \"twilightforest:uncrafting_table_enabled\"\n            }\n          ],\n          \"name\": \"twilightforest:uncrafting_table\"\n        },\n        {\n          \"type\": \"minecraft:item\",\n          \"name\": \"minecraft:golden_apple\"\n        }\n      ],\n      \"rolls\": 1.0\n    }\n  ],\n  \"random_sequence\": \"twilightforest:chests/graveyard\"\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/entity/ai/control/NoClipMoveControl.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/entity/ai/control/NoClipMoveControl.java#L1-L33",
+      "path": "src/main/java/twilightforest/entity/ai/control/NoClipMoveControl.java",
+      "file_sha256": "e7f97737f3ac7ac7da23c0455f4735a7e243d1ee509234e27a0c0f892a341ea6",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        33
+      ],
+      "total_file_lines": 33,
+      "full_file": true,
+      "raw_excerpt_sha256": "e7f97737f3ac7ac7da23c0455f4735a7e243d1ee509234e27a0c0f892a341ea6",
+      "raw_excerpt_utf8": "package twilightforest.entity.ai.control;\n\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.control.MoveControl;\n\npublic class NoClipMoveControl extends MoveControl {\n\tprivate final LivingEntity parentEntity;\n\tprivate int courseChangeCooldown;\n\n\tpublic NoClipMoveControl(Mob entity) {\n\t\tsuper(entity);\n\t\tthis.parentEntity = entity;\n\t}\n\n\t@Override\n\tpublic void tick() {\n\t\tif (this.operation == MoveControl.Operation.MOVE_TO) {\n\t\t\tdouble dx = this.getWantedX() - this.parentEntity.getX();\n\t\t\tdouble dy = this.getWantedY() - this.parentEntity.getY();\n\t\t\tdouble dz = this.getWantedZ() - this.parentEntity.getZ();\n\t\t\tdouble dist = dx * dx + dy * dy + dz * dz;\n\n\t\t\tif (this.courseChangeCooldown-- <= 0) {\n\t\t\t\tthis.courseChangeCooldown += this.parentEntity.getRandom().nextInt(5) + 2;\n\t\t\t\tdist = Mth.sqrt((float) dist);\n\n\t\t\t\tthis.parentEntity.setDeltaMovement(this.parentEntity.getDeltaMovement().add((dx / dist * 0.1D) * this.speedModifier, (dy / dist * 0.1D) * this.speedModifier, (dz / dist * 0.1D) * speedModifier));\n\t\t\t}\n\t\t}\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/world/components/structures/util/DecorationClearance.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/world/components/structures/util/DecorationClearance.java#L1-L43",
+      "path": "src/main/java/twilightforest/world/components/structures/util/DecorationClearance.java",
+      "file_sha256": "dd840b62e688bbe775b47598a0e3456937b7bdbcf927487781002ffb8594bfb1",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        43
+      ],
+      "total_file_lines": 43,
+      "full_file": true,
+      "raw_excerpt_sha256": "dd840b62e688bbe775b47598a0e3456937b7bdbcf927487781002ffb8594bfb1",
+      "raw_excerpt_utf8": "package twilightforest.world.components.structures.util;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.MapCodec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.level.levelgen.Heightmap;\nimport net.minecraft.world.level.levelgen.structure.Structure;\n\npublic interface DecorationClearance {\n\n\tString CODEC_NAME = \"decoration_clearance\";\n\n\tfloat chunkClearanceRadius();\n\n\tboolean isSurfaceDecorationsAllowed();\n\n\tboolean isUndergroundDecoAllowed();\n\n\tboolean isGrassDecoAllowed();\n\n\tboolean shouldAdjustToTerrain();\n\n\tdefault int adjustForTerrain(Structure.GenerationContext context, int x, int z) {\n\t\treturn this.shouldAdjustToTerrain()\n\t\t\t? Mth.clamp(context.chunkGenerator().getFirstOccupiedHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, context.heightAccessor(), context.randomState()), context.chunkGenerator().getSeaLevel() + 1, context.chunkGenerator().getSeaLevel() + 7)\n\t\t\t: context.chunkGenerator().getSeaLevel();\n\t}\n\n\trecord DecorationConfig(float chunkClearanceRadius, boolean surfaceDecorations, boolean undergroundDecorations, boolean vegetation, @Deprecated boolean adjustElevation) {\n\t\tpublic DecorationConfig(float chunkClearanceRadius, boolean surfaceDecorations, boolean undergroundDecorations, @Deprecated boolean adjustElevation) {\n\t\t\tthis(chunkClearanceRadius, surfaceDecorations, undergroundDecorations, true, adjustElevation);\n\t\t}\n\n\t\tpublic static final Codec<DecorationConfig> CODEC = RecordCodecBuilder.create(instance -> instance.group(\n\t\t\tCodec.floatRange(0, 8).fieldOf(\"chunk_clearance_radius\").orElse(1f).forGetter(DecorationConfig::chunkClearanceRadius),\n\t\t\tCodec.BOOL.fieldOf(\"allow_biome_surface_decorations\").forGetter(DecorationConfig::surfaceDecorations),\n\t\t\tCodec.BOOL.fieldOf(\"allow_biome_underground_decorations\").forGetter(DecorationConfig::undergroundDecorations),\n\t\t\tCodec.BOOL.fieldOf(\"allow_biome_vegetation\").forGetter(DecorationConfig::vegetation),\n\t\t\tCodec.BOOL.fieldOf(\"adjust_structure_elevation\").forGetter(DecorationConfig::adjustElevation)\n\t\t).apply(instance, DecorationConfig::new));\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/util/BoundingBoxUtils.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/util/BoundingBoxUtils.java#L163-L175",
+      "path": "src/main/java/twilightforest/util/BoundingBoxUtils.java",
+      "file_sha256": "ea238ea4a8b1b5a65ec6818a18432eca11a270f80a18ca8d3c136bf9de03f5e7",
+      "metadata_sha256_match": true,
+      "lines": [
+        163,
+        175
+      ],
+      "total_file_lines": 207,
+      "full_file": false,
+      "raw_excerpt_sha256": "14f93750fc47479e3acca59a62c47ceff3156b88d8891cd09d9d9c5fb9c8f933",
+      "raw_excerpt_utf8": "\tpublic static BlockPos clampedInside(BoundingBox box, BlockPos toClamp) {\n\t\treturn new BlockPos(Mth.clamp(toClamp.getX(), box.minX(), box.maxX()), Mth.clamp(toClamp.getY(), box.minY(), box.maxY()), Mth.clamp(toClamp.getZ(), box.minZ(), box.maxZ()));\n\t}\n\n\tpublic static int manhattanDistance(BoundingBox box, BlockPos pos) {\n\t\tBlockPos clamped = clampedInside(box, pos);\n\t\treturn Math.abs(clamped.getX() - pos.getX()) + Math.abs(clamped.getY() - pos.getY()) + Math.abs(clamped.getZ() - pos.getZ());\n\t}\n\n\tpublic static int greatestAxalDistance(BoundingBox box, BlockPos pos) {\n\t\tBlockPos clamped = clampedInside(box, pos);\n\t\treturn Math.max(Math.max(Math.abs(clamped.getX() - pos.getX()), Math.abs(clamped.getY() - pos.getY())), Math.abs(clamped.getZ() - pos.getZ()));\n\t}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/loot/conditions/UncraftingTableEnabledCondition.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/loot/conditions/UncraftingTableEnabledCondition.java#L1-L26",
+      "path": "src/main/java/twilightforest/loot/conditions/UncraftingTableEnabledCondition.java",
+      "file_sha256": "6b29b7ff287a86276e6b429de6272dfee72919fd9ceb764e1cc0ff98123f40d8",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        26
+      ],
+      "total_file_lines": 26,
+      "full_file": true,
+      "raw_excerpt_sha256": "6b29b7ff287a86276e6b429de6272dfee72919fd9ceb764e1cc0ff98123f40d8",
+      "raw_excerpt_utf8": "package twilightforest.loot.conditions;\n\nimport com.mojang.serialization.MapCodec;\nimport net.minecraft.world.level.storage.loot.LootContext;\nimport net.minecraft.world.level.storage.loot.predicates.LootItemCondition;\nimport twilightforest.config.TFConfig;\n\npublic class UncraftingTableEnabledCondition implements LootItemCondition {\n\n\tprivate static final UncraftingTableEnabledCondition INSTANCE = new UncraftingTableEnabledCondition();\n\tpublic static final MapCodec<UncraftingTableEnabledCondition> CODEC = MapCodec.unit(INSTANCE);\n\n\t@Override\n\tpublic MapCodec<? extends LootItemCondition> codec() {\n\t\treturn CODEC;\n\t}\n\n\t@Override\n\tpublic boolean test(LootContext context) {\n\t\treturn !TFConfig.disableEntireTable;\n\t}\n\n\tpublic static LootItemCondition.Builder uncraftingTableEnabled() {\n\t\treturn UncraftingTableEnabledCondition::new;\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/init/TFFeatureModifiers.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/init/TFFeatureModifiers.java#L1-L44",
+      "path": "src/main/java/twilightforest/init/TFFeatureModifiers.java",
+      "file_sha256": "3d9f51614dbc93375bba2edd1c2059034c9752671d18bcab8ade789fab54e677",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        44
+      ],
+      "total_file_lines": 44,
+      "full_file": true,
+      "raw_excerpt_sha256": "3d9f51614dbc93375bba2edd1c2059034c9752671d18bcab8ade789fab54e677",
+      "raw_excerpt_utf8": "package twilightforest.init;\n\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacerType;\nimport net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecoratorType;\nimport net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacerType;\nimport net.minecraft.world.level.levelgen.placement.PlacementModifier;\nimport net.minecraft.world.level.levelgen.placement.PlacementModifierType;\nimport net.neoforged.neoforge.registries.DeferredHolder;\nimport net.neoforged.neoforge.registries.DeferredRegister;\nimport twilightforest.TwilightForestMod;\nimport twilightforest.world.components.feature.trees.treeplacers.*;\nimport twilightforest.world.components.placements.AvoidLandmarkModifier;\nimport twilightforest.world.components.placements.ChunkBlanketingModifier;\nimport twilightforest.world.components.placements.ChunkCenterModifier;\n\nimport java.util.function.Supplier;\n\npublic final class TFFeatureModifiers {\n\n\tpublic static final DeferredRegister<FoliagePlacerType<?>> FOLIAGE_PLACERS = DeferredRegister.create(Registries.FOLIAGE_PLACER_TYPE, TwilightForestMod.ID);\n\tpublic static final DeferredRegister<TreeDecoratorType<?>> TREE_DECORATORS = DeferredRegister.create(Registries.TREE_DECORATOR_TYPE, TwilightForestMod.ID);\n\tpublic static final DeferredRegister<PlacementModifierType<?>> PLACEMENT_MODIFIERS = DeferredRegister.create(Registries.PLACEMENT_MODIFIER_TYPE, TwilightForestMod.ID);\n\tpublic static final DeferredRegister<TrunkPlacerType<?>> TRUNK_PLACERS = DeferredRegister.create(Registries.TRUNK_PLACER_TYPE, TwilightForestMod.ID);\n\n\tpublic static final DeferredHolder<TrunkPlacerType<?>, TrunkPlacerType<BranchingTrunkPlacer>> TRUNK_BRANCHING = TRUNK_PLACERS.register(\"branching_trunk_placer\", () -> new TrunkPlacerType<>(BranchingTrunkPlacer.CODEC));\n\tpublic static final DeferredHolder<TrunkPlacerType<?>, TrunkPlacerType<TrunkRiser>> TRUNK_RISER = TRUNK_PLACERS.register(\"trunk_mover_upper\", () -> new TrunkPlacerType<>(TrunkRiser.CODEC));\n\n\tpublic static final DeferredHolder<FoliagePlacerType<?>, FoliagePlacerType<LeafSpheroidFoliagePlacer>> FOLIAGE_SPHEROID = FOLIAGE_PLACERS.register(\"spheroid_foliage_placer\", () -> new FoliagePlacerType<>(LeafSpheroidFoliagePlacer.CODEC));\n\n\tpublic static final DeferredHolder<TreeDecoratorType<?>, TreeDecoratorType<TreeCorePlacer>> CORE_PLACER = TREE_DECORATORS.register(\"core_placer\", () -> new TreeDecoratorType<>(TreeCorePlacer.CODEC));\n\tpublic static final DeferredHolder<TreeDecoratorType<?>, TreeDecoratorType<TrunkSideDecorator>> TRUNKSIDE_DECORATOR = TREE_DECORATORS.register(\"trunkside_decorator\", () -> new TreeDecoratorType<>(TrunkSideDecorator.CODEC));\n\tpublic static final DeferredHolder<TreeDecoratorType<?>, TreeDecoratorType<TreeRootsDecorator>> TREE_ROOTS = TREE_DECORATORS.register(\"tree_roots\", () -> new TreeDecoratorType<>(TreeRootsDecorator.CODEC));\n\tpublic static final DeferredHolder<TreeDecoratorType<?>, TreeDecoratorType<DangleFromTreeDecorator>> DANGLING_DECORATOR = TREE_DECORATORS.register(\"dangle_from_tree_decorator\", () -> new TreeDecoratorType<>(DangleFromTreeDecorator.CODEC));\n\n\tpublic static final DeferredHolder<PlacementModifierType<?>, PlacementModifierType<AvoidLandmarkModifier>> NO_STRUCTURE = registerPlacer(\"no_structure\", () -> () -> AvoidLandmarkModifier.CODEC);\n\tpublic static final DeferredHolder<PlacementModifierType<?>, PlacementModifierType<ChunkCenterModifier>> CHUNK_CENTERER = registerPlacer(\"chunk_centerer\", () -> () -> ChunkCenterModifier.CODEC);\n\tpublic static final DeferredHolder<PlacementModifierType<?>, PlacementModifierType<ChunkBlanketingModifier>> CHUNK_BLANKETING = registerPlacer(\"chunk_blanketing\", () -> () -> ChunkBlanketingModifier.CODEC);\n\n\t//goofy but needed\n\tprivate static <P extends PlacementModifier> DeferredHolder<PlacementModifierType<?>, PlacementModifierType<P>> registerPlacer(String name, Supplier<PlacementModifierType<P>> factory) {\n\t\treturn PLACEMENT_MODIFIERS.register(name, factory);\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_range_count": 28,
+  "actual_source_file_count": 26,
+  "actual_full_file_count": 16,
+  "actual_distinct_cited_lines": 1591,
+  "read_scope_limits": [
+    "Repeated read earns0; counts distinct cited lines rather than print occurrences.",
+    "Incidental FeatureLogic prefix/suffix, BoundingBoxUtils surrounding methods, unrelated registry/datagen rows omitted from citation/count.",
+    "Earlier clipped metadata/evidence output not whole read claim; only selected metadata and substantive judgments frozen here."
+  ],
+  "missing_local_template_content": [
+    {
+      "requested_id": "twilightforest:feature/graveyard/graveyard",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/graveyard.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_trap",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_trap.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_full",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_full.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_upper",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_upper.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_lower",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_lower.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    }
+  ],
+  "current_formal_baseline": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "41b2f04748245e629c35b89616054df0539629bd3f95aec8e250f5f95fb76616",
+    "bytes": 1565858
+  },
+  "formal_accepted": 50,
+  "formal_gap": 950,
+  "gate_met": false,
+  "production_authorized": false,
+  "current_accepted_semantic_index": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    },
+    {
+      "id": "EA-0047",
+      "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+      "batch_sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+      "canonical_record_sha256": "51bb8cdea916d3fc39c13b37ff58fe0f2f786ff661cfbe2cf11f8c2a6f07f0cf"
+    },
+    {
+      "id": "EA-0048",
+      "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-039.json",
+      "batch_sha256": "5368642e47c777bedd8c8298665b73175345b81b75150d1ecfea8593c4fec9e4",
+      "canonical_record_sha256": "d958c35f6ee66c780e579d3bf8230ffb0a84ebb6869bcca13643c8f2a014cced"
+    },
+    {
+      "id": "EA-0049",
+      "semantic_key": "owner-bound-habitat-weather-phased-fishing-window-to-event-vetoable-reel-loot-and-rod-damage-request-without-acquisition-ack",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-040.json",
+      "batch_sha256": "a2bf20337a0f06dc687a690e08f1afb7f593a246a8ca17686b37d9a1b56692bb",
+      "canonical_record_sha256": "dde78c2150e406f98d1579fee1476ecbfcfb5dc2a02b918d0a76b9d0e34c87a8"
+    },
+    {
+      "id": "EA-0050",
+      "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+      "batch_sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b"
+    },
+    {
+      "id": "EA-0051",
+      "semantic_key": "water-associated-raw-damage-prewrite-to-sensor-qualified-playdead-count-recovery-and-positive-count-enemy-eligibility-suppression-without-accepted-health-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-042.json",
+      "batch_sha256": "55342d87e1ace8fe7e773dd7a747d643b52eac5576eee7d57e6846af3a46e57e",
+      "canonical_record_sha256": "6b8e9e550144df28029558eccc076fd00e89c866655fc9123856efbd8e17b82c"
+    }
+  ],
+  "current_index_not_complete_source_rereading": true,
+  "current_complete_selected_ecology_judgments_actually_read": [
+    {
+      "id": "EA-0003",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+        "sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+        "bytes": 94231
+      },
+      "canonical_complete_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0003",
+        "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+        "observation": [
+          "通过实际StructureManager startsForStructure获取实现ControlledSpawns的start；无效start跳过。MONSTER再筛已征服、位置validator与包含坐标的piece索引。",
+          "事件消费者只在收集到非空结构表时清除旧表并加新表；返回空表不会清空biome默认表。",
+          "非MONSTER分支先返回分类表，不受后面的conquered/piece/validator条件控制；默认ConfigurableSpawns只映射AMBIENT/WATER_CREATURE。"
+        ],
+        "application": [
+          "结构场景的可达性应核对真实start、piece和位置，再核对species表；空tag或仅名称相似不能替代该链。",
+          "审查“禁用出生”需追踪消费者是否真的接受空结果；在证据里分开候选表和最终原生出生。"
+        ],
+        "limits": [
+          "固定来源是较新NeoForge/WeightedList API，不能声称可直接用于本项目Forge1.20.1。",
+          "非MONSTER分支只有chunk所引用start和isValid筛选，不能夸称全部分类均做精确bbox检查。",
+          "被征服返回空并不保证完全无怪，原biome表可能保留；多start先返回次序也是限制。",
+          "本项不声称具体结构资源已自然生成、不绕开global/local cap；完整结构配置与征服保存链后续只能作为支持，不另包装成重复信用。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0004",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0004",
+        "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+        "observation": [
+          "biome配置允许且generateHydraCaves启用时注入SURFACE_STRUCTURES，place再筛随机率、世界出生点距离和危险地点间距。",
+          "四角下方空块早退后构筑自然巢穴，内部装饰/战利品写入后创建Hydra并限制活动半径；实际sink为worldIn.addFreshEntity。",
+          "共享IafWorldData按FeatureType记录(id,pos)，这是场景争用/分区的真实实现；它是一个实现链，不能把每种危险生物拆开当共享间距机制的新信用。"
+        ],
+        "application": [
+          "自然结构依赖需同时追踪biome注入、placement、地形门和实际entity加入；仅有场景名字或predicate阳性不足。",
+          "研究结构互斥是否缩小可达空间时，记录距离状态写入时机以及失败尝试是否也修改它。"
+        ],
+        "limits": [
+          "固定源码用旧StructureFeature/Random等API，不是本项目Forge1.20.1已验证实现。",
+          "check中canGenerate每轮被覆盖，返回值只代表最后遍历项，不能声称检查所有历史点均满足间距。",
+          "check无论通过与否都会写入位置，后续四角地形失败也已消费记录；不是成功生成后才提交。",
+          "LAST_GENERATED为static，虽get绑定当前维度storage，不能据此宣称隔离各世界/维度；load还向static列表append。",
+          "addFreshEntity返回值忽略，place true不严格证明实体已加入；未以当前世界运行验证，不建议改本项目生成方式。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0005",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0005",
+        "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+        "observation": [
+          "天然feature在随机门/出生点间距/OCEAN危险分区后，以非遮挡地形逐层向下生成支撑；实际Sirens仅在2x2上方空位且随机筛选成功时加入。",
+          "每次生成先抽1–3个目标上限，在布置过程中限制实际spawn调用次数；生成返回true不保证循环产生任何合适空位或实体加入成功。",
+          "与EA-0004的四角地面门/封闭巢穴单体不同，本项是向下寻支撑与可用小平台条件驱动的群落植入，不以物种ID差别计数。"
+        ],
+        "application": [
+          "场景生态验收应分开“自然场景生成”和“场景内生物实际植入”，不能因结构存在就假定稀有目标必在。",
+          "记录共享间距分区、实际空间筛选及群落上限；计数应在实体加入确认后，而不是尝试前。"
+        ],
+        "limits": [
+          "共享危险间距实现已在EA-0004审读，仅作支持，不额外计信用；同类其它岛模板不再计。",
+          "sirens在spawn前递增且sink返回值忽略；1–3只是尝试上限，不是保证出生数量。",
+          "主while到minBuildHeight，底部支撑while却到y>=0；这是一处高度边界限制，不能声称完整支持负高度世界。",
+          "getRadius在layer>up分支不再用MAX_ISLAND_RADIUS上限；不能称所有层半径<=10。",
+          "这里研究自然生成算法，不制作/复制小岛建筑，不计1000建筑参考、不改变任何资产。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0006",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0006",
+        "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+        "observation": [
+          "先从origin偏8,8查WORLD_SURFACE_WG，再从该位置又偏8,8查OCEAN_FLOOR_WG，随后在海底附近抽XZ与0–29的Y偏移，只有水体中才create/addFreshEntity。",
+          "无论是否执行实体加入，Feature.place都返回false；不能把feature布置计数false反推没有自然实体副作用。",
+          "这与搁浅鲸天气tick及Siren岛造地植入不同，是依赖双高度图/水下3D采样的无场景方块生成入口。"
+        ],
+        "application": [
+          "自然生态证据要在实际实体加入点确认UUID/provenance；feature返回值、回调计数或结构成功数量不足以代替。",
+          "水生位置研究必须展开全部坐标变换和高度图基准，不能把名为ocean的biome直接当作最终水位满足。"
+        ],
+        "limits": [
+          "不将onWorldSpawn的7颜色/ancient分支另计；同样random->spawn的其它species模板不计。",
+          "onWorldSpawn只是该feature初始化，代码没有finalizeSpawn(NATURAL)，不冒称本项目原生NATURAL回执。",
+          "addFreshEntity返回忽略，false Feature return与出生有无均需独立证据；未推断实际异常或当前世界必有此怪。",
+          "同一feature在新生成区块才有机会，与运行中满CREATURE cap的诊断不是同一个分母，不建议为验收搬用此路。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0007",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0007",
+        "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+        "observation": [
+          "同一共有predicate供多个真实模组生物使用，按一种机制计：额外随机、维度、上下高度、暗度、地块ID或tag、见天/不见天、避开structure_set相交。",
+          "biome名单是白名单先判true、然后黑名单、再各组合OR；组合内条件AND。placement另要求下面可运动阻挡且身体/头部符合原生空位。",
+          "出生表中Lantern用AMBIENT，其他多为MONSTER；配置spawnRate是选种权重而非额外随机概率，extraRarity另在predicate消费。"
+        ],
+        "application": [
+          "静态可达性要展开跨层AND/OR与优先级，尤其矛盾的见天/不见天、地块tag和结构排除；不能按每行参数或每个物种声称独立参考。",
+          "区分注册类别/自然表/placement/额外rarity，记录原生global/local是否先到达；研究类别策略并不授权更改本项目category。"
+        ],
+        "limits": [
+          "源码仅检查ServerLevelAccessor后，稍后无条件cast ServerLevel；WorldGenRegion路径可能失败，不能称它覆盖所有生成原因都安全。",
+          "dimension检查只在world instanceof ServerLevel且非SPAWNER时执行；不把predicate概括成所有路径严格维度绑定。",
+          "invalid/missing avoid structure_set跳过；这是候选placement范围，不是已生成valid start或精确bbox验证。",
+          "额外rarity用rand.nextDouble()>值，0值的注释与极端随机等0的严格比较有差别，不写成数学上绝无成功。",
+          "本地cache未含生成的biome modifier JSON，已核验Java入口/codec链，不声称本轮验证安装后资源或自然出生。NeoForge API与本项目不同。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0008",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+        "sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+        "bytes": 58047
+      },
+      "canonical_complete_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0008",
+        "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+        "observation": [
+          "带函数的SpawnerData随biome ADD写入；NaturalSpawner.canSpawnMobAt返回时只在原boolean AND location上再筛。原返回false不会被翻成true，也不主动创造机会或增加cap。",
+          "LocationRequirement先移动x/y/z offset，再检查范围、biome、dimension、结构getStructureWithPieceAt与INVALID_START、光/块/流体/温度；自定义predicate有值时直接返回并跳过其余条件。",
+          "这里实际AddSpawnsBiomeModifier固定写CREATURE，虽然SpawnBiomeData另存category；不能仅看schema推断消费的是配置category。",
+          "配置的要求/排除不是可凭名字推断的集合运算：NegatableList在requireAll且全部满足时直接返回true，后续exclusions未执行。"
+        ],
+        "application": [
+          "生态观测应保留原生返回结果及独立环境条件，不能为使稀有生物出现反向覆盖原生失败。",
+          "场景条件必须核对实际piece而非只有结构名；body检查用的偏移位置、加载状态与短路顺序需要完整证据。",
+          "数据模型的字段不代表消费者实际使用，研究category/cap共存需追到写入出生表的位置。"
+        ],
+        "limits": [
+          "这是单条真实模组自然出生功能链；通用NegatableList/温度缓存只作支持，绝不单独计生态案例。",
+          "未执行或验证Mixin启动配置、SRG映射和本整合包运行兼容；不把Java注入源码存在说成已生效。",
+          "BlockRequirement/FluidRequirement在未加载坐标返回true；block replaceable仅检查Optional是否存在而未使用其布尔值；NBT条件但无BlockEntity可放行。不能称条件全部严格。",
+          "rough temperature按8块segment缓存；默认flags=0可复用1000/(1+randomTickSpeed/20)游戏ticks，而非注释的固定10秒实时值。未审完全部温度modifier与NBT表达式，这些子系统不新增信用、不声称测量真值。",
+          "位置dimension tag分支检查dimensionTypeRegistration与tag.location，不能概括为任意dimension tag完全符合预期。",
+          "原生cap之前已经拒绝时本链无最终生成机会；它不是解决runtime04全局CREATURE关闭的已证方案。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0009",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+        "sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+        "bytes": 62765
+      },
+      "canonical_complete_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0009",
+        "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+        "observation": [
+          "自然structure_set→结构biome/水体/高度门→generatePieces明确add FirepitPiece；其postProcess每次抽5–9目标，每个最多20位置重试。",
+          "在旋转后的piece坐标上查地表，要求y>0、实例checkSpawnRules和无碰撞，才finalizeSpawn(STRUCTURE)、restrictTo(center,25)、addFreshEntity。",
+          "Minion.requiresCustomPersistence恒true；自身home与交易状态序列化，MowzieEntity.checkDespawn只在非持久化时做距离移除。",
+          "研究重点是结构群落的出生来源、数量预算、重试、定居/持久化生命周期，共有自然结构/栖地/生物三层，不能仅按生物数量或piece数量计参考。"
+        ],
+        "application": [
+          "稀有定居者与普通自然池共存研究，应追溯实体来源、home存档、持久化语义和对应版本原生计数器，而非把已加载实体总数直接当cap数。",
+          "一次性结构植入应有实际加入确认及重入边界证据；仅一次for循环上限不等于整个结构生命周期的一次性上限。",
+          "普通NATURAL与STRUCTURE生成分开验收；本项目六种拒绝CHUNK_GENERATION，不能拿另一来源替代其实际自然出生。"
+        ],
+        "limits": [
+          "源码postProcess没有布尔seeded/UUID集合，也未以传入chunk bbox筛选每个植入位置；只能报告重入风险，不能在无运行证据下宣称已重复出生。",
+          "addFreshEntity返回值忽略且随后break，所以5–9是目标/尝试上限，不是严格成功群落数。",
+          "原生cap常排除requiresCustomPersistence，但本来源较新NeoForge；未核验该版本的全套计数修改，也不声称这是Dynasty可采用的cap修复。",
+          "结构生成数据代码已读；模板NBT、打包资源与实际世界部署未核验。Firepit后处理本身不以marker存在为前提，但能否被实际执行仍需运行期证据。",
+          "不研究/制作营地建筑设计、不下载或复制模型/贴图/模板；只复制Java文本于研究目录。",
+          "generation config里avoidStructures参数在MowzieStructure.checkLocation体中未使用，不能把字段存在当额外避让已经实现。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0012",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+        "sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+        "bytes": 89916
+      },
+      "canonical_complete_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0012",
+        "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+        "observation": [
+          "datagen StructureSetHandler将wrought chamber绑定RandomSpread15/5 TRIANGULAR/salt23217347；StructureHandler使用实际tag/settings构造对应class；真实findGenerationPoint先父级checkLocation再generatePieces，非未引用的几何helper。generated JSON、template二进制和运行期自然start未验证，不能从这条入口源码推成实际世界已生成。",
+          "构造传false,false,true，父级不应用通用地表高度/避水检查，但仍消费enable和实际allowedBiome集合。generatePieces取chunk中点/OCEAN_FLOOR_WG高度，把本机制的高度范围交给tryWroughtChamber。父级avoidStructures参数没有实际使用，不能说第三flag落实避让。",
+          "核心固定dx,dz从-8到<8步2，共最多64列。heightMax=-65或高于surface时取surface，heightMin=-65改-64；逐列向下直到第一个非solid层，再向下到solid floor。源码注释称air，实际!isSolid没有水体/空气判定，不能以洞穴空气名义验收。",
+          "有地板后按水平四方向最多8步找墙，每步最多观察4块连续solid；若前三块solid会向上移动checkWallPos，下一水平步沿用抬高后的Y，故不是始终固定地板高度的简单平面射线。找到后返回墙脚位置与按方向确定的Rotation，首个成功立即结束，无随机选择或全局最优证明。",
+          "generatePieces按返回rotation旋转(0,0,-9)偏移，再调用start→addPiece。模板piece保存Rot、rotation/no mirror、忽略structure blocks，handleDataMarker空；不能仅看Wroughtnaut名字或注释称chest就宣称铁守卫/箱子实际被生成。",
+          "类step返回UNDERGROUND_STRUCTURES，但StructureHandler实际StructureSettings写SURFACE_STRUCTURES；没有读native调度消费不能把前者当已证明最终生成阶段。generationDistance非负只作enable守卫；实际spacing在set写15/5，不能说配置距离任意变更必改变间距。"
+        ],
+        "application": [
+          "后续结构可达性需要把structure_set候选、真实biome集合、噪声列条件、楼板/墙体、旋转锚点和实际模板完整性分层记录；候选或tag存在不能替代真实场景。",
+          "可借鉴有界地形搜索及从地形方向推导锚点的方法，不复制模板/建筑、不新增内容、不调整本项目cap/概率；把非solid、水和实际空气严格区分。"
+        ],
+        "limits": [
+          "一项仅自然地下洞室地形选择整机制参考，无建筑造型/模板数量/实体出生/实际世界结构可达性信用。模板NBT和generated datapack deployment不在缓存审阅范围。",
+          "来源为固定较新NeoForge版本，与本项目Forge1.20.1不能直接假设API/原生调度兼容。isSolid/getBaseColumn/模板原生实现作为调用边界，不宣称复制可直接运行。",
+          "高度min硬编码-64而非heightAccessor最小值；没有检查每个目标体积/全模板碰撞、fluid、内部通行/灯光，也没保证能找到符合条件的地形。",
+          "biome ADD modifier JSON部署仍未闭合；仅记录真实Java接线，不能保证集合启动后非空。与EA7共用biome匹配/registry支持不另计。",
+          "同类Frostmaw模板换名/旋转不另计；未运行上游或datagen/游戏/编译/测试。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0016",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+        "sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+        "bytes": 106673
+      },
+      "canonical_complete_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0016",
+        "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+        "observation": [
+          "Actual registry constructor and entry instantiate Skreecher as CREATURE despite Monster superclass. Own static placement checks nonpeaceful/darkness/SCULK and instance roll uses config with SPAWNER bypass; class/max cluster1 does not prove deployed natural biome pool/cap. These support a real called mechanism, not NATURAL spawn success.",
+          "Registered HurtByTargetGoal and player NearestTarget3D consumer can feed FollowTargetGoal. Anonymous target search uses bounding box inflated16 inX/Z and fixedY[-64,320], overriding helper cube. Follow canUse needs own live target and clingCooldown<=0; tick moves/looks and sets clapping within horizontal2.5 when cooldown==0. Target may come from retaliation, not necessarily a player. Base Goal/TargetGoal/GoalSelector scheduling/continuation and AI reachability remain unexpanded.",
+          "Qualified own tick needs clapping+ownalive+cooldown<=0. Counter starts0; modulo8 branch requests clap sound, ENTITY_ROAR, anger-nearby and particle; else-if15 gives other call. Multiples of both take8 branch. These are alarm requests, not add success, and100 is local qualifying-counter threshold rather than a guaranteed100 world-tick duration.",
+          "At clapTick>=100, configtrue and !hasAttempted immediately write attemptedtrue BEFORE downward support search, biome lookup, server guard, local existing-Warden and allowed-tag checks. False config leaves flag unspent while counter may continue; later enabling can enter without a fresh100-count period. Config default/assignment do not prove loaded value.",
+          "Search begins own block below, descends whileY>-64 and not sturdyUP, and can end at/below-64 with no supported floor. Holder biome is read at search ground position before server guard, not proof the actual child bounding box orY+1 position is safe/eligible. Hardcoded lower bound is not world min-height. No obstruction, full-body free-space or natural cap admission check shown.",
+          "Only when server, local Warden query empty and holder tag matches does create occur. No null guard. It moves to own exactX/Z and searchY+1, calls finalizeSpawn(TRIGGERED) using difficulty at original Skreecher block, sets attack target to THIS Skreecher, requests79 anger then calls unchecked addFreshEntity. The originally followed living target is not the target assigned to new Warden. Rejection/null/failed add do not refund flag.",
+          "After possible spawn it increments clapTick then server revalidates target alive/LOS/notinvisible/selfnotblind and horizontal<=20; failure calls setClapping(false), which resets counter. This order permits no source-level guarantee target was still eligible before spawn; it is not a reproduced stale-target gameplay event. Target reset and clap interruption do not reset attempted flag.",
+          "Nearby Warden AABB is X/Z±35 withY endpoints ownY+(cling?5:25) and-64. Native constructor normalizes all endpoints, so reverse-writtenY does not make it empty. Query is current local returned list, not radius35 sphere, whole-world count, alive/available encounter guarantee, durable lock or atomic reservation. Every8 qualifying iteration requests anger100 for returned Wardens with LOS. No cross-actor exclusivity/duplicate race or actual anger outcome is established.",
+          "NBT SummonedWarden serializes hasAttempted, not child UUID/add-result. Clinging/CeilDist/ClingCooldown also saved; clapTick/CLAPPING/jump progress not in own additional data. Complete class has no normal reset of attempted besides reading saved value; setClapping(false) resets counter only. Persistence/reload is conditional on actual engine save/load, not verified. Existing-Warden/biome rejection consumes opportunity; absence of sturdy support has no post-search rejection gate; repeated ordinary clapping will not retry for an already flagged instance.",
+          "Own hurt first clears cling/clap and sets200..399 cooldown before delegating super.hurt, without checking its result. Therefore a rejected hurt may still request interruption; neither actual HP decrease nor authoritative successful damage is required by these local mutations. No universal control immunity or native sound/particle rendering guarantee is inferred.",
+          "Native Warden.finalizeSpawn sets DIG_COOLDOWN1200, TRIGGERED EMERGING pose and temporary IS_EMERGING plus sound request before parent. setAttackTarget writes Brain attack target and resets roar/reach/sonic cooldown. increaseAngerAt requires !noAI and native canTargetEntity, then changes anger and optional listening feedback. Requests occur before actual add; not successful population/attack receipts. Warden hurt separately can request anger/target after super call independent of its returnedflag; contextual0 credit.",
+          "Native ServerLevel addFreshEntity returns addEntity boolean; removed entities rejected, failed entityManager add returnsfalse, success then onAddedToWorld. Caller ignores boolean. EntityManager/Forge join, UUID and chunk/saving internals unexpanded. Warden removeWhenFarAway=false only rejects that ordinary removal policy; complete emerging/digging/Brain lifetime/peaceful/external removal and postspawn survival are not proved.",
+          "Actual fixed tag67 bytes declares replacefalse and minecraft:deep_dark. Fixed Git blob/source checks bind resource content, not installed merged tag, dimension rules, config or loaded biome deployment. All registry/native/tag/sound/threshold/attempt/serialization support belongs to at most one AI-alarm/local-suppression/attempt-latch encounter family.",
+          "There is NO explicit post-search sturdy-floor rejection gate. The loop may stop atY<=-64 without a sturdyUP face, then still performs biome/server/local-Warden tests and can proceed to create/move/finalize/add if those pass. Unsupported ground is not a demonstrated independent rejection path.",
+          "The attempt flag is consumed before search. Biome/local-existing-Warden rejection or a subsequent failed create/add cannot restore it; lack of sturdy support itself does not block the shown spawn path. Do not infer a safe-floor guarantee or a ground-failure no-spawn guard."
+        ],
+        "application": [
+          "Separate alarm activity, consumed attempt, environmental/local suppression, initialization requests and actual add result. A persisted variable named Summoned is not sufficient population evidence.",
+          "1000 before any Dynasty ecology implementation; no cap/category/probability workaround or random repeated runtime."
+        ],
+        "limits": [
+          "At most one whole AI-alarm/local-suppression/persisted-attempt encounter family proposed; helper, roar, native methods, registration, tag, spawnroll, counter constants and species each support0. No accepted EA identifier/ledger credit created by this file. Existing build_tenth EA16 is a draft association only.",
+          "Unlike EA1 world/weather/chance recurring encounter, this is an individual active-target alarm and durable consumed attempt before environment/local suppression. Unlike EA9 structure postProcess cohorts, no structure start/pieces. EA11 is rider-associated expiry, EA14 host effect brood, EA17 paired pregnancy/world egg. These actual old decision fields were compared, not their full source chains reread.",
+          "No loaded tags/config, engine AI/GoalSelector scheduling, target-predicate consumers, EntityType.create internals, Warden complete Brain/anger management/emerging/digging behavior, parent finalizeSpawn, entityManager/Forge entity-join event path, chunk reload or post-reload replay was executed or fully expanded.",
+          "One single fixed-commit verified-HTTPS request fetched only67byte tag with exact pinned Git blob match; no API retry/TLS bypass, acquisition/file/range count earns0. All other inputs local, actual new source read recorded; constructor binding explicitly reused at same hash.",
+          "No Java/Gradle/game/GUI/server, no native spawn/birth/kill/material/performance/cap success, no production/asset/sharedJar/world/TODO change, no hours claimed. Master remains15/1000; independent semantic review and proper formal receipt required.",
+          "Draft packaging only. Full review and immutable floor clarification both required; no successful Warden or native/cap credit.",
+          "No ground rejection gate exists after the search. Initial Warden target/anger recipient is this Skreecher.",
+          "Author is original proposal coordinator; packaging draft author is separate existing reviewer thread. No new semantic reading credit."
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0032",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+        "sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+        "bytes": 263380
+      },
+      "canonical_complete_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0032",
+        "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+        "observation": [
+          "One object-owned exact-time village setup/veto then finite attempted hostile wave. Complete135-line VillageSiege,61-line cancellable event and19-line time interface actually read; supporting counters, nested samples, variants and failure paths are not individual references.",
+          "Native startup/chunk dispatch and native-admission support are exactly covered by own prior Cat/Allay reads,12bound ranges reused0. Overworld custom list differs from natural SpawnState loop; doMobSpawning/debug/dimension/flags constrain entry. Current pack category caps, actual scheduling and admitted actors are not certified.",
+          "Own tick guards !isDay and hostile flag; friendly flag unused. Else DONE and hasSetup=false only. Count/delay/coordinates remain; disabled host calls can freeze own state. Level369..375 fixed-time/isDay body read, no entire world/light/host model claim.",
+          "Float timeOfDay at exact double0.5 causes nextInt10 reroll before DONE/setup checks. FullLevelTimeAccess and DimensionType95..101 map dayTime through fixed-or-day normalized cosine curve, interpolation argument unused. No once-night latch: repeated delivered same-time calls can reroll even prior active state; no guarantee current clock visits equality. CAN_ACTIVATE enum is unused here.",
+          "players() returns actual list; ordered first nonspectator currently village and not excluded biome is selected, no own isAlive check. Village section-distance/occupiedVILLAGE POI semantics reused from actual prior Cat study, not HOME quota. One raw mushroom_fields tag read from exact archive; loaded effective biome tag not established.",
+          "At most10ring anchors32 from playerXZ/currentY; each helper at most10 random offsets[-8,7] with WORLD_SURFACE height, village and Monster.EVENT tests. These are bounded potentially repeated samples, not100distinct sites/wholeplayers/terrain readiness/guaranteed setup.",
+          "Monster81..107 and Mob827..842 actually read: nonPeaceful,sky RNG,dimension block-light threshold, thunder/raw-brightness sampler, below-block valid spawn because EVENT!=SPAWNER. Own helper never instance-checks full body/bbox/liquid/above/worldborder; light/chunk/provider/event internals unexpanded. No reliable collision safety, cap bypass or actual encounter.",
+          "Valid probe posts cancelable VillageSiegeEvent with siege/level/player/attemptedVec3. Cancellation returnsfalse before quota/delay, leaves hasSetupfalse/TONIGHT under normal tick return; no durable stop-the-night latch despite event Javadoc. Externally reentrant/modifying handlers unexpanded. Probe is not final actor destination or native-add receipt.",
+          "Setup initializes nextSpawnTime0 and quota20 only on valid noncancelled probe. Critically first eligible player returns true even all10anchor probes fail: tick sets hasSetuptrue, fresh zero quota may finish and return1 with no spawn; reused fields can retain leftover count/delay while coordinates were replaced. No next-player search then. Source implication only, not reproduced bug.",
+          "Positive delay decrements and returns0; zero/nonpositive resets2, attempts only if remaining>0 then debits after normal void helper return; else setsDONE but still returns1. Two positive-delay delivered calls then a zero call between opportunities, not guaranteed walltime. Twenty initializes primary attempt budget, not20successful actors or total-actor upper bound.",
+          "Each trySpawn resamples near stored anchor, not earlier event probe. Null location normalreturn, nullable create dereference/finalization inside Exception catch normalreturn, so outerdebit still occurs. move/add outside catch; not all throws swallowed/debited. No atomic wave entitlement or success-coupled commit.",
+          "ZOMBIE registration286 is concrete Zombie::new MONSTER0.6x1.95. Nullable feature-gated factory support reused0. Own actual constructor88..105 only bounded partial surrounding behavior. Caller passes getCurrentDifficultyAt(zombie.blockPosition()) and EVENT BEFORE intendedVec3 move. No constructor/full inherited graph/current behavior or observed origin exploit certified.",
+          "Full Zombie.finalizeSpawn421..471 delegates super first, uses supplied local multiplier, creates optional baby/Jockey group, equipment/enchants/holiday and attributes. Actual421..501 plus538..547 read; Forge baby/reinforcement config getters are dependencies, actual config values unproved. Baby path may selectexistingChicken or create/move/finalizeJOCKEY/flag/request ride/add before outer move; add/ride results ignored. Secondary requests make primary20 not totalactors guarantee. Chicken/attributes/ride/light/runtime remain bounded.",
+          "Zombie then moveTo candidate and void addFreshEntityWithPassengers. Reused verified ServerLevel855..867 and persistentmanager61..106/134..142 support removed/cancelledJoin/UUID-rejection boundaries; own normal-return counters ignore admission. No strict birth/kill/loot/itemUUID/playerdamage/payment/worldsave proof.",
+          "Complete source has no own read/save/NBT or durable pending receipt. Object reconstruction, skipped clocks, repeatedexacttime, cancelretry, stalequota and terminal1 remain explicit. No native reproduction/performance, allworldchance or savedwave acceptance.",
+          "Whole-policy differences: EA1weather-clocked bounded beached encounter has no finite village setup veto/debited wave; EA2seedhabitat persisted giveup no delivered hostile quota; EA3/EA7table/predicate injection no direct object wave; EA9worldgen persistenthome cohort no clock/event cancellation; EA11trader-attached rider expiry no standalone wave. Cat occupiedHOME/local-density replenishment has no exact-time finitehostile budget. Shared clocks/helpers/ignoredadmission are0. Prior actual MainCat complete-decision reads reused, not old source chains reread."
+        ],
+        "application": [
+          "Later Dynasty threat work must distinguish eligibility/time trigger, actual setup acceptance, canceled event, attempted wave budget and admitted actors. Preserve original quest progression/rewards/IDs and native acquisition/birth/kill receipts.",
+          "Separate material/debit opportunity, active wave and saved entitlement owner; do not copy transient counters into player Clone whitelist or equate return count with completed encounter. Source study alone does not authorize implementing below applicable1000 gate."
+        ],
+        "limits": [
+          "One original-author complete source policy proposal only; distinct Main semantic review before formal ID/package/schema/receipt/aggregation. No global novelty, migration, native birth/kill/pickup/player payment/gameplay credit.",
+          "Local pinned source/base raw bytes only, not loaded current pack tags/configs, fresh upstream authentication, compatible build or game deployment. Full inherited constructors, world/light/chunk/POI/event-bus, Zombie/Chicken/equipment/attribute/ride/collision/admission runtime remain bounded.",
+          "Do not claim exactly once per night,20 accepted or total actors, permanent event veto, safe body clearance, reliable saved wave, native category cap bypass or observed exploit. No Java/Gradle/game/network/production/assets/source cache/shared tool/master/session/Git/checklist changes; no active-hours claim.",
+          "Main original-source study only, not paper implementation, production repair, current spawn pipeline validation or formal candidate receipt. No Cat/Phantom/Patrol proposal itself silently accepted as old complete policy.",
+          "Original proposal remains immutable historical evidence. Its copied Cat-specific prior difference strings are explicitly superseded by Main independent_findings[15] in all current comparison fields. This private proposed association is not a formal acceptance/identity assignment. No production/game/Git/checklist/master changes."
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "current_migration_ledger_binding": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "bytes": 18357046
+  },
+  "current_complete_global_substantive_judgments_actually_read": [
+    {
+      "candidate_id": "a99c9aa6e06456201e92",
+      "canonical_complete_row_sha256": "0883c6d76bbc3d6bd4c0c5f5076fdd848f39b705fd59fdd322a5577f7baf0a17",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "a99c9aa6e06456201e92",
+        "status": "accepted",
+        "family": "goety-grave-golem-collected-drop-inventory-return-receipt",
+        "trigger": "GraveGolem save/read/addDrops/dropInventory",
+        "input": "up to50 container stack payloads plus activation/summon counters",
+        "output": "saved nonempty stacks restored by addItem; dropInventory clears each slot only if addFreshEntity succeeds",
+        "preservation": "Full persistence pair and complete addDrops/dropInventory overloads read. Golem is owned collected-drop carrier; restored inventory retains stack data until successful physical return, distinct from simple field accessor or per-species clone. Counter fields not extra credits.",
+        "application_limit": "No clear on reused load, possible duplicate aggregation. Writer omits slot IDs and compacts order; restore ignores addItem remainder so overflow can be lost. addDrops canAddItem then addItem also ignores partial remainder. on-death/respawn routing beyond reviewed methods not claimed universally lossless.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "evidence_metadata_or_complete_old_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "721b4b5eac79cdbab3a2",
+      "canonical_complete_row_sha256": "967d9d488d4c2261347f57ad42690983c646c60324d9d902521ec03c3679e456",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "721b4b5eac79cdbab3a2",
+        "status": "accepted",
+        "family": "mca-tombstone-durable-entity-payload-to-resurrection-and-removal-boundary",
+        "trigger": "真实NPC死亡经Relationship选择/放置墓碑并保存实体；世界重载墓碑可继续复活进度，打掉/再放物品可转移载荷；镰刀或生命杖启动服务器tick计时，超过500后从载荷重建实体/可选治愈，消费源墓碑状态。",
+        "input": "墓碑根entityData为带注册id的完整原实体NBT，另存entityName JSON/entityGender ordinal、resurrectionProgress int、cure bool；物品subNbt entityData又包一层EntityData字段，只携实体/名字/性别，未携进行中的复活progress/cure。GraveyardManager按维度存EMPTY/FILLED→chunk long→packed BlockPos long索引。",
+        "output": "Tile read仅外层entityData是compound才创建EntityData，内部raw实体id和其他NBT暂不解码/预校验；未知类型仍可作为compound保存。EntityData构造name从JSON转Text后转plain string，样式不原样保留；Gender越界fallback。tick恢复progress/cure能续任务，每tick dirty+sync；移动为物品只转EntityData，重放后progress/cure默认不续。实际普通死亡先dropAllItems并clear库存，再relations.onDeath保存实体，因此不能说墓碑复制全部死亡前库存。",
+        "preservation": "createEntity(world,remove,transform)在try里调用EntityType.getEntityFromNbt，但finally无条件在remove=true时setEntity(null)；解码返回empty、转换抛异常均清源，不等成功。复活专用transform复制原compound并只去ActiveEffects，恢复health/max、fallDistance/deathTime/portal/fire/位置；可选zombie.convertTo(VILLAGER,true)并避免二次spawn，否则spawn返回值未检查。FamilyTree deceased=false在目标实例上更新，不证明生成事件接受。原始未知id应保留的阶段在此最终消费边界被破坏。 Master: 主责完整读墓碑写入/读取/物品搬运/死亡/收费启动/服务端tick/创建实体/家谱状态消费者，仅计独立墓碑实体载荷恢复所有者1，Graveyard索引/工具/换型复用0额外。NPC死亡先dropAllItems并clear库存再关系捕获，墓碑不承诺保存死前库存。entityData仅compound guard，名称JSON解析无隔离且保存转纯文本，未知gender回UNASSIGNED；旧type未知可保留到创建失败。进度与cure在方块保存，物品只带EntityData而不带进度/cure。500tick后恢复复制载荷并去ActiveEffects/修血量火焰传送等，cure复用转换避免双spawn；finally在remove=true无论创建Optional空/抛错都setEntity(null)，spawn返回值未确认，存在失败吞载荷边界。Graveyard维度索引与载荷非同一事务，坏enum/long/元素类型未隔离。借鉴选定字段和消费成功后清receipt，不能照搬整包NBT复制给玩家Clone，不宣称上游无损或本项目原生验证。",
+        "application_limit": "这是NPC墓碑保存/复活一条玩法实现，不是玩家Clone或已验证的历史旧ID remap。实际原生EntityType加载/NBT数据修复/事件拒绝/文件崩溃恢复未执行；name JSON坏值可能在EntityData构造抛错，未知id是否为空取决原生加载。墓地索引与tile载荷两个真值，索引解码enum/数值无逐项catch，setEntity更新索引；没有证明所有陈旧索引自动修复。物品写入附lore仅显示支持，读取不显式dirty也未重置computedName，只作静态边界；不按每tickdirty/视觉/两物品拆数。 固定上游源码静态审阅，不直接移植跨版本API，不宣称原生运行验证。未执行上游操作或游戏；固定MCA Reborn源码不能替代当前Dynasty原生验收。",
+        "supporting_candidates": [
+          "ca3f5b7c5893fb4ab1a5",
+          "6444b5c03cbd9979c66b",
+          "fedb03196924041c5201",
+          "c6cfe5d65e4340e0bad6",
+          "ba105183c70984892176",
+          "efe11e71d0fae7d272ed",
+          "12de065a14c1d8dd8a23",
+          "a0d7170e45627e1dd6ed",
+          "edea4b305f56a8170d3c",
+          "57919314ced8f54b9b3e",
+          "54ba5574ab2bdaaf0cc2",
+          "c9fe93bc4ec545eabc67",
+          "f721171f873d70e228dd",
+          "1f29025a75141210e35e",
+          "dc2c2b40b0bf0775ee6b",
+          "419e9011bcb30ce91aae",
+          "78750306170d839f6af3",
+          "b134d8cd84dfbd8be0ab",
+          "835d778d6f4eb9e417cf",
+          "2b9a0b3390717e447cd8",
+          "68c82ec91324ef468762",
+          "9d4f2c00490c2d920867",
+          "dfad90176dc055f92ea8",
+          "dab95e9dce8c959c192c",
+          "e76d699e611b0d393bec",
+          "b37ef7b718b151be3c86",
+          "d2b4d2e6d78a03628d32",
+          "057dee5a295692705276",
+          "6afa82f987d8fc1a251b",
+          "13488eb126a953fc399f",
+          "58ad1208a9c6f3765a05",
+          "267b3c59910177e93a71",
+          "0742a18dd4d41e483e1e",
+          "dacfc672f2bfb43cdeff",
+          "4fbf414dc93ee300f603",
+          "8a22a01fbfc56c6051b3",
+          "d8be8ca7c8ed55c1c898",
+          "9172cdf6ff60f0802d8c",
+          "8f273ceeac44d4248ba7",
+          "33a6a565f535422b6f5a",
+          "bb676a14c4cb905bfd41",
+          "574ee670db046608e518",
+          "86821d387e9cfd65e792",
+          "262aac482362f632de62",
+          "256689e70e317e0ee6de",
+          "40c8beb0d4a30a75ec4c",
+          "3f049cafbcacbc8a5d43",
+          "432837774ae04149602f",
+          "d6122b61faa6663dd284",
+          "ce2d9f6d71a2b70d84cf",
+          "388b736b1920c5ccb472",
+          "08a6f938c4ea8eb47b89",
+          "749f415e531953d233bc",
+          "2a655c5c78edce9964f5",
+          "b6b1da02b934116cddc2",
+          "9a4b2a130c98eefea657",
+          "5ffaae7d774caafae1fd",
+          "cb380c0c9bc30303a33f",
+          "a4a3482de3ff73f91729",
+          "d7af73acf0428f28cafe",
+          "2df9c60dfcb63f2a692e",
+          "c5d045dc18f18178ca29",
+          "6ec23edd1ca4f124caa1",
+          "f38273a1dfec3a7e9b6a",
+          "d77065028b459278ac10",
+          "a5852e50db7e87da4263",
+          "46ca17c5a71c9dc1fbed",
+          "3e5108f308d97005f9c9",
+          "2dd1940a35713c978809",
+          "c64363b1782840556e80",
+          "2669be2548217099c297",
+          "2778c4adc5729a337c70"
+        ],
+        "credit": 1
+      },
+      "evidence_metadata_or_complete_old_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "d461a9bf1a9c9c11ff4c",
+      "canonical_complete_row_sha256": "679540256ab54d3b233d3229ad6f518bb7ae7a870e66be328ca5d07488e47c76",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "d461a9bf1a9c9c11ff4c",
+        "status": "accepted",
+        "family": "goety-mud-golem-owned-farm-stock-reload-to-paid-plant-and-fertilize",
+        "trigger": "完整MudGolem实体与Harvest/Bonemeal真实AI，原生InventoryCarrier读写和SimpleContainer.fromTag/createTag",
+        "input": "独立8槽Inventory列表ItemStack payload；pickup原物品种子库存；手持骨粉展示与runtime工作计时分开",
+        "output": "读回库存用于真实播种扣seed及施肥扣骨粉；目标/导航/工作计时不被当永久进度保存",
+        "preservation": "与墓地傀儡掉落收集/返还及原生shulker搬运不同具体玩法owner；不是仅包装readInventory。读写委托原生通用API本身0信用。缺Inventory键保留原对象库存（fresh为空）；fromTag先clear后ItemStack.of过滤EMPTY再addItem压紧合并，不保存槽位置且忽略溢出返回，非无损任意容量加载。播种先setBlock再shrink未检查setBlock成功；growCrop内部是否已消耗须另外核对，不能凭额外shrink断言精确耗量。runtime导航/计时不会被根永久Clone带走。",
+        "application_limit": "原生codec/存储helper是支持而非额外实现；当前不检查整条Goety死亡库存掉落链，不宣称农作傀儡全部状态/死亡策略已验收。",
+        "supporting_candidates": [],
+        "credit": 1,
+        "structural_collision_review": {
+          "compared_candidate": "faead9d43a623669c5dd",
+          "distinct_gameplay_owner_reason": "reader虽同型super+helper，独立实体的8槽种子/肥料库存以拾取和实际作物生产消费；shulker是物品-方块便携储存且无播种/施肥支付消费者，原生通用helper不额外计数。不是同实现换key或容量之差作为依据。",
+          "reviewed_consumers": "MudGolem完整GolemHarvestGoal.tick与GolemBonemealGoal.tick、wantsToPickUp、InventoryCarrier.pickUpItem，已对照shulker已计条目用途。"
+        }
+      },
+      "evidence_metadata_or_complete_old_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "ab020025b0caae388ce4",
+      "canonical_complete_row_sha256": "040fbcd2ae87fbbcd59bcee097a6f5851fbd057d0854a4570a5bb750b7243a61",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "ab020025b0caae388ce4",
+        "status": "accepted",
+        "family": "minecolonies-citizen-death-cargo-grave-payload-resurrection-and-consume-boundary",
+        "trigger": "完整GraveManager/TileEntityGrave/AbstractTileEntityGrave/GraveData/ContainerGrave；完整Rack load/save、Undertaker.tryResurrect、CitizenManager.resurrectCivilianData/deserializeCitizen/spawnCitizenOnPosition、CitizenDataManager与onResurrect；接口spawn入口及大型Colony仅接线片段。",
+        "input": "死亡先转库存到grave，失败余项掉落，再serialize citizenData作为gravedata。BE保存库存槽列表、decayed与剩余tick，缺timer默认10分钟；missing gravedata显式null。",
+        "output": "取物Container使用真实grave handler；复活读payload/resetId并新建CitizenData，onResurrect只清home/job，再生成实体；成功分支清lastGraveData并移除世界grave。衰败第二阶段先掉库存再移除BE。",
+        "preservation": "一个死亡遗物/复活恢复owner1，不把GraveData包装/manager索引/每槽/计时器拆数。和Citizen技能迁移不同：技能是能力profile新旧格式，墓地是死亡货物归属和实体重建消费收据；借鉴恢复成功再清receipt。此上游是全CitizenData载荷，本项目不应照抄全ForgeData。",
+        "application_limit": "GraveData持payload引用不deepcopy；resetId会原地改payload。MOVE_IN=false/未加载无spawn位时spawnOrCreateCivilian可能只return data，resurrect仍回对象，Undertaker随后销毁grave；没有实际entity成功ack的静态风险不能称安全事务。容器stillValid恒true，无新增授权保证。Rack保存size无校验，读列表按index可能越界；empty标记不清复用旧slot。墓地timer变化不每tickmarkDirty。creategrave nullBE假定、原生transfer/drop底层未审，未证明货物完全守恒。 固定官方61292848b81ee4a7a33443beb52aabdc446355b8源码静态审阅，未执行上游/原生游戏，不把上游产品政策带入Dynasty；所有库和子调用支持0。",
+        "supporting_candidates": [
+          "5babbe52b97e18a189a8",
+          "44a29ef9af960be3eec2",
+          "e43238d5ee9db97d69ab",
+          "cd41f801daa59e94ee05",
+          "62d4002efdffeacb9159",
+          "955a9d7cf04ca5e5ea58",
+          "13a84503cbb1b9a628ec",
+          "769f5b4d1f92f6191fa9",
+          "90485439e1280a08bdd8",
+          "87a5dda5cd1121a5ab20",
+          "81d5e92849ea14e1f365",
+          "900b35f6de8aa67e3421",
+          "4e2102108844c4a57810",
+          "c55563bc87d1854ebf69",
+          "2a4e58aa716ae87c32ea",
+          "57fb57a1a4dddf1bc6ca",
+          "ee5be18af0b94e4d2bd9",
+          "74d0a6d55537e1ca031d",
+          "61ff536aad49d52c6e78",
+          "79c2bcf8e7c51e35d438",
+          "9d4a6b9013333d012244",
+          "3ee7a322b3b16ba408cb",
+          "7111419620963291f271",
+          "07ec896236c035d6fcc8",
+          "f726dd26b7056f202266",
+          "47d6f368aed7aa928739",
+          "7037a6e0dfed336992d7",
+          "3951a2c85df6f937b78d",
+          "43b411f175d0ed138aa2",
+          "57759f71229d54146f10",
+          "c903bc719e5e53cfb2fd",
+          "972606bf7ba3de23a216",
+          "fecdeff6680ae0cc2fe3",
+          "0b673956aa4932b4ae61",
+          "c7a283388b25430522bf",
+          "bdc1255c4bb1679b408b",
+          "7cee1621a9207e8e448e",
+          "b68e814e7f3b975886d1",
+          "90d8d7a9105efd0d76e1",
+          "946464ddf1c6ca2aec9c",
+          "e236b2ea8bd5d046fbe5",
+          "4068d22d77c14bf3d391",
+          "efe339b6990a4b1dd1d1",
+          "742f190e8eb77b8f6948",
+          "c8128eeafd127dfaeef4",
+          "5403cb84d7d9768d1ce2",
+          "06b748d80cd62732344c",
+          "cb3449aaa53300d68f1f",
+          "e30f2713c7cd1c963db0",
+          "c0ecf5032e788f66effa",
+          "cca873bca8ad672ee4d2",
+          "93a4a232a9396d50046a",
+          "a4d4d16fe50313b60b10",
+          "23e8202f4f39e8d45f28",
+          "0f794111e7dbeabee4a0",
+          "a39f11de98e650ebfdbf",
+          "844f821de26063eee75f",
+          "ebc82686c3f9c509707a",
+          "c2f47ed1537652918577"
+        ],
+        "credit": 1
+      },
+      "evidence_metadata_or_complete_old_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "fdc2ba126d34202f8c53",
+      "canonical_complete_row_sha256": "601404b162e0bad620ac85d00c5eeb7aa6af4731616e6e9be43c5d65a811d8aa",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "fdc2ba126d34202f8c53",
+        "status": "accepted",
+        "family": "minecolonies-persisted-unprocessed-family-deaths-and-next-wakeup-mourning-consumer",
+        "trigger": "完整CitizenMournHandler/EntityAIMournCitizen，CitizenManager updateCitizenMourn/onWakeUp完整；此前CitizenData根reader/writer支持。",
+        "input": "isMourning bool、deceased名字String set；当前AI盯人/路径/墓地引用不写此记录。",
+        "output": "read直接加到既有set而不clear；write set全部及bool；死亡按家属/同住者加入，不悼念移除，wake第一次置mourning下一次clear已处理set。",
+        "preservation": "独立已发生亲属死亡待处理履历owner1，不按姓名或墓地分数。AI用持久名字匹配墓碑并走路径，reset只清当前墓地/目标，不能把AI引用缓存当历史一起copy。该记录业务上可消费清掉，区分玩家功名永久历史与可处理队列。",
+        "application_limit": "名字不是UUID，重名/改名/空名匹配有歧义；reader复用会累积旧集合，empty不清；getter可修改原set但无dirty信号。同次wake清掉所有待处理、期间新死亡可能一起消失；不称永久保留任务标记成功模板。 固定官方Minecolonies61292848b81ee4a7a33443beb52aabdc446355b8静态全文审阅。未运行上游、原生游戏或存档；不移植惩罚/平台API，支持方法0信用。",
+        "supporting_candidates": [
+          "5babbe52b97e18a189a8",
+          "44a29ef9af960be3eec2",
+          "e43238d5ee9db97d69ab",
+          "cca873bca8ad672ee4d2",
+          "93a4a232a9396d50046a",
+          "a4d4d16fe50313b60b10",
+          "23e8202f4f39e8d45f28",
+          "0f794111e7dbeabee4a0",
+          "a39f11de98e650ebfdbf",
+          "b636d7b7700c991b3a6d",
+          "c3c9a89af773b08f901f",
+          "a388ec5b6a469b398b1d",
+          "4b37d9c8160a3ab85e53",
+          "ea79ee80f58d41be27ec",
+          "9c9dffe214530175938c",
+          "81b919960d786a957341",
+          "a735ef09ba0ea1f7f55c",
+          "2078f7a5a7b21d6f5dc5",
+          "0ceda580118b55aec7e6",
+          "9b84bccb5854c67888c9",
+          "b828c1fbe3d4641eebab",
+          "5d79fe0275f5db15a29d",
+          "30feba53c52221544cac",
+          "611c5975e2bee3e02777",
+          "f0deab3874851f9bd88f",
+          "7d02033f5cb1c74d432d",
+          "cfe38dd33a23087f0bee",
+          "f04244deda41a8614f34",
+          "d14f78be6d96bac7a1d6",
+          "d33d8056480d591cb520"
+        ],
+        "credit": 1
+      },
+      "evidence_metadata_or_complete_old_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "7eacfe0ba223d7c3b859",
+      "canonical_complete_row_sha256": "ff646a601a3337ad9acaa7a1c525f46e6014baeb72a46b5d5b91849b446b5b5b",
+      "actual_complete_substantive_judgment_fields": {
+        "candidate_id": "7eacfe0ba223d7c3b859",
+        "status": "accepted",
+        "family": "goety-grave-golem-summoning-skull-stable-owner-to-live-player-dependent-return-negative",
+        "trigger": "SkullItem.getOwnerID54-61从实际物品owner读取UUID；flag外观不是权限证明。setOwner30-36只在传入LivingEntity非null时写owner/name。",
+        "input": "Stable owner UUID on actual summoning skull item/block, legacy string fallback and optional custom name",
+        "output": "Placement and golem construction use UUID directly; block-to-fresh-item return resolves Player first, so unresolved current-level owner does not receive UUID on returned item",
+        "preservation": "SkullItem.getOwnerID54-61从实际物品owner读取UUID；flag外观不是权限证明。setOwner30-36只在传入LivingEntity非null时写owner/name。 GraveGolemSkullBlock.setPlacedBy92-115：未完成召唤时将物品UUID直接放进BE；trySpawnGolem146-174：优先物品UUID传给新golem，否则取placer。UUID在此实际决定召唤归属，不是仅tooltip。 SkullBlockEntity.readNetwork61-78新UUID优先，否则旧字符串交OldUsersConverter；write80-87保存稳定UUID。disk load/save与network均委派此对。 本地OldUsersConverter243-272补读：短非空用户名先profile cache，认证多人可lookup，单机/离线可派生UUID，长/空字符串尝试UUID.fromString失败null。仅静态读取，绝未执行查询；该通用helper0。 Block clone56-65潜行才拷，playerDestroy82-89总新建skull并经setOwner68-71→BE.getPlayer117-119→getTrueOwner108-115（level.getPlayerByUUID）→Item.setOwner。原始UUID未直接写回，玩家不可在该level解析时新物品不带owner。 补读GraveGolem.tickDeath406-429：延时死亡新建头颅，getTrueOwner非null才写owner/name并投出，否则11%普通头颅；货物dropInventory另有成功回执，不能把货物保证推广到头颅。 Distinction: 独立增量不是Owner UUID字段或legacy converter：这件实际召唤载体在item→block→golem路径直接携带稳定UUID，但block→fresh item返还却需先解析当前world里的Player对象。已存合法UUID与当前玩家可解析性被混同，会在返还时失去可用于下次召唤归属的身份。现有grave golem账目是50槽收集货物成功返回收据，未覆盖独立头颅物品的召唤归属；原生horse/UUID/头骨格式转换也未覆盖此有向carrier不对称。完整载体链及这个具体负面恢复策略合1，不按block/item/entity/legacy parser或副作用拆计。",
+        "application_limit": "没有游戏/原生读盘复现；结论是条件性数据流，不保证所有破坏/掉落/跨维度情形均执行。 block BE lookup是当前level.getPlayerByUUID，不是全服在线列表；离线、同服其他level等不能直接合称已可解析。非nulllevel是前提，旧转换调用level.getServer在try外，实际load初始化顺序未展开。 legacy fallback uuid null不清已有owner；mod_custom_name缺失也不清；item getOwnerID只contains不hasUUID，坏类型依赖原生getter。 trySpawnGolem先移除材料再create/add，成功布尔未核；不保证物料事务。复制/破坏返还fresh item不保所有原始tag。 nativeSkullBlockEntity的SkullOwner/GameProfile是另一字段，底层持久化未全文读；不把可变网络包等同owner授权。 getTrueOwner完整golem继承实现未追踪，本条新观察主要约束已读block BE返还链；死亡skull仅按所读调用条件描述。",
+        "supporting_candidates": [],
+        "credit": 1,
+        "independent_review": {
+          "path": "docs/cod4/audit-20261022/todo-evidence-review-20261101/skull-guardian-independent-semantic-review-20261101.json",
+          "sha256": "8dd43840831301ea30777aca25783f89da5fa151be75f5393f934c26ccf734ff",
+          "dedup_against": [
+            "a99c9aa6e06456201e92",
+            "52a522f16644b74729fc",
+            "644c27082233dedb448a",
+            "65d75547428320fc1f68",
+            "6301e39719398579cc78",
+            "a6595bbc42a69579f903"
+          ]
+        },
+        "structural_collision_review": {
+          "compared_candidate": "30bd3c1e581796907be8",
+          "distinct_gameplay_owner_reason": "相同AST只说明均先调用一项本地reader再super；Cataclysm所撞的是LLibrary_Boss_Monster.readAdditionalHomePoint的委派wrapper，计入Harbinger实体付NETHER_STAR激活/旧Home坐标迁移的支持。Skull.load这个wrapper本身同样0；本建议1依据已读item/block召唤owner载体与返还须解析live Player的负边界，不借wrapper、字段名称或语法新颖计数。",
+          "reviewed_consumers": "Actual skull item/block UUID transfer and live-player-dependent return chain; wrapper itself0"
+        }
+      },
+      "evidence_metadata_or_complete_old_source_reread_claimed": false,
+      "new_credit": 0
+    }
+  ],
+  "bounded_global_screen_not_uniqueness_proof": {
+    "terms": [
+      "graveyard",
+      "wraith",
+      "grave golem",
+      "tombstone",
+      "mourning",
+      "Mowzie Lantern"
+    ],
+    "scope": "Complete substantive six selected decision fields retained; not evidence/old entire source rereading",
+    "credit": 0
+  },
+  "whole_policy_comparison": [
+    "EA3 controlled natural spawn-table start/piece/conquest selection differs from direct feature placing entities and delayed loot/spawner state; registry/structure query0.",
+    "EA4 owns biome/chance/terrain/spacing→den/decoration/loot/Hydra/home/add, EA5 bounded support/clear-space cohorts. Full scopes retained; soil gate/new species0.",
+    "EA9 owns natural finite cohort/retry/home/persistence and unchecked-add/reentry. Home/unchecked-add0; proposed distinct whole is combined cell-selected chest/guardian and consumed marker→probabilistic standing source, subject Main decision.",
+    "EA7/8 own shared natural predicate/biome native SpawnerData; modifier/helper0. World SPAWNER block configuration is different than biome SpawnerData but proves no runtime.",
+    "EA12 terrain chamber, EA16 consumed alarm, EA32 finite transient siege retain whole scopes; shared budgets/admission caution0.",
+    "Global MCA/Colony graves death payload/resurrection/inventory, Goety collected cargo/skull UUID carrier and Colony mourning fully retained0; no global/migration novelty."
+  ],
+  "observed_chain": [
+    "固定来源是Twilight Forest4.9/Minecraft26.1.2/NeoForge26.1.2.112，不是Dynasty Forge1.20.1；只做本地原源码机制研究。当前选定文件逐一SHA匹配source.json，本轮未重新下载或验证原archive，archive SHA仅固定来源元数据。",
+    "实际入口为TFFeatures.GRAVEYARD构造GraveyardFeature→配置FeatureConfiguration.NONE→PLACED_GRAVEYARD→BiomeHelper.spookyForest的SURFACE_STRUCTURES，TFBiomeGenerator绑定SPOOKY_FOREST。已读生成spooky_forest.json对应feature条目，没有把普通forest或场景名称当入口。",
+    "placed JSON和datagen同序：rarity70→in_square→OCEAN_FLOOR高度→AvoidLandmarkModifier.checkSurface→BiomeFilter。70是放置过滤参数，不是实测每70区块必有墓地/怨灵，更不是Dynasty出生分母。",
+    "no_structure注册为AvoidLandmarkModifier.CODEC；扫描当前chunk结构references，允许列表、非DecorationClearance或对应区域允许装饰时不挡。有效start才继续：radius>0按start bbox中心XZ轴距严格小于radius*16+额外clearance；radius<=0逐piece看最大三轴距<=clearance，UtilityPiece.allowFeatures跳过。不是排除所有结构，引擎reference加载和所有具体结构配置未展开。",
+    "GraveyardFeature加载base/trap/Full/Upper/Lower五个模板，只作null guard。缓存没有五份NBT，getOrCreate/空模板行为未读；Java请求名不是实际部署、尺寸、有效marker或五个完整建筑证明。",
+    "每个旋转后base footprint柱由MOTION_BLOCKING_NO_LEAVES高度向下到首个solid，遇液体/基岩/GiantBlock/CLOUDS tag/硬化暗树叶先失败；跌到0以下失败。高度总体标准差>2失败，再用round mean定位；硬编码0不是世界minBuildHeight，tag有效集合未加载核验。",
+    "isAreaClear逐块只拒绝 !canBeReplaced && isSolid && !liquid，因此该独立体积检查不会拒绝液体，尽管前面地面扫描遇液体拒绝。检查start.above(maxY-baseY+1)到start.offset(size)，并非完整模板、实际生物碰撞盒或完全无水保证。",
+    "origin-8映射chunk，bbox为chunk偏8且Y固定0..255，startY取地面均值，由transformedSize构造内区。base.placeInWorld结果忽略，继续收集marker及生成；地形检查成功不是模板已落地。",
+    "内区留两格，按旋转相关2/5步长枚举墓位，中央X或Z线跳过；每位随机三种GraveType之一，模板放置结果忽略。每次调用由未知模板尺寸约束有限尝试，没有具体总数，也没有所示持久seeded/UUID集合证明跨回调只播一次。",
+    "只有Full且nextBoolean=true墓位进入箱子+Wraith分支；其中nextInt(3)==0额外请求trap并偏移placement。不将三个概率/样式分支拆参考，也不把它们乘积当最终掉物/实体概率。",
+    "后续trap.filterBlocks不受本次trap是否选中放置限制，且使用BASE placementPos而非本墓位placement；data为List，无位置去重。若trap有对应marker，可反复追加相同位置；NBT未读，不声称已发生重复刷怪笼或运行bug。",
+    "setBlock(TRAPPED_CHEST)返回true才调用generateChestContents并写下方苔石。helper实际仅对现有RandomizableContainerBlockEntity设置lootTable和seed=(worldSeed*x+y)^z，不主动填槽位、不记录玩家取物。",
+    "Wraith创建/finalizeMobSpawn(STRUCTURE)/addFreshEntity在Full+Boolean内、箱子setBlock成功判断外，因此箱子失败不阻止出生请求。finalize hook返回和add结果均未消费，未保存已入场UUID、退还尝试或成功重试记录。",
+    "Wraith注册为MONSTER、0.6x2.1、fireImmune/notInPeaceful，并登记自身checkMonsterSpawnRules。该规则要求非和平、足够暗和原生checkMobSpawnRules，但墓地直接new/finalize/add不显式调用它；框架/引擎准入未展开，不能称绕过所有原生规则或cap。",
+    "Wraith.finalizeSpawn在STRUCTURE/SPAWNER记录当前dimension+blockPos为home，再调parent；EnforcedHomePoint保存GlobalPos HomePos。旧Home double-list恢复假定TF维度，长度未先校验。home缺失/维度不符时isMobWithinHomeArea返回true，不是跨维度强制拴回。",
+    "homeRadius20判定distSqr<400；回家goal只在home外且无目标触发，要求随机home附近目的地loaded。有目标可追出home；RandomFloat只在无目标且当前home内请求随机±16目的地，并未夹住目的地。没有永久存活、固定刷点或玩家可达证明。",
+    "构造noPhysics配NoClipMoveControl；MOVE_TO时按courseChangeCooldown递减并随机增加2..6后，向wanted方向加速度，不是瞬移回家或每tick硬锁。完整调度/碰撞/引擎生命周期、和平移除及世界保存未验证；战斗、声音、模型不另计。",
+    "处理data先info.nbt().getString(mode).orElseThrow及StructureMode.valueOf，下一行才检查NBT非null。缺/坏mode或null NBT不被后置guard完整保护；真实模板未读，不声称已崩溃。",
+    "DATA且metadata=spawner时先removeBlock(p,false)，再1/4机会setBlock(SPAWNER)，成功且BE非null才setEntityId(RISING_ZOMBIE)。这是消耗marker后的概率安装请求，不是每墓位必有spawner；未选中/失败不会在此还原marker。",
+    "一次生成的Wraith与后续spawner的RisingZombie是不同来源。代码只配置spawner entityId；该26.1.2原生spawner玩家半径/延时/附近数量/碰撞/消耗未展开，不提供持续产率或无限来源保证。",
+    "place最终true不汇总模板/箱子/实体/marker安装成功；有限循环不是成功出生数量，配置子来源不是实际后续出生。没有精确一次性世界去重或原生NATURAL收据。",
+    "EntityLootTables将WRAITH绑定荧石粉0..2基础量加looting uniform0..1，raw entities/wraith.json同值rolls1，允许0基础产出，没有ghost_oil/lamp_oil。死亡掉物引擎、事件改表、ItemEntity UUID和实际拾取不在证据内。",
+    "箱子raw loot三pool：4roll种子/南瓜派/火炬浆果，2roll钻石/月晷，1roll转化粉/拆解台/金苹果；拆解台条件test=!TFConfig.disableEntireTable，loaded值及LootItemCondition注册消费未全展开。不是每箱必有每种物品，表定义不是玩家已付费或收到奖励。",
+    "整链服务荒村/义庄/墓地自然资格、分格来源机会、单次守墓者与潜在持续源分账，及放置→实体→掉物→拾取边界；不补当前24/30出生、9/10同UUID拾取，不替代native run12。"
+  ],
+  "mandatory_constraints": [
+    "仅最多一条相关整链候选；Main独立审阅语义和范围后才可能计数，不自动赋ID/制作包/代签收据/跑validator、fixture、aggregation或改正式50/1000。",
+    "完整保留EA4自然巢穴/装饰战利品/实体home，以及EA9自然结构有限群落/重试/home/持久化/重入边界；不能缩旧owner成helper制造新颖。",
+    "提议差别只能是整条地形合格墓地的分格源预算：Full耦合箱子/守墓者请求，独立DATA marker消耗后概率安装持续源。若Main认为已被EA4/5/9整链覆盖，归支持0，不按物种、墓碑、lootpool、分支加数。",
+    "NBT未核，不声称实际尺寸/墓位数/marker位置去重/部署；完整Java不等于完整原生调用图。",
+    "地形/液体短路、0..255 bbox、坐标、后置null guard、unchecked add按实际顺序保存；条件风险不是已复现bug，不直接改上游/本项目。",
+    "STRUCTURE/SPAWNER/CHUNK_GENERATION不能冒充Dynasty所需NATURAL；不随机重启/清怪/调cap求阳性。",
+    "setLootTable不是库存物品，lootJSON不是实际掉落，add请求不是准入；当前实际事件+同UUID才可记出生/拾取。",
+    "荧石粉不替代ghost_oil/lamp_oil，不新增注册ID/NBT变体/奖励/任务前置/交易收据。",
+    "借鉴失败边界与分来源验收方法，不复制墓地模板/建筑/模型/贴图；建筑参考0，适用1000未达不制作。",
+    "26.1.2原生引擎未展开，不能拼接Forge1.20.1源码冒充准确依赖。",
+    "Global旧owner只完整实质判断对照，未重读其全部source/evidence；关键词/50条索引不是全局唯一证明。",
+    "Mowzie Lantern只作EA7复用+材料缺口0：完整EntityLantern/SpawnHandler已读但缺raw loot，不从名称/动画/类型推出材料。"
+  ],
+  "application": [
+    "达到适用门槛后按自然资格→有效场景→各子来源机会→实体实际入场→死亡掉物→同UUID拾取分账；不从结构数或返回值推算完成。",
+    "单次守墓者、宝箱延迟库存、潜在spawner持续来源分别要求当前实例事件；共享材料不可达不能误报配方闭合。",
+    "材料→既有任务前置→实际制作/交易付款→原生获取回执，保留原ID/奖励/进度；研究不代替当前24/30及9/10缺口。"
+  ],
+  "limits": [
+    "本地固定源码研究，不执行上游/datagen/Java/Gradle/server/GUI/游戏，没有性能、平衡或当前兼容证明。",
+    "原始TF压缩包不在本轮可用缓存，未重新hash archive；只验选定文件与manifest一致，未验所有7894文件或全仓库语义。",
+    "五份NBT未读，源缓存缺文件不等于上游缺资产；没有建筑制作/实例参考信用。",
+    "随机过滤、地形体积、有限墓位、实体入场、spawner生命周期、战利品生成、玩家拾取七个分母严格分开。",
+    "没有当前Dynasty原生出生/击杀/拾取、材料消费、付款/任务/配方集成/实机验证信用。",
+    "不声称碰撞全安全、严格一次、成功群落数、保证材料、持续产率、玩家可达或事件不取消；未展开原生调用保留。",
+    "不改源缓存、共享工具/master/session/active/pending/ownership/外部cod、生产代码/美术/Jar/世界；不commit/push，不变声音/亮度/屏幕/进程。",
+    "条目、文件、行数、模板、概率、loot条目、生物、旧版本不各自计参考；辅助范围0。",
+    "没有工时/10小时达标声明；artifact不等于清单任务验收，不能据此删任务。"
+  ],
+  "Lantern_side_disposition0": {
+    "status": "EA0007_SHARED_PREDICATE_REUSE_AND_UNCLOSED_MATERIAL_SUPPORT0",
+    "source_metadata": {
+      "path": "tools/cod4/ecology-availability-research/sources/BobMowzie__MowziesMobs-Public/source.json",
+      "sha256": "c11eca423b4112e25044e5eb0560f968da0f11d6977df6f60e317a8f00c32023",
+      "bytes": 119352
+    },
+    "repo": "BobMowzie/MowziesMobs-Public",
+    "commit": "7aa17309337cbd4102efc418cba12a4983b1540c",
+    "tree": {
+      "path": "tools/cod4/ecology-availability-research/sources/BobMowzie__MowziesMobs-Public/tree.json",
+      "sha256": "036447bcf932224a6527be09dc3de2dd6d137a390178387a8bd364f59c128690",
+      "bytes": 584439
+    },
+    "actual_complete_java_files_read": [
+      {
+        "path": "tools/cod4/ecology-availability-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/entity/lantern/EntityLantern.java",
+        "sha256": "409f65154c0b4813a2d33225d8806ceb28992bedd5e7f29f9dc2155fb43e23a0",
+        "bytes": 14247,
+        "actual_read_range": [
+          1,
+          324
+        ],
+        "full_file": true,
+        "git_blob_sha1": "e7c833c1f552d0ddda7ba2b8aa766e7aaab313c3",
+        "pinned_tree_match": true,
+        "credit": 0
+      },
+      {
+        "path": "tools/cod4/ecology-availability-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/world/spawn/SpawnHandler.java",
+        "sha256": "9f784efbf8fd9149b21fe469891b4cb84b758d41ea131f4c160799d983ddddb5",
+        "bytes": 8636,
+        "actual_read_range": [
+          1,
+          120
+        ],
+        "full_file": true,
+        "git_blob_sha1": "35cceb205224f461bf8bc4351fcb3a60cc16ee3d",
+        "pinned_tree_match": true,
+        "credit": 0
+      }
+    ],
+    "raw_loot_tree_entry_only": {
+      "path": "src/main/resources/data/mowziesmobs/loot_table/entities/lantern.json",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "6b603921d80df9983a6dbad1cfe3cadbd2d45522",
+      "size": 649,
+      "url": "https://api.github.com/repos/BobMowzie/MowziesMobs-Public/git/blobs/6b603921d80df9983a6dbad1cfe3cadbd2d45522"
+    },
+    "local_raw_loot_exists": false,
+    "raw_loot_contents_read": false,
+    "finding": "getDefaultLootTable returns LootTableHandler.LANTERN symbol only. Death animation/client particles not item/count. SpawnHandler AMBIENT/shared predicate alreadyEA7. Missing raw loot means no inferred slimeball/oil/renewable source/pickup.",
+    "accepted_credit": 0,
+    "maximum_new_credit": 0,
+    "download_or_retry": false
+  },
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "building_reference_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "upstream_code_executed": false,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "package_built": false,
+  "shared_tools_changed": false,
+  "validator_or_fixture_or_aggregation_executed": false,
+  "production_changes": 0,
+  "art_changes": 0,
+  "shared_Jar_writes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "Git_operations": 0,
+  "active_hours_claimed": 0,
+  "private_artifact_assembly_note": "First attempt stopped before writing: original batch records correctly retain accepted_credit0, actual acceptance belongs to master. Second assembly binds accepted IDs from unchanged master; no formal validation or receipt replay.",
+  "next": "Main独立审阅最多1整链相关性/旧owner重叠；General不得自行编号打包。如重叠或范围弱则0。继续当前缺口相关固定原源，不以等待代替工作。"
+}

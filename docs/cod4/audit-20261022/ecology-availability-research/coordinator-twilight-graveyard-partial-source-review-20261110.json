@@ -1,0 +1,298 @@
+{
+  "recorded_at": "2026-11-09T20:19:58.873263+00:00",
+  "reviewer_thread_id": "01a16364-cac0-7ca2-a042-a5312781ca34",
+  "decision": "PARTIAL_SOURCE_SCOPE_REVIEW_PENDING_FULL_CHAIN_NO_ADMISSION",
+  "candidate": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-twilight-graveyard-source-budget-whole-policy-candidate-20261110.json",
+    "sha256": "92d50f50bc5c98a61fd3bb29db1ed6c9e510e186352f0a5cc95f61d9d47218af",
+    "bytes": 204201
+  },
+  "actual_Main_read_three_scopes": [
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/world/components/feature/templates/GraveyardFeature.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/world/components/feature/templates/GraveyardFeature.java#L1-L242",
+      "path": "src/main/java/twilightforest/world/components/feature/templates/GraveyardFeature.java",
+      "file_sha256": "224e74951f67e1caf6188217c35ca12bcb44f249815d166a74905130938afd83",
+      "metadata_sha256_match": true,
+      "lines": [
+        1,
+        242
+      ],
+      "total_file_lines": 242,
+      "full_file": true,
+      "raw_excerpt_sha256": "224e74951f67e1caf6188217c35ca12bcb44f249815d166a74905130938afd83",
+      "raw_excerpt_utf8": "package twilightforest.world.components.feature.templates;\n\nimport com.google.common.math.StatsAccumulator;\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.MapCodec;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Vec3i;\nimport net.minecraft.resources.Identifier;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.EntitySpawnReason;\nimport net.minecraft.world.level.ChunkPos;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.WorldGenLevel;\nimport net.minecraft.world.level.block.*;\nimport net.minecraft.world.level.block.entity.SpawnerBlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.properties.StructureMode;\nimport net.minecraft.world.level.levelgen.Heightmap;\nimport net.minecraft.world.level.levelgen.feature.Feature;\nimport net.minecraft.world.level.levelgen.feature.FeaturePlaceContext;\nimport net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;\nimport net.minecraft.world.level.levelgen.structure.BoundingBox;\nimport net.minecraft.world.level.levelgen.structure.templatesystem.*;\nimport net.neoforged.neoforge.event.EventHooks;\nimport org.apache.commons.lang3.tuple.Pair;\nimport org.jetbrains.annotations.Nullable;\nimport twilightforest.TwilightForestMod;\nimport twilightforest.entity.monster.Wraith;\nimport twilightforest.init.TFEntities;\nimport twilightforest.init.TFStructureProcessors;\nimport twilightforest.loot.TFLootTables;\nimport twilightforest.util.features.FeatureLogic;\n\nimport java.util.ArrayList;\nimport java.util.List;\n\npublic class GraveyardFeature extends Feature<NoneFeatureConfiguration> {\n\tprivate static final Identifier GRAVEYARD = TwilightForestMod.prefix(\"feature/graveyard/graveyard\");\n\tprivate static final Identifier TRAP = TwilightForestMod.prefix(\"feature/graveyard/grave_trap\");\n\n\tpublic GraveyardFeature(Codec<NoneFeatureConfiguration> config) {\n\t\tsuper(config);\n\t}\n\n\tprivate static boolean offsetToAverageGroundLevel(WorldGenLevel world, BlockPos.MutableBlockPos startPos, Vec3i size) {\n\t\tStatsAccumulator heights = new StatsAccumulator();\n\n\t\tfor (int dx = 0; dx < size.getX(); dx++) {\n\t\t\tfor (int dz = 0; dz < size.getZ(); dz++) {\n\n\t\t\t\tint x = startPos.getX() + dx;\n\t\t\t\tint z = startPos.getZ() + dz;\n\n\t\t\t\tint y = world.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);\n\n\t\t\t\twhile (y >= 0) {\n\t\t\t\t\tBlockState state = world.getBlockState(new BlockPos(x, y, z));\n\t\t\t\t\tif (FeatureLogic.isBlockNotOk(state))\n\t\t\t\t\t\treturn false;\n\t\t\t\t\tif (FeatureLogic.isBlockOk(state))\n\t\t\t\t\t\tbreak;\n\t\t\t\t\ty--;\n\t\t\t\t}\n\n\t\t\t\tif (y < 0)\n\t\t\t\t\treturn false;\n\n\t\t\t\theights.add(y);\n\t\t\t}\n\t\t}\n\n\t\tif (heights.populationStandardDeviation() > 2.0) {\n\t\t\treturn false;\n\t\t}\n\n\t\tint baseY = (int) Math.round(heights.mean());\n\t\tint maxY = (int) heights.max();\n\n\t\tstartPos.setY(baseY);\n\n\t\treturn FeatureLogic.isAreaClear(world, startPos.above(maxY - baseY + 1), startPos.offset(size));\n\t}\n\n\t@Override\n\tpublic boolean place(FeaturePlaceContext<NoneFeatureConfiguration> ctx) {\n\t\tWorldGenLevel world = ctx.level();\n\t\tBlockPos pos = ctx.origin();\n\t\tRandomSource rand = ctx.random();\n\n\t\tint flags = 16 | 2 | 1;\n\n\t\tStructureTemplateManager templatemanager = world.getLevel().getServer().getStructureManager();\n\t\tStructureTemplate base = templatemanager.getOrCreate(GRAVEYARD);\n\t\tif (base == null)\n\t\t\treturn false;\n\t\tList<Pair<GraveType, StructureTemplate>> graves = new ArrayList<>();\n\t\tStructureTemplate trap = templatemanager.getOrCreate(TRAP);\n\t\tif (trap == null)\n\t\t\treturn false;\n\t\tfor (GraveType type : GraveType.VALUES) {\n\t\t\tStructureTemplate grave = templatemanager.getOrCreate(type.RL);\n\t\t\tif (grave == null)\n\t\t\t\treturn false;\n\t\t\tgraves.add(Pair.of(type, grave));\n\t\t}\n\n\t\tRotation[] rotations = Rotation.values();\n\t\tRotation rotation = rotations[rand.nextInt(rotations.length)];\n\n\t\tMirror[] mirrors = Mirror.values();\n\t\tMirror mirror = mirrors[rand.nextInt(mirrors.length + 1) % mirrors.length];\n\n\t\tVec3i transformedSize = base.getSize(rotation);\n\t\tVec3i transformedGraveSize = graves.get(0).getValue().getSize(rotation);\n\n\t\tChunkPos chunkpos = ChunkPos.containing(pos.offset(-8, 0, -8));\n\t\tChunkPos chunkendpos =ChunkPos.containing(pos.offset(-8, 0, -8).offset(transformedSize));\n\t\tBoundingBox structureboundingbox = new BoundingBox(chunkpos.getMinBlockX() + 8, 0, chunkpos.getMinBlockZ() + 8, chunkendpos.getMaxBlockX() + 8, 255, chunkendpos.getMaxBlockZ() + 8);\n\t\tStructurePlaceSettings placementsettings = (new StructurePlaceSettings()).setMirror(mirror).setRotation(rotation).setBoundingBox(structureboundingbox).setRandom(rand);\n\n\t\tBlockPos posSnap = chunkpos.getWorldPosition().offset(8, pos.getY() - 1, 8); // Verify this is correct. Originally chunkpos.getBlock(8, pos.getY() - 1, 8);\n\t\tBlockPos.MutableBlockPos startPos = new BlockPos.MutableBlockPos(posSnap.getX(), posSnap.getY(), posSnap.getZ());\n\n\t\tif (!offsetToAverageGroundLevel(world, startPos, transformedSize)) {\n\t\t\treturn false;\n\t\t}\n\n\t\tBlockPos placementPos = base.getZeroPositionWithTransform(startPos, mirror, rotation).offset(1, -1, 0);\n\t\tVec3i size = transformedSize.offset(-1, 0, -1);\n\t\tVec3i graveSize = transformedGraveSize.offset(-1, 0, -1);\n\n\t\tbase.placeInWorld(world, placementPos, placementPos, placementsettings.addProcessor(new WebTemplateProcessor()), rand, flags);\n\t\tList<StructureTemplate.StructureBlockInfo> data = new ArrayList<>(base.filterBlocks(placementPos, placementsettings, Blocks.STRUCTURE_BLOCK));\n\n\t\tBlockPos start = startPos.offset(1, 1, 0);\n\t\tBlockPos end = start.offset(size.getX(), 0, size.getZ());\n\n\t\tfor (int x = 1; x <= size.getX() - 1; x++)\n\t\t\tfor (int z = 1; z <= size.getZ() - 1; z++)\n\t\t\t\tif (world.isEmptyBlock(start.offset(x, 0, z)) && rand.nextInt(12) == 0)\n\t\t\t\t\tworld.setBlock(start.offset(x, 0, z), Blocks.COBWEB.defaultBlockState(), flags);\n\n\t\tBlockPos inner = start.offset(2, 0, 2);\n\t\tBlockPos bound = end.offset(-2, 0, -2);\n\t\tBlockPos innerSize = new BlockPos(bound.getX() - inner.getX(), bound.getY() - inner.getY(), bound.getZ() - inner.getZ());\n\t\tBlockPos fixed = inner.offset(\n\n\t\t\t(rotation == Rotation.CLOCKWISE_180 ? graveSize.getX() : 0) + (mirror == Mirror.FRONT_BACK ? transformedGraveSize.getX() - 1 : 0) * (rotation == Rotation.CLOCKWISE_180 ? -1 : 1),\n\n\t\t\t0,\n\n\t\t\t(rotation == Rotation.COUNTERCLOCKWISE_90 ? graveSize.getZ() : 0) + (mirror == Mirror.FRONT_BACK ? transformedGraveSize.getZ() - 1 : 0) * (rotation == Rotation.COUNTERCLOCKWISE_90 ? -1 : 1)\n\n\t\t);\n\t\tBlockPos fixedSize = innerSize.offset(-graveSize.getX(), 0, -graveSize.getZ());\n\t\tBlockPos chestloc = new BlockPos(rand.nextInt(2) - (mirror == Mirror.FRONT_BACK ? 1 : 0), 1, 0).rotate(rotation);\n\n\t\tfor (int x = 0; x <= fixedSize.getX(); x += (rotation == Rotation.CLOCKWISE_90 || rotation == Rotation.COUNTERCLOCKWISE_90 ? 2 : 5)) {\n\t\t\tfor (int z = 0; z <= fixedSize.getZ(); z += (rotation == Rotation.NONE || rotation == Rotation.CLOCKWISE_180 ? 2 : 5)) {\n\t\t\t\tif (x == innerSize.getX() / 2 || z == innerSize.getZ() / 2)\n\t\t\t\t\tcontinue;\n\t\t\t\tBlockPos placement = fixed.offset(x, -2, z);\n\t\t\t\tPair<GraveType, StructureTemplate> grave = graves.get(rand.nextInt(graves.size()));\n\t\t\t\tgrave.getValue().placeInWorld(world, placement, placement, placementsettings, rand, flags);\n\t\t\t\tdata.addAll(grave.getValue().filterBlocks(placement, placementsettings, Blocks.STRUCTURE_BLOCK));\n\t\t\t\tif (grave.getKey() == GraveType.Full) {\n\t\t\t\t\tif (rand.nextBoolean()) {\n\t\t\t\t\t\tif (rand.nextInt(3) == 0) {\n\t\t\t\t\t\t\tplacement = placement.offset(new BlockPos(mirror == Mirror.FRONT_BACK ? 1 : -1, 0, mirror == Mirror.LEFT_RIGHT ? 1 : -1).rotate(rotation));\n\t\t\t\t\t\t\ttrap.placeInWorld(world, placement, placement, placementsettings, rand, flags);\n\t\t\t\t\t\t}\n\t\t\t\t\t\tdata.addAll(trap.filterBlocks(placementPos, placementsettings, Blocks.STRUCTURE_BLOCK));\n\t\t\t\t\t\tif (world.setBlock(placement.offset(chestloc), Blocks.TRAPPED_CHEST.defaultBlockState().setValue(ChestBlock.FACING, Direction.WEST).rotate(rotation).mirror(mirror), flags)) {\n\t\t\t\t\t\t\tTFLootTables.generateChestContents(world, placement.offset(chestloc), TFLootTables.GRAVEYARD);\n\t\t\t\t\t\t\tworld.setBlock(placement.offset(chestloc).below(), Blocks.MOSSY_COBBLESTONE.defaultBlockState(), Block.UPDATE_ALL);\n\t\t\t\t\t\t}\n\t\t\t\t\t\tWraith wraith = new Wraith(TFEntities.WRAITH.get(), world.getLevel());\n\t\t\t\t\t\twraith.setPos(placement.getX(), placement.getY(), placement.getZ());\n\t\t\t\t\t\tEventHooks.finalizeMobSpawn(wraith, world, world.getCurrentDifficultyAt(placement), EntitySpawnReason.STRUCTURE, null);\n\t\t\t\t\t\tworld.addFreshEntity(wraith);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tdata.forEach(info -> {\n\t\t\tStructureMode mode = StructureMode.valueOf(info.nbt().getString(\"mode\").orElseThrow());\n\t\t\tif (info.nbt() != null && mode == StructureMode.DATA) {\n\t\t\t\tString s = info.nbt().getString(\"metadata\").orElseThrow();\n\t\t\t\tBlockPos p = info.pos();\n\t\t\t\tif (\"spawner\".equals(s)) {\n\t\t\t\t\tworld.removeBlock(p, false);\n\t\t\t\t\tif (rand.nextInt(4) == 0) {\n\t\t\t\t\t\tif (world.setBlock(p, Blocks.SPAWNER.defaultBlockState(), Block.UPDATE_ALL)) {\n\t\t\t\t\t\t\tSpawnerBlockEntity ms = (SpawnerBlockEntity) world.getBlockEntity(p);\n\t\t\t\t\t\t\tif (ms != null)\n\t\t\t\t\t\t\t\tms.setEntityId(TFEntities.RISING_ZOMBIE.get(), rand);\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t});\n\n\t\treturn true;\n\t}\n\n\tprivate enum GraveType {\n\n\t\tFull(TwilightForestMod.prefix(\"feature/graveyard/grave_full\")),\n\n\t\tUpper(TwilightForestMod.prefix(\"feature/graveyard/grave_upper\")),\n\n\t\tLower(TwilightForestMod.prefix(\"feature/graveyard/grave_lower\"));\n\n\t\tprivate static final GraveType[] VALUES = values();\n\t\tprivate final Identifier RL;\n\n\t\tGraveType(Identifier rl) {\n\t\t\tthis.RL = rl;\n\t\t}\n\t}\n\n\tpublic static class WebTemplateProcessor extends StructureProcessor {\n\t\tpublic static final WebTemplateProcessor INSTANCE = new WebTemplateProcessor();\n\t\tpublic static final MapCodec<WebTemplateProcessor> CODEC = MapCodec.unit(() -> INSTANCE);\n\n\t\tprivate WebTemplateProcessor() {\n\t\t}\n\n\t\t@Override\n\t\tprotected StructureProcessorType<?> getType() {\n\t\t\treturn TFStructureProcessors.WEB.get();\n\t\t}\n\n\t\t@Nullable\n\t\t@Override\n\t\tpublic StructureTemplate.StructureBlockInfo process(LevelReader worldIn, BlockPos pos, BlockPos piecepos, StructureTemplate.StructureBlockInfo p_process_3_, StructureTemplate.StructureBlockInfo blockInfo, StructurePlaceSettings settings, @Nullable StructureTemplate template) {\n\t\t\treturn blockInfo.state().getBlock() == Blocks.GRASS_BLOCK ? blockInfo : settings.getRandom(pos).nextInt(5) == 0 ? new StructureTemplate.StructureBlockInfo(pos, Blocks.COBWEB.defaultBlockState(), null) : blockInfo;\n\t\t}\n\t}\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/util/features/FeatureLogic.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/util/features/FeatureLogic.java#L92-L108",
+      "path": "src/main/java/twilightforest/util/features/FeatureLogic.java",
+      "file_sha256": "72b2ca5fae63d2ee7734b23c69d77d32cd10daf73144864953bc241edde02b5a",
+      "metadata_sha256_match": true,
+      "lines": [
+        92,
+        108
+      ],
+      "total_file_lines": 202,
+      "full_file": false,
+      "raw_excerpt_sha256": "2c57f9274354e8fca4e4e24c1782b09eda16639e23d33d9601aad2db3ff6d877",
+      "raw_excerpt_utf8": "\tpublic static boolean isAreaClear(BlockGetter world, BlockPos min, BlockPos max) {\n\t\tfor (BlockPos pos : BlockPos.betweenClosed(min, max)) {\n\t\t\tBlockState state = world.getBlockState(pos);\n\t\t\tif (!state.canBeReplaced() && state.isSolid() && !state.liquid()) {\n\t\t\t\treturn false;\n\t\t\t}\n\t\t}\n\t\treturn true;\n\t}\n\n\tpublic static boolean isBlockOk(BlockState state) {\n\t\treturn state.isSolid();\n\t}\n\n\tpublic static boolean isBlockNotOk(BlockState state) {\n\t\treturn state.liquid() || state.is(Blocks.BEDROCK) || state.getBlock() instanceof GiantBlock || state.is(TFBlockTags.CLOUDS) || state.is(TFBlocks.HARDENED_DARK_LEAVES);\n\t}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "source_local": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/util/BoundingBoxUtils.java",
+      "repo": "TeamTwilight/twilightforest",
+      "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+      "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/util/BoundingBoxUtils.java#L163-L175",
+      "path": "src/main/java/twilightforest/util/BoundingBoxUtils.java",
+      "file_sha256": "ea238ea4a8b1b5a65ec6818a18432eca11a270f80a18ca8d3c136bf9de03f5e7",
+      "metadata_sha256_match": true,
+      "lines": [
+        163,
+        175
+      ],
+      "total_file_lines": 207,
+      "full_file": false,
+      "raw_excerpt_sha256": "14f93750fc47479e3acca59a62c47ceff3156b88d8891cd09d9d9c5fb9c8f933",
+      "raw_excerpt_utf8": "\tpublic static BlockPos clampedInside(BoundingBox box, BlockPos toClamp) {\n\t\treturn new BlockPos(Mth.clamp(toClamp.getX(), box.minX(), box.maxX()), Mth.clamp(toClamp.getY(), box.minY(), box.maxY()), Mth.clamp(toClamp.getZ(), box.minZ(), box.maxZ()));\n\t}\n\n\tpublic static int manhattanDistance(BoundingBox box, BlockPos pos) {\n\t\tBlockPos clamped = clampedInside(box, pos);\n\t\treturn Math.abs(clamped.getX() - pos.getX()) + Math.abs(clamped.getY() - pos.getY()) + Math.abs(clamped.getZ() - pos.getZ());\n\t}\n\n\tpublic static int greatestAxalDistance(BoundingBox box, BlockPos pos) {\n\t\tBlockPos clamped = clampedInside(box, pos);\n\t\treturn Math.max(Math.max(Math.abs(clamped.getX() - pos.getX()), Math.abs(clamped.getY() - pos.getY())), Math.abs(clamped.getZ() - pos.getZ()));\n\t}\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_Main_distinct_lines": 272,
+  "actual_Main_complete_declarations": 1,
+  "Main_findings": [
+    "Main actuallyreadwhole242lineGraveyardFeature and17lineFeatureLogic92..108 plus13lineBoundingBoxUtils163..175:272distinctcitedlines/3files/1wholeclass. Fullcandidate24observations12constraints9limitsandcompleteEA4/5/9fourfields actuallyread. Other25ranges/Wraith/AvoidLandmark/loot/integration/fullglobalownerjudgmentsNOTyetMainread; notcompletecandidateacceptance.",
+    "New source detail not explicit in author24: mirror chosen as nextInt(mirrors.length+1)%mirrors.length, while rotation nextInt(rotations.length). This is not uniform mirrors: for lengthN,index0has2/(N+1),others1/(N+1), conditionalNpositive. Native26enumdefinitionnotreadhere, so do notassertactualN/fixedprobabilities. No worldreproduction/balancebug/productionfix/refcredit.",
+    "Groundscan rejects isBlockNotOk before isSolid; hardcoded>=0, statpopulationSD>2earlyreject, roundmeanplacement. isAreaClear only rejects nonreplaceable ANDsolid ANDnotliquid, so not complete collision/water safety. Template getOrCreate/nullcheck doesnotprove loadednonemptytemplate; all5NBTmissinglocal preserved.",
+    "Fullgrave+Boolean couples chestattempt andWraithrequest; setBlockchesttrue gates loothelper/foundation, notWraithrequest. Templateplace result ignored; trapfilterBlocks calledregardless oftrapchoice with baseplacementPos insteadofcurrentgraveplacement. Listnodupguard. Truecallerbranchnotactualentityorlootadmission.",
+    "DATA processing dereferences nbt/getmode/valueOf BEFOREnullcheck, removesmarker BEFOREquarterattempttoinstallspawner, onlysetEntityId aftersuccessfulsetBlockandnonnullBE. ConditionalriskonlysinceactualNBTnotread. MissingrawNBT preventsactualmarkerpositions/count/duplicates orcrashassertion; persistent source lifecycle andmaterialreceiptunexpanded.",
+    "EA4entirenaturalhabitat/spacing/terrain/den/decorloot/home/uncheckedadmission owner andEA5support/clearspace/cohort plusEA9finitecohort/retry/home/persistence/reentry owner retained. A graveyardname/species/probability/lootpool/spawnerblockalone0. Possiblewhole distinction iscellqualifiedfinitechest/guardian plusconsumedmarkerpotentialsource, but furtherfullcomparisons/source reviewneededbeforemax1decision.",
+    "BoundingBoxclamp/manhattan/max3axishelperread isnotAvoidLandmarkwholepolicyread ornewcredit. Crossversion26.1.2 metadata staysresearchonly; do notspliceForge1.20.1spawnerinternals asmatchingdependency. Currentecology50/native24of30+9of10/onGroundfalse unchanged."
+  ],
+  "Main_limits": [
+    "PARTIAL_SOURCE_REVIEW_NOT_WHOLE_ADMISSION; Maincredit0/noID/package/validator/receipt/aggregation/mastermutation. Fullpendingcandidate200knotreadinitsentirety.",
+    "Nooriginalarchivefreshrehash/pinnedremote/GittreeproofthisMainsegment; read3localfilehash+physicalexcerptsexact,sourceprovenanceisboundsnotdeployedpackauthenticity.",
+    "EA16outputclippedispartialonlynotcompletejudgmentread;remainingEA/globalownersreadnotclaimed. Earlierbroadcandidate/metadataoutputsnotreadcredit.",
+    "NoNBT/buildingrefs/materialoil/HP/nativebirth/kill/sameUUIDpickup/payment/questID/reward/taskacceptance/deletion/nativegame oractivehours.",
+    "No production/sharedJar/proassets/originalworld/process/display/audio/wake/brightness/focus/Git/network/upstreamcode/newchat/automation;protected8unchanged."
+  ],
+  "complete_EA4_EA5_EA9_saved_judgments": [
+    {
+      "id": "EA-0004",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0004",
+        "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+        "observation": [
+          "biome配置允许且generateHydraCaves启用时注入SURFACE_STRUCTURES，place再筛随机率、世界出生点距离和危险地点间距。",
+          "四角下方空块早退后构筑自然巢穴，内部装饰/战利品写入后创建Hydra并限制活动半径；实际sink为worldIn.addFreshEntity。",
+          "共享IafWorldData按FeatureType记录(id,pos)，这是场景争用/分区的真实实现；它是一个实现链，不能把每种危险生物拆开当共享间距机制的新信用。"
+        ],
+        "application": [
+          "自然结构依赖需同时追踪biome注入、placement、地形门和实际entity加入；仅有场景名字或predicate阳性不足。",
+          "研究结构互斥是否缩小可达空间时，记录距离状态写入时机以及失败尝试是否也修改它。"
+        ],
+        "limits": [
+          "固定源码用旧StructureFeature/Random等API，不是本项目Forge1.20.1已验证实现。",
+          "check中canGenerate每轮被覆盖，返回值只代表最后遍历项，不能声称检查所有历史点均满足间距。",
+          "check无论通过与否都会写入位置，后续四角地形失败也已消费记录；不是成功生成后才提交。",
+          "LAST_GENERATED为static，虽get绑定当前维度storage，不能据此宣称隔离各世界/维度；load还向static列表append。",
+          "addFreshEntity返回值忽略，place true不严格证明实体已加入；未以当前世界运行验证，不建议改本项目生成方式。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0005",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+        "sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+        "bytes": 230362
+      },
+      "canonical_complete_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0005",
+        "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+        "observation": [
+          "天然feature在随机门/出生点间距/OCEAN危险分区后，以非遮挡地形逐层向下生成支撑；实际Sirens仅在2x2上方空位且随机筛选成功时加入。",
+          "每次生成先抽1–3个目标上限，在布置过程中限制实际spawn调用次数；生成返回true不保证循环产生任何合适空位或实体加入成功。",
+          "与EA-0004的四角地面门/封闭巢穴单体不同，本项是向下寻支撑与可用小平台条件驱动的群落植入，不以物种ID差别计数。"
+        ],
+        "application": [
+          "场景生态验收应分开“自然场景生成”和“场景内生物实际植入”，不能因结构存在就假定稀有目标必在。",
+          "记录共享间距分区、实际空间筛选及群落上限；计数应在实体加入确认后，而不是尝试前。"
+        ],
+        "limits": [
+          "共享危险间距实现已在EA-0004审读，仅作支持，不额外计信用；同类其它岛模板不再计。",
+          "sirens在spawn前递增且sink返回值忽略；1–3只是尝试上限，不是保证出生数量。",
+          "主while到minBuildHeight，底部支撑while却到y>=0；这是一处高度边界限制，不能声称完整支持负高度世界。",
+          "getRadius在layer>up分支不再用MAX_ISLAND_RADIUS上限；不能称所有层半径<=10。",
+          "这里研究自然生成算法，不制作/复制小岛建筑，不计1000建筑参考、不改变任何资产。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0009",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+        "sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+        "bytes": 62765
+      },
+      "canonical_complete_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9",
+      "actual_complete_selected_judgment_fields_read": {
+        "id": "EA-0009",
+        "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+        "observation": [
+          "自然structure_set→结构biome/水体/高度门→generatePieces明确add FirepitPiece；其postProcess每次抽5–9目标，每个最多20位置重试。",
+          "在旋转后的piece坐标上查地表，要求y>0、实例checkSpawnRules和无碰撞，才finalizeSpawn(STRUCTURE)、restrictTo(center,25)、addFreshEntity。",
+          "Minion.requiresCustomPersistence恒true；自身home与交易状态序列化，MowzieEntity.checkDespawn只在非持久化时做距离移除。",
+          "研究重点是结构群落的出生来源、数量预算、重试、定居/持久化生命周期，共有自然结构/栖地/生物三层，不能仅按生物数量或piece数量计参考。"
+        ],
+        "application": [
+          "稀有定居者与普通自然池共存研究，应追溯实体来源、home存档、持久化语义和对应版本原生计数器，而非把已加载实体总数直接当cap数。",
+          "一次性结构植入应有实际加入确认及重入边界证据；仅一次for循环上限不等于整个结构生命周期的一次性上限。",
+          "普通NATURAL与STRUCTURE生成分开验收；本项目六种拒绝CHUNK_GENERATION，不能拿另一来源替代其实际自然出生。"
+        ],
+        "limits": [
+          "源码postProcess没有布尔seeded/UUID集合，也未以传入chunk bbox筛选每个植入位置；只能报告重入风险，不能在无运行证据下宣称已重复出生。",
+          "addFreshEntity返回值忽略且随后break，所以5–9是目标/尝试上限，不是严格成功群落数。",
+          "原生cap常排除requiresCustomPersistence，但本来源较新NeoForge；未核验该版本的全套计数修改，也不声称这是Dynasty可采用的cap修复。",
+          "结构生成数据代码已读；模板NBT、打包资源与实际世界部署未核验。Firepit后处理本身不以marker存在为前提，但能否被实际执行仍需运行期证据。",
+          "不研究/制作营地建筑设计、不下载或复制模型/贴图/模板；只复制Java文本于研究目录。",
+          "generation config里avoidStructures参数在MowzieStructure.checkLocation体中未使用，不能把字段存在当额外避让已经实现。"
+        ]
+      },
+      "old_entire_source_chain_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "original_author_observations_preserved": [
+    "固定来源是Twilight Forest4.9/Minecraft26.1.2/NeoForge26.1.2.112，不是Dynasty Forge1.20.1；只做本地原源码机制研究。当前选定文件逐一SHA匹配source.json，本轮未重新下载或验证原archive，archive SHA仅固定来源元数据。",
+    "实际入口为TFFeatures.GRAVEYARD构造GraveyardFeature→配置FeatureConfiguration.NONE→PLACED_GRAVEYARD→BiomeHelper.spookyForest的SURFACE_STRUCTURES，TFBiomeGenerator绑定SPOOKY_FOREST。已读生成spooky_forest.json对应feature条目，没有把普通forest或场景名称当入口。",
+    "placed JSON和datagen同序：rarity70→in_square→OCEAN_FLOOR高度→AvoidLandmarkModifier.checkSurface→BiomeFilter。70是放置过滤参数，不是实测每70区块必有墓地/怨灵，更不是Dynasty出生分母。",
+    "no_structure注册为AvoidLandmarkModifier.CODEC；扫描当前chunk结构references，允许列表、非DecorationClearance或对应区域允许装饰时不挡。有效start才继续：radius>0按start bbox中心XZ轴距严格小于radius*16+额外clearance；radius<=0逐piece看最大三轴距<=clearance，UtilityPiece.allowFeatures跳过。不是排除所有结构，引擎reference加载和所有具体结构配置未展开。",
+    "GraveyardFeature加载base/trap/Full/Upper/Lower五个模板，只作null guard。缓存没有五份NBT，getOrCreate/空模板行为未读；Java请求名不是实际部署、尺寸、有效marker或五个完整建筑证明。",
+    "每个旋转后base footprint柱由MOTION_BLOCKING_NO_LEAVES高度向下到首个solid，遇液体/基岩/GiantBlock/CLOUDS tag/硬化暗树叶先失败；跌到0以下失败。高度总体标准差>2失败，再用round mean定位；硬编码0不是世界minBuildHeight，tag有效集合未加载核验。",
+    "isAreaClear逐块只拒绝 !canBeReplaced && isSolid && !liquid，因此该独立体积检查不会拒绝液体，尽管前面地面扫描遇液体拒绝。检查start.above(maxY-baseY+1)到start.offset(size)，并非完整模板、实际生物碰撞盒或完全无水保证。",
+    "origin-8映射chunk，bbox为chunk偏8且Y固定0..255，startY取地面均值，由transformedSize构造内区。base.placeInWorld结果忽略，继续收集marker及生成；地形检查成功不是模板已落地。",
+    "内区留两格，按旋转相关2/5步长枚举墓位，中央X或Z线跳过；每位随机三种GraveType之一，模板放置结果忽略。每次调用由未知模板尺寸约束有限尝试，没有具体总数，也没有所示持久seeded/UUID集合证明跨回调只播一次。",
+    "只有Full且nextBoolean=true墓位进入箱子+Wraith分支；其中nextInt(3)==0额外请求trap并偏移placement。不将三个概率/样式分支拆参考，也不把它们乘积当最终掉物/实体概率。",
+    "后续trap.filterBlocks不受本次trap是否选中放置限制，且使用BASE placementPos而非本墓位placement；data为List，无位置去重。若trap有对应marker，可反复追加相同位置；NBT未读，不声称已发生重复刷怪笼或运行bug。",
+    "setBlock(TRAPPED_CHEST)返回true才调用generateChestContents并写下方苔石。helper实际仅对现有RandomizableContainerBlockEntity设置lootTable和seed=(worldSeed*x+y)^z，不主动填槽位、不记录玩家取物。",
+    "Wraith创建/finalizeMobSpawn(STRUCTURE)/addFreshEntity在Full+Boolean内、箱子setBlock成功判断外，因此箱子失败不阻止出生请求。finalize hook返回和add结果均未消费，未保存已入场UUID、退还尝试或成功重试记录。",
+    "Wraith注册为MONSTER、0.6x2.1、fireImmune/notInPeaceful，并登记自身checkMonsterSpawnRules。该规则要求非和平、足够暗和原生checkMobSpawnRules，但墓地直接new/finalize/add不显式调用它；框架/引擎准入未展开，不能称绕过所有原生规则或cap。",
+    "Wraith.finalizeSpawn在STRUCTURE/SPAWNER记录当前dimension+blockPos为home，再调parent；EnforcedHomePoint保存GlobalPos HomePos。旧Home double-list恢复假定TF维度，长度未先校验。home缺失/维度不符时isMobWithinHomeArea返回true，不是跨维度强制拴回。",
+    "homeRadius20判定distSqr<400；回家goal只在home外且无目标触发，要求随机home附近目的地loaded。有目标可追出home；RandomFloat只在无目标且当前home内请求随机±16目的地，并未夹住目的地。没有永久存活、固定刷点或玩家可达证明。",
+    "构造noPhysics配NoClipMoveControl；MOVE_TO时按courseChangeCooldown递减并随机增加2..6后，向wanted方向加速度，不是瞬移回家或每tick硬锁。完整调度/碰撞/引擎生命周期、和平移除及世界保存未验证；战斗、声音、模型不另计。",
+    "处理data先info.nbt().getString(mode).orElseThrow及StructureMode.valueOf，下一行才检查NBT非null。缺/坏mode或null NBT不被后置guard完整保护；真实模板未读，不声称已崩溃。",
+    "DATA且metadata=spawner时先removeBlock(p,false)，再1/4机会setBlock(SPAWNER)，成功且BE非null才setEntityId(RISING_ZOMBIE)。这是消耗marker后的概率安装请求，不是每墓位必有spawner；未选中/失败不会在此还原marker。",
+    "一次生成的Wraith与后续spawner的RisingZombie是不同来源。代码只配置spawner entityId；该26.1.2原生spawner玩家半径/延时/附近数量/碰撞/消耗未展开，不提供持续产率或无限来源保证。",
+    "place最终true不汇总模板/箱子/实体/marker安装成功；有限循环不是成功出生数量，配置子来源不是实际后续出生。没有精确一次性世界去重或原生NATURAL收据。",
+    "EntityLootTables将WRAITH绑定荧石粉0..2基础量加looting uniform0..1，raw entities/wraith.json同值rolls1，允许0基础产出，没有ghost_oil/lamp_oil。死亡掉物引擎、事件改表、ItemEntity UUID和实际拾取不在证据内。",
+    "箱子raw loot三pool：4roll种子/南瓜派/火炬浆果，2roll钻石/月晷，1roll转化粉/拆解台/金苹果；拆解台条件test=!TFConfig.disableEntireTable，loaded值及LootItemCondition注册消费未全展开。不是每箱必有每种物品，表定义不是玩家已付费或收到奖励。",
+    "整链服务荒村/义庄/墓地自然资格、分格来源机会、单次守墓者与潜在持续源分账，及放置→实体→掉物→拾取边界；不补当前24/30出生、9/10同UUID拾取，不替代native run12。"
+  ],
+  "original_author_constraints_preserved": [
+    "仅最多一条相关整链候选；Main独立审阅语义和范围后才可能计数，不自动赋ID/制作包/代签收据/跑validator、fixture、aggregation或改正式50/1000。",
+    "完整保留EA4自然巢穴/装饰战利品/实体home，以及EA9自然结构有限群落/重试/home/持久化/重入边界；不能缩旧owner成helper制造新颖。",
+    "提议差别只能是整条地形合格墓地的分格源预算：Full耦合箱子/守墓者请求，独立DATA marker消耗后概率安装持续源。若Main认为已被EA4/5/9整链覆盖，归支持0，不按物种、墓碑、lootpool、分支加数。",
+    "NBT未核，不声称实际尺寸/墓位数/marker位置去重/部署；完整Java不等于完整原生调用图。",
+    "地形/液体短路、0..255 bbox、坐标、后置null guard、unchecked add按实际顺序保存；条件风险不是已复现bug，不直接改上游/本项目。",
+    "STRUCTURE/SPAWNER/CHUNK_GENERATION不能冒充Dynasty所需NATURAL；不随机重启/清怪/调cap求阳性。",
+    "setLootTable不是库存物品，lootJSON不是实际掉落，add请求不是准入；当前实际事件+同UUID才可记出生/拾取。",
+    "荧石粉不替代ghost_oil/lamp_oil，不新增注册ID/NBT变体/奖励/任务前置/交易收据。",
+    "借鉴失败边界与分来源验收方法，不复制墓地模板/建筑/模型/贴图；建筑参考0，适用1000未达不制作。",
+    "26.1.2原生引擎未展开，不能拼接Forge1.20.1源码冒充准确依赖。",
+    "Global旧owner只完整实质判断对照，未重读其全部source/evidence；关键词/50条索引不是全局唯一证明。",
+    "Mowzie Lantern只作EA7复用+材料缺口0：完整EntityLantern/SpawnHandler已读但缺raw loot，不从名称/动画/类型推出材料。"
+  ],
+  "original_author_limits_preserved": [
+    "本地固定源码研究，不执行上游/datagen/Java/Gradle/server/GUI/游戏，没有性能、平衡或当前兼容证明。",
+    "原始TF压缩包不在本轮可用缓存，未重新hash archive；只验选定文件与manifest一致，未验所有7894文件或全仓库语义。",
+    "五份NBT未读，源缓存缺文件不等于上游缺资产；没有建筑制作/实例参考信用。",
+    "随机过滤、地形体积、有限墓位、实体入场、spawner生命周期、战利品生成、玩家拾取七个分母严格分开。",
+    "没有当前Dynasty原生出生/击杀/拾取、材料消费、付款/任务/配方集成/实机验证信用。",
+    "不声称碰撞全安全、严格一次、成功群落数、保证材料、持续产率、玩家可达或事件不取消；未展开原生调用保留。",
+    "不改源缓存、共享工具/master/session/active/pending/ownership/外部cod、生产代码/美术/Jar/世界；不commit/push，不变声音/亮度/屏幕/进程。",
+    "条目、文件、行数、模板、概率、loot条目、生物、旧版本不各自计参考；辅助范围0。",
+    "没有工时/10小时达标声明；artifact不等于清单任务验收，不能据此删任务。"
+  ],
+  "missing5NBT_preserved": [
+    {
+      "requested_id": "twilightforest:feature/graveyard/graveyard",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/graveyard.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_trap",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_trap.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_full",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_full.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_upper",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_upper.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    },
+    {
+      "requested_id": "twilightforest:feature/graveyard/grave_lower",
+      "expected_modern_path": "src/main/resources/data/twilightforest/structure/feature/graveyard/grave_lower.nbt",
+      "exists_in_this_cache": false,
+      "listed_in_selected_cache_manifest": false,
+      "actual_NBT_content_read": false,
+      "upstream_absence_claimed": false,
+      "credit": 0
+    }
+  ],
+  "remaining25source_scopes_not_Main_read": true,
+  "formal_credit": 0,
+  "native_credit": 0,
+  "production_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "active_hours_claimed": null,
+  "all_tasks_complete": false,
+  "protected_files_unchanged_sha256": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  }
+}

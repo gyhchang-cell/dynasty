@@ -1,0 +1,1093 @@
+{
+  "recorded_at": "2026-11-09T19:16:44.548177+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_WHOLE_SOURCE_SPATIAL_HISTORY_POLICY_CANDIDATE_PENDING_DISTINCT_MAIN",
+  "semantic_key": "entity-local-dimension-qualified-bounded-worksite-history-to-live-foraging-loot-attempt-before-separate-history-commit",
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0"
+  },
+  "actual_native_read_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/sniffer/Sniffer.java",
+      "entry_sha256": "666e9ba89d719ad7dad770c7cb39aa6eb6bbdbe1ebb8dafe07897f0af09be33e",
+      "lines": [
+        1,
+        451
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "666e9ba89d719ad7dad770c7cb39aa6eb6bbdbe1ebb8dafe07897f0af09be33e",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.animal.sniffer;\n\nimport com.mojang.serialization.Dynamic;\nimport java.util.Collection;\nimport java.util.List;\nimport java.util.Objects;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.stream.Collectors;\nimport java.util.stream.IntStream;\nimport java.util.stream.Stream;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.core.particles.BlockParticleOption;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.network.protocol.game.DebugPackets;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.AgeableMob;\nimport net.minecraft.world.entity.AnimationState;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.util.LandRandomPos;\nimport net.minecraft.world.entity.animal.Animal;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.RenderShape;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.level.pathfinder.Path;\nimport net.minecraft.world.level.storage.loot.BuiltInLootTables;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.LootTable;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\npublic class Sniffer extends Animal {\n   private static final int DIGGING_PARTICLES_DELAY_TICKS = 1700;\n   private static final int DIGGING_PARTICLES_DURATION_TICKS = 6000;\n   private static final int DIGGING_PARTICLES_AMOUNT = 30;\n   private static final int DIGGING_DROP_SEED_OFFSET_TICKS = 120;\n   private static final int SNIFFER_BABY_AGE_TICKS = 48000;\n   private static final float DIGGING_BB_HEIGHT_OFFSET = 0.4F;\n   private static final EntityDimensions DIGGING_DIMENSIONS = EntityDimensions.scalable(EntityType.SNIFFER.getWidth(), EntityType.SNIFFER.getHeight() - 0.4F);\n   private static final EntityDataAccessor<Sniffer.State> DATA_STATE = SynchedEntityData.defineId(Sniffer.class, EntityDataSerializers.SNIFFER_STATE);\n   private static final EntityDataAccessor<Integer> DATA_DROP_SEED_AT_TICK = SynchedEntityData.defineId(Sniffer.class, EntityDataSerializers.INT);\n   public final AnimationState feelingHappyAnimationState = new AnimationState();\n   public final AnimationState scentingAnimationState = new AnimationState();\n   public final AnimationState sniffingAnimationState = new AnimationState();\n   public final AnimationState diggingAnimationState = new AnimationState();\n   public final AnimationState risingAnimationState = new AnimationState();\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, (double)0.1F).add(Attributes.MAX_HEALTH, 14.0D);\n   }\n\n   public Sniffer(EntityType<? extends Animal> p_273717_, Level p_273562_) {\n      super(p_273717_, p_273562_);\n      this.entityData.define(DATA_STATE, Sniffer.State.IDLING);\n      this.entityData.define(DATA_DROP_SEED_AT_TICK, 0);\n      this.getNavigation().setCanFloat(true);\n      this.setPathfindingMalus(BlockPathTypes.WATER, -1.0F);\n      this.setPathfindingMalus(BlockPathTypes.DANGER_POWDER_SNOW, -1.0F);\n      this.setPathfindingMalus(BlockPathTypes.DAMAGE_CAUTIOUS, -1.0F);\n   }\n\n   protected float getStandingEyeHeight(Pose p_272721_, EntityDimensions p_273353_) {\n      return this.getDimensions(p_272721_).height * 0.6F;\n   }\n\n   public void onPathfindingStart() {\n      super.onPathfindingStart();\n      if (this.isOnFire() || this.isInWater()) {\n         this.setPathfindingMalus(BlockPathTypes.WATER, 0.0F);\n      }\n\n   }\n\n   public void onPathfindingDone() {\n      this.setPathfindingMalus(BlockPathTypes.WATER, -1.0F);\n   }\n\n   public EntityDimensions getDimensions(Pose p_286815_) {\n      return this.entityData.hasItem(DATA_STATE) && this.getState() == Sniffer.State.DIGGING ? DIGGING_DIMENSIONS.scale(this.getScale()) : super.getDimensions(p_286815_);\n   }\n\n   public boolean isPanicking() {\n      return this.brain.getMemory(MemoryModuleType.IS_PANICKING).isPresent();\n   }\n\n   public boolean isSearching() {\n      return this.getState() == Sniffer.State.SEARCHING;\n   }\n\n   public boolean isTempted() {\n      return this.brain.getMemory(MemoryModuleType.IS_TEMPTED).orElse(false);\n   }\n\n   public boolean canSniff() {\n      return !this.isTempted() && !this.isPanicking() && !this.isInWater() && !this.isInLove() && this.onGround() && !this.isPassenger();\n   }\n\n   public boolean canPlayDiggingSound() {\n      return this.getState() == Sniffer.State.DIGGING || this.getState() == Sniffer.State.SEARCHING;\n   }\n\n   private BlockPos getHeadBlock() {\n      Vec3 vec3 = this.getHeadPosition();\n      return BlockPos.containing(vec3.x(), this.getY() + (double)0.2F, vec3.z());\n   }\n\n   private Vec3 getHeadPosition() {\n      return this.position().add(this.getForward().scale(2.25D));\n   }\n\n   private Sniffer.State getState() {\n      return this.entityData.get(DATA_STATE);\n   }\n\n   private Sniffer setState(Sniffer.State p_273359_) {\n      this.entityData.set(DATA_STATE, p_273359_);\n      return this;\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_272936_) {\n      if (DATA_STATE.equals(p_272936_)) {\n         Sniffer.State sniffer$state = this.getState();\n         this.resetAnimations();\n         switch (sniffer$state) {\n            case SCENTING:\n               this.scentingAnimationState.startIfStopped(this.tickCount);\n               break;\n            case SNIFFING:\n               this.sniffingAnimationState.startIfStopped(this.tickCount);\n               break;\n            case DIGGING:\n               this.diggingAnimationState.startIfStopped(this.tickCount);\n               break;\n            case RISING:\n               this.risingAnimationState.startIfStopped(this.tickCount);\n               break;\n            case FEELING_HAPPY:\n               this.feelingHappyAnimationState.startIfStopped(this.tickCount);\n         }\n\n         this.refreshDimensions();\n      }\n\n      super.onSyncedDataUpdated(p_272936_);\n   }\n\n   private void resetAnimations() {\n      this.diggingAnimationState.stop();\n      this.sniffingAnimationState.stop();\n      this.risingAnimationState.stop();\n      this.feelingHappyAnimationState.stop();\n      this.scentingAnimationState.stop();\n   }\n\n   public Sniffer transitionTo(Sniffer.State p_273096_) {\n      switch (p_273096_) {\n         case SCENTING:\n            this.setState(Sniffer.State.SCENTING).onScentingStart();\n            break;\n         case SNIFFING:\n            this.playSound(SoundEvents.SNIFFER_SNIFFING, 1.0F, 1.0F);\n            this.setState(Sniffer.State.SNIFFING);\n            break;\n         case DIGGING:\n            this.setState(Sniffer.State.DIGGING).onDiggingStart();\n            break;\n         case RISING:\n            this.playSound(SoundEvents.SNIFFER_DIGGING_STOP, 1.0F, 1.0F);\n            this.setState(Sniffer.State.RISING);\n            break;\n         case FEELING_HAPPY:\n            this.playSound(SoundEvents.SNIFFER_HAPPY, 1.0F, 1.0F);\n            this.setState(Sniffer.State.FEELING_HAPPY);\n            break;\n         case IDLING:\n            this.setState(Sniffer.State.IDLING);\n            break;\n         case SEARCHING:\n            this.setState(Sniffer.State.SEARCHING);\n      }\n\n      return this;\n   }\n\n   private Sniffer onScentingStart() {\n      this.playSound(SoundEvents.SNIFFER_SCENTING, 1.0F, this.isBaby() ? 1.3F : 1.0F);\n      return this;\n   }\n\n   private Sniffer onDiggingStart() {\n      this.entityData.set(DATA_DROP_SEED_AT_TICK, this.tickCount + 120);\n      this.level().broadcastEntityEvent(this, (byte)63);\n      return this;\n   }\n\n   public Sniffer onDiggingComplete(boolean p_272677_) {\n      if (p_272677_) {\n         this.storeExploredPosition(this.getOnPos());\n      }\n\n      return this;\n   }\n\n   Optional<BlockPos> calculateDigPosition() {\n      return IntStream.range(0, 5).mapToObj((p_273771_) -> {\n         return LandRandomPos.getPos(this, 10 + 2 * p_273771_, 3);\n      }).filter(Objects::nonNull).map(BlockPos::containing).filter((p_289451_) -> {\n         return this.level().getWorldBorder().isWithinBounds(p_289451_);\n      }).map(BlockPos::below).filter(this::canDig).findFirst();\n   }\n\n   boolean canDig() {\n      return !this.isPanicking() && !this.isTempted() && !this.isBaby() && !this.isInWater() && this.onGround() && !this.isPassenger() && this.canDig(this.getHeadBlock().below());\n   }\n\n   private boolean canDig(BlockPos p_272757_) {\n      return this.level().getBlockState(p_272757_).is(BlockTags.SNIFFER_DIGGABLE_BLOCK) && this.getExploredPositions().noneMatch((p_289453_) -> {\n         return GlobalPos.of(this.level().dimension(), p_272757_).equals(p_289453_);\n      }) && Optional.ofNullable(this.getNavigation().createPath(p_272757_, 1)).map(Path::canReach).orElse(false);\n   }\n\n   private void dropSeed() {\n      if (!this.level().isClientSide() && this.entityData.get(DATA_DROP_SEED_AT_TICK) == this.tickCount) {\n         ServerLevel serverlevel = (ServerLevel)this.level();\n         LootTable loottable = serverlevel.getServer().getLootData().getLootTable(BuiltInLootTables.SNIFFER_DIGGING);\n         LootParams lootparams = (new LootParams.Builder(serverlevel)).withParameter(LootContextParams.ORIGIN, this.getHeadPosition()).withParameter(LootContextParams.THIS_ENTITY, this).create(LootContextParamSets.GIFT);\n         List<ItemStack> list = loottable.getRandomItems(lootparams);\n         BlockPos blockpos = this.getHeadBlock();\n\n         for(ItemStack itemstack : list) {\n            ItemEntity itementity = new ItemEntity(serverlevel, (double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ(), itemstack);\n            itementity.setDefaultPickUpDelay();\n            serverlevel.addFreshEntity(itementity);\n         }\n\n         this.playSound(SoundEvents.SNIFFER_DROP_SEED, 1.0F, 1.0F);\n      }\n   }\n\n   private Sniffer emitDiggingParticles(AnimationState p_273528_) {\n      boolean flag = p_273528_.getAccumulatedTime() > 1700L && p_273528_.getAccumulatedTime() < 6000L;\n      if (flag) {\n         BlockPos blockpos = this.getHeadBlock();\n         BlockState blockstate = this.level().getBlockState(blockpos.below());\n         if (blockstate.getRenderShape() != RenderShape.INVISIBLE) {\n            for(int i = 0; i < 30; ++i) {\n               Vec3 vec3 = Vec3.atCenterOf(blockpos).add(0.0D, (double)-0.65F, 0.0D);\n               this.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, blockstate), vec3.x, vec3.y, vec3.z, 0.0D, 0.0D, 0.0D);\n            }\n\n            if (this.tickCount % 10 == 0) {\n               this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), blockstate.getSoundType(level(), blockpos.below(), this).getHitSound(), this.getSoundSource(), 0.5F, 0.5F, false);\n            }\n         }\n      }\n\n      if (this.tickCount % 10 == 0) {\n         this.level().gameEvent(GameEvent.ENTITY_SHAKE, this.getHeadBlock(), GameEvent.Context.of(this));\n      }\n\n      return this;\n   }\n\n   private Sniffer storeExploredPosition(BlockPos p_273015_) {\n      List<GlobalPos> list = this.getExploredPositions().limit(20L).collect(Collectors.toList());\n      list.add(0, GlobalPos.of(this.level().dimension(), p_273015_));\n      this.getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, list);\n      return this;\n   }\n\n   private Stream<GlobalPos> getExploredPositions() {\n      return this.getBrain().getMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS).stream().flatMap(Collection::stream);\n   }\n\n   protected void jumpFromGround() {\n      super.jumpFromGround();\n      double d0 = this.moveControl.getSpeedModifier();\n      if (d0 > 0.0D) {\n         double d1 = this.getDeltaMovement().horizontalDistanceSqr();\n         if (d1 < 0.01D) {\n            this.moveRelative(0.1F, new Vec3(0.0D, 0.0D, 1.0D));\n         }\n      }\n\n   }\n\n   public void spawnChildFromBreeding(ServerLevel p_277923_, Animal p_277857_) {\n      ItemStack itemstack = new ItemStack(Items.SNIFFER_EGG);\n      ItemEntity itementity = new ItemEntity(p_277923_, this.position().x(), this.position().y(), this.position().z(), itemstack);\n      itementity.setDefaultPickUpDelay();\n      this.finalizeSpawnChildFromBreeding(p_277923_, p_277857_, (AgeableMob)null);\n      this.playSound(SoundEvents.SNIFFER_EGG_PLOP, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 0.5F);\n      p_277923_.addFreshEntity(itementity);\n   }\n\n   public void die(DamageSource p_277689_) {\n      this.transitionTo(Sniffer.State.IDLING);\n      super.die(p_277689_);\n   }\n\n   public void tick() {\n      switch (this.getState()) {\n         case DIGGING:\n            this.emitDiggingParticles(this.diggingAnimationState).dropSeed();\n            break;\n         case SEARCHING:\n            this.playSearchingSound();\n      }\n\n      super.tick();\n   }\n\n   public InteractionResult mobInteract(Player p_273046_, InteractionHand p_272687_) {\n      ItemStack itemstack = p_273046_.getItemInHand(p_272687_);\n      boolean flag = this.isFood(itemstack);\n      InteractionResult interactionresult = super.mobInteract(p_273046_, p_272687_);\n      if (interactionresult.consumesAction() && flag) {\n         this.level().playSound((Player)null, this, this.getEatingSound(itemstack), SoundSource.NEUTRAL, 1.0F, Mth.randomBetween(this.level().random, 0.8F, 1.2F));\n      }\n\n      return interactionresult;\n   }\n\n   public double getPassengersRidingOffset() {\n      return 1.8D;\n   }\n\n   public float getNameTagOffsetY() {\n      return super.getNameTagOffsetY() + 0.3F;\n   }\n\n   private void playSearchingSound() {\n      if (this.level().isClientSide() && this.tickCount % 20 == 0) {\n         this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.SNIFFER_SEARCHING, this.getSoundSource(), 1.0F, 1.0F, false);\n      }\n\n   }\n\n   protected void playStepSound(BlockPos p_272953_, BlockState p_273729_) {\n      this.playSound(SoundEvents.SNIFFER_STEP, 0.15F, 1.0F);\n   }\n\n   public SoundEvent getEatingSound(ItemStack p_272747_) {\n      return SoundEvents.SNIFFER_EAT;\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return Set.of(Sniffer.State.DIGGING, Sniffer.State.SEARCHING).contains(this.getState()) ? null : SoundEvents.SNIFFER_IDLE;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_273718_) {\n      return SoundEvents.SNIFFER_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.SNIFFER_DEATH;\n   }\n\n   public int getMaxHeadYRot() {\n      return 50;\n   }\n\n   public void setBaby(boolean p_272995_) {\n      this.setAge(p_272995_ ? -48000 : 0);\n   }\n\n   public AgeableMob getBreedOffspring(ServerLevel p_273401_, AgeableMob p_273310_) {\n      return EntityType.SNIFFER.create(p_273401_);\n   }\n\n   public boolean canMate(Animal p_272966_) {\n      if (!(p_272966_ instanceof Sniffer sniffer)) {\n         return false;\n      } else {\n         Set<Sniffer.State> set = Set.of(Sniffer.State.IDLING, Sniffer.State.SCENTING, Sniffer.State.FEELING_HAPPY);\n         return set.contains(this.getState()) && set.contains(sniffer.getState()) && super.canMate(p_272966_);\n      }\n   }\n\n   public AABB getBoundingBoxForCulling() {\n      return super.getBoundingBoxForCulling().inflate((double)0.6F);\n   }\n\n   public boolean isFood(ItemStack p_273659_) {\n      return p_273659_.is(ItemTags.SNIFFER_FOOD);\n   }\n\n   protected Brain<?> makeBrain(Dynamic<?> p_273174_) {\n      return SnifferAi.makeBrain(this.brainProvider().makeBrain(p_273174_));\n   }\n\n   public Brain<Sniffer> getBrain() {\n      return (Brain<Sniffer>)super.getBrain();\n   }\n\n   protected Brain.Provider<Sniffer> brainProvider() {\n      return Brain.provider(SnifferAi.MEMORY_TYPES, SnifferAi.SENSOR_TYPES);\n   }\n\n   protected void customServerAiStep() {\n      this.level().getProfiler().push(\"snifferBrain\");\n      this.getBrain().tick((ServerLevel)this.level(), this);\n      this.level().getProfiler().popPush(\"snifferActivityUpdate\");\n      SnifferAi.updateActivity(this);\n      this.level().getProfiler().pop();\n      super.customServerAiStep();\n   }\n\n   protected void sendDebugPackets() {\n      super.sendDebugPackets();\n      DebugPackets.sendEntityBrain(this);\n   }\n\n   public static enum State {\n      IDLING,\n      FEELING_HAPPY,\n      SCENTING,\n      SNIFFING,\n      SEARCHING,\n      DIGGING,\n      RISING;\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/sniffer/SnifferAi.java",
+      "entry_sha256": "36f580f8f9c2a24b536fbc3d1d8902f90501e0f46c7c24349056fe3fe8c45f32",
+      "lines": [
+        1,
+        271
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "36f580f8f9c2a24b536fbc3d1d8902f90501e0f46c7c24349056fe3fe8c45f32",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.animal.sniffer;\n\nimport com.google.common.collect.ImmutableList;\nimport com.mojang.datafixers.util.Pair;\nimport com.mojang.logging.LogUtils;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.function.Function;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.Unit;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.behavior.AnimalMakeLove;\nimport net.minecraft.world.entity.ai.behavior.AnimalPanic;\nimport net.minecraft.world.entity.ai.behavior.Behavior;\nimport net.minecraft.world.entity.ai.behavior.CountDownCooldownTicks;\nimport net.minecraft.world.entity.ai.behavior.DoNothing;\nimport net.minecraft.world.entity.ai.behavior.FollowTemptation;\nimport net.minecraft.world.entity.ai.behavior.LookAtTargetSink;\nimport net.minecraft.world.entity.ai.behavior.MoveToTargetSink;\nimport net.minecraft.world.entity.ai.behavior.PositionTracker;\nimport net.minecraft.world.entity.ai.behavior.RandomStroll;\nimport net.minecraft.world.entity.ai.behavior.RunOne;\nimport net.minecraft.world.entity.ai.behavior.SetEntityLookTarget;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetFromLookTarget;\nimport net.minecraft.world.entity.ai.behavior.Swim;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.memory.WalkTarget;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\nimport net.minecraft.world.entity.ai.sensing.SensorType;\nimport net.minecraft.world.entity.animal.Animal;\nimport net.minecraft.world.entity.schedule.Activity;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.crafting.Ingredient;\nimport org.slf4j.Logger;\n\npublic class SnifferAi {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final int MAX_LOOK_DISTANCE = 6;\n   static final List<SensorType<? extends Sensor<? super Sniffer>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.HURT_BY, SensorType.NEAREST_PLAYERS, SensorType.SNIFFER_TEMPTATIONS);\n   static final List<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.LOOK_TARGET, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.PATH, MemoryModuleType.IS_PANICKING, MemoryModuleType.SNIFFER_SNIFFING_TARGET, MemoryModuleType.SNIFFER_DIGGING, MemoryModuleType.SNIFFER_HAPPY, MemoryModuleType.SNIFF_COOLDOWN, MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.BREED_TARGET, MemoryModuleType.TEMPTING_PLAYER, MemoryModuleType.TEMPTATION_COOLDOWN_TICKS, MemoryModuleType.IS_TEMPTED);\n   private static final int SNIFFING_COOLDOWN_TICKS = 9600;\n   private static final float SPEED_MULTIPLIER_WHEN_IDLING = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_PANICKING = 2.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_SNIFFING = 1.25F;\n   private static final float SPEED_MULTIPLIER_WHEN_TEMPTED = 1.25F;\n\n   public static Ingredient getTemptations() {\n      return Ingredient.of(Items.TORCHFLOWER_SEEDS);\n   }\n\n   protected static Brain<?> makeBrain(Brain<Sniffer> p_273175_) {\n      initCoreActivity(p_273175_);\n      initIdleActivity(p_273175_);\n      initSniffingActivity(p_273175_);\n      initDigActivity(p_273175_);\n      p_273175_.setCoreActivities(Set.of(Activity.CORE));\n      p_273175_.setDefaultActivity(Activity.IDLE);\n      p_273175_.useDefaultActivity();\n      return p_273175_;\n   }\n\n   static Sniffer resetSniffing(Sniffer p_279301_) {\n      p_279301_.getBrain().eraseMemory(MemoryModuleType.SNIFFER_DIGGING);\n      p_279301_.getBrain().eraseMemory(MemoryModuleType.SNIFFER_SNIFFING_TARGET);\n      return p_279301_.transitionTo(Sniffer.State.IDLING);\n   }\n\n   private static void initCoreActivity(Brain<Sniffer> p_273185_) {\n      p_273185_.addActivity(Activity.CORE, 0, ImmutableList.of(new Swim(0.8F), new AnimalPanic(2.0F) {\n         protected void start(ServerLevel p_272973_, PathfinderMob p_273233_, long p_273492_) {\n            SnifferAi.resetSniffing((Sniffer)p_273233_);\n            super.start(p_272973_, p_273233_, p_273492_);\n         }\n      }, new MoveToTargetSink(10000, 15000), new CountDownCooldownTicks(MemoryModuleType.TEMPTATION_COOLDOWN_TICKS)));\n   }\n\n   private static void initSniffingActivity(Brain<Sniffer> p_273183_) {\n      p_273183_.addActivityWithConditions(Activity.SNIFF, ImmutableList.of(Pair.of(0, new SnifferAi.Searching())), Set.of(Pair.of(MemoryModuleType.IS_PANICKING, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.SNIFFER_SNIFFING_TARGET, MemoryStatus.VALUE_PRESENT), Pair.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_PRESENT)));\n   }\n\n   private static void initDigActivity(Brain<Sniffer> p_273677_) {\n      p_273677_.addActivityWithConditions(Activity.DIG, ImmutableList.of(Pair.of(0, new SnifferAi.Digging(160, 180)), Pair.of(0, new SnifferAi.FinishedDigging(40))), Set.of(Pair.of(MemoryModuleType.IS_PANICKING, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.SNIFFER_DIGGING, MemoryStatus.VALUE_PRESENT)));\n   }\n\n   private static void initIdleActivity(Brain<Sniffer> p_273750_) {\n      p_273750_.addActivityWithConditions(Activity.IDLE, ImmutableList.of(Pair.of(0, new AnimalMakeLove(EntityType.SNIFFER, 1.0F) {\n         protected void start(ServerLevel p_279149_, Animal p_279090_, long p_279482_) {\n            SnifferAi.resetSniffing((Sniffer)p_279090_);\n            super.start(p_279149_, p_279090_, p_279482_);\n         }\n      }), Pair.of(1, new FollowTemptation((p_279492_) -> {\n         return 1.25F;\n      }, (p_288909_) -> {\n         return p_288909_.isBaby() ? 2.5D : 3.5D;\n      }) {\n         protected void start(ServerLevel p_279230_, PathfinderMob p_279386_, long p_279139_) {\n            SnifferAi.resetSniffing((Sniffer)p_279386_);\n            super.start(p_279230_, p_279386_, p_279139_);\n         }\n      }), Pair.of(2, new LookAtTargetSink(45, 90)), Pair.of(3, new SnifferAi.FeelingHappy(40, 100)), Pair.of(4, new RunOne<>(ImmutableList.of(Pair.of(SetWalkTargetFromLookTarget.create(1.0F, 3), 2), Pair.of(new SnifferAi.Scenting(40, 80), 1), Pair.of(new SnifferAi.Sniffing(40, 80), 1), Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 6.0F), 1), Pair.of(RandomStroll.stroll(1.0F), 1), Pair.of(new DoNothing(5, 20), 2))))), Set.of(Pair.of(MemoryModuleType.SNIFFER_DIGGING, MemoryStatus.VALUE_ABSENT)));\n   }\n\n   static void updateActivity(Sniffer p_273301_) {\n      p_273301_.getBrain().setActiveActivityToFirstValid(ImmutableList.of(Activity.DIG, Activity.SNIFF, Activity.IDLE));\n   }\n\n   static class Digging extends Behavior<Sniffer> {\n      Digging(int p_272666_, int p_273420_) {\n         super(Map.of(MemoryModuleType.IS_PANICKING, MemoryStatus.VALUE_ABSENT, MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_DIGGING, MemoryStatus.VALUE_PRESENT, MemoryModuleType.SNIFF_COOLDOWN, MemoryStatus.VALUE_ABSENT), p_272666_, p_273420_);\n      }\n\n      protected boolean checkExtraStartConditions(ServerLevel p_273442_, Sniffer p_273370_) {\n         return p_273370_.canSniff();\n      }\n\n      protected boolean canStillUse(ServerLevel p_272686_, Sniffer p_273617_, long p_273124_) {\n         return p_273617_.getBrain().getMemory(MemoryModuleType.SNIFFER_DIGGING).isPresent() && p_273617_.canDig() && !p_273617_.isInLove();\n      }\n\n      protected void start(ServerLevel p_272951_, Sniffer p_272688_, long p_272979_) {\n         p_272688_.transitionTo(Sniffer.State.DIGGING);\n      }\n\n      protected void stop(ServerLevel p_273656_, Sniffer p_273063_, long p_272844_) {\n         boolean flag = this.timedOut(p_272844_);\n         if (flag) {\n            p_273063_.getBrain().setMemoryWithExpiry(MemoryModuleType.SNIFF_COOLDOWN, Unit.INSTANCE, 9600L);\n         } else {\n            SnifferAi.resetSniffing(p_273063_);\n         }\n\n      }\n   }\n\n   static class FeelingHappy extends Behavior<Sniffer> {\n      FeelingHappy(int p_273286_, int p_272777_) {\n         super(Map.of(MemoryModuleType.SNIFFER_HAPPY, MemoryStatus.VALUE_PRESENT), p_273286_, p_272777_);\n      }\n\n      protected boolean canStillUse(ServerLevel p_272660_, Sniffer p_273250_, long p_273180_) {\n         return true;\n      }\n\n      protected void start(ServerLevel p_273624_, Sniffer p_273470_, long p_273501_) {\n         p_273470_.transitionTo(Sniffer.State.FEELING_HAPPY);\n      }\n\n      protected void stop(ServerLevel p_273216_, Sniffer p_273271_, long p_273738_) {\n         p_273271_.transitionTo(Sniffer.State.IDLING);\n         p_273271_.getBrain().eraseMemory(MemoryModuleType.SNIFFER_HAPPY);\n      }\n   }\n\n   static class FinishedDigging extends Behavior<Sniffer> {\n      FinishedDigging(int p_272941_) {\n         super(Map.of(MemoryModuleType.IS_PANICKING, MemoryStatus.VALUE_ABSENT, MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_DIGGING, MemoryStatus.VALUE_PRESENT, MemoryModuleType.SNIFF_COOLDOWN, MemoryStatus.VALUE_PRESENT), p_272941_, p_272941_);\n      }\n\n      protected boolean checkExtraStartConditions(ServerLevel p_273692_, Sniffer p_272856_) {\n         return true;\n      }\n\n      protected boolean canStillUse(ServerLevel p_273775_, Sniffer p_273131_, long p_273569_) {\n         return p_273131_.getBrain().getMemory(MemoryModuleType.SNIFFER_DIGGING).isPresent();\n      }\n\n      protected void start(ServerLevel p_272708_, Sniffer p_273502_, long p_272739_) {\n         p_273502_.transitionTo(Sniffer.State.RISING);\n      }\n\n      protected void stop(ServerLevel p_273210_, Sniffer p_273648_, long p_272804_) {\n         boolean flag = this.timedOut(p_272804_);\n         p_273648_.transitionTo(Sniffer.State.IDLING).onDiggingComplete(flag);\n         p_273648_.getBrain().eraseMemory(MemoryModuleType.SNIFFER_DIGGING);\n         p_273648_.getBrain().setMemory(MemoryModuleType.SNIFFER_HAPPY, true);\n      }\n   }\n\n   static class Scenting extends Behavior<Sniffer> {\n      Scenting(int p_272680_, int p_273445_) {\n         super(Map.of(MemoryModuleType.IS_PANICKING, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_DIGGING, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_SNIFFING_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_HAPPY, MemoryStatus.VALUE_ABSENT, MemoryModuleType.BREED_TARGET, MemoryStatus.VALUE_ABSENT), p_272680_, p_273445_);\n      }\n\n      protected boolean checkExtraStartConditions(ServerLevel p_279176_, Sniffer p_279496_) {\n         return !p_279496_.isTempted();\n      }\n\n      protected boolean canStillUse(ServerLevel p_273482_, Sniffer p_273724_, long p_273191_) {\n         return true;\n      }\n\n      protected void start(ServerLevel p_272795_, Sniffer p_272788_, long p_273611_) {\n         p_272788_.transitionTo(Sniffer.State.SCENTING);\n      }\n\n      protected void stop(ServerLevel p_272816_, Sniffer p_273426_, long p_272832_) {\n         p_273426_.transitionTo(Sniffer.State.IDLING);\n      }\n   }\n\n   static class Searching extends Behavior<Sniffer> {\n      Searching() {\n         super(Map.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_PRESENT, MemoryModuleType.IS_PANICKING, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_SNIFFING_TARGET, MemoryStatus.VALUE_PRESENT), 600);\n      }\n\n      protected boolean checkExtraStartConditions(ServerLevel p_273493_, Sniffer p_272857_) {\n         return p_272857_.canSniff();\n      }\n\n      protected boolean canStillUse(ServerLevel p_273196_, Sniffer p_273769_, long p_273602_) {\n         if (!p_273769_.canSniff()) {\n            p_273769_.transitionTo(Sniffer.State.IDLING);\n            return false;\n         } else {\n            Optional<BlockPos> optional = p_273769_.getBrain().getMemory(MemoryModuleType.WALK_TARGET).map(WalkTarget::getTarget).map(PositionTracker::currentBlockPosition);\n            Optional<BlockPos> optional1 = p_273769_.getBrain().getMemory(MemoryModuleType.SNIFFER_SNIFFING_TARGET);\n            return !optional.isEmpty() && !optional1.isEmpty() ? optional1.get().equals(optional.get()) : false;\n         }\n      }\n\n      protected void start(ServerLevel p_273563_, Sniffer p_273394_, long p_273358_) {\n         p_273394_.transitionTo(Sniffer.State.SEARCHING);\n      }\n\n      protected void stop(ServerLevel p_273705_, Sniffer p_273135_, long p_272667_) {\n         if (p_273135_.canDig() && p_273135_.canSniff()) {\n            p_273135_.getBrain().setMemory(MemoryModuleType.SNIFFER_DIGGING, true);\n         }\n\n         p_273135_.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);\n         p_273135_.getBrain().eraseMemory(MemoryModuleType.SNIFFER_SNIFFING_TARGET);\n      }\n   }\n\n   static class Sniffing extends Behavior<Sniffer> {\n      Sniffing(int p_272703_, int p_272735_) {\n         super(Map.of(MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFFER_SNIFFING_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SNIFF_COOLDOWN, MemoryStatus.VALUE_ABSENT), p_272703_, p_272735_);\n      }\n\n      protected boolean checkExtraStartConditions(ServerLevel p_272972_, Sniffer p_273676_) {\n         return !p_273676_.isBaby() && p_273676_.canSniff();\n      }\n\n      protected boolean canStillUse(ServerLevel p_273156_, Sniffer p_273448_, long p_272841_) {\n         return p_273448_.canSniff();\n      }\n\n      protected void start(ServerLevel p_272950_, Sniffer p_272614_, long p_273573_) {\n         p_272614_.transitionTo(Sniffer.State.SNIFFING);\n      }\n\n      protected void stop(ServerLevel p_272617_, Sniffer p_273181_, long p_272635_) {\n         boolean flag = this.timedOut(p_272635_);\n         p_273181_.transitionTo(Sniffer.State.IDLING);\n         if (flag) {\n            p_273181_.calculateDigPosition().ifPresent((p_273341_) -> {\n               p_273181_.getBrain().setMemory(MemoryModuleType.SNIFFER_SNIFFING_TARGET, p_273341_);\n               p_273181_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(p_273341_, 1.25F, 0));\n            });\n         }\n\n      }\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/core/GlobalPos.java",
+      "entry_sha256": "844063eaed869a59be96ab16ee87815b95ad0c8f7eb3b1243abde148cb3fb85f",
+      "lines": [
+        1,
+        51
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "844063eaed869a59be96ab16ee87815b95ad0c8f7eb3b1243abde148cb3fb85f",
+      "raw_excerpt_utf8": "package net.minecraft.core;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport java.util.Objects;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.world.level.Level;\n\npublic final class GlobalPos {\n   public static final Codec<GlobalPos> CODEC = RecordCodecBuilder.create((p_122642_) -> {\n      return p_122642_.group(Level.RESOURCE_KEY_CODEC.fieldOf(\"dimension\").forGetter(GlobalPos::dimension), BlockPos.CODEC.fieldOf(\"pos\").forGetter(GlobalPos::pos)).apply(p_122642_, GlobalPos::of);\n   });\n   private final ResourceKey<Level> dimension;\n   private final BlockPos pos;\n\n   private GlobalPos(ResourceKey<Level> p_122638_, BlockPos p_122639_) {\n      this.dimension = p_122638_;\n      this.pos = p_122639_;\n   }\n\n   public static GlobalPos of(ResourceKey<Level> p_122644_, BlockPos p_122645_) {\n      return new GlobalPos(p_122644_, p_122645_);\n   }\n\n   public ResourceKey<Level> dimension() {\n      return this.dimension;\n   }\n\n   public BlockPos pos() {\n      return this.pos;\n   }\n\n   public boolean equals(Object p_122648_) {\n      if (this == p_122648_) {\n         return true;\n      } else if (p_122648_ != null && this.getClass() == p_122648_.getClass()) {\n         GlobalPos globalpos = (GlobalPos)p_122648_;\n         return Objects.equals(this.dimension, globalpos.dimension) && Objects.equals(this.pos, globalpos.pos);\n      } else {\n         return false;\n      }\n   }\n\n   public int hashCode() {\n      return Objects.hash(this.dimension, this.pos);\n   }\n\n   public String toString() {\n      return this.dimension + \" \" + this.pos;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/util/LandRandomPos.java",
+      "entry_sha256": "a7d393c61cdecfc15d98296adb2b4fa8f1ffe94e3447a4b688a6da07ff8c34cb",
+      "lines": [
+        1,
+        65
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a7d393c61cdecfc15d98296adb2b4fa8f1ffe94e3447a4b688a6da07ff8c34cb",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.util;\n\nimport java.util.function.ToDoubleFunction;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.phys.Vec3;\n\npublic class LandRandomPos {\n   @Nullable\n   public static Vec3 getPos(PathfinderMob p_148489_, int p_148490_, int p_148491_) {\n      return getPos(p_148489_, p_148490_, p_148491_, p_148489_::getWalkTargetValue);\n   }\n\n   @Nullable\n   public static Vec3 getPos(PathfinderMob p_148504_, int p_148505_, int p_148506_, ToDoubleFunction<BlockPos> p_148507_) {\n      boolean flag = GoalUtils.mobRestricted(p_148504_, p_148505_);\n      return RandomPos.generateRandomPos(() -> {\n         BlockPos blockpos = RandomPos.generateRandomDirection(p_148504_.getRandom(), p_148505_, p_148506_);\n         BlockPos blockpos1 = generateRandomPosTowardDirection(p_148504_, p_148505_, flag, blockpos);\n         return blockpos1 == null ? null : movePosUpOutOfSolid(p_148504_, blockpos1);\n      }, p_148507_);\n   }\n\n   @Nullable\n   public static Vec3 getPosTowards(PathfinderMob p_148493_, int p_148494_, int p_148495_, Vec3 p_148496_) {\n      Vec3 vec3 = p_148496_.subtract(p_148493_.getX(), p_148493_.getY(), p_148493_.getZ());\n      boolean flag = GoalUtils.mobRestricted(p_148493_, p_148494_);\n      return getPosInDirection(p_148493_, p_148494_, p_148495_, vec3, flag);\n   }\n\n   @Nullable\n   public static Vec3 getPosAway(PathfinderMob p_148522_, int p_148523_, int p_148524_, Vec3 p_148525_) {\n      Vec3 vec3 = p_148522_.position().subtract(p_148525_);\n      boolean flag = GoalUtils.mobRestricted(p_148522_, p_148523_);\n      return getPosInDirection(p_148522_, p_148523_, p_148524_, vec3, flag);\n   }\n\n   @Nullable\n   private static Vec3 getPosInDirection(PathfinderMob p_148498_, int p_148499_, int p_148500_, Vec3 p_148501_, boolean p_148502_) {\n      return RandomPos.generateRandomPos(p_148498_, () -> {\n         BlockPos blockpos = RandomPos.generateRandomDirectionWithinRadians(p_148498_.getRandom(), p_148499_, p_148500_, 0, p_148501_.x, p_148501_.z, (double)((float)Math.PI / 2F));\n         if (blockpos == null) {\n            return null;\n         } else {\n            BlockPos blockpos1 = generateRandomPosTowardDirection(p_148498_, p_148499_, p_148502_, blockpos);\n            return blockpos1 == null ? null : movePosUpOutOfSolid(p_148498_, blockpos1);\n         }\n      });\n   }\n\n   @Nullable\n   public static BlockPos movePosUpOutOfSolid(PathfinderMob p_148519_, BlockPos p_148520_) {\n      p_148520_ = RandomPos.moveUpOutOfSolid(p_148520_, p_148519_.level().getMaxBuildHeight(), (p_148534_) -> {\n         return GoalUtils.isSolid(p_148519_, p_148534_);\n      });\n      return !GoalUtils.isWater(p_148519_, p_148520_) && !GoalUtils.hasMalus(p_148519_, p_148520_) ? p_148520_ : null;\n   }\n\n   @Nullable\n   public static BlockPos generateRandomPosTowardDirection(PathfinderMob p_148514_, int p_148515_, boolean p_148516_, BlockPos p_148517_) {\n      BlockPos blockpos = RandomPos.generateRandomPosTowardDirection(p_148514_, p_148515_, p_148514_.getRandom(), p_148517_);\n      return !GoalUtils.isOutsideLimits(blockpos, p_148514_) && !GoalUtils.isRestricted(p_148516_, p_148514_, blockpos) && !GoalUtils.isNotStable(p_148514_.getNavigation(), blockpos) ? blockpos : null;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/util/RandomPos.java",
+      "entry_sha256": "1f74e03b561b4a50d24cb95b82dfb9824ece52b33a3575a5b32378b8e1c3e174",
+      "lines": [
+        1,
+        120
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "1f74e03b561b4a50d24cb95b82dfb9824ece52b33a3575a5b32378b8e1c3e174",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.util;\n\nimport com.google.common.annotations.VisibleForTesting;\nimport java.util.function.Predicate;\nimport java.util.function.Supplier;\nimport java.util.function.ToDoubleFunction;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.phys.Vec3;\n\npublic class RandomPos {\n   private static final int RANDOM_POS_ATTEMPTS = 10;\n\n   public static BlockPos generateRandomDirection(RandomSource p_217852_, int p_217853_, int p_217854_) {\n      int i = p_217852_.nextInt(2 * p_217853_ + 1) - p_217853_;\n      int j = p_217852_.nextInt(2 * p_217854_ + 1) - p_217854_;\n      int k = p_217852_.nextInt(2 * p_217853_ + 1) - p_217853_;\n      return new BlockPos(i, j, k);\n   }\n\n   @Nullable\n   public static BlockPos generateRandomDirectionWithinRadians(RandomSource p_217856_, int p_217857_, int p_217858_, int p_217859_, double p_217860_, double p_217861_, double p_217862_) {\n      double d0 = Mth.atan2(p_217861_, p_217860_) - (double)((float)Math.PI / 2F);\n      double d1 = d0 + (double)(2.0F * p_217856_.nextFloat() - 1.0F) * p_217862_;\n      double d2 = Math.sqrt(p_217856_.nextDouble()) * (double)Mth.SQRT_OF_TWO * (double)p_217857_;\n      double d3 = -d2 * Math.sin(d1);\n      double d4 = d2 * Math.cos(d1);\n      if (!(Math.abs(d3) > (double)p_217857_) && !(Math.abs(d4) > (double)p_217857_)) {\n         int i = p_217856_.nextInt(2 * p_217858_ + 1) - p_217858_ + p_217859_;\n         return BlockPos.containing(d3, (double)i, d4);\n      } else {\n         return null;\n      }\n   }\n\n   @VisibleForTesting\n   public static BlockPos moveUpOutOfSolid(BlockPos p_148546_, int p_148547_, Predicate<BlockPos> p_148548_) {\n      if (!p_148548_.test(p_148546_)) {\n         return p_148546_;\n      } else {\n         BlockPos blockpos;\n         for(blockpos = p_148546_.above(); blockpos.getY() < p_148547_ && p_148548_.test(blockpos); blockpos = blockpos.above()) {\n         }\n\n         return blockpos;\n      }\n   }\n\n   @VisibleForTesting\n   public static BlockPos moveUpToAboveSolid(BlockPos p_26948_, int p_26949_, int p_26950_, Predicate<BlockPos> p_26951_) {\n      if (p_26949_ < 0) {\n         throw new IllegalArgumentException(\"aboveSolidAmount was \" + p_26949_ + \", expected >= 0\");\n      } else if (!p_26951_.test(p_26948_)) {\n         return p_26948_;\n      } else {\n         BlockPos blockpos;\n         for(blockpos = p_26948_.above(); blockpos.getY() < p_26950_ && p_26951_.test(blockpos); blockpos = blockpos.above()) {\n         }\n\n         BlockPos blockpos1;\n         BlockPos blockpos2;\n         for(blockpos1 = blockpos; blockpos1.getY() < p_26950_ && blockpos1.getY() - blockpos.getY() < p_26949_; blockpos1 = blockpos2) {\n            blockpos2 = blockpos1.above();\n            if (p_26951_.test(blockpos2)) {\n               break;\n            }\n         }\n\n         return blockpos1;\n      }\n   }\n\n   @Nullable\n   public static Vec3 generateRandomPos(PathfinderMob p_148543_, Supplier<BlockPos> p_148544_) {\n      return generateRandomPos(p_148544_, p_148543_::getWalkTargetValue);\n   }\n\n   @Nullable\n   public static Vec3 generateRandomPos(Supplier<BlockPos> p_148562_, ToDoubleFunction<BlockPos> p_148563_) {\n      double d0 = Double.NEGATIVE_INFINITY;\n      BlockPos blockpos = null;\n\n      for(int i = 0; i < 10; ++i) {\n         BlockPos blockpos1 = p_148562_.get();\n         if (blockpos1 != null) {\n            double d1 = p_148563_.applyAsDouble(blockpos1);\n            if (d1 > d0) {\n               d0 = d1;\n               blockpos = blockpos1;\n            }\n         }\n      }\n\n      return blockpos != null ? Vec3.atBottomCenterOf(blockpos) : null;\n   }\n\n   public static BlockPos generateRandomPosTowardDirection(PathfinderMob p_217864_, int p_217865_, RandomSource p_217866_, BlockPos p_217867_) {\n      int i = p_217867_.getX();\n      int j = p_217867_.getZ();\n      if (p_217864_.hasRestriction() && p_217865_ > 1) {\n         BlockPos blockpos = p_217864_.getRestrictCenter();\n         if (p_217864_.getX() > (double)blockpos.getX()) {\n            i -= p_217866_.nextInt(p_217865_ / 2);\n         } else {\n            i += p_217866_.nextInt(p_217865_ / 2);\n         }\n\n         if (p_217864_.getZ() > (double)blockpos.getZ()) {\n            j -= p_217866_.nextInt(p_217865_ / 2);\n         } else {\n            j += p_217866_.nextInt(p_217865_ / 2);\n         }\n      }\n\n      return BlockPos.containing((double)i + p_217864_.getX(), (double)p_217867_.getY() + p_217864_.getY(), (double)j + p_217864_.getZ());\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/util/GoalUtils.java",
+      "entry_sha256": "6ddb165251ac1c665f55f509d20020d94fb7f4dbb13109ef80ac0b8d54004a70",
+      "lines": [
+        1,
+        43
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "6ddb165251ac1c665f55f509d20020d94fb7f4dbb13109ef80ac0b8d54004a70",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.util;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.navigation.GroundPathNavigation;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.level.pathfinder.WalkNodeEvaluator;\n\npublic class GoalUtils {\n   public static boolean hasGroundPathNavigation(Mob p_26895_) {\n      return p_26895_.getNavigation() instanceof GroundPathNavigation;\n   }\n\n   public static boolean mobRestricted(PathfinderMob p_148443_, int p_148444_) {\n      return p_148443_.hasRestriction() && p_148443_.getRestrictCenter().closerToCenterThan(p_148443_.position(), (double)(p_148443_.getRestrictRadius() + (float)p_148444_) + 1.0D);\n   }\n\n   public static boolean isOutsideLimits(BlockPos p_148452_, PathfinderMob p_148453_) {\n      return p_148452_.getY() < p_148453_.level().getMinBuildHeight() || p_148452_.getY() > p_148453_.level().getMaxBuildHeight();\n   }\n\n   public static boolean isRestricted(boolean p_148455_, PathfinderMob p_148456_, BlockPos p_148457_) {\n      return p_148455_ && !p_148456_.isWithinRestriction(p_148457_);\n   }\n\n   public static boolean isNotStable(PathNavigation p_148449_, BlockPos p_148450_) {\n      return !p_148449_.isStableDestination(p_148450_);\n   }\n\n   public static boolean isWater(PathfinderMob p_148446_, BlockPos p_148447_) {\n      return p_148446_.level().getFluidState(p_148447_).is(FluidTags.WATER);\n   }\n\n   public static boolean hasMalus(PathfinderMob p_148459_, BlockPos p_148460_) {\n      return p_148459_.getPathfindingMalus(WalkNodeEvaluator.getBlockPathTypeStatic(p_148459_.level(), p_148460_.mutable())) != 0.0F;\n   }\n\n   public static boolean isSolid(PathfinderMob p_148462_, BlockPos p_148463_) {\n      return p_148462_.level().getBlockState(p_148463_).isSolid();\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "entry_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "lines": [
+        113,
+        113
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a14d240f7becfe2ece7a60f8efba43842356096a69c21e10dd773beb2e13fb30",
+      "raw_excerpt_utf8": "   public static final MemoryModuleType<Unit> SNIFF_COOLDOWN = register(\"sniff_cooldown\", Codec.unit(Unit.INSTANCE));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "entry_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "lines": [
+        123,
+        126
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "51816756349dabdf30ff063976a4e43bca0d0b0f16f3e5c94c46757ddd8dca01",
+      "raw_excerpt_utf8": "   public static final MemoryModuleType<List<GlobalPos>> SNIFFER_EXPLORED_POSITIONS = register(\"sniffer_explored_positions\", Codec.list(GlobalPos.CODEC));\n   public static final MemoryModuleType<BlockPos> SNIFFER_SNIFFING_TARGET = register(\"sniffer_sniffing_target\");\n   public static final MemoryModuleType<Boolean> SNIFFER_DIGGING = register(\"sniffer_digging\");\n   public static final MemoryModuleType<Boolean> SNIFFER_HAPPY = register(\"sniffer_happy\");\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        814,
+        833
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "bcf1d711c98eb610eec202dc96eaedb69ffc4e8f4cdac72019f050d7b36c5d0a",
+      "raw_excerpt_utf8": "   public BlockPos getOnPos() {\n      return this.getOnPos(1.0E-5F);\n   }\n\n   protected BlockPos getOnPos(float p_216987_) {\n      if (this.mainSupportingBlockPos.isPresent()) {\n         BlockPos blockpos = this.mainSupportingBlockPos.get();\n         if (!(p_216987_ > 1.0E-5F)) {\n            return blockpos;\n         } else {\n            BlockState blockstate = this.level().getBlockState(blockpos);\n            return (!((double)p_216987_ <= 0.5D) || !blockstate.collisionExtendsVertically(this.level(), blockpos, this)) ? blockpos.atY(Mth.floor(this.position.y - (double)p_216987_)) : blockpos;\n         }\n      } else {\n         int i = Mth.floor(this.position.x);\n         int j = Mth.floor(this.position.y - (double)p_216987_);\n         int k = Mth.floor(this.position.z);\n         return new BlockPos(i, j, k);\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/pathfinder/Path.java",
+      "entry_sha256": "2da78a5c3cc77a486ed08be6aab7b89402451402f8eac9e26da4a62b904a6555",
+      "lines": [
+        123,
+        125
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ce2ddb0871fc4b1ff6442847cd9384e129b74092c45ea83466e9113b173ab1eb",
+      "raw_excerpt_utf8": "   public boolean canReach() {\n      return this.reached;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        258,
+        258
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "58b4d2759ce45561d697b060ed14f66f681d2122ee2e7c7048945fe497af3ab6",
+      "raw_excerpt_utf8": "   public static final EntityType<Sniffer> SNIFFER = register(\"sniffer\", EntityType.Builder.of(Sniffer::new, MobCategory.CREATURE).sized(1.9F, 1.75F).clientTrackingRange(10));\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_range_count": 11,
+  "actual_entry_count": 10,
+  "actual_full_file_count": 6,
+  "actual_line_occurrences": 1030,
+  "prior_actual_own_native_support_reused0": [
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/behavior/Behavior.java",
+        "entry_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+        "lines": [
+          1,
+          102
+        ],
+        "full_file": true,
+        "raw_excerpt_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+        "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport java.util.Map;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\n\npublic abstract class Behavior<E extends LivingEntity> implements BehaviorControl<E> {\n   public static final int DEFAULT_DURATION = 60;\n   protected final Map<MemoryModuleType<?>, MemoryStatus> entryCondition;\n   private Behavior.Status status = Behavior.Status.STOPPED;\n   private long endTimestamp;\n   private final int minDuration;\n   private final int maxDuration;\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22528_) {\n      this(p_22528_, 60);\n   }\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22530_, int p_22531_) {\n      this(p_22530_, p_22531_, p_22531_);\n   }\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22533_, int p_22534_, int p_22535_) {\n      this.minDuration = p_22534_;\n      this.maxDuration = p_22535_;\n      this.entryCondition = p_22533_;\n   }\n\n   public Behavior.Status getStatus() {\n      return this.status;\n   }\n\n   public final boolean tryStart(ServerLevel p_22555_, E p_22556_, long p_22557_) {\n      if (this.hasRequiredMemories(p_22556_) && this.checkExtraStartConditions(p_22555_, p_22556_)) {\n         this.status = Behavior.Status.RUNNING;\n         int i = this.minDuration + p_22555_.getRandom().nextInt(this.maxDuration + 1 - this.minDuration);\n         this.endTimestamp = p_22557_ + (long)i;\n         this.start(p_22555_, p_22556_, p_22557_);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   protected void start(ServerLevel p_22540_, E p_22541_, long p_22542_) {\n   }\n\n   public final void tickOrStop(ServerLevel p_22559_, E p_22560_, long p_22561_) {\n      if (!this.timedOut(p_22561_) && this.canStillUse(p_22559_, p_22560_, p_22561_)) {\n         this.tick(p_22559_, p_22560_, p_22561_);\n      } else {\n         this.doStop(p_22559_, p_22560_, p_22561_);\n      }\n\n   }\n\n   protected void tick(ServerLevel p_22551_, E p_22552_, long p_22553_) {\n   }\n\n   public final void doStop(ServerLevel p_22563_, E p_22564_, long p_22565_) {\n      this.status = Behavior.Status.STOPPED;\n      this.stop(p_22563_, p_22564_, p_22565_);\n   }\n\n   protected void stop(ServerLevel p_22548_, E p_22549_, long p_22550_) {\n   }\n\n   protected boolean canStillUse(ServerLevel p_22545_, E p_22546_, long p_22547_) {\n      return false;\n   }\n\n   protected boolean timedOut(long p_22537_) {\n      return p_22537_ > this.endTimestamp;\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_22538_, E p_22539_) {\n      return true;\n   }\n\n   public String debugString() {\n      return this.getClass().getSimpleName();\n   }\n\n   protected boolean hasRequiredMemories(E p_22544_) {\n      for(Map.Entry<MemoryModuleType<?>, MemoryStatus> entry : this.entryCondition.entrySet()) {\n         MemoryModuleType<?> memorymoduletype = entry.getKey();\n         MemoryStatus memorystatus = entry.getValue();\n         if (!p_22544_.getBrain().checkMemory(memorymoduletype, memorystatus)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public static enum Status {\n      STOPPED,\n      RUNNING;\n   }\n}",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/Brain.java",
+        "entry_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+        "lines": [
+          55,
+          221
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "408a9a070b4cfb0623ef4f6897078c1ce7dcfbf719020979cd24b89942ed2ecd",
+        "raw_excerpt_utf8": "   private long lastScheduleUpdate = -9999L;\n\n   public static <E extends LivingEntity> Brain.Provider<E> provider(Collection<? extends MemoryModuleType<?>> p_21924_, Collection<? extends SensorType<? extends Sensor<? super E>>> p_21925_) {\n      return new Brain.Provider<>(p_21924_, p_21925_);\n   }\n\n   public static <E extends LivingEntity> Codec<Brain<E>> codec(final Collection<? extends MemoryModuleType<?>> p_21947_, final Collection<? extends SensorType<? extends Sensor<? super E>>> p_21948_) {\n      final MutableObject<Codec<Brain<E>>> mutableobject = new MutableObject<>();\n      mutableobject.setValue((new MapCodec<Brain<E>>() {\n         public <T> Stream<T> keys(DynamicOps<T> p_22029_) {\n            return p_21947_.stream().flatMap((p_22020_) -> {\n               return p_22020_.getCodec().map((p_258254_) -> {\n                  return BuiltInRegistries.MEMORY_MODULE_TYPE.getKey(p_22020_);\n               }).stream();\n            }).map((p_22018_) -> {\n               return p_22029_.createString(p_22018_.toString());\n            });\n         }\n\n         public <T> DataResult<Brain<E>> decode(DynamicOps<T> p_22022_, MapLike<T> p_22023_) {\n            MutableObject<DataResult<ImmutableList.Builder<Brain.MemoryValue<?>>>> mutableobject1 = new MutableObject<>(DataResult.success(ImmutableList.builder()));\n            p_22023_.entries().forEach((p_258252_) -> {\n               DataResult<MemoryModuleType<?>> dataresult = BuiltInRegistries.MEMORY_MODULE_TYPE.byNameCodec().parse(p_22022_, p_258252_.getFirst());\n               DataResult<? extends Brain.MemoryValue<?>> dataresult1 = dataresult.flatMap((p_147350_) -> {\n                  return this.captureRead(p_147350_, p_22022_, (T)p_258252_.getSecond());\n               });\n               mutableobject1.setValue(mutableobject1.getValue().apply2(ImmutableList.Builder::add, dataresult1));\n            });\n            ImmutableList<Brain.MemoryValue<?>> immutablelist = mutableobject1.getValue().resultOrPartial(Brain.LOGGER::error).map(ImmutableList.Builder::build).orElseGet(ImmutableList::of);\n            return DataResult.success(new Brain<>(p_21947_, p_21948_, immutablelist, mutableobject::getValue));\n         }\n\n         private <T, U> DataResult<Brain.MemoryValue<U>> captureRead(MemoryModuleType<U> p_21997_, DynamicOps<T> p_21998_, T p_21999_) {\n            return p_21997_.getCodec().map(DataResult::success).orElseGet(() -> {\n               return DataResult.error(() -> {\n                  return \"No codec for memory: \" + p_21997_;\n               });\n            }).flatMap((p_22011_) -> {\n               return p_22011_.parse(p_21998_, p_21999_);\n            }).map((p_21992_) -> {\n               return new Brain.MemoryValue<>(p_21997_, Optional.of(p_21992_));\n            });\n         }\n\n         public <T> RecordBuilder<T> encode(Brain<E> p_21985_, DynamicOps<T> p_21986_, RecordBuilder<T> p_21987_) {\n            p_21985_.memories().forEach((p_22007_) -> {\n               p_22007_.serialize(p_21986_, p_21987_);\n            });\n            return p_21987_;\n         }\n      }).fieldOf(\"memories\").codec());\n      return mutableobject.getValue();\n   }\n\n   public Brain(Collection<? extends MemoryModuleType<?>> p_21855_, Collection<? extends SensorType<? extends Sensor<? super E>>> p_21856_, ImmutableList<Brain.MemoryValue<?>> p_21857_, Supplier<Codec<Brain<E>>> p_21858_) {\n      this.codec = p_21858_;\n\n      for(MemoryModuleType<?> memorymoduletype : p_21855_) {\n         this.memories.put(memorymoduletype, Optional.empty());\n      }\n\n      for(SensorType<? extends Sensor<? super E>> sensortype : p_21856_) {\n         this.sensors.put(sensortype, sensortype.create());\n      }\n\n      for(Sensor<? super E> sensor : this.sensors.values()) {\n         for(MemoryModuleType<?> memorymoduletype1 : sensor.requires()) {\n            this.memories.put(memorymoduletype1, Optional.empty());\n         }\n      }\n\n      for(Brain.MemoryValue<?> memoryvalue : p_21857_) {\n         memoryvalue.setMemoryInternal(this);\n      }\n\n   }\n\n   public <T> DataResult<T> serializeStart(DynamicOps<T> p_21915_) {\n      return this.codec.get().encodeStart(p_21915_, this);\n   }\n\n   Stream<Brain.MemoryValue<?>> memories() {\n      return this.memories.entrySet().stream().map((p_21929_) -> {\n         return Brain.MemoryValue.createUnchecked(p_21929_.getKey(), p_21929_.getValue());\n      });\n   }\n\n   public boolean hasMemoryValue(MemoryModuleType<?> p_21875_) {\n      return this.checkMemory(p_21875_, MemoryStatus.VALUE_PRESENT);\n   }\n\n   public void clearMemories() {\n      this.memories.keySet().forEach((p_276103_) -> {\n         this.memories.put(p_276103_, Optional.empty());\n      });\n   }\n\n   public <U> void eraseMemory(MemoryModuleType<U> p_21937_) {\n      this.setMemory(p_21937_, Optional.empty());\n   }\n\n   public <U> void setMemory(MemoryModuleType<U> p_21880_, @Nullable U p_21881_) {\n      this.setMemory(p_21880_, Optional.ofNullable(p_21881_));\n   }\n\n   public <U> void setMemoryWithExpiry(MemoryModuleType<U> p_21883_, U p_21884_, long p_21885_) {\n      this.setMemoryInternal(p_21883_, Optional.of(ExpirableValue.of(p_21884_, p_21885_)));\n   }\n\n   public <U> void setMemory(MemoryModuleType<U> p_21887_, Optional<? extends U> p_21888_) {\n      this.setMemoryInternal(p_21887_, p_21888_.map(ExpirableValue::of));\n   }\n\n   <U> void setMemoryInternal(MemoryModuleType<U> p_21942_, Optional<? extends ExpirableValue<?>> p_21943_) {\n      if (this.memories.containsKey(p_21942_)) {\n         if (p_21943_.isPresent() && this.isEmptyCollection(p_21943_.get().getValue())) {\n            this.eraseMemory(p_21942_);\n         } else {\n            this.memories.put(p_21942_, p_21943_);\n         }\n      }\n\n   }\n\n   public <U> Optional<U> getMemory(MemoryModuleType<U> p_21953_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_21953_);\n      if (optional == null) {\n         throw new IllegalStateException(\"Unregistered memory fetched: \" + p_21953_);\n      } else {\n         return (Optional<U>)optional.map(ExpirableValue::getValue);\n      }\n   }\n\n   @Nullable\n   public <U> Optional<U> getMemoryInternal(MemoryModuleType<U> p_259344_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_259344_);\n      return optional == null ? null : (Optional<U>)optional.map(ExpirableValue::getValue);\n   }\n\n   public <U> long getTimeUntilExpiry(MemoryModuleType<U> p_147342_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_147342_);\n      return optional.map(ExpirableValue::getTimeToLive).orElse(0L);\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForDebug\n   public Map<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> getMemories() {\n      return this.memories;\n   }\n\n   public <U> boolean isMemoryValue(MemoryModuleType<U> p_21939_, U p_21940_) {\n      return !this.hasMemoryValue(p_21939_) ? false : this.getMemory(p_21939_).filter((p_21922_) -> {\n         return p_21922_.equals(p_21940_);\n      }).isPresent();\n   }\n\n   public boolean checkMemory(MemoryModuleType<?> p_21877_, MemoryStatus p_21878_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_21877_);\n      if (optional == null) {\n         return false;\n      } else {\n         return p_21878_ == MemoryStatus.REGISTERED || p_21878_ == MemoryStatus.VALUE_PRESENT && optional.isPresent() || p_21878_ == MemoryStatus.VALUE_ABSENT && !optional.isPresent();\n      }\n   }\n\n   public Schedule getSchedule() {\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/Brain.java",
+        "entry_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+        "lines": [
+          229,
+          451
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "13faf4d8a22e2ce8c960209303c7bb39e3a8272261de008e97a0cb65564c06e7",
+        "raw_excerpt_utf8": "   public void setCoreActivities(Set<Activity> p_21931_) {\n      this.coreActivities = p_21931_;\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForDebug\n   public Set<Activity> getActiveActivities() {\n      return this.activeActivities;\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForDebug\n   public List<BehaviorControl<? super E>> getRunningBehaviors() {\n      List<BehaviorControl<? super E>> list = new ObjectArrayList<>();\n\n      for(Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {\n         for(Set<BehaviorControl<? super E>> set : map.values()) {\n            for(BehaviorControl<? super E> behaviorcontrol : set) {\n               if (behaviorcontrol.getStatus() == Behavior.Status.RUNNING) {\n                  list.add(behaviorcontrol);\n               }\n            }\n         }\n      }\n\n      return list;\n   }\n\n   public void useDefaultActivity() {\n      this.setActiveActivity(this.defaultActivity);\n   }\n\n   public Optional<Activity> getActiveNonCoreActivity() {\n      for(Activity activity : this.activeActivities) {\n         if (!this.coreActivities.contains(activity)) {\n            return Optional.of(activity);\n         }\n      }\n\n      return Optional.empty();\n   }\n\n   public void setActiveActivityIfPossible(Activity p_21890_) {\n      if (this.activityRequirementsAreMet(p_21890_)) {\n         this.setActiveActivity(p_21890_);\n      } else {\n         this.useDefaultActivity();\n      }\n\n   }\n\n   private void setActiveActivity(Activity p_21961_) {\n      if (!this.isActive(p_21961_)) {\n         this.eraseMemoriesForOtherActivitesThan(p_21961_);\n         this.activeActivities.clear();\n         this.activeActivities.addAll(this.coreActivities);\n         this.activeActivities.add(p_21961_);\n      }\n   }\n\n   private void eraseMemoriesForOtherActivitesThan(Activity p_21967_) {\n      for(Activity activity : this.activeActivities) {\n         if (activity != p_21967_) {\n            Set<MemoryModuleType<?>> set = this.activityMemoriesToEraseWhenStopped.get(activity);\n            if (set != null) {\n               for(MemoryModuleType<?> memorymoduletype : set) {\n                  this.eraseMemory(memorymoduletype);\n               }\n            }\n         }\n      }\n\n   }\n\n   public void updateActivityFromSchedule(long p_21863_, long p_21864_) {\n      if (p_21864_ - this.lastScheduleUpdate > 20L) {\n         this.lastScheduleUpdate = p_21864_;\n         Activity activity = this.getSchedule().getActivityAt((int)(p_21863_ % 24000L));\n         if (!this.activeActivities.contains(activity)) {\n            this.setActiveActivityIfPossible(activity);\n         }\n      }\n\n   }\n\n   public void setActiveActivityToFirstValid(List<Activity> p_21927_) {\n      for(Activity activity : p_21927_) {\n         if (this.activityRequirementsAreMet(activity)) {\n            this.setActiveActivity(activity);\n            break;\n         }\n      }\n\n   }\n\n   public void setDefaultActivity(Activity p_21945_) {\n      this.defaultActivity = p_21945_;\n   }\n\n   public void addActivity(Activity p_21892_, int p_21893_, ImmutableList<? extends BehaviorControl<? super E>> p_21894_) {\n      this.addActivity(p_21892_, this.createPriorityPairs(p_21893_, p_21894_));\n   }\n\n   public void addActivityAndRemoveMemoryWhenStopped(Activity p_21896_, int p_21897_, ImmutableList<? extends BehaviorControl<? super E>> p_21898_, MemoryModuleType<?> p_21899_) {\n      Set<Pair<MemoryModuleType<?>, MemoryStatus>> set = ImmutableSet.of(Pair.of(p_21899_, MemoryStatus.VALUE_PRESENT));\n      Set<MemoryModuleType<?>> set1 = ImmutableSet.of(p_21899_);\n      this.addActivityAndRemoveMemoriesWhenStopped(p_21896_, this.createPriorityPairs(p_21897_, p_21898_), set, set1);\n   }\n\n   public void addActivity(Activity p_21901_, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> p_21902_) {\n      this.addActivityAndRemoveMemoriesWhenStopped(p_21901_, p_21902_, ImmutableSet.of(), Sets.newHashSet());\n   }\n\n   public void addActivityWithConditions(Activity p_21904_, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> p_21905_, Set<Pair<MemoryModuleType<?>, MemoryStatus>> p_21906_) {\n      this.addActivityAndRemoveMemoriesWhenStopped(p_21904_, p_21905_, p_21906_, Sets.newHashSet());\n   }\n\n   public void addActivityAndRemoveMemoriesWhenStopped(Activity p_21908_, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> p_21909_, Set<Pair<MemoryModuleType<?>, MemoryStatus>> p_21910_, Set<MemoryModuleType<?>> p_21911_) {\n      this.activityRequirements.put(p_21908_, p_21910_);\n      if (!p_21911_.isEmpty()) {\n         this.activityMemoriesToEraseWhenStopped.put(p_21908_, p_21911_);\n      }\n\n      for(Pair<Integer, ? extends BehaviorControl<? super E>> pair : p_21909_) {\n         this.availableBehaviorsByPriority.computeIfAbsent(pair.getFirst(), (p_21917_) -> {\n            return Maps.newHashMap();\n         }).computeIfAbsent(p_21908_, (p_21972_) -> {\n            return Sets.newLinkedHashSet();\n         }).add(pair.getSecond());\n      }\n\n   }\n\n   @VisibleForTesting\n   public void removeAllBehaviors() {\n      this.availableBehaviorsByPriority.clear();\n   }\n\n   public boolean isActive(Activity p_21955_) {\n      return this.activeActivities.contains(p_21955_);\n   }\n\n   public Brain<E> copyWithoutBehaviors() {\n      Brain<E> brain = new Brain<>(this.memories.keySet(), this.sensors.keySet(), ImmutableList.of(), this.codec);\n\n      for(Map.Entry<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> entry : this.memories.entrySet()) {\n         MemoryModuleType<?> memorymoduletype = entry.getKey();\n         if (entry.getValue().isPresent()) {\n            brain.memories.put(memorymoduletype, entry.getValue());\n         }\n      }\n\n      return brain;\n   }\n\n   public void tick(ServerLevel p_21866_, E p_21867_) {\n      this.forgetOutdatedMemories();\n      this.tickSensors(p_21866_, p_21867_);\n      this.startEachNonRunningBehavior(p_21866_, p_21867_);\n      this.tickEachRunningBehavior(p_21866_, p_21867_);\n   }\n\n   private void tickSensors(ServerLevel p_21950_, E p_21951_) {\n      for(Sensor<? super E> sensor : this.sensors.values()) {\n         sensor.tick(p_21950_, p_21951_);\n      }\n\n   }\n\n   private void forgetOutdatedMemories() {\n      for(Map.Entry<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> entry : this.memories.entrySet()) {\n         if (entry.getValue().isPresent()) {\n            ExpirableValue<?> expirablevalue = entry.getValue().get();\n            if (expirablevalue.hasExpired()) {\n               this.eraseMemory(entry.getKey());\n            }\n\n            expirablevalue.tick();\n         }\n      }\n\n   }\n\n   public void stopAll(ServerLevel p_21934_, E p_21935_) {\n      long i = p_21935_.level().getGameTime();\n\n      for(BehaviorControl<? super E> behaviorcontrol : this.getRunningBehaviors()) {\n         behaviorcontrol.doStop(p_21934_, p_21935_, i);\n      }\n\n   }\n\n   private void startEachNonRunningBehavior(ServerLevel p_21958_, E p_21959_) {\n      long i = p_21958_.getGameTime();\n\n      for(Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {\n         for(Map.Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {\n            Activity activity = entry.getKey();\n            if (this.activeActivities.contains(activity)) {\n               for(BehaviorControl<? super E> behaviorcontrol : entry.getValue()) {\n                  if (behaviorcontrol.getStatus() == Behavior.Status.STOPPED) {\n                     behaviorcontrol.tryStart(p_21958_, p_21959_, i);\n                  }\n               }\n            }\n         }\n      }\n\n   }\n\n   private void tickEachRunningBehavior(ServerLevel p_21964_, E p_21965_) {\n      long i = p_21964_.getGameTime();\n\n      for(BehaviorControl<? super E> behaviorcontrol : this.getRunningBehaviors()) {\n         behaviorcontrol.tickOrStop(p_21964_, p_21965_, i);\n      }\n\n   }\n\n   private boolean activityRequirementsAreMet(Activity p_21970_) {\n      if (!this.activityRequirements.containsKey(p_21970_)) {\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/Brain.java",
+        "entry_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+        "lines": [
+          450,
+          468
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "f97f423c6ef551ca5002a9bc81be0fc567ce1d9228dff5f6c7b08f2bb5e1a7d2",
+        "raw_excerpt_utf8": "   private boolean activityRequirementsAreMet(Activity p_21970_) {\n      if (!this.activityRequirements.containsKey(p_21970_)) {\n         return false;\n      } else {\n         for(Pair<MemoryModuleType<?>, MemoryStatus> pair : this.activityRequirements.get(p_21970_)) {\n            MemoryModuleType<?> memorymoduletype = pair.getFirst();\n            MemoryStatus memorystatus = pair.getSecond();\n            if (!this.checkMemory(memorymoduletype, memorystatus)) {\n               return false;\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private boolean isEmptyCollection(Object p_21919_) {\n      return p_21919_ instanceof Collection && ((Collection)p_21919_).isEmpty();\n   }\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/Brain.java",
+        "entry_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+        "lines": [
+          507,
+          550
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "32ed8c8346d61b0941c6c0494dbb51e834e73ad0938b734219c301205e0a9722",
+        "raw_excerpt_utf8": "      private final Optional<? extends ExpirableValue<U>> value;\n\n      static <U> Brain.MemoryValue<U> createUnchecked(MemoryModuleType<U> p_22060_, Optional<? extends ExpirableValue<?>> p_22061_) {\n         return new Brain.MemoryValue<U>(p_22060_, (Optional<? extends ExpirableValue<U>>)p_22061_);\n      }\n\n      MemoryValue(MemoryModuleType<U> p_22033_, Optional<? extends ExpirableValue<U>> p_22034_) {\n         this.type = p_22033_;\n         this.value = p_22034_;\n      }\n\n      void setMemoryInternal(Brain<?> p_22043_) {\n         p_22043_.setMemoryInternal(this.type, this.value);\n      }\n\n      public <T> void serialize(DynamicOps<T> p_22048_, RecordBuilder<T> p_22049_) {\n         this.type.getCodec().ifPresent((p_22053_) -> {\n            this.value.ifPresent((p_258258_) -> {\n               p_22049_.add(BuiltInRegistries.MEMORY_MODULE_TYPE.byNameCodec().encodeStart(p_22048_, this.type), p_22053_.encodeStart(p_22048_, p_258258_));\n            });\n         });\n      }\n   }\n\n   public static final class Provider<E extends LivingEntity> {\n      private final Collection<? extends MemoryModuleType<?>> memoryTypes;\n      private final Collection<? extends SensorType<? extends Sensor<? super E>>> sensorTypes;\n      private final Codec<Brain<E>> codec;\n\n      Provider(Collection<? extends MemoryModuleType<?>> p_22066_, Collection<? extends SensorType<? extends Sensor<? super E>>> p_22067_) {\n         this.memoryTypes = p_22066_;\n         this.sensorTypes = p_22067_;\n         this.codec = Brain.codec(p_22066_, p_22067_);\n      }\n\n      public Brain<E> makeBrain(Dynamic<?> p_22074_) {\n         return this.codec.parse(p_22074_).resultOrPartial(Brain.LOGGER::error).orElseGet(() -> {\n            return new Brain<>(this.memoryTypes, this.sensorTypes, ImmutableList.of(), () -> {\n               return this.codec;\n            });\n         });\n      }\n   }\n}\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+        "entry_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+        "lines": [
+          120,
+          149
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "2330ea91ae491959cddf1d22a15d5d6d2666dd6721c2f9b415e6f81eda8ee900",
+        "raw_excerpt_utf8": "   public static final MemoryModuleType<GlobalPos> LIKED_NOTEBLOCK_POSITION = register(\"liked_noteblock\", GlobalPos.CODEC);\n   public static final MemoryModuleType<Integer> LIKED_NOTEBLOCK_COOLDOWN_TICKS = register(\"liked_noteblock_cooldown_ticks\", Codec.INT);\n   public static final MemoryModuleType<Integer> ITEM_PICKUP_COOLDOWN_TICKS = register(\"item_pickup_cooldown_ticks\", Codec.INT);\n   public static final MemoryModuleType<List<GlobalPos>> SNIFFER_EXPLORED_POSITIONS = register(\"sniffer_explored_positions\", Codec.list(GlobalPos.CODEC));\n   public static final MemoryModuleType<BlockPos> SNIFFER_SNIFFING_TARGET = register(\"sniffer_sniffing_target\");\n   public static final MemoryModuleType<Boolean> SNIFFER_DIGGING = register(\"sniffer_digging\");\n   public static final MemoryModuleType<Boolean> SNIFFER_HAPPY = register(\"sniffer_happy\");\n   private final Optional<Codec<ExpirableValue<U>>> codec;\n\n   @VisibleForTesting\n   public MemoryModuleType(Optional<Codec<U>> p_26386_) {\n      this.codec = p_26386_.map(ExpirableValue::codec);\n   }\n\n   public String toString() {\n      return BuiltInRegistries.MEMORY_MODULE_TYPE.getKey(this).toString();\n   }\n\n   public Optional<Codec<ExpirableValue<U>>> getCodec() {\n      return this.codec;\n   }\n\n   private static <U> MemoryModuleType<U> register(String p_26391_, Codec<U> p_26392_) {\n      return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, new ResourceLocation(p_26391_), new MemoryModuleType<>(Optional.of(p_26392_)));\n   }\n\n   private static <U> MemoryModuleType<U> register(String p_26389_) {\n      return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, new ResourceLocation(p_26389_), new MemoryModuleType<>(Optional.empty()));\n   }\n}",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/LivingEntity.java",
+        "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "lines": [
+          665,
+          700
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "ecd0e1e1acbaa4a1b23955666b27d560b4f5595ce0290b978e8240ff14ceb310",
+        "raw_excerpt_utf8": "      this.brain.clearMemories();\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_21145_) {\n      p_21145_.putFloat(\"Health\", this.getHealth());\n      p_21145_.putShort(\"HurtTime\", (short)this.hurtTime);\n      p_21145_.putInt(\"HurtByTimestamp\", this.lastHurtByMobTimestamp);\n      p_21145_.putShort(\"DeathTime\", (short)this.deathTime);\n      p_21145_.putFloat(\"AbsorptionAmount\", this.getAbsorptionAmount());\n      p_21145_.put(\"Attributes\", this.getAttributes().save());\n      if (!this.activeEffects.isEmpty()) {\n         ListTag listtag = new ListTag();\n\n         for(MobEffectInstance mobeffectinstance : this.activeEffects.values()) {\n            listtag.add(mobeffectinstance.save(new CompoundTag()));\n         }\n\n         p_21145_.put(\"ActiveEffects\", listtag);\n      }\n\n      p_21145_.putBoolean(\"FallFlying\", this.isFallFlying());\n      this.getSleepingPos().ifPresent((p_21099_) -> {\n         p_21145_.putInt(\"SleepingX\", p_21099_.getX());\n         p_21145_.putInt(\"SleepingY\", p_21099_.getY());\n         p_21145_.putInt(\"SleepingZ\", p_21099_.getZ());\n      });\n      DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);\n      dataresult.resultOrPartial(LOGGER::error).ifPresent((p_21102_) -> {\n         p_21145_.put(\"Brain\", p_21102_);\n      });\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_21096_) {\n      this.setAbsorptionAmount(p_21096_.getFloat(\"AbsorptionAmount\"));\n      if (p_21096_.contains(\"Attributes\", 9) && this.level() != null && !this.level().isClientSide) {\n         this.getAttributes().load(p_21096_.getList(\"Attributes\", 10));\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/LivingEntity.java",
+        "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "lines": [
+          738,
+          749
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "6a2d450d60a70ff7137ae82c8e6e6062f8a625a335fb756762ce7f44a8b13dad",
+        "raw_excerpt_utf8": "         this.entityData.set(DATA_POSE, Pose.SLEEPING);\n         if (!this.firstTick) {\n            this.setPosToBed(blockpos);\n         }\n      }\n\n      if (p_21096_.contains(\"Brain\", 10)) {\n         var dyn = new Dynamic<>(NbtOps.INSTANCE, p_21096_.get(\"Brain\"));\n         this.brain = net.minecraftforge.common.ForgeHooks.onLivingMakeBrain(this, this.makeBrain(dyn), dyn);\n      }\n\n   }\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/LivingEntity.java",
+        "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "lines": [
+          751,
+          782
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "b4165caa1bf11cebc6505dbf278eb07fb469bfb5d65966ed9d11242b705847b1",
+        "raw_excerpt_utf8": "   protected void tickEffects() {\n      Iterator<MobEffect> iterator = this.activeEffects.keySet().iterator();\n\n      try {\n         while(iterator.hasNext()) {\n            MobEffect mobeffect = iterator.next();\n            MobEffectInstance mobeffectinstance = this.activeEffects.get(mobeffect);\n            if (!mobeffectinstance.tick(this, () -> {\n               this.onEffectUpdated(mobeffectinstance, true, (Entity)null);\n            })) {\n               if (!this.level().isClientSide && !net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.MobEffectEvent.Expired(this, mobeffectinstance))) {\n                  iterator.remove();\n                  this.onEffectRemoved(mobeffectinstance);\n               }\n            } else if (mobeffectinstance.getDuration() % 600 == 0) {\n               this.onEffectUpdated(mobeffectinstance, false, (Entity)null);\n            }\n         }\n      } catch (ConcurrentModificationException concurrentmodificationexception) {\n      }\n\n      if (this.effectsDirty) {\n         if (!this.level().isClientSide) {\n            this.updateInvisibilityStatus();\n            this.updateGlowingStatus();\n         }\n\n         this.effectsDirty = false;\n      }\n\n      int i = this.entityData.get(DATA_EFFECT_COLOR_ID);\n      boolean flag1 = this.entityData.get(DATA_EFFECT_AMBIENCE_ID);\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-axolotl-injury-recovery-whole-policy-candidate-20261110.json",
+        "sha256": "85d452de473ed4e7cb1f28db8b033f0e7274bb5d97953f2d949de1c8ac7843d9",
+        "bytes": 251019
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/memory/ExpirableValue.java",
+        "entry_sha256": "b964e1bb4ded51681b722ad6969cb7dea5e426e4f34b3208a80eed6ef9e6ae45",
+        "lines": [
+          1,
+          64
+        ],
+        "full_file": true,
+        "raw_excerpt_sha256": "b964e1bb4ded51681b722ad6969cb7dea5e426e4f34b3208a80eed6ef9e6ae45",
+        "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.memory;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport java.util.Optional;\nimport net.minecraft.util.VisibleForDebug;\n\npublic class ExpirableValue<T> {\n   private final T value;\n   private long timeToLive;\n\n   public ExpirableValue(T p_26299_, long p_26300_) {\n      this.value = p_26299_;\n      this.timeToLive = p_26300_;\n   }\n\n   public void tick() {\n      if (this.canExpire()) {\n         --this.timeToLive;\n      }\n\n   }\n\n   public static <T> ExpirableValue<T> of(T p_26310_) {\n      return new ExpirableValue<>(p_26310_, Long.MAX_VALUE);\n   }\n\n   public static <T> ExpirableValue<T> of(T p_26312_, long p_26313_) {\n      return new ExpirableValue<>(p_26312_, p_26313_);\n   }\n\n   public long getTimeToLive() {\n      return this.timeToLive;\n   }\n\n   public T getValue() {\n      return this.value;\n   }\n\n   public boolean hasExpired() {\n      return this.timeToLive <= 0L;\n   }\n\n   public String toString() {\n      return this.value + (this.canExpire() ? \" (ttl: \" + this.timeToLive + \")\" : \"\");\n   }\n\n   @VisibleForDebug\n   public boolean canExpire() {\n      return this.timeToLive != Long.MAX_VALUE;\n   }\n\n   public static <T> Codec<ExpirableValue<T>> codec(Codec<T> p_26305_) {\n      return RecordCodecBuilder.create((p_26308_) -> {\n         return p_26308_.group(p_26305_.fieldOf(\"value\").forGetter((p_148193_) -> {\n            return p_148193_.value;\n         }), Codec.LONG.optionalFieldOf(\"ttl\").forGetter((p_148187_) -> {\n            return p_148187_.canExpire() ? Optional.of(p_148187_.timeToLive) : Optional.empty();\n         })).apply(p_26308_, (p_148189_, p_148190_) -> {\n            return new ExpirableValue<>(p_148189_, p_148190_.orElse(Long.MAX_VALUE));\n         });\n      });\n   }\n}",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-turtle-egg-whole-read-overlap-zero-disposition-20261110.json",
+        "sha256": "a462e57b0dbaafa892b430a1e7db4e889fcd1a1330eb23e3e399a9dc0e8f7fe9",
+        "bytes": 90588
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/server/level/ServerLevel.java",
+        "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "lines": [
+          814,
+          816
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "7dfb6807ef9e18033ddd08b52c3bc8b689d437c00006fc3d6f1fd822b5a5fb03",
+        "raw_excerpt_utf8": "   public boolean addFreshEntity(Entity p_8837_) {\n      return this.addEntity(p_8837_);\n   }\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-turtle-egg-whole-read-overlap-zero-disposition-20261110.json",
+        "sha256": "a462e57b0dbaafa892b430a1e7db4e889fcd1a1330eb23e3e399a9dc0e8f7fe9",
+        "bytes": 90588
+      },
+      "descriptor": {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/server/level/ServerLevel.java",
+        "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "lines": [
+          855,
+          867
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+        "raw_excerpt_utf8": "   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n",
+        "range_or_helper_credit": 0
+      },
+      "new_credit": 0,
+      "actual_old_own_source_reading_reused_not_reread": true
+    }
+  ],
+  "complete_selected_ecology_judgments_actually_read": [
+    {
+      "id": "EA-0002",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+        "sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+        "bytes": 94231
+      },
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b",
+      "actual_complete_selected_judgment_fields_read": {
+        "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+        "observation": [
+          "NoiseBasedChunkGenerator下以level seed+尝试号抽XZ，水高度严格31<height<63时存唯一ChunkPos；每10次计数机会搜索，整数minutes>5后放弃。",
+          "spawn predicate将已保存区块、水体和洞穴水柱相交；SPAWNER可绕过此predicate，其余正常出生仍须原生cap和后续事件。",
+          "NoPupfishChunk随SavedData保存，耗时放弃可把后续启动也带入没有入口的状态。"
+        ],
+        "application": [
+          "研究稀有生态的候选栖地是否确定存在，须检查选择算法、生成器兼容、搜索终止及存档状态，不能只看非空biome标签。",
+          "把“栖地未选出/搜索已终止”和“cap先挡住”作为不同诊断状态，不进行更多随机挂机。"
+        ],
+        "limits": [
+          "wall clock不是游戏tick；LevelTick未筛phase/维度，不声称每10真实tick或6分钟精确时限。",
+          "restrictPupfishSpawns只控制搜索，当前canPupfishSpawn未检查它；关开关不等价解除位置限制。",
+          "选择器仅查噪声水高度，不证明选中区块同时有允许biome、合适洞顶、已加载或真实出生。",
+          "搜索失败/特殊非噪声生成器与普通cap阻挡均需独立观测；不建议照搬永久放弃策略。",
+          "本项聚焦真实predicate可达性，不将缓存缺失的Forge biome modifier JSON宣称已核验；注册注入片段是支持证据，不等于完整部署验收。"
+        ]
+      },
+      "new_credit": 0,
+      "old_source_chains_reread": false
+    },
+    {
+      "id": "EA-0023",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+        "sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+        "bytes": 379541
+      },
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d",
+      "actual_complete_selected_judgment_fields_read": {
+        "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+        "observation": [
+          "Actual PLATYPUS factory/CREATURE registration and default-false Sensing data belong to an existing animal; natural spawn substrate/roll, breeding/eggs/Fedora/retaliatory poison and name Easter egg were read as containing-class context and confer0. Proposed family is one paid charge-tier substrate-service lifetime, not a new breeding or natural spawn implementation.",
+          "mobInteract first handles Fedora, then chargeable tag while notSensing: snapshot superCharged from second tag, shrink1 unless player.isCreative, setSensing true and sidedSuccess. There is no explicit own server-side, adult, habitat, pending-loot or owner gate. In the shown branch charge quality is sampled before debit; no waiter/player UUID/receipt/refund is stored. Later native interaction composition and actual inventory debit were not run.",
+          "Dropped-item route is actual registered CreatureAITargetItems(false,false,40,15), requiring empty mainhand and age>40 at target selection in a radius15 cube, with current item foodstuff membership. The anonymous canUse calls super FIRST then tests !Sensing, so rejected selection may retain helper-selected target/onFind callback without starting. Continuation also tests !Sensing. Within distanceSquared<2 native helper invokes onGetItem before shrink1 and direct stop. Callback sets charge tier/Sensing only if current stack belongs to chargeables. No source claim that foodstuff/chargeable tags overlap, no Owner/pickup-delay gate at this custom sink and no recheck of food/age at debit. Shared helper itself0.",
+          "Sensing participates in shouldEnterWater unlessHasEgg; ordinary leave-water desire is suppressed while sensing but HasEgg still forces leave. FindWater1 and LeaveWater1 use MOVE/LOOK and sampled navigation requests. Dig goal priority5 declares no flags: native Goal defaults empty, so scheduler flag locking does not exclude concurrent move/panic/mate goals solely by priority; it may share navigation. Swim controller stops speed while digging, but source travel/previous velocity/navigation ordering do not establish arrival or immobility. No helper/path/collision guarantee.",
+          "Dig canUse only checks Sensing and generatePosCooldown. At0 resets20..39, searches, draws maxDroppedItems2..6, returns candidate!=null; whilepositive decrements only on eligible canUse calls. Failed search leaves Sensing and no explicit global deadline. In water, genSeafloor samples15 XZ[-7,7] currentY and descends through WATER whileY>1, accepting first digable substrate; land samples15 outerXZ[-7,7],Y+3, descendsAIR and ifWATER runs inner15 search. This is bounded per evaluation, not225 distinct references, globally bounded time or a standable reachable path. Initial canUse does not itself require water above returned substrate; continuation checks it only later.",
+          "Continuation requires targetnull, Sensing, lastHurtByMobnull, nonnull candidate, current digables tag and water above. No age/path/isInWater/current distance or elapsed deadline. Natural selector cleanup invokes wrapped stop when failed; invalid target/hurt/state ends charge with no refund. Native serverAiStep alternates full selectors and requiresUpdateEveryTick-running calls; dig inheritsfalse, so digTime counts delivered goal ticks and not unconditional world ticks/seconds.",
+          "Near distanceSquared<2 to center(substrate.above), addY-.01, stop navigation and increment digTime. Every5 delivered near updates emits event/sound request; every floor(100/maxDroppedItems) invokes reward dispatch, then at>=100 clearsSensing/Digging and resetsdigTime. Away only clearsDigging and moves; it does NOT resetdigTime, so near updates can accumulate across separations. For n2..6 under uninterrupted normal calls100 updates schedule n table rolls (interval50,33,25,20,16), not n actual item units/entities. Higher-tier selection uses current superCharged field each roll; no per-roll payment or player owner.",
+          "Reward IDs gameplay/platypus_reward or gameplay/platypus_supercharged_reward are looked up from current server loot resolver; LootParams supplies THIS_ENTITY with PIGLIN_BARTER (required onlyTHIS_ENTITY, default luck0). Manager uses current resource reload map; resolver missing table returns LootTable.EMPTY. LootTable applies pools/functions/feature-enabled splitting then Forge global modifier chain. Thus raw loot JSON absence blocks exact items, quantities/probabilities/conditions or guaranteed nonempty result; even fallback EMPTY can be modified by global hooks. No specific redstone/glowstone/diamond or default deployed table assertion.",
+          "For each returned stack, mod passes stack.copy (native preserves NBT/caps), calls spawnAtLocation then dereferences result without null guard to set impulse/reduce velocity. Native returnsnull for empty/client; otherwise constructs ItemEntity/default pickup delay, either appends to captureDrops collection or calls addFreshEntity without checking bool, then returns entity regardless admission. Global modifiers can in principle introduce empty stack; null dereference is conditional source hazard, not reproduced crash. Nonnull spawn return/event/sound/counter completion is not world-admission or material pickup receipt.",
+          "Dig stop resetsgeneratePosCooldown0, Sensingfalse, Diggingfalse, candidate null,digTime0; no charge item/refund linkage, no superCharged reset. Completion clearsSensing and counter, later wrappercleanup repeats stop; subsequent new feed overwrites tier. Own NBT storesSensing/Fedora/FromBucket/HasEgg via super, but not superCharged, candidate, progress, roll count, cooldown, swimTimer orDigging. Fresh reconstruction of active charge can restoreSensing yet fielddefault superChargedfalse/new goal counters, permitting new source-level session with normal tier. Existing-object read does not explicitly clear superCharged, so do not claim universal tier loss or live replay exploit.",
+          "Actual getBucketItemStack creates registered PLATYPUS_BUCKET; saveToBucketTag puts addAdditionalSaveData in PlatypusData. Native bucket pickup calls save/set hand/discard; ItemModFishBucket asks EntityType.spawn then restores PlatypusData and forcesFromBucket. Same partial state boundary applies to fresh bucket reconstruction, not complete verified entity admission/release/native savedata roundtrip. Broader inherited save fields and same-object reload hooks/capabilities not exhaustively expanded; ordinary NBT/transport alone0.",
+          "Player pickup is separate native ItemEntity.playerTouch: server, delay, Forge pickup hook, target permission and inventory acceptance govern copied difference/events/stats/discard. Dig does not wait for those receipts or correlate ItemEntityUUID to feedingplayer. Birth24/30/pickup9/10/strictkill0/run12 onGroundfalse are unchanged. No natural cap/local opportunity/biome proof, runtime ecology, quest award or new production behavior follows from this source reading.",
+          "Existing actor registration is CREATURE, size0.8x0.5, bucket points to that same registered type. Whole EntityPlatypus (555 lines), dig goal155, FindWater68, LeaveWater80, SwimController78, ItemModFishBucket98, target-item167 and interface23 were actually read. Spawn rolls, poison, Fedora/name, standard breeding/egg/particles are containing-class support0, not extra policy credits.",
+          "Player charging branch follows Fedora branch, requires current chargeable tag and !Sensing, snapshots super-charge membership BEFORE shrink1 unless creative, then setsSensing and returns sided success. Own branch has no explicit server/adult/terrain/ownership/output gate. No player or charge-item identity is retained, no pending payment result/refund. This is conditional sequential source order, not actual successful input or server exactly-once receipt.",
+          "Fallback expression Bucketable.bucketMobPickup(...).orElse(super.mobInteract(...)) evaluates the super argument eagerly after the bucket helper call even if Optional is present. Parent effects and custom resource intersections cannot be inferred from this expression; do not treat fallback as lazy or claim demonstrated duplicate payment. Whole bucket acquisition support and prior EA18 spawn consumer reading are reused without new semantic credit.",
+          "Dropped-item entry uses CreatureAITargetItems(false,false,40,15), empty main hand, nonempty age>40 current foodstuff stack, nearest squared distance in radius15 cube. Its anonymous canUse invokes super then !Sensing. However the actual selection predicate already includes !Sensing through canTargetItem, and onFindTarget is default no-op; super-first alone does NOT demonstrate a normal sequential rejected selection while sensing. At the debit sink current item-food/age/tag is not revalidated; callback precedes unconditional shrink1 and stop. Callback charge test snapshots tier and setsSensing; foodstuff-only items can be consumed without charging, subject to unknown actual tag contents. No ItemEntity Owner/pickup-delay gate here.",
+          "While sensing, shouldEnterWater is true only if !HasEgg; HasEgg can still force leave. Find/leave water share MOVE/LOOK at priority1. Dig priority5 never sets flags; native Goal empty flags mean it is not protected from other movement goals by locking, even at differing priorities. Shared navigation/rotation/velocity may be changed by concurrent goals. SwimController sets speed0 while Digging, not whole-entity immobility or committed arrival.",
+          "Dig canUse gates onSensing; cooldown0 resets20..39 and searches before drawing n2..6; positive cooldown decrements only on delivered evaluation. Search failure retainsSensing, with no explicit overall timeout/refund. In-water15 candidate XZ offsets[-7,7] descend through WATER whileY>1, returning first digables block; land15 outer offsets startY+3, descendAIR, and WATER candidates launch inner15 search. Repeated/random candidate positions may coincide. No path acceptance, standability, global completion bound or separate reference per sample. Initial search does not require WATER above accepted substrate; continuation checks it later.",
+          "Continuation requires no attacktarget, Sensing, lastHurtByMobnull, nonnull targetblock, current digables and WATER above. It has no own age, onGround, path success, current water or distance/elapsed deadline. Subsequent cleanup can stop and consume the service on changed terrain/hurt/state without refund. Initial start need not first pass canContinue, as inherited start is no-op. Native alternating Mob selector update paths and Goal.requiresUpdateEveryTick=false mean digTime is a count of delivered near goal updates, not100 world ticks or5 seconds.",
+          "At squared distance<2 from center(digPos.above), add downward velocity, stop navigation, incrementdigTime, request block activation/audio every5, dispatch loot at multiples of floor(100/n). At>=100 clearSensing/Digging and resettime. Away clearsDigging and requests navigation without resetting time; near progress is cumulative across separation. For n2..6 and normal uninterrupted returns up to100, intervals50/33/25/20/16 yield n table rolls, never necessarily n stacks/items/admitted entities. Every roll reads CURRENT superCharged. Feedback and100-counter completion are not output receipts.",
+          "Actual loot lookup uses current server resolver and one of gameplay/platypus_reward or gameplay/platypus_supercharged_reward. LootParams THIS_ENTITY with PIGLIN_BARTER meets that set only-requiredTHIS_ENTITY; luck defaults0. Forge disables disallowed-extra-parameter rejection but keeps missing-required check. No origin/tool/player supplied. Full LootDataManager/Resolver read shows reload map lookup and fallbackEMPTY, not guaranteed deployed table contents.",
+          "Whole LootTable read shows pools/functions then feature-enabled stack splitting then ForgeHooks.modifyLoot applying all registered global modifiers; EMPTY fallback still reaches modifier call. Actual pool/function/context/helper/third-party implementation internals are not exhaustively traced. Returned lists can differ in count/items/emptiness. Six resource JSON files are pinned tree identities only, raw absent locally. No inferred redstone/glowstone/diamond/tag intersections/default resource reachability or loaded nonempty claim.",
+          "For each returned stack copy then spawnAtLocation; ItemStack.copy preserves NBT/caps for nonempty, EMPTY for empty. Result is dereferenced without null check for impulse and velocity scaling. Entity.spawnAtLocation returnsnull for empty/client; otherwise constructs ItemEntity/defaultpickupdelay and appends to current captureDrops or requests unchecked addFreshEntity, returning the object independently of admission bool. An empty stack after external loot processing is a conditional null hazard, not a reproduced crash. Capture collection and nonnull return do not prove world membership or player possession.",
+          "Dig.stop resetscooldown0,Sensingfalse,Diggingfalse,targetnull,time0 but not superCharged and never refunds/debits a player again. Completion first resets own fields; later selector cleanup calls wrapped stop. Direct underlying stop in target-item helper is different from wrapper running-state transition; shared native helper contributes0.",
+          "Own addAdditionalSaveData stores Fedora,Sensing,FromBucket,HasEgg after super; no superCharged,digPos,digTime,maxDroppedItems,cooldown,swimTimer,Digging/SensingVisual in shown own save. Fresh reconstruction initial superCharged=false/new goal counters may restoreSensingtrue and start a new normal-tier source-level service; existing-object read does not clear omitted old tier/counters. Full inherited save/event/capability/chunk lifecycle not expanded; do not claim universal reset, complete loss, exact roll replay or exploit.",
+          "Bucket uses addAdditionalSaveData nested PlatypusData, pickup save/set hand/discard, and ItemModFishBucket requests native spawn before loadFromBucketTag/setFromBucket. Thus same partial own-state transfer applies on fresh bucket construction. Actual previous EA18 full spawn/passenger/add judgment is support0 and not re-run here; no bucket release/admission/world reopening proof. HasEgg/breeding overlap is support0.",
+          "Native ItemEntity.playerTouch independently enforces server, pickupdelay, Forge hook, target/inventory and computes actual copied count delta for events/stats/discard. Dig never waits for it or correlates feedingplayer/input/roll/ItemEntityUUID. Existing Dynasty24/30 birth,9/10 pickup,strictkill0 and run12 ground issue are unchanged. No natural cap, birth/kill, paid quest, receipt or practical ecology completion credit follows."
+        ],
+        "application": "Future Dynasty acquisition design must connect real tagged material payment to a service identity, actual admitted loot entities and actual same-UUID pickups, with conditional terrain, concurrency, interruptions and save behavior. Reference methods/quality only; no upstream copy or production before applicable1000 gate.",
+        "limits": [
+          "Six same-pin tag/loot raw resources not cached; no concrete material intersection, specific reward/probability/nonempty or merged loaded resource claim. Missing local raw is not proof absent upstream/runtime.",
+          "Navigation success, current terrain, collision/full task ordering, third-party goals/tags/handlers/global loot modifiers, LootContext/Pool/function internals and all item overrides not exhaustively read. Native callbacks may throw/reenter; stated sequential normal-return order is conditional.",
+          "Native EntityType.spawn/passenger admission, actual player interaction, owner resolution, all parent save/capability/event serialization and physical bucket release not newly traced in full. Mod bucket order and fresh/existing-object differences only; reuse prior actual EA18 judgment without new credit.",
+          "No guarantee goal100 updates=100world ticks/5seconds, nrolls=nitems, returnedEntity=admittedEntity, fillbucket=deliveredActor, sound=receipt, source setting=loaded current modpack.",
+          "No execution of source/mod/Java/Gradle/game/server/GUI/network/process/display/audio; no wake/focus/brightness, user instance/world, production/cap/category/probability/QA/Jar/art/Git/prompt mutation.",
+          "Current applicable ecology gate unmet. New reference/proposal/support ranges contribute0 until genuine independent scope/semantic acceptance; not all-cod task completion.",
+          "Six same-pin tag/loot raw resources not cached; no concrete material intersection, specific reward/probability/nonempty or merged loaded resource claim. Missing local raw is not proof absent upstream/runtime.",
+          "Navigation success, current terrain, collision/full task ordering, third-party goals/tags/handlers/global loot modifiers, LootContext/Pool/function internals and all item overrides not exhaustively read. Native callbacks may throw/reenter; stated sequential normal-return order is conditional.",
+          "Native EntityType.spawn/passenger admission, actual player interaction, owner resolution, all parent save/capability/event serialization and physical bucket release not newly traced in full. Mod bucket order and fresh/existing-object differences only; reuse prior actual EA18 judgment without new credit.",
+          "No guarantee goal100 updates=100world ticks/5seconds, nrolls=nitems, returnedEntity=admittedEntity, fillbucket=deliveredActor, sound=receipt, source setting=loaded current modpack.",
+          "No execution of source/mod/Java/Gradle/game/server/GUI/network/process/display/audio; no wake/focus/brightness, user instance/world, production/cap/category/probability/QA/Jar/art/Git/prompt mutation.",
+          "Current applicable ecology gate unmet. New reference/proposal/support ranges contribute0 until genuine independent scope/semantic acceptance; not all-cod task completion.",
+          "Three exact native Goal/Selector/WrappedGoal whole prior actual readings reused with byte/range identity, not claimed freshly read. All other16 proposal-native ranges read this review; no full large native class claim.",
+          "No ordinary sequential rejected item-selection inference from super-first, because actual candidate predicate already !Sensing and onFind defaultno-op; no lazy Optional fallback inference.",
+          "No formal independent receipt synthesized, no ID reserved/assigned, no master count raised by this file.",
+          "Freeze original proposal35dc3f5 and this independent review with distinct true author/reviewer roles. Exactly one whole charge-tiered substrate excavation service maximum; generic selector/bucket/loot helpers, species, samples, random n rolls, defects and JSON files each0.",
+          "Carry parameterized_source_policy_only with all6 raw resource gaps. No concrete tag members/intersection, particular reward/item quantities/probability, loaded nonempty or current deployed configuration claim; missing local raw is not upstream/runtime absence.",
+          "Charging quality sampled before debit; dropped callback before shrink. Retain no input/output/player ownership receipt/refund plus eager orElse super call and selection already !Sensing/defaultno-op qualification. Do not infer duplicated payment or ordinarily rejected sensing selection.",
+          "Dig no flags can share navigation with move goals; higher priority does not itself exclude empty-flag goal. Find/leave/HasEgg, controller speed0 and actual scheduling conditions must remain; no reachability/immobility/strict seconds claim.",
+          "15/15x15 searches may repeat; continuation later validates waterabove, path/currentdistance not gated. No successful arrival/deadline/refund guarantee. Stop can consume sensing without outputs.",
+          "Near digTime accumulates across separations.100 delivered near goal updates not worldticks; floor(100/n) yields n table dispatches under normal returns, not item/admitted counts. Tier is re-read each roll.",
+          "Keep current resolver EMPTY fallback, THIS_ENTITY/PIGLIN_BARTER/defaultluck0, pools/functions/features and Forge global modifier boundary. Empty/altered lists remain possible; no guaranteed reward.",
+          "Nullable spawnAtLocation unchecked dereference is only conditional source hazard. Defaultdelay/captureDrops/unchecked add/non-null return differ from actual admission; pickup separate and uncorrelated. No runtime crash/admission/material success inference.",
+          "PersistedSensing vs omittedtier/progress/counters applies differently to fresh reconstruction and same-object read; bucket serialization alone support0. No universal tier loss, guaranteed full replay, refund, save safety or exploit.",
+          "No production/ecology/cap/category/probability/quest/art/runtime/Git/sharedJar/master/checklist changes; independent scope judgment0 applied until main genuine acceptance. Existing native failures and1000 gate remain unmet; no task deletion or active-hours credit."
+        ]
+      },
+      "new_credit": 0,
+      "old_source_chains_reread": false
+    },
+    {
+      "id": "EA-0027",
+      "source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+        "sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+        "bytes": 984161
+      },
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157",
+      "actual_complete_selected_judgment_fields_read": {
+        "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+        "observation": [
+          "Whole CREATURE class registers Animal ground spawn rules and config-roll check. Default weight10/rolls0 can be loaded-overridden; no biome or installed spawn opportunity claim. Constructor fishingCooldown1200+RNG0..1199; isFood=false/no breed goal. Offspring factory alone is not breeding.",
+          "Hand interaction luck-tag branch precedes lure, requires alive; earned level<10 increments clamp0..10, requests eat/particle/sound then shrinks1. No explicit server or creative guard in these shown branches. At cap returns success/beak-shake with no charge. Tag overlap selects luck even at max, no fallthrough.",
+          "Hand lure feed also clamps CURRENT cooldown-200 into200..2400; dropped lure does not shorten current timer. Dropped predicate is FOODSTUFFS OR luck-below-cap OR lure-below-cap. Helper callback onGetItem runs BEFORE shrink1, then stop; callback stage does not recheck membership/current cap. Foodstuff overlap may still be eaten at cap. Eat/sound/heal5 and stack consumption are not actual player payment/ownership receipt.",
+          "Reset timer=max(1200+RNG0..1199-lure*120,200). Earned lure10 gives max(RNG0..1199,200), not constant200. Luck contributes level*.5 to loot context. Save/read Flying/FishingTimer/Luck/Lure/Revenge direct/unclamped; absent timer0 differs constructor random. Existing migration owner already accepted durable earned-upgrade whole policy,0 new migration/global novelty.",
+          "Fish canUse: !flying && cooldown==0 && random1/30. Current water bypasses shore search; otherwise15 range32 samples descend air and retain LAST valid water. Valid-water tests water/horizontal empty-fluid neighbor/above empty-fluid, not walkable floor/collision/fish population. getLandPos provides first direction nonnull token; actual navigation moves to waterPos, not landPos.",
+          "Continuation requires targetPos token/cooldown0/revenge0/!flying, no water or path revalidation. Near water squared<=1 resets navTime, stops navigation and accumulates idleTime; >25requests animation, >45while fish-animation completes. Away ticks do NOT clear idleTime; thresholds are cumulative near goal invocations, not consecutive world ticks. navTime>3600 away-stop resets near, not absolute timeout.",
+          "Completion requests splash/event then RESETS COOLDOWN BEFORE spawnFishingLoot and stop. Loot uses BuiltInLootTables.FISHING and luck with EMPTY custom LootContextParamSet; registered native FISHING requires ORIGIN/TOOL. Read empty builder and registered-set definitions. Actual table content/conditions unexamined: no guaranteed loot, failure/exception or native fishing-equivalence claim. Earlier native data/params/table/resolver/goal/ForgeHooks proofs reused0.",
+          "Each returned stack requests new ItemEntity then addFreshEntity; return ignored. No nonempty-output check/admission receipt/player owner UUID/pickup/inventory transfer/refund. Empty list still spends cooldown. Later failure would follow prior timer write, but no runtime failure demonstrated. Entity construction or feedback does not certify material acquisition.",
+          "Flight-flee starts flying, continues flying&&(executionTime<15||airborne), seeks landing when revenge0, stop clears flying. Fish priority1/flee4 share MOVE. Fish initial canUse lacks revenge check while continuation includes it; no scheduler race/exploit claim without native execution. Hurt/animation attack code is not strict KILLED proof.",
+          "One whole policy maximum: durable paid productivity upgrades drive repeated habitat fishing with asymmetric feed paths and cooldown-before-unchecked-output. Distinct from raccoon one-food postwash taming, platypus per-charge excavation/partial tier persistence, seal third-offering player-return entitlement, toucan retained seed-block placement. Helpers/stats/tags/thresholds/branches do not split into extra references. Independent ecology applicability/dedup pending,0 formal now.",
+          "Whole EntityShoebill365/ShoebillAIFish158/FlightFlee98 and interface23 plus bounded declaration/config ranges actually read. CreatureAITargetItems167 is exact own earlierwhole1154 reuse, NOT newly reread. Actual CREATURE0.8x1.5/AnimalON_GROUND and rollSpawn configdefault10/0 with assignment do not prove deployed biome/cap natural spawn availability. rollSpawn bypasses SPAWNER and rolls<=0, still not full opportunity. isFoodfalse and no BreedGoal mean offspringfactory alone is not breedingproof.",
+          "Hand luck-tag branch before lure requires isAlive. Earned below10 clamps increment0..10, feedback and shrink1; no own server/creative/owner/age guard in shown branch. Atcap returnsSUCCESS/beakshake without consuming and does not fall through to lure for overlappingtags. Luckbranch feedback precedes shrink; lure increments and clamps CURRENT fishingCooldown-200 to200..2400 then shrink and feedback. Future reset is separate. Handfeeding lacks beneficiary ownership/productionreceipt.",
+          "Dropped-target predicate accepts FOODSTUFFS unconditionally OR luckbelowcap OR lurebelowcap. Own callback first feedback, luckpriority thenlure clamp, heal5, no alive/owner/age/server/currentcap recheck in shown body. FOODSTUFFS overlap may allowconsumptionatcap. Prior exact whole helper callback-before-source shrink supports no transactionalpaymentreceipt; helper selection and actualeat/debit are separate. Droppedlure does NOT reduce currentcooldown, unlike handlure.",
+          "Constructor cooldown1200+RNG0..1199; own reset=max(1200+RNG0..1199-lureLevel*120,200). Earned lure10 gives max(RNG0..1199,200), notconstant200. Luck contributeslevel*.5 to context luck. Native server tick decrementspositive cooldown; negative savedtimer doesnotapproach0 in this ownbranch. Reader directly setsraw Luck/Lure/Timer/Revenge with noclamp, missingtimer0 differsconstructor. No permanentcapability perfield credit.",
+          "Fish priority1 reservesMOVE+LOOK, fleepriority4MOVE. Fish entry !Flying,cooldown==0,random1/30 lacks revenge/target/animation conditions present elsewhere; continuation targetTokennonnull,cooldown0,revenge0,!Flying, no water/path/collision revalidation. Sharedflags/priornativeSelector do not prove a specific runtime race or guaranteed immediate flee. FlightFlee start/stopFlying and continuationtime<15 ORairborne, revenge0landing are whole context, not strict kill/birth evidence.",
+          "Alreadyinwater entry simply waterPos=blockPosition,targetPos=waterPos. Otherwise15 biased[-16,15]x/z+3y probes descendempty and retain LAST validwater. isConnectedToLand checks fluidwater and horizontalneighbor+aboveemptyFLUID, not air/walkablefloor/accessiblepath or fishpopulation. getLandPos firstneighbor is only targettoken; navigationactuallymoveswaterPos notshorepos. Samples mayrepeat; no15distinctrefs or location/reachability guarantee.",
+          "When target/waternonnull and distSquared<=1, resetnavigateTime, stopnav, incrementidleTime. idle>25 setsANIMATION_FISH, then >45 with same animation executes; idleTime notreset whenaway. Thresholds cumulative deliveredneargoalticks, not46consecutiveworldticks/fixedseconds; Citadel internal animation/network advance notexpanded. navigateTime>3600countsawayupdates and isresetnear, notabsolute globaldeadline. Ownstop nullspositions/counters/nav but doesnot reset animation.",
+          "Completion source order is event/splash→resetFishingCooldown→spawnFishingLoot→stop. Thus cooldown is committed before outputrequest/normalemptyresult and beforepossible lowerfailure, but no runtime exception/crash demonstrated. CodecastsServerLevel inside loot builder withoutownsideguard, actualscheduler/servercontextnotexecuted. Emptyloot stillspends cooldown; lowerexception may preventownstop. Do not infer refund/rollback/dupe/atomicity.",
+          "Actual LootContextParamSet whole76 emptybuilder suppliesrequired/all empty; LootParamswithLuck doesNOT addTHIS_ENTITY/ORIGIN/TOOL. Source comment sayingaddplayer/bird is not code. Goal uses BuiltInLootTables.FISHING field with thisemptyset, whereas actualregisteredFISHING set requiresORIGIN+TOOL, optionalentity. Prior ownfullParams/Table/Resolver/ForgeHooks still permitemptytable/conditions/functions/features/globalmodifiers; actualfishingtablecontent and neededparams branches NOTread, so no guaranteed reward OR guaranteed missingparamfailure. 3rawmodtagsabsent is distinct from nativefishingtableunexamined, not a fourthverifiedabsentfile.",
+          "For each result directnewItemEntity(level,position,itemstack), then serveronlyaddFreshEntity returnignored. This is NOT Entity.spawnAtLocation: prior spawnhelper/background proof cannot imply captureDrops/defaultpickupdelay behavior in this path. Actual added nativeconstructor33..74 createsposition/velocity/item/lifespan, no explicitowner/target recipient setup in shown path. Nonemptyoutput/admission/playerinventory receipt absent; empty stacks/list or native拒绝 may differ. No pickup UUID link/refund claim.",
+          "Native playerTouch semantic boundaries previously actuallyreadinSeal are reused forseparateacquisition only, not actual Shoebill receipt. Own NBT saves earned Luck/Lure,timer,revenge,Flying, not FishGoal water/target/idle/navprogress noranimation. Fresh goal resets progress; sameobjectread mayretaincurrentgoal, and restoredFlying/timer influence entry. Missing/rawmalformedstate and gainedlevelclamp aredifferent boundaries. No validatedreload safety, guaranteedfreeproduction or global exploit.",
+          "Existing migration4d6f4ea7fca98f1f7fb5 already credits thisWHOLE earnedupgrades→consumer fishing→persistent lifecycle. Exact currentwhole row matches original. Newglobalnovelty0/newmigration0. Atmostone parameterizedecology applicability only: durableproductivity upgrades drive repeatedhabitatservice with asymmetrichand/dropfeeding and cooldownbeforeuncheckedoutput, distinct from temporaryPlatypuscharge, Seal pooledthresholdrecipient/retryhandoff, Raccoonheldfoodshorewash/tame and Toucanretainedblockintent. Stats/tags/foodpaths/randomsamples/thresholds/nativehelpers each0."
+        ],
+        "application": "After applicable gate, distinguish ingredient provenance, actual payment, persistent upgrades, habitat qualification, generated output identity and actual player acquisition in quest stages. Do not port unchecked stale fields or use sound/entity creation as receipt.",
+        "limits": [
+          "Three raw item-tag JSON files absent in four pinned local caches; no actual membership/recipe/payment claim. No network retry after prior rate limits.",
+          "Native actual fishing table resources/loaded modifiers/runtime scheduling unexamined; source jar lacks fishing JSON, not proof installed resources absent.",
+          "No native birth/strict kill/admitted output/same-UUID pickup/installed-pack survival/perf credit.",
+          "No actual nativefishingtablecontents/conditions validation, not claim guaranteed missingparameter crash.",
+          "DirectItemEntityconstruction path must not be mixed with unusedspawnAtLocation/captureDrops background support.",
+          "No observed runtime material/player ownership or nativeAI/cap/strictkill/reloadacceptance; no1000gate/taskdeletion.",
+          "Bind original6f4430, this true independentreview and mainclosure. Atmostone whole parameterized ecology applicability; migration4d6f already samewhole1, globalnovelty0/newmigration0/applied0. No levels/species/keys/tags/helpers/failures/samples split credit.",
+          "Exactly3rawmodtagfilesabsent across4knownroots; nativeBuiltinFISHINGtablecontents UNEXAMINED not verifiedabsent. Preserve sourcepolicyonly/no loadedtagintersection/deployedconfig/currentbiomespawn/material/rewardcontents/probability claim. Localabsence not runtimeabsence.",
+          "Luckhandpriority even atcap blocks overlappinglurefallthrough; levelincrementclamp precedespayment, no ownside/creative/owner guard. Droppedcallback precedesshrink and hasnolatecapcheck; FOODSTUFFSallowscapfeed; droppedluredoesnotshortencurrenttimer. No transactionalpayment/uniquefeederreceipt.",
+          "Future reset=max(1200+RNG-lure*120,200), earnedlure10 notconstant200. Save rawfieldsnotclamped; missingtimer0 vsrandomconstructor and negativeowncountdown retention. Do not splitdurable fields or recommend arbitraryreplay/permanentcombatstate.",
+          "Keep actualMOVE/LOOK scheduling, entry/continue revenge mismatch, flightfleeconstraints; targetshoretoken notactualnavdestination, fluidempty notwalkableair,15biasedprobeslastvalidmayrepeat. No nativepath/scheduler/race/reachability guarantee.",
+          "Nearidleaccumulatesacrossseparation, >25animation/>45execution notseconds/consecutiveworldticks; awaynavigate3600resetnear notabsolutetimeout, stopdoesnotresetanimation. Citadelpacket/render notaccepted.",
+          "Retain event→resetcooldown→lootretrieve→stop order and noatomicrollback; emptyresultspendscooldown, exceptionmaypreventstop but nocurrentcrashproved. Servercast/lowercontextsnotexecuted.",
+          "withLuckemptyparambuilder has noTHIS_ENTITY/ORIGIN/TOOL despitecomment; nativeFISHINGregisteredset differs. Missingtable/conditions/features/functions/Forgeglobalmods may alterresult; absentactualtableconditions no guaranteedloot OR guaranteedfailure.",
+          "Actual outputDIRECTnewItemEntity thenserveraddFreshEntityunchecked; do notapply unusedspawnAtLocation captureDrops/defaultdelay semantics. No owner/target/acquisitionUUID/insertedquantity proof, no committedadmission/playerpickup/refund/exploit inference.",
+          "Ownpersistentupgrades/timer/Flying vsomittedgoalprogress differfreshandexistingreads. No production/cap/category/quest/art/world/sharedJar/Java/Gradle/network/Git/master/checklist changes; nativebirth/strictkill/material/pickup0,1000gate/taskdeletion/activehours0. Oldwholeproofs reused0, labelsnotwholecurrentread.",
+          "Three raw item-tag JSON files absent in four pinned local caches; no actual membership/recipe/payment claim. No network retry after prior rate limits.",
+          "Native actual fishing table resources/loaded modifiers/runtime scheduling unexamined; source jar lacks fishing JSON, not proof installed resources absent.",
+          "No native birth/strict kill/admitted output/same-UUID pickup/installed-pack survival/perf credit.",
+          "No actual nativefishingtablecontents/conditions validation, not claim guaranteed missingparameter crash.",
+          "DirectItemEntityconstruction path must not be mixed with unusedspawnAtLocation/captureDrops background support.",
+          "No observed runtime material/player ownership or nativeAI/cap/strictkill/reloadacceptance; no1000gate/taskdeletion."
+        ]
+      },
+      "new_credit": 0,
+      "old_source_chains_reread": false
+    }
+  ],
+  "complete_existing_global_Sniffer_owner_reused0": {
+    "candidate_id": "3fb8a71067bc8689fcce",
+    "canonical_complete_row_sha256": "90508b97d6413606384ed9705e4dcd000f14d2a69c3fe372dd89f412d2e0aefb",
+    "actual_complete_non_evidence_decision_fields": {
+      "candidate_id": "3fb8a71067bc8689fcce",
+      "status": "accepted",
+      "family": "native-per-entity-dimension-qualified-foraging-site-history-to-live-loot-work-eligibility",
+      "trigger": "Sniffer native per-entity explored-site history restoration through registered Brain memory and live foraging behaviors",
+      "input": "Saved dimension-qualified explored-position GlobalPos list plus separately persisted sniff cooldown; body/support site history, transient dig phase absent",
+      "output": "Restored history excludes exact matching candidate positions from later canDig checks; bounded search and live digging attempt current loot ItemEntity output; completed rise appends history after earlier output attempt",
+      "preservation": "Recommend max1 for concrete retained per-entity spatial work-history controlling future site eligibility and material-output attempts. Not credit for a memory key: traced producer FinishedDigging, dimension+position list writer/codec through actual LivingEntity persistence and virtual Brain provider, canDig eligibility consumer and actual loot ItemEntity insertion attempt. Whole3327 existing generic memory envelope/expiry upgrade remains intact, including all persistent memory keys; no second Brain codec/TTL credit. Existing rejected generic attributes and duplicate converter remain0. Platypus paid activation entitlement/partial work remains whole, not narrowed to Fedora or one timer; this object stores spatial exclusion history, not paid entry. Tetra and GT remain whole finite world extraction/resource-budget owners, including GT ore support; this is entity-local revisitation history, no shared vein depletion. Full serialized ledger all statuses including no-family scanned for Sniffer/explored_positions/spatial-work-history and no prior owner found; canonical full comparator records all6 hashes match. Original indexed candidate retained, no manufactured ID or class variant splitting. Main and independent peer accept exactly one complete retained spatial work-history gameplay owner; no additional credit for Brain framework or helper ranges.",
+      "application_limit": "CanDig exact dimension+position equality uses head-forward2.25 below position, while history commit stores getOnPos supporting/body block. Thus cannot claim the exact harvested site is always excluded. Normal write list limit20 then prepends =>max21 entries. Lists perentity, evicted sites reusable. Digging server loot attempt at exact tickCount+120 precedes FinishedDigging history commit. Behavior timedOut uses strict greater-than. Interrupt/unload may leave reward without history, no exactly-once receipt. ItemEntity insertion boolean ignored; seed JSON not inspected, no actual species/count or acquisition claim. Full451line Sniffer class independently read via initial ranges plus105 supplement; no own NBT override. Brain memory codecs persist history/cooldown only, not state/dropAt or sniffing target/digging/happy withoutcodec. Expiry counts ticking not elapsed offline time; malformed/unknown memory can partially drop. Forge onLivingMakeBrain hook is on reader, external interception notexpanded. Source only; no game/Java/DFU execution, source archive pin is SHA256 not gitSHA. Comparison owners sourcechains not newly reread; complete serialized decisions/evidence read. Main author read22ranges1135lines plus105 gap lines,1230unique across11native files; peer independently read and source-bound same ranges and six whole serialized comparator records. Main recovered peer full decision/limits separately after initial oversized full receipt display clipped comparator section; comparator payload canonical full hashes independently checked, not claim newly reread every old source chain. Supplement supersedes only original proposal partial-class absence caveat: full451line Sniffer class has now been read. No own NBT override. Source snapshot/archive binding, not game/loot JSON proof or external Forge hook certification. Brain generic codec/envelope/TTL owner3327 stays whole and0 additional. All previously accepted paid entitlement/world extraction owners stay whole; candidate counts concrete entity-local explored-site history controlling future work and actual output attempt, not per-memory or per-entity-name variants. Production gate remains below1000. No production, sharedJar, specialist assets, worlds, checklist or runtime changes; no hour claim.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    "new_credit": 0
+  },
+  "migration_ledger_binding": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "bytes": 18357046
+  },
+  "current_formal_baseline": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "70f6e4fc629947aa59f7d54badef38a6fb9e712ad632e42fcb246609580a982a",
+    "bytes": 1503806
+  },
+  "current_formal_accepted": 49,
+  "current_formal_gap": 951,
+  "current_accepted_semantic_index": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    },
+    {
+      "id": "EA-0047",
+      "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+      "batch_sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+      "canonical_record_sha256": "51bb8cdea916d3fc39c13b37ff58fe0f2f786ff661cfbe2cf11f8c2a6f07f0cf"
+    },
+    {
+      "id": "EA-0048",
+      "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-039.json",
+      "batch_sha256": "5368642e47c777bedd8c8298665b73175345b81b75150d1ecfea8593c4fec9e4",
+      "canonical_record_sha256": "d958c35f6ee66c780e579d3bf8230ffb0a84ebb6869bcca13643c8f2a014cced"
+    },
+    {
+      "id": "EA-0049",
+      "semantic_key": "owner-bound-habitat-weather-phased-fishing-window-to-event-vetoable-reel-loot-and-rod-damage-request-without-acquisition-ack",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-040.json",
+      "batch_sha256": "a2bf20337a0f06dc687a690e08f1afb7f593a246a8ca17686b37d9a1b56692bb",
+      "canonical_record_sha256": "dde78c2150e406f98d1579fee1476ecbfcfb5dc2a02b918d0a76b9d0e34c87a8"
+    },
+    {
+      "id": "EA-0050",
+      "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+      "batch_sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b"
+    }
+  ],
+  "index_not_complete_source_rereading": true,
+  "observed_chain": [
+    "At most1 related entity-local spatial work-history ecology whole: adult dry-ground sniff/search/dig eligibility intersects persistent dimension+position history, then actual loot emission attempt precedes separately timed completion-history commit. Same native Sniffer globalowner already accepted; global/newmigration0, memorycodec/TTL framework remains separateowner0.",
+    "Whole Sniffer451 and SnifferAi271 actually read, plus GlobalPos51, LandRandomPos65, RandomPos120, GoalUtils43 complete. Five bounded memory/support-position/path/factory ranges29lines qualify11primaryranges1030lines10entries6whole. Prior own Brain/Behavior/save/expiry and ServerLeveladd scopes reused0 rather than claimed new reading.",
+    "canSniff rejects temptation/panic/water/love/notground/passenger, but isBaby is not checked there. Sniffing start separately requires adult. canDig additionally excludesbaby and validates current head-forward substrate/path/history. Memory-present DIGGING activity and actual current canDig eligibility are distinct.",
+    "Sniffing behavior starts40..80 duration only with no WALK_TARGET/snifftarget/cooldown; continuation canSniff. stop returnsIDLING and only stricttimedOut qualifies calculateDigPosition and writes both target and WALK_TARGET. Other stops produce no new selected target. Duration is Behavior game-time boundary, not wallclock guarantee.",
+    "calculateDigPosition lazily tries up to5 LandRandomPos calls with horizontal10/12/14/16/18 and vertical3, skipsnull/outofworldborder, maps below then firstcanDig. Not5 distinct candidates or deterministic nearest site. Complete RandomPos innerloop attempts10 perhelper and picks highestscore; accepted helpercandidate count differs from raw probes.",
+    "Complete LandRandomPos/GoalUtils apply actorrestriction/buildheight/stabledestination/solidupwardmove/water/malus checks. They do not prove final navigable arrival or current block permission. createPath(...,1) and Path.canReach return stored reachedflag, not actual actor arrival/world admission.",
+    "canDig(pos) tests symbolic SNIFFER_DIGGABLE_BLOCK, exact GlobalPos(currentdimension,pos) exclusion and optionalcreatedpath.canReach. No block depletion, shared-site lease, gamerule/mobGriefing, player ownership or area-radius exclusion in this complete method. Current tag membership/native terrain not read.",
+    "Searching activity needs panicabsent and both WALK_TARGET/snifftarget present. Behavior continuation compares current targetBlock positions exactly, not direct arrival; stop revalidates current actor canDig/canSniff then maysetDIGGING regardless of whysearchstopped, erasingboth movement/target memories. Do not equate remembered selectedsite with actual headsite at stopping.",
+    "DIG activity requires panicabsent/WALK_TARGETabsent/DIGGINGpresent. Digging ownstart also cooldownabsent+canSniff; continuation memorypresent/currentcanDig/!love. Starttransition writes stateDIGGING and dropAt=this.tickCount+120, requests event63. State metadata/animation/dimensions are presentation/support, not materialreceipt.",
+    "Digging Behavior duration160..180; stop only on stricttimedOut sets SNIFF_COOLDOWN Unit with expiry9600, otherwise resetSniffing erasesdigging/snifftarget and returnsIDLING. Exact Behaviour and Brain pre-read genericcontexts reused0; no guaranteed8minutes elapsed/offline time, fairness or successful loot follows.",
+    "FinishedDigging requires panicabsent/WALK_TARGETabsent/DIGGINGpresent/cooldownpresent, duration40; startRISING. stop alwaysIDLING, eraseDIGGING,setHAPPY; onlytimedOut flag passed to onDiggingComplete causes history write. An early stop can stillrequesthappy without storedsite. No guaranteed onecompletion per emitteditem.",
+    "Sniffer.tick dispatches dropSeed onlywhile stateDIGGING before super.tick. dropSeed onlyserver and exactstoredtick==tickCount; currentserver SNIFFER_DIGGING loot table with ORIGIN=headposition and THIS_ENTITY under GIFT returnslist. No particular seed/item count/nonempty result: rawloottable/currentmodifiers unexamined.",
+    "For each returnedstack directnew ItemEntity atintegerheadblock, setDefaultPickupDelay anduncheckedserver.addFreshEntity. This is not spawnAtLocation/captureDrops route. Emit sound after loop evenemptylist; lowercalls maythrow. No targetrecipient/thrower assignment shown, nonnullconstruction is not admittedworlditem or intended-player acquisition.",
+    "Actual serveradd helper forwards toaddEntity and returnsfalse forremoved/managerreject, onAddedToWorld onlysuccess. These two exact native scopes are own priorTurtle reading reused0. The foraging loop ignores this result and does not refundhistory/cooldown orwaitforpickup acknowledgment.",
+    "Outputattempt atnominal dropAt120 happensbefore timed Diggingcompletion/cooldown then FinishedDigging40/historycommit. Interrupted/reconstructed phases may therefore have outputattemptwithout committedsite, andempty/rejectedoutputmaystillbe followedbyhistory. This is source-order distinction, not demonstratedduplication/loss/exploit or exactly-onceguarantee.",
+    "Historywrite getExploredPositions.limit20 collects thenPREPENDS current GlobalPos: maximum21 not20. No deduplication onwriter, older entriesevicted, andeachentity hasownlist. It is notglobalresourceexhaustion, durableinfinitevisitationban or sharedmultiplayerclaim.",
+    "Critical coordinateboundary: canDig queriesheadforward2.25-derivedblockbelow; onDiggingComplete storesgetOnPos body/supportblock. Complete Entity.getOnPos returnscachedsupport ifpresent orfloor(bodyY-1e-5). Thus cannot claim actualdugsite alwaysrecorded/excluded; rawsamecoordinatesindifferentdimension remain distinct bycompleteGlobalPosequals.",
+    "SNIFFER_EXPLORED_POSITIONS registeredwithCodec.list(GlobalPos.CODEC), SNIFF_COOLDOWNwithCodec.unit, whereas target/digging/happy lackcodec. FullGlobalPos explicitlyserializesdimension+pos. PriorBrain/Expirable/LivingEntitysave-hookscope read confirmsmemoryenvelope/TTL boundary; not newgenericserializationcredit or native reloadroundtrip.",
+    "Sniffercompleteclasshasnoownadd/readAdditionalSaveData override. ParentvirtualBrainprovider configures memorytypes and BrainCodec canpersist registeredcodedhistory/cooldown; own state/dropAt fields are not directNBT here. FreshinstanceinitialIDLING/drop0 differs existingobjectmanualread, and externalhooks/partialdecode canalterrestoration. No universalfullrestore/loss assumption.",
+    "Panicstart, makeLove start andFollowTemptation start resetSniffing, whichonlyerasesdigging/snifftarget andsetsIDLING, not explicitlyhistory/cooldown/happy. Breedingegg/item andbabyage-48000, genericfoodtag andtorchflower temptationingredient arecompleteclasscontext0. Food isnotshown a paidperdiggingservice entitlement.",
+    "WholecurrentEA2 habitatseededworldchunk/five-minutepersistedgiveup differs fromactor-local boundedvisitedlist. EA23 complete27observations25limits andEA27 22observations22limits+applications read: paidcharge/partialtierprogress and durableproductivitylevels/cooldownfishing remainwhole; theyare not narrowedtohelper/item in ordertomanufacturedifference.",
+    "Specificwhole-relatednessproposal is retained spatial exclusion history changing future materialworksite eligibility, not another generictimer/path/loot/effectowner. ExistingEA23 paidperchargeandEA27 durableupgrades materially differ; current49index byitself isnot49whole semanticstudy or globaluniquenesstheorem. DistinctMainmaymergeoracceptmax1ecology.",
+    "Entire savedglobal3fb8 Snifferwhole non-evidencejudgment actuallyread with its full qualification: max21/body-head mismatch/outputbeforecommit/noexactlyonce andBrain3327framework0 preserved. That existingglobalownerremains acceptedwhole; newglobal/newmigration0, no reassignedID or duplicate owner.",
+    "FutureexistingDynasty material/task integration must distinguish qualifiedsite, requesteddigging, actualworldproductadmission/intendedplayerpickup, persistentcompletedsite andcooldown. PreserveIDs/NBTvariants/rewards/prerequisites/progress anddo notproduceecology changesbefore1000relatedacceptedgate."
+  ],
+  "mandatory_constraints": [
+    "Single entity-local dimension+site history whole, max1ecology only after distinct Main; current existingglobalwhole0newmigration0.",
+    "Keep symbolictag/pathflag eligibility separatefromactualselected/head/body/arrivedsite andworldresourcepermissions.",
+    "Preserve exact5lazyoutercalls/10innerprobes distinction; no unique-site/nearest-location guarantee orprobe-credit inflation.",
+    "Keep memorypresent/Behaviorrunning/syncedDIGGING/dropAt/cooldown/rising/history/happy states separate.",
+    "Retain exacttick equality, output-beforehistory, earlystop/exception/reconstruction andstrictgreater-than timeouts without reproducibleexploitclaims.",
+    "Retain directItemEntity+defaultdelay ratherthancaptureDrops helper, ignoredaddbool andnoselectedplayerreceipt.",
+    "Preserve max21prependeviction andbody/support-vs-head coordinate mismatch; no guaranteeddugsiteexclusion/globaldepletion.",
+    "Wholecodec envelope/TTL support0; codedhistory/cooldown versusunserializedtarget/dig/happy/syncedphase distinction persists.",
+    "Complete EA2/23/27 andglobalSnifferjudgments originalcontext preserved, not filteredfamily/titlenovelty claims.",
+    "No reproduction/artmodel/texture/seedvariant/food/animation helper expansionintoanotherreference; no unapproved taskdeletion or production."
+  ],
+  "application": [
+    "After applicable1000 gate, connect actualmaterial receipt and durable site history to existing staged gameplay without inventing ownership or erasing paid progression."
+  ],
+  "limits": [
+    "Fixed local mapped native artifact only, no fresh Git/remote/current loaded data/runtime authenticity.",
+    "Actual11primaryranges/6whole plus12bound oldownsupports reused0; no full engine, nearest-site/reachability/scheduler/event/capability/loot/loadedtag/source-to-player receipt guarantee.",
+    "Initialcombined EA23 comparison output clipped223tokens in observationmiddle; complete paragraphs14..17 recovered bounded. All27 observations/application/25limits are nowactuallyread; EA27 observation22 andapplication/limits22 readseparately withoutclip. Metadata/screens/hashes themselves credit0.",
+    "No rawSNIFFER_DIGGINGloot/tagcontents/currentmergedconfig/pool/functions/globalmodifiers/birth/cap/nativeeconomicproof. No concrete torchflower/seedquantity or nonempty output from table name.",
+    "No actual materialadmission/playerUUIDpickup/payment/savereopen/native gameplay, timing/resource fairness/performance acceptance. Outputstate/history/cooldown are distinct source requests.",
+    "Body/headsite mismatch and21entryhistory cap qualified; neither a newlyfixedexploit nor proof allharvestedsitesmisshistory. Perentityhistory/evictionnotshareddepletion.",
+    "Existing global3fb8 whole owner andgenericBrain3327remainwhole0new. Atmost1relatedecologypendingMain; helpers/species/classnames/memories/thresholds/probes/animations do not subdividecredit.",
+    "No production/art/model/building/sharedJar/userworld/tasklist/master/session/pending/ownershipchange; no Git/commit/push/publication/Java/Gradle/game/process/UI/network/wake/sound/brightness.",
+    "No formalID/package/validator/fixture/receipt/aggregategrant from candidate. Sourcecode not executed; oldv34privateproposal remains awaitingactual Main byte review andmustnotbereplayed.",
+    "Ecology49/gap951 remainsobservationonly; native24/30birth9/10pickup/run12falseassertiongaps remain, no1000gate/taskdeletion/activehourclaim."
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "upstream_code_executed": false,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "package_built": false,
+  "shared_tools_changed": false,
+  "validator_or_fixture_or_aggregation_executed": false,
+  "production_changes": 0,
+  "checklist_deletions": 0,
+  "active_hours_claimed": false,
+  "next": "Distinct Main whole-source and complete semantic comparison before any separately granted package. Current source research only, max1related ecological applicability; oldglobal alreadyowned0new."
+}

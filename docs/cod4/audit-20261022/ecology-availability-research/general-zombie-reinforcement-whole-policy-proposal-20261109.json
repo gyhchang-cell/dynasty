@@ -1,0 +1,1260 @@
+{
+  "recorded_at": "2026-11-09T15:46:33.412603+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ORIGINAL_AUTHOR_COMPLETE_BOUNDED_REINFORCEMENT_POLICY_PENDING_DISTINCT_MAIN_REVIEW",
+  "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Zombie.java",
+      "entry_sha256": "89cb879e634cce1ffb7d23ed14d22a188280ac599b03edeb12cfe85f24418e5e",
+      "lines": [
+        1,
+        547
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "89cb879e634cce1ffb7d23ed14d22a188280ac599b03edeb12cfe85f24418e5e",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.time.LocalDate;\nimport java.time.temporal.ChronoField;\nimport java.util.List;\nimport java.util.UUID;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.NbtOps;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.MobType;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.SpawnPlacements;\nimport net.minecraft.world.entity.ai.attributes.AttributeInstance;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.BreakDoorGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MoveThroughVillageGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.RemoveBlockGoal;\nimport net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.ZombieAttackGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.GroundPathNavigation;\nimport net.minecraft.world.entity.ai.util.GoalUtils;\nimport net.minecraft.world.entity.animal.Chicken;\nimport net.minecraft.world.entity.animal.IronGolem;\nimport net.minecraft.world.entity.animal.Turtle;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.NaturalSpawner;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class Zombie extends Monster {\n   private static final UUID SPEED_MODIFIER_BABY_UUID = UUID.fromString(\"B9766B59-9566-4402-BC1F-2EE2A276D836\");\n   private static final AttributeModifier SPEED_MODIFIER_BABY = new AttributeModifier(SPEED_MODIFIER_BABY_UUID, \"Baby speed boost\", 0.5D, AttributeModifier.Operation.MULTIPLY_BASE);\n   private static final EntityDataAccessor<Boolean> DATA_BABY_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Integer> DATA_SPECIAL_TYPE_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.INT);\n   private static final EntityDataAccessor<Boolean> DATA_DROWNED_CONVERSION_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.BOOLEAN);\n   public static final float ZOMBIE_LEADER_CHANCE = 0.05F;\n   public static final int REINFORCEMENT_ATTEMPTS = 50;\n   public static final int REINFORCEMENT_RANGE_MAX = 40;\n   public static final int REINFORCEMENT_RANGE_MIN = 7;\n   protected static final float BABY_EYE_HEIGHT_ADJUSTMENT = 0.81F;\n   private static final float BREAK_DOOR_CHANCE = 0.1F;\n   private static final Predicate<Difficulty> DOOR_BREAKING_PREDICATE = (p_34284_) -> {\n      return p_34284_ == Difficulty.HARD;\n   };\n   private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);\n   private boolean canBreakDoors;\n   private int inWaterTime;\n   private int conversionTime;\n\n   public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {\n      super(p_34271_, p_34272_);\n   }\n\n   public Zombie(Level p_34274_) {\n      this(EntityType.ZOMBIE, p_34274_);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0D, 3));\n      this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.addBehaviourGoals();\n   }\n\n   protected void addBehaviourGoals() {\n      this.goalSelector.addGoal(2, new ZombieAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(6, new MoveThroughVillageGoal(this, 1.0D, true, 4, this::canBreakDoors));\n      this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0D));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this)).setAlertOthers(ZombifiedPiglin.class));\n      this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));\n      this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.FOLLOW_RANGE, 35.0D).add(Attributes.MOVEMENT_SPEED, (double)0.23F).add(Attributes.ATTACK_DAMAGE, 3.0D).add(Attributes.ARMOR, 2.0D).add(Attributes.SPAWN_REINFORCEMENTS_CHANCE);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.getEntityData().define(DATA_BABY_ID, false);\n      this.getEntityData().define(DATA_SPECIAL_TYPE_ID, 0);\n      this.getEntityData().define(DATA_DROWNED_CONVERSION_ID, false);\n   }\n\n   public boolean isUnderWaterConverting() {\n      return this.getEntityData().get(DATA_DROWNED_CONVERSION_ID);\n   }\n\n   public boolean canBreakDoors() {\n      return this.canBreakDoors;\n   }\n\n   public void setCanBreakDoors(boolean p_34337_) {\n      if (this.supportsBreakDoorGoal() && GoalUtils.hasGroundPathNavigation(this)) {\n         if (this.canBreakDoors != p_34337_) {\n            this.canBreakDoors = p_34337_;\n            ((GroundPathNavigation)this.getNavigation()).setCanOpenDoors(p_34337_);\n            if (p_34337_) {\n               this.goalSelector.addGoal(1, this.breakDoorGoal);\n            } else {\n               this.goalSelector.removeGoal(this.breakDoorGoal);\n            }\n         }\n      } else if (this.canBreakDoors) {\n         this.goalSelector.removeGoal(this.breakDoorGoal);\n         this.canBreakDoors = false;\n      }\n\n   }\n\n   protected boolean supportsBreakDoorGoal() {\n      return true;\n   }\n\n   public boolean isBaby() {\n      return this.getEntityData().get(DATA_BABY_ID);\n   }\n\n   public int getExperienceReward() {\n      if (this.isBaby()) {\n         this.xpReward = (int)((double)this.xpReward * 2.5D);\n      }\n\n      return super.getExperienceReward();\n   }\n\n   public void setBaby(boolean p_34309_) {\n      this.getEntityData().set(DATA_BABY_ID, p_34309_);\n      if (this.level() != null && !this.level().isClientSide) {\n         AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);\n         attributeinstance.removeModifier(SPEED_MODIFIER_BABY);\n         if (p_34309_) {\n            attributeinstance.addTransientModifier(SPEED_MODIFIER_BABY);\n         }\n      }\n\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_34307_) {\n      if (DATA_BABY_ID.equals(p_34307_)) {\n         this.refreshDimensions();\n      }\n\n      super.onSyncedDataUpdated(p_34307_);\n   }\n\n   protected boolean convertsInWater() {\n      return true;\n   }\n\n   public void tick() {\n      if (!this.level().isClientSide && this.isAlive() && !this.isNoAi()) {\n         if (this.isUnderWaterConverting()) {\n            --this.conversionTime;\n            if (this.conversionTime < 0 && net.minecraftforge.event.ForgeEventFactory.canLivingConvert(this, EntityType.DROWNED, (timer) -> this.conversionTime = timer)) {\n               this.doUnderWaterConversion();\n            }\n         } else if (this.convertsInWater()) {\n            if (this.isEyeInFluid(FluidTags.WATER)) {\n               ++this.inWaterTime;\n               if (this.inWaterTime >= 600) {\n                  this.startUnderWaterConversion(300);\n               }\n            } else {\n               this.inWaterTime = -1;\n            }\n         }\n      }\n\n      super.tick();\n   }\n\n   public void aiStep() {\n      if (this.isAlive()) {\n         boolean flag = this.isSunSensitive() && this.isSunBurnTick();\n         if (flag) {\n            ItemStack itemstack = this.getItemBySlot(EquipmentSlot.HEAD);\n            if (!itemstack.isEmpty()) {\n               if (itemstack.isDamageableItem()) {\n                  itemstack.setDamageValue(itemstack.getDamageValue() + this.random.nextInt(2));\n                  if (itemstack.getDamageValue() >= itemstack.getMaxDamage()) {\n                     this.broadcastBreakEvent(EquipmentSlot.HEAD);\n                     this.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);\n                  }\n               }\n\n               flag = false;\n            }\n\n            if (flag) {\n               this.setSecondsOnFire(8);\n            }\n         }\n      }\n\n      super.aiStep();\n   }\n\n   private void startUnderWaterConversion(int p_34279_) {\n      this.conversionTime = p_34279_;\n      this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);\n   }\n\n   protected void doUnderWaterConversion() {\n      this.convertToZombieType(EntityType.DROWNED);\n      if (!this.isSilent()) {\n         this.level().levelEvent((Player)null, 1040, this.blockPosition(), 0);\n      }\n\n   }\n\n   protected void convertToZombieType(EntityType<? extends Zombie> p_34311_) {\n      Zombie zombie = this.convertTo(p_34311_, true);\n      if (zombie != null) {\n         zombie.handleAttributes(zombie.level().getCurrentDifficultyAt(zombie.blockPosition()).getSpecialMultiplier());\n         zombie.setCanBreakDoors(zombie.supportsBreakDoorGoal() && this.canBreakDoors());\n         net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, zombie);\n      }\n\n   }\n\n   protected boolean isSunSensitive() {\n      return true;\n   }\n\n   public boolean hurt(DamageSource p_34288_, float p_34289_) {\n      if (!super.hurt(p_34288_, p_34289_)) {\n         return false;\n      } else if (!(this.level() instanceof ServerLevel)) {\n         return false;\n      } else {\n         ServerLevel serverlevel = (ServerLevel)this.level();\n         LivingEntity livingentity = this.getTarget();\n         if (livingentity == null && p_34288_.getEntity() instanceof LivingEntity) {\n            livingentity = (LivingEntity)p_34288_.getEntity();\n         }\n\n            int i = Mth.floor(this.getX());\n            int j = Mth.floor(this.getY());\n            int k = Mth.floor(this.getZ());\n         net.minecraftforge.event.entity.living.ZombieEvent.SummonAidEvent event = net.minecraftforge.event.ForgeEventFactory.fireZombieSummonAid(this, level(), i, j, k, livingentity, this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).getValue());\n         if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.DENY) return true;\n         if (event.getResult() == net.minecraftforge.eventbus.api.Event.Result.ALLOW  ||\n            livingentity != null && this.level().getDifficulty() == Difficulty.HARD && (double)this.random.nextFloat() < this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).getValue() && this.level()\n                    .getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING)) {\n            Zombie zombie = event.getCustomSummonedAid() != null && event.getResult() == net.minecraftforge.eventbus.api.Event.Result.ALLOW ? event.getCustomSummonedAid() : EntityType.ZOMBIE.create(this.level());\n\n            for(int l = 0; l < 50; ++l) {\n               int i1 = i + Mth.nextInt(this.random, 7, 40) * Mth.nextInt(this.random, -1, 1);\n               int j1 = j + Mth.nextInt(this.random, 7, 40) * Mth.nextInt(this.random, -1, 1);\n               int k1 = k + Mth.nextInt(this.random, 7, 40) * Mth.nextInt(this.random, -1, 1);\n               BlockPos blockpos = new BlockPos(i1, j1, k1);\n               EntityType<?> entitytype = zombie.getType();\n               SpawnPlacements.Type spawnplacements$type = SpawnPlacements.getPlacementType(entitytype);\n               if (NaturalSpawner.isSpawnPositionOk(spawnplacements$type, this.level(), blockpos, entitytype) && SpawnPlacements.checkSpawnRules(entitytype, serverlevel, MobSpawnType.REINFORCEMENT, blockpos, this.level().random)) {\n                  zombie.setPos((double)i1, (double)j1, (double)k1);\n                  if (!this.level().hasNearbyAlivePlayer((double)i1, (double)j1, (double)k1, 7.0D) && this.level().isUnobstructed(zombie) && this.level().noCollision(zombie) && !this.level().containsAnyLiquid(zombie.getBoundingBox())) {\n                     if (livingentity != null)\n                     zombie.setTarget(livingentity);\n                     zombie.finalizeSpawn(serverlevel, this.level().getCurrentDifficultyAt(zombie.blockPosition()), MobSpawnType.REINFORCEMENT, (SpawnGroupData)null, (CompoundTag)null);\n                     serverlevel.addFreshEntityWithPassengers(zombie);\n                     this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).addPermanentModifier(new AttributeModifier(\"Zombie reinforcement caller charge\", (double)-0.05F, AttributeModifier.Operation.ADDITION));\n                     zombie.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).addPermanentModifier(new AttributeModifier(\"Zombie reinforcement callee charge\", (double)-0.05F, AttributeModifier.Operation.ADDITION));\n                     break;\n                  }\n               }\n            }\n         }\n\n         return true;\n      }\n   }\n\n   public boolean doHurtTarget(Entity p_34276_) {\n      boolean flag = super.doHurtTarget(p_34276_);\n      if (flag) {\n         float f = this.level().getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();\n         if (this.getMainHandItem().isEmpty() && this.isOnFire() && this.random.nextFloat() < f * 0.3F) {\n            p_34276_.setSecondsOnFire(2 * (int)f);\n         }\n      }\n\n      return flag;\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return SoundEvents.ZOMBIE_AMBIENT;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_34327_) {\n      return SoundEvents.ZOMBIE_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.ZOMBIE_DEATH;\n   }\n\n   protected SoundEvent getStepSound() {\n      return SoundEvents.ZOMBIE_STEP;\n   }\n\n   protected void playStepSound(BlockPos p_34316_, BlockState p_34317_) {\n      this.playSound(this.getStepSound(), 0.15F, 1.0F);\n   }\n\n   public MobType getMobType() {\n      return MobType.UNDEAD;\n   }\n\n   protected void populateDefaultEquipmentSlots(RandomSource p_219165_, DifficultyInstance p_219166_) {\n      super.populateDefaultEquipmentSlots(p_219165_, p_219166_);\n      if (p_219165_.nextFloat() < (this.level().getDifficulty() == Difficulty.HARD ? 0.05F : 0.01F)) {\n         int i = p_219165_.nextInt(3);\n         if (i == 0) {\n            this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SWORD));\n         } else {\n            this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.IRON_SHOVEL));\n         }\n      }\n\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_34319_) {\n      super.addAdditionalSaveData(p_34319_);\n      p_34319_.putBoolean(\"IsBaby\", this.isBaby());\n      p_34319_.putBoolean(\"CanBreakDoors\", this.canBreakDoors());\n      p_34319_.putInt(\"InWaterTime\", this.isInWater() ? this.inWaterTime : -1);\n      p_34319_.putInt(\"DrownedConversionTime\", this.isUnderWaterConverting() ? this.conversionTime : -1);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_34305_) {\n      super.readAdditionalSaveData(p_34305_);\n      this.setBaby(p_34305_.getBoolean(\"IsBaby\"));\n      this.setCanBreakDoors(p_34305_.getBoolean(\"CanBreakDoors\"));\n      this.inWaterTime = p_34305_.getInt(\"InWaterTime\");\n      if (p_34305_.contains(\"DrownedConversionTime\", 99) && p_34305_.getInt(\"DrownedConversionTime\") > -1) {\n         this.startUnderWaterConversion(p_34305_.getInt(\"DrownedConversionTime\"));\n      }\n\n   }\n\n   public boolean killedEntity(ServerLevel p_219160_, LivingEntity p_219161_) {\n      boolean flag = super.killedEntity(p_219160_, p_219161_);\n      if ((p_219160_.getDifficulty() == Difficulty.NORMAL || p_219160_.getDifficulty() == Difficulty.HARD) && p_219161_ instanceof Villager villager && net.minecraftforge.event.ForgeEventFactory.canLivingConvert(p_219161_, EntityType.ZOMBIE_VILLAGER, (timer) -> {})) {\n         if (p_219160_.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) {\n            return flag;\n         }\n\n         ZombieVillager zombievillager = villager.convertTo(EntityType.ZOMBIE_VILLAGER, false);\n         if (zombievillager != null) {\n            zombievillager.finalizeSpawn(p_219160_, p_219160_.getCurrentDifficultyAt(zombievillager.blockPosition()), MobSpawnType.CONVERSION, new Zombie.ZombieGroupData(false, true), (CompoundTag)null);\n            zombievillager.setVillagerData(villager.getVillagerData());\n            zombievillager.setGossips(villager.getGossips().store(NbtOps.INSTANCE));\n            zombievillager.setTradeOffers(villager.getOffers().createTag());\n            zombievillager.setVillagerXp(villager.getVillagerXp());\n         net.minecraftforge.event.ForgeEventFactory.onLivingConvert(p_219161_, zombievillager);\n            if (!this.isSilent()) {\n               p_219160_.levelEvent((Player)null, 1026, this.blockPosition(), 0);\n            }\n\n            flag = false;\n         }\n      }\n\n      return flag;\n   }\n\n   protected float getStandingEyeHeight(Pose p_34313_, EntityDimensions p_34314_) {\n      return this.isBaby() ? 0.93F : 1.74F;\n   }\n\n   public boolean canHoldItem(ItemStack p_34332_) {\n      return p_34332_.is(Items.EGG) && this.isBaby() && this.isPassenger() ? false : super.canHoldItem(p_34332_);\n   }\n\n   public boolean wantsToPickUp(ItemStack p_182400_) {\n      return p_182400_.is(Items.GLOW_INK_SAC) ? false : super.wantsToPickUp(p_182400_);\n   }\n\n   @Nullable\n   public SpawnGroupData finalizeSpawn(ServerLevelAccessor p_34297_, DifficultyInstance p_34298_, MobSpawnType p_34299_, @Nullable SpawnGroupData p_34300_, @Nullable CompoundTag p_34301_) {\n      RandomSource randomsource = p_34297_.getRandom();\n      p_34300_ = super.finalizeSpawn(p_34297_, p_34298_, p_34299_, p_34300_, p_34301_);\n      float f = p_34298_.getSpecialMultiplier();\n      this.setCanPickUpLoot(randomsource.nextFloat() < 0.55F * f);\n      if (p_34300_ == null) {\n         p_34300_ = new Zombie.ZombieGroupData(getSpawnAsBabyOdds(randomsource), true);\n      }\n\n      if (p_34300_ instanceof Zombie.ZombieGroupData zombie$zombiegroupdata) {\n         if (zombie$zombiegroupdata.isBaby) {\n            this.setBaby(true);\n            if (zombie$zombiegroupdata.canSpawnJockey) {\n               if ((double)randomsource.nextFloat() < 0.05D) {\n                  List<Chicken> list = p_34297_.getEntitiesOfClass(Chicken.class, this.getBoundingBox().inflate(5.0D, 3.0D, 5.0D), EntitySelector.ENTITY_NOT_BEING_RIDDEN);\n                  if (!list.isEmpty()) {\n                     Chicken chicken = list.get(0);\n                     chicken.setChickenJockey(true);\n                     this.startRiding(chicken);\n                  }\n               } else if ((double)randomsource.nextFloat() < 0.05D) {\n                  Chicken chicken1 = EntityType.CHICKEN.create(this.level());\n                  if (chicken1 != null) {\n                     chicken1.moveTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), 0.0F);\n                     chicken1.finalizeSpawn(p_34297_, p_34298_, MobSpawnType.JOCKEY, (SpawnGroupData)null, (CompoundTag)null);\n                     chicken1.setChickenJockey(true);\n                     this.startRiding(chicken1);\n                     p_34297_.addFreshEntity(chicken1);\n                  }\n               }\n            }\n         }\n\n         this.setCanBreakDoors(this.supportsBreakDoorGoal() && randomsource.nextFloat() < f * 0.1F);\n         this.populateDefaultEquipmentSlots(randomsource, p_34298_);\n         this.populateDefaultEquipmentEnchantments(randomsource, p_34298_);\n      }\n\n      if (this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n         LocalDate localdate = LocalDate.now();\n         int i = localdate.get(ChronoField.DAY_OF_MONTH);\n         int j = localdate.get(ChronoField.MONTH_OF_YEAR);\n         if (j == 10 && i == 31 && randomsource.nextFloat() < 0.25F) {\n            this.setItemSlot(EquipmentSlot.HEAD, new ItemStack(randomsource.nextFloat() < 0.1F ? Blocks.JACK_O_LANTERN : Blocks.CARVED_PUMPKIN));\n            this.armorDropChances[EquipmentSlot.HEAD.getIndex()] = 0.0F;\n         }\n      }\n\n      this.handleAttributes(f);\n      return p_34300_;\n   }\n\n   public static boolean getSpawnAsBabyOdds(RandomSource p_219163_) {\n      return p_219163_.nextFloat() < net.minecraftforge.common.ForgeConfig.SERVER.zombieBabyChance.get();\n   }\n\n   protected void handleAttributes(float p_34340_) {\n      this.randomizeReinforcementsChance();\n      this.getAttribute(Attributes.KNOCKBACK_RESISTANCE).addPermanentModifier(new AttributeModifier(\"Random spawn bonus\", this.random.nextDouble() * (double)0.05F, AttributeModifier.Operation.ADDITION));\n      double d0 = this.random.nextDouble() * 1.5D * (double)p_34340_;\n      if (d0 > 1.0D) {\n         this.getAttribute(Attributes.FOLLOW_RANGE).addPermanentModifier(new AttributeModifier(\"Random zombie-spawn bonus\", d0, AttributeModifier.Operation.MULTIPLY_TOTAL));\n      }\n\n      if (this.random.nextFloat() < p_34340_ * 0.05F) {\n         this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).addPermanentModifier(new AttributeModifier(\"Leader zombie bonus\", this.random.nextDouble() * 0.25D + 0.5D, AttributeModifier.Operation.ADDITION));\n         this.getAttribute(Attributes.MAX_HEALTH).addPermanentModifier(new AttributeModifier(\"Leader zombie bonus\", this.random.nextDouble() * 3.0D + 1.0D, AttributeModifier.Operation.MULTIPLY_TOTAL));\n         this.setCanBreakDoors(this.supportsBreakDoorGoal());\n      }\n\n   }\n\n   protected void randomizeReinforcementsChance() {\n      this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * net.minecraftforge.common.ForgeConfig.SERVER.zombieBaseSummonChance.get());\n   }\n\n   public double getMyRidingOffset() {\n      return this.isBaby() ? 0.0D : -0.45D;\n   }\n\n   protected void dropCustomDeathLoot(DamageSource p_34291_, int p_34292_, boolean p_34293_) {\n      super.dropCustomDeathLoot(p_34291_, p_34292_, p_34293_);\n      Entity entity = p_34291_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            ItemStack itemstack = this.getSkull();\n            if (!itemstack.isEmpty()) {\n               creeper.increaseDroppedSkulls();\n               this.spawnAtLocation(itemstack);\n            }\n         }\n      }\n\n   }\n\n   protected ItemStack getSkull() {\n      return new ItemStack(Items.ZOMBIE_HEAD);\n   }\n\n   class ZombieAttackTurtleEggGoal extends RemoveBlockGoal {\n      ZombieAttackTurtleEggGoal(PathfinderMob p_34344_, double p_34345_, int p_34346_) {\n         super(Blocks.TURTLE_EGG, p_34344_, p_34345_, p_34346_);\n      }\n\n      public void playDestroyProgressSound(LevelAccessor p_34351_, BlockPos p_34352_) {\n         p_34351_.playSound((Player)null, p_34352_, SoundEvents.ZOMBIE_DESTROY_EGG, SoundSource.HOSTILE, 0.5F, 0.9F + Zombie.this.random.nextFloat() * 0.2F);\n      }\n\n      public void playBreakSound(Level p_34348_, BlockPos p_34349_) {\n         p_34348_.playSound((Player)null, p_34349_, SoundEvents.TURTLE_EGG_BREAK, SoundSource.BLOCKS, 0.7F, 0.9F + p_34348_.random.nextFloat() * 0.2F);\n      }\n\n      public double acceptedDistance() {\n         return 1.14D;\n      }\n   }\n\n   public static class ZombieGroupData implements SpawnGroupData {\n      public final boolean isBaby;\n      public final boolean canSpawnJockey;\n\n      public ZombieGroupData(boolean p_34357_, boolean p_34358_) {\n         this.isBaby = p_34357_;\n         this.canSpawnJockey = p_34358_;\n      }\n   }\n}\n",
+      "actual_read_scope": "Entire class displayed in three successive untruncated ranges1..230,231..400,401..547. Surrounding conversion/skull/egg attack/baby/jockey are exclusion/support0.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/living/ZombieEvent.java",
+      "entry_sha256": "2c6b1f238172fe559814edd0dbf441f973883d16a80b36b9ef70b2c1c73d9bf2",
+      "lines": [
+        1,
+        97
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "2c6b1f238172fe559814edd0dbf441f973883d16a80b36b9ef70b2c1c73d9bf2",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.living;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.monster.Zombie;\nimport net.minecraft.world.level.Level;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.event.ForgeEventFactory;\nimport net.minecraftforge.event.entity.EntityEvent;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\nimport net.minecraftforge.eventbus.api.Event.HasResult;\n\n/**\n * ZombieEvent is fired whenever a zombie is spawned for aid.\n * If a method utilizes this event as its parameter, the method will\n * receive every child event of this class.\n *\n * All children of this event are fired on the {@link MinecraftForge#EVENT_BUS}.\n **/\npublic class ZombieEvent extends EntityEvent {\n    private final Zombie zombie;\n\n    public ZombieEvent(Zombie zombie)\n    {\n        super(zombie);\n        this.zombie = zombie;\n    }\n\n    @Override\n    public Zombie getEntity()\n    {\n        return this.zombie;\n    }\n\n    /**\n     * SummonAidEvent is fired when a Zombie Entity is summoned.\n     * This event is fired whenever a Zombie Entity is summoned in\n     * {@code Zombie#actuallyHurt(DamageSource, float)}.\n     *\n     * This event is fired via the {@link ForgeEventFactory#fireZombieSummonAid(Zombie, Level, int, int, int, LivingEntity, double)}.\n     *\n     * {@link #getCustomSummonedAid()} remains null, but can be populated with a custom EntityZombie which will be spawned.\n     * {@link #getLevel()} contains the world that this summoning is occurring in.\n     * {@link #getX()} contains the x-coordinate at which this summoning event is occurring.\n     * {@link #getY()} contains the y-coordinate at which this summoning event is occurring.\n     * {@link #getZ()} contains the z-coordinate at which this summoning event is occurring.\n     * {@link #getAttacker()} contains the living Entity that attacked and caused this event to fire.\n     * {@link #getSummonChance()} contains the likelihood that a Zombie would successfully be summoned.\n     *\n     * This event is not {@link Cancelable}.\n     *\n     * This event has a result. {@link HasResult}\n     * {@link Result#ALLOW} Zombie is summoned.\n     * {@link Result#DENY} Zombie is not summoned.\n     *\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.\n     **/\n    @HasResult\n    public static class SummonAidEvent extends ZombieEvent {\n        private Zombie customSummonedAid;\n\n        private final Level level;\n        private final int x;\n        private final int y;\n        private final int z;\n        private final LivingEntity attacker;\n        private final double summonChance;\n\n        public SummonAidEvent(Zombie zombie, Level level, int x, int y, int z, LivingEntity attacker, double summonChance)\n        {\n            super(zombie);\n            this.level = level;\n            this.x = x;\n            this.y = y;\n            this.z = z;\n            this.attacker = attacker;\n            this.summonChance = summonChance;\n        }\n\n        /**\n         * Populate this field to have a custom zombie instead of a normal zombie summoned\n         */\n        public Zombie getCustomSummonedAid() { return customSummonedAid; }\n        public void setCustomSummonedAid(Zombie customSummonedAid) { this.customSummonedAid = customSummonedAid; }\n        public Level getLevel() { return level; }\n        public int getX() { return x; }\n        public int getY() { return y; }\n        public int getZ() { return z; }\n        public LivingEntity getAttacker() { return attacker; }\n        public double getSummonChance() { return summonChance; }\n    }\n}\n",
+      "actual_read_scope": "Whole actual event class, fields, mutator and HasResult; comments are not authoritative caller conditions.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        364,
+        370
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5dc0acb992613986811c5315d4ad4119df2472e93a64668744b87bf2aed4a76f",
+      "raw_excerpt_utf8": "    public static SummonAidEvent fireZombieSummonAid(Zombie zombie, Level level, int x, int y, int z, LivingEntity attacker, double summonChance)\n    {\n        SummonAidEvent summonEvent = new SummonAidEvent(zombie, level, x, y, z, attacker, summonChance);\n        MinecraftForge.EVENT_BUS.post(summonEvent);\n        return summonEvent;\n    }\n\n",
+      "actual_read_scope": "Complete fireZombieSummonAid method plus blank.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        202,
+        209
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9ae8ef4c424ea5308d40c082cd402740ec3b892c07d6ae2268426beb4ad0a2ed",
+      "raw_excerpt_utf8": "    public static boolean checkSpawnPlacements(EntityType<?> entityType, ServerLevelAccessor level, MobSpawnType spawnType, BlockPos pos, RandomSource random, boolean defaultResult)\n    {\n        var event = new SpawnPlacementCheck(entityType, level, spawnType, pos, random, defaultResult);\n        MinecraftForge.EVENT_BUS.post(event);\n        return event.getResult() == Result.DEFAULT ? defaultResult : event.getResult() == Result.ALLOW;\n    }\n\n    /**\n",
+      "actual_read_scope": "Complete checkSpawnPlacements; next comment beginning only.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/SpawnPlacements.java",
+      "entry_sha256": "5d8441287293a8631843aa5afc4574be8198b97cccf584d7c85db97b56e9e853",
+      "lines": [
+        40,
+        85
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a33730469f5115bde5903ead8210f9b96c8ab269a312a5f42728b416a01a1186",
+      "raw_excerpt_utf8": "import net.minecraft.world.level.levelgen.Heightmap;\n\npublic class SpawnPlacements {\n   private static final Map<EntityType<?>, SpawnPlacements.Data> DATA_BY_TYPE = Maps.newHashMap();\n\n   @Deprecated // FORGE: use SpawnPlacementRegisterEvent to register and modify spawn placements\n   public static <T extends Mob> void register(EntityType<T> p_21755_, SpawnPlacements.Type p_21756_, Heightmap.Types p_21757_, SpawnPlacements.SpawnPredicate<T> p_21758_) {\n      SpawnPlacements.Data spawnplacements$data = DATA_BY_TYPE.put(p_21755_, new SpawnPlacements.Data(p_21757_, p_21756_, p_21758_));\n      if (spawnplacements$data != null) {\n         throw new IllegalStateException(\"Duplicate registration for type \" + BuiltInRegistries.ENTITY_TYPE.getKey(p_21755_));\n      }\n   }\n\n   public static SpawnPlacements.Type getPlacementType(EntityType<?> p_21753_) {\n      SpawnPlacements.Data spawnplacements$data = DATA_BY_TYPE.get(p_21753_);\n      return spawnplacements$data == null ? SpawnPlacements.Type.NO_RESTRICTIONS : spawnplacements$data.placement;\n   }\n\n   public static Heightmap.Types getHeightmapType(@Nullable EntityType<?> p_21766_) {\n      SpawnPlacements.Data spawnplacements$data = DATA_BY_TYPE.get(p_21766_);\n      return spawnplacements$data == null ? Heightmap.Types.MOTION_BLOCKING_NO_LEAVES : spawnplacements$data.heightMap;\n   }\n\n   public static <T extends Entity> boolean checkSpawnRules(EntityType<T> p_217075_, ServerLevelAccessor p_217076_, MobSpawnType p_217077_, BlockPos p_217078_, RandomSource p_217079_) {\n      SpawnPlacements.Data spawnplacements$data = DATA_BY_TYPE.get(p_217075_);\n      boolean vanillaResult = spawnplacements$data == null || spawnplacements$data.predicate.test((EntityType)p_217075_, p_217076_, p_217077_, p_217078_, p_217079_);\n      return net.minecraftforge.event.ForgeEventFactory.checkSpawnPlacements(p_217075_, p_217076_, p_217077_, p_217078_, p_217079_, vanillaResult);\n   }\n\n   static {\n      register(EntityType.AXOLOTL, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Axolotl::checkAxolotlSpawnRules);\n      register(EntityType.COD, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WaterAnimal::checkSurfaceWaterAnimalSpawnRules);\n      register(EntityType.DOLPHIN, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WaterAnimal::checkSurfaceWaterAnimalSpawnRules);\n      register(EntityType.DROWNED, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Drowned::checkDrownedSpawnRules);\n      register(EntityType.GUARDIAN, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Guardian::checkGuardianSpawnRules);\n      register(EntityType.PUFFERFISH, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WaterAnimal::checkSurfaceWaterAnimalSpawnRules);\n      register(EntityType.SALMON, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WaterAnimal::checkSurfaceWaterAnimalSpawnRules);\n      register(EntityType.SQUID, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, WaterAnimal::checkSurfaceWaterAnimalSpawnRules);\n      register(EntityType.TROPICAL_FISH, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, TropicalFish::checkTropicalFishSpawnRules);\n      register(EntityType.BAT, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Bat::checkBatSpawnRules);\n      register(EntityType.BLAZE, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkAnyLightMonsterSpawnRules);\n      register(EntityType.CAVE_SPIDER, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.CHICKEN, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n      register(EntityType.COW, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n      register(EntityType.CREEPER, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.DONKEY, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n",
+      "actual_read_scope": "Full relevant registration/getPlacement/getHeightmap/checkRules; partial static registry.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/SpawnPlacements.java",
+      "entry_sha256": "5d8441287293a8631843aa5afc4574be8198b97cccf584d7c85db97b56e9e853",
+      "lines": [
+        120,
+        192
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b75b3a8115607739e07d1ea20dd9345ba0766ab7d9cb2e3bb4d52b634321ac9c",
+      "raw_excerpt_utf8": "      register(EntityType.WITCH, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.WITHER, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.WITHER_SKELETON, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.WOLF, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Wolf::checkWolfSpawnRules);\n      register(EntityType.ZOMBIE, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.ZOMBIE_HORSE, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n      register(EntityType.ZOMBIFIED_PIGLIN, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, ZombifiedPiglin::checkZombifiedPiglinSpawnRules);\n      register(EntityType.ZOMBIE_VILLAGER, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.CAT, SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n      register(EntityType.ELDER_GUARDIAN, SpawnPlacements.Type.IN_WATER, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Guardian::checkGuardianSpawnRules);\n      register(EntityType.EVOKER, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.FOX, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Fox::checkFoxSpawnRules);\n      register(EntityType.ILLUSIONER, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.PANDA, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n      register(EntityType.PHANTOM, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mob::checkMobSpawnRules);\n      register(EntityType.RAVAGER, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.SHULKER, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mob::checkMobSpawnRules);\n      register(EntityType.TRADER_LLAMA, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);\n      register(EntityType.VEX, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.VINDICATOR, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Monster::checkMonsterSpawnRules);\n      register(EntityType.WANDERING_TRADER, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mob::checkMobSpawnRules);\n      register(EntityType.WARDEN, SpawnPlacements.Type.NO_RESTRICTIONS, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mob::checkMobSpawnRules);\n   }\n\n   static class Data {\n      final Heightmap.Types heightMap;\n      final SpawnPlacements.Type placement;\n      final SpawnPlacements.SpawnPredicate<?> predicate;\n\n      public Data(Heightmap.Types p_21771_, SpawnPlacements.Type p_21772_, SpawnPlacements.SpawnPredicate<?> p_21773_) {\n         this.heightMap = p_21771_;\n         this.placement = p_21772_;\n         this.predicate = p_21773_;\n      }\n   }\n\n   @FunctionalInterface\n   public interface SpawnPredicate<T extends Entity> {\n      boolean test(EntityType<T> p_217081_, ServerLevelAccessor p_217082_, MobSpawnType p_217083_, BlockPos p_217084_, RandomSource p_217085_);\n   }\n\n   public static enum Type implements net.minecraftforge.common.IExtensibleEnum {\n      ON_GROUND,\n      IN_WATER,\n      NO_RESTRICTIONS,\n      IN_LAVA;\n\n      public static Type create(String name, net.minecraftforge.common.util.TriPredicate<net.minecraft.world.level.LevelReader, BlockPos, EntityType<? extends Mob>> predicate) {\n          throw new IllegalStateException(\"Enum not extended\");\n      }\n\n      private net.minecraftforge.common.util.TriPredicate<net.minecraft.world.level.LevelReader, BlockPos, EntityType<?>> predicate;\n      private Type() { this(null); }\n      private Type(net.minecraftforge.common.util.TriPredicate<net.minecraft.world.level.LevelReader, BlockPos, EntityType<?>> predicate) {\n          this.predicate = predicate;\n      }\n\n      public boolean canSpawnAt(net.minecraft.world.level.LevelReader world, BlockPos pos, EntityType<?> type) {\n          if (this == NO_RESTRICTIONS) return true;\n          if (predicate == null) return net.minecraft.world.level.NaturalSpawner.canSpawnAtBody(this, world, pos, type);\n          return predicate.test(world, pos, type);\n      }\n   }\n\n   // ******* FORGE START. INTERNAL USE ONLY! ****** //\n   public static void fireSpawnPlacementEvent()\n   {\n       Map<EntityType<?>, net.minecraftforge.event.entity.SpawnPlacementRegisterEvent.MergedSpawnPredicate<?>> map = Maps.newHashMap();\n       DATA_BY_TYPE.forEach((type, data) -> map.put(type, new net.minecraftforge.event.entity.SpawnPlacementRegisterEvent.MergedSpawnPredicate<>(data.predicate, data.placement, data.heightMap)));\n       net.minecraftforge.fml.ModLoader.get().postEvent(new net.minecraftforge.event.entity.SpawnPlacementRegisterEvent(map));\n       map.forEach(((entityType, merged) -> DATA_BY_TYPE.put(entityType, new SpawnPlacements.Data(merged.getHeightmapType(), merged.getSpawnType(), merged.build()))));\n   }\n}\n",
+      "actual_read_scope": "Remaining displayed tail from120..130 and131..192, including ZOMBIE registration/enum canSpawnAt/fireSpawnPlacementEvent; class prefix and86..119 not read.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/NaturalSpawner.java",
+      "entry_sha256": "11159c13b29819509dc42859ac3d481358045dba655ad38507aca795400714e5",
+      "lines": [
+        282,
+        335
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "914781f5d81414af19988fe9020c6e56c7ac1b40f6b1d454afcfc6c7a06ca201",
+      "raw_excerpt_utf8": "   }\n\n   public static boolean isValidEmptySpawnBlock(BlockGetter p_47057_, BlockPos p_47058_, BlockState p_47059_, FluidState p_47060_, EntityType<?> p_47061_) {\n      if (p_47059_.isCollisionShapeFullBlock(p_47057_, p_47058_)) {\n         return false;\n      } else if (p_47059_.isSignalSource()) {\n         return false;\n      } else if (!p_47060_.isEmpty()) {\n         return false;\n      } else if (p_47059_.is(BlockTags.PREVENT_MOB_SPAWNING_INSIDE)) {\n         return false;\n      } else {\n         return !p_47061_.isBlockDangerous(p_47059_);\n      }\n   }\n\n   public static boolean isSpawnPositionOk(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {\n      if (p_47052_ == SpawnPlacements.Type.NO_RESTRICTIONS) {\n         return true;\n      } else if (p_47055_ != null && p_47053_.getWorldBorder().isWithinBounds(p_47054_)) {\n         return p_47052_.canSpawnAt(p_47053_, p_47054_, p_47055_);\n      }\n      return false;\n   }\n\n   public static boolean canSpawnAtBody(SpawnPlacements.Type p_47052_, LevelReader p_47053_, BlockPos p_47054_, @Nullable EntityType<?> p_47055_) {\n      {\n         BlockState blockstate = p_47053_.getBlockState(p_47054_);\n         FluidState fluidstate = p_47053_.getFluidState(p_47054_);\n         BlockPos blockpos = p_47054_.above();\n         BlockPos blockpos1 = p_47054_.below();\n         switch (p_47052_) {\n            case IN_WATER:\n               return fluidstate.is(FluidTags.WATER) && !p_47053_.getBlockState(blockpos).isRedstoneConductor(p_47053_, blockpos);\n            case IN_LAVA:\n               return fluidstate.is(FluidTags.LAVA);\n            case ON_GROUND:\n            default:\n               BlockState blockstate1 = p_47053_.getBlockState(blockpos1);\n            if (!blockstate1.isValidSpawn(p_47053_, blockpos1, p_47052_, p_47055_)) {\n                  return false;\n               } else {\n                  return isValidEmptySpawnBlock(p_47053_, p_47054_, blockstate, fluidstate, p_47055_) && isValidEmptySpawnBlock(p_47053_, blockpos, p_47053_.getBlockState(blockpos), p_47053_.getFluidState(blockpos), p_47055_);\n               }\n         }\n      }\n   }\n\n   public static void spawnMobsForChunkGeneration(ServerLevelAccessor p_220451_, Holder<Biome> p_220452_, ChunkPos p_220453_, RandomSource p_220454_) {\n      MobSpawnSettings mobspawnsettings = p_220452_.value().getMobSettings();\n      WeightedRandomList<MobSpawnSettings.SpawnerData> weightedrandomlist = mobspawnsettings.getMobs(MobCategory.CREATURE);\n      if (!weightedrandomlist.isEmpty()) {\n         int i = p_220453_.getMinBlockX();\n         int j = p_220453_.getMinBlockZ();\n",
+      "actual_read_scope": "Union of displayed282..296 and290..335; complete isValidEmptySpawnBlock, isSpawnPositionOk and canSpawnAtBody; generation beginning only.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/EntityGetter.java",
+      "entry_sha256": "96d40415e5fbe59f9d4d902ed8dbabb66b3dee2e75577eb0b1e5ba1e141ad068",
+      "lines": [
+        85,
+        115
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c1925583a97ea82caf4190779ca80644324fff30be5740b4e44399d9765a0501",
+      "raw_excerpt_utf8": "         }\n      }\n\n      return player;\n   }\n\n   @Nullable\n   default Player getNearestPlayer(Entity p_45931_, double p_45932_) {\n      return this.getNearestPlayer(p_45931_.getX(), p_45931_.getY(), p_45931_.getZ(), p_45932_, false);\n   }\n\n   @Nullable\n   default Player getNearestPlayer(double p_45925_, double p_45926_, double p_45927_, double p_45928_, boolean p_45929_) {\n      Predicate<Entity> predicate = p_45929_ ? EntitySelector.NO_CREATIVE_OR_SPECTATOR : EntitySelector.NO_SPECTATORS;\n      return this.getNearestPlayer(p_45925_, p_45926_, p_45927_, p_45928_, predicate);\n   }\n\n   default boolean hasNearbyAlivePlayer(double p_45915_, double p_45916_, double p_45917_, double p_45918_) {\n      for(Player player : this.players()) {\n         if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {\n            double d0 = player.distanceToSqr(p_45915_, p_45916_, p_45917_);\n            if (p_45918_ < 0.0D || d0 < p_45918_ * p_45918_) {\n               return true;\n            }\n         }\n      }\n\n      return false;\n   }\n\n   @Nullable\n",
+      "actual_read_scope": "Complete nearest overloads and hasNearbyAlivePlayer102..113; preceding method end/next annotation partial.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/ServerLevelAccessor.java",
+      "entry_sha256": "a9ee244c0bd76d9db422cf7fb5edcf5e4073df98ec4ba14952cab6076deec2fc",
+      "lines": [
+        1,
+        12
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a9ee244c0bd76d9db422cf7fb5edcf5e4073df98ec4ba14952cab6076deec2fc",
+      "raw_excerpt_utf8": "package net.minecraft.world.level;\n\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.Entity;\n\npublic interface ServerLevelAccessor extends LevelAccessor {\n   ServerLevel getLevel();\n\n   default void addFreshEntityWithPassengers(Entity p_47206_) {\n      p_47206_.getSelfAndPassengers().forEach(this::addFreshEntity);\n   }\n}",
+      "actual_read_scope": "Whole interface: void passenger iteration ignores per-add booleans.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        805,
+        825
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f202ff385e7beb0a58ea39e2e62950f2d7f73faa0bb9e2ad561da5270f564c3b",
+      "raw_excerpt_utf8": "      return list;\n   }\n\n   @Nullable\n   public ServerPlayer getRandomPlayer() {\n      List<ServerPlayer> list = this.getPlayers(LivingEntity::isAlive);\n      return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));\n   }\n\n   public boolean addFreshEntity(Entity p_8837_) {\n      return this.addEntity(p_8837_);\n   }\n\n   public boolean addWithUUID(Entity p_8848_) {\n      return this.addEntity(p_8848_);\n   }\n\n   public void addDuringTeleport(Entity p_143335_) {\n      this.addEntity(p_143335_);\n   }\n\n",
+      "actual_read_scope": "Complete addFreshEntity/addWithUUID/addDuringTeleport and random player helper; class partial.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        850,
+        875
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "49fc979175d7a6308e57c70f93dfeecdf269ad180503b759cf639764d402c252",
+      "raw_excerpt_utf8": "\n      this.entityManager.addNewEntityWithoutEvent(p_8854_);\n      p_8854_.onAddedToWorld();\n   }\n\n   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n\n   public boolean tryAddFreshEntityWithPassengers(Entity p_8861_) {\n      if (p_8861_.getSelfAndPassengers().map(Entity::getUUID).anyMatch(this.entityManager::isLoaded)) {\n         return false;\n      } else {\n         this.addFreshEntityWithPassengers(p_8861_);\n         return true;\n      }\n",
+      "actual_read_scope": "Complete private addEntity855..867; adjacent tail and tryAddFreshEntityWithPassengers beginning only.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/AttributeInstance.java",
+      "entry_sha256": "b3308086b8852af534cfe6cc9217e9083449c1d997ce85599b7597443cda90db",
+      "lines": [
+        1,
+        205
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b3308086b8852af534cfe6cc9217e9083449c1d997ce85599b7597443cda90db",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.attributes;\n\nimport com.google.common.collect.ImmutableSet;\nimport com.google.common.collect.Maps;\nimport com.google.common.collect.Sets;\nimport it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;\nimport it.unimi.dsi.fastutil.objects.ObjectArraySet;\nimport java.util.Collection;\nimport java.util.Collections;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.UUID;\nimport java.util.function.Consumer;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\n\npublic class AttributeInstance {\n   private final Attribute attribute;\n   private final Map<AttributeModifier.Operation, Set<AttributeModifier>> modifiersByOperation = Maps.newEnumMap(AttributeModifier.Operation.class);\n   private final Map<UUID, AttributeModifier> modifierById = new Object2ObjectArrayMap<>();\n   private final Set<AttributeModifier> permanentModifiers = new ObjectArraySet<>();\n   private double baseValue;\n   private boolean dirty = true;\n   private double cachedValue;\n   private final Consumer<AttributeInstance> onDirty;\n\n   public AttributeInstance(Attribute p_22097_, Consumer<AttributeInstance> p_22098_) {\n      this.attribute = p_22097_;\n      this.onDirty = p_22098_;\n      this.baseValue = p_22097_.getDefaultValue();\n   }\n\n   public Attribute getAttribute() {\n      return this.attribute;\n   }\n\n   public double getBaseValue() {\n      return this.baseValue;\n   }\n\n   public void setBaseValue(double p_22101_) {\n      if (p_22101_ != this.baseValue) {\n         this.baseValue = p_22101_;\n         this.setDirty();\n      }\n   }\n\n   public Set<AttributeModifier> getModifiers(AttributeModifier.Operation p_22105_) {\n      return this.modifiersByOperation.computeIfAbsent(p_22105_, (p_22124_) -> {\n         return Sets.newHashSet();\n      });\n   }\n\n   public Set<AttributeModifier> getModifiers() {\n      return ImmutableSet.copyOf(this.modifierById.values());\n   }\n\n   @Nullable\n   public AttributeModifier getModifier(UUID p_22112_) {\n      return this.modifierById.get(p_22112_);\n   }\n\n   public boolean hasModifier(AttributeModifier p_22110_) {\n      return this.modifierById.get(p_22110_.getId()) != null;\n   }\n\n   private void addModifier(AttributeModifier p_22134_) {\n      AttributeModifier attributemodifier = this.modifierById.putIfAbsent(p_22134_.getId(), p_22134_);\n      if (attributemodifier != null) {\n         throw new IllegalArgumentException(\"Modifier is already applied on this attribute!\");\n      } else {\n         this.getModifiers(p_22134_.getOperation()).add(p_22134_);\n         this.setDirty();\n      }\n   }\n\n   public void addTransientModifier(AttributeModifier p_22119_) {\n      this.addModifier(p_22119_);\n   }\n\n   public void addPermanentModifier(AttributeModifier p_22126_) {\n      this.addModifier(p_22126_);\n      this.permanentModifiers.add(p_22126_);\n   }\n\n   protected void setDirty() {\n      this.dirty = true;\n      this.onDirty.accept(this);\n   }\n\n   public void removeModifier(AttributeModifier p_22131_) {\n      this.getModifiers(p_22131_.getOperation()).remove(p_22131_);\n      this.modifierById.remove(p_22131_.getId());\n      this.permanentModifiers.remove(p_22131_);\n      this.setDirty();\n   }\n\n   public void removeModifier(UUID p_22121_) {\n      AttributeModifier attributemodifier = this.getModifier(p_22121_);\n      if (attributemodifier != null) {\n         this.removeModifier(attributemodifier);\n      }\n\n   }\n\n   public boolean removePermanentModifier(UUID p_22128_) {\n      AttributeModifier attributemodifier = this.getModifier(p_22128_);\n      if (attributemodifier != null && this.permanentModifiers.contains(attributemodifier)) {\n         this.removeModifier(attributemodifier);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   public void removeModifiers() {\n      for(AttributeModifier attributemodifier : this.getModifiers()) {\n         this.removeModifier(attributemodifier);\n      }\n\n   }\n\n   public double getValue() {\n      if (this.dirty) {\n         this.cachedValue = this.calculateValue();\n         this.dirty = false;\n      }\n\n      return this.cachedValue;\n   }\n\n   private double calculateValue() {\n      double d0 = this.getBaseValue();\n\n      for(AttributeModifier attributemodifier : this.getModifiersOrEmpty(AttributeModifier.Operation.ADDITION)) {\n         d0 += attributemodifier.getAmount();\n      }\n\n      double d1 = d0;\n\n      for(AttributeModifier attributemodifier1 : this.getModifiersOrEmpty(AttributeModifier.Operation.MULTIPLY_BASE)) {\n         d1 += d0 * attributemodifier1.getAmount();\n      }\n\n      for(AttributeModifier attributemodifier2 : this.getModifiersOrEmpty(AttributeModifier.Operation.MULTIPLY_TOTAL)) {\n         d1 *= 1.0D + attributemodifier2.getAmount();\n      }\n\n      return this.attribute.sanitizeValue(d1);\n   }\n\n   private Collection<AttributeModifier> getModifiersOrEmpty(AttributeModifier.Operation p_22117_) {\n      return this.modifiersByOperation.getOrDefault(p_22117_, Collections.emptySet());\n   }\n\n   public void replaceFrom(AttributeInstance p_22103_) {\n      this.baseValue = p_22103_.baseValue;\n      this.modifierById.clear();\n      this.modifierById.putAll(p_22103_.modifierById);\n      this.permanentModifiers.clear();\n      this.permanentModifiers.addAll(p_22103_.permanentModifiers);\n      this.modifiersByOperation.clear();\n      p_22103_.modifiersByOperation.forEach((p_22107_, p_22108_) -> {\n         this.getModifiers(p_22107_).addAll(p_22108_);\n      });\n      this.setDirty();\n   }\n\n   public CompoundTag save() {\n      CompoundTag compoundtag = new CompoundTag();\n      compoundtag.putString(\"Name\", BuiltInRegistries.ATTRIBUTE.getKey(this.attribute).toString());\n      compoundtag.putDouble(\"Base\", this.baseValue);\n      if (!this.permanentModifiers.isEmpty()) {\n         ListTag listtag = new ListTag();\n\n         for(AttributeModifier attributemodifier : this.permanentModifiers) {\n            listtag.add(attributemodifier.save());\n         }\n\n         compoundtag.put(\"Modifiers\", listtag);\n      }\n\n      return compoundtag;\n   }\n\n   public void load(CompoundTag p_22114_) {\n      this.baseValue = p_22114_.getDouble(\"Base\");\n      if (p_22114_.contains(\"Modifiers\", 9)) {\n         ListTag listtag = p_22114_.getList(\"Modifiers\", 10);\n\n         for(int i = 0; i < listtag.size(); ++i) {\n            AttributeModifier attributemodifier = AttributeModifier.load(listtag.getCompound(i));\n            if (attributemodifier != null) {\n               this.modifierById.put(attributemodifier.getId(), attributemodifier);\n               this.getModifiers(attributemodifier.getOperation()).add(attributemodifier);\n               this.permanentModifiers.add(attributemodifier);\n            }\n         }\n      }\n\n      this.setDirty();\n   }\n}",
+      "actual_read_scope": "Whole instance modifier, effective value and permanent modifier save/load policy. Support0.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/AttributeModifier.java",
+      "entry_sha256": "d3a18ac88bc871d13c601221b710e4efb25142e4aaf6b79fb99985945f37ff51",
+      "lines": [
+        1,
+        119
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "d3a18ac88bc871d13c601221b710e4efb25142e4aaf6b79fb99985945f37ff51",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.attributes;\n\nimport com.mojang.logging.LogUtils;\nimport java.util.Objects;\nimport java.util.UUID;\nimport java.util.function.Supplier;\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport org.slf4j.Logger;\n\npublic class AttributeModifier {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private final double amount;\n   private final AttributeModifier.Operation operation;\n   private final Supplier<String> nameGetter;\n   private final UUID id;\n\n   public AttributeModifier(String p_22196_, double p_22197_, AttributeModifier.Operation p_22198_) {\n      this(Mth.createInsecureUUID(RandomSource.createNewThreadLocalInstance()), () -> {\n         return p_22196_;\n      }, p_22197_, p_22198_);\n   }\n\n   public AttributeModifier(UUID p_22200_, String p_22201_, double p_22202_, AttributeModifier.Operation p_22203_) {\n      this(p_22200_, () -> {\n         return p_22201_;\n      }, p_22202_, p_22203_);\n   }\n\n   public AttributeModifier(UUID p_22205_, Supplier<String> p_22206_, double p_22207_, AttributeModifier.Operation p_22208_) {\n      this.id = p_22205_;\n      this.nameGetter = p_22206_;\n      this.amount = p_22207_;\n      this.operation = p_22208_;\n   }\n\n   public UUID getId() {\n      return this.id;\n   }\n\n   public String getName() {\n      return this.nameGetter.get();\n   }\n\n   public AttributeModifier.Operation getOperation() {\n      return this.operation;\n   }\n\n   public double getAmount() {\n      return this.amount;\n   }\n\n   public boolean equals(Object p_22221_) {\n      if (this == p_22221_) {\n         return true;\n      } else if (p_22221_ != null && this.getClass() == p_22221_.getClass()) {\n         AttributeModifier attributemodifier = (AttributeModifier)p_22221_;\n         return Objects.equals(this.id, attributemodifier.id);\n      } else {\n         return false;\n      }\n   }\n\n   public int hashCode() {\n      return this.id.hashCode();\n   }\n\n   public String toString() {\n      return \"AttributeModifier{amount=\" + this.amount + \", operation=\" + this.operation + \", name='\" + (String)this.nameGetter.get() + \"', id=\" + this.id + \"}\";\n   }\n\n   public CompoundTag save() {\n      CompoundTag compoundtag = new CompoundTag();\n      compoundtag.putString(\"Name\", this.getName());\n      compoundtag.putDouble(\"Amount\", this.amount);\n      compoundtag.putInt(\"Operation\", this.operation.toValue());\n      compoundtag.putUUID(\"UUID\", this.id);\n      return compoundtag;\n   }\n\n   @Nullable\n   public static AttributeModifier load(CompoundTag p_22213_) {\n      try {\n         UUID uuid = p_22213_.getUUID(\"UUID\");\n         AttributeModifier.Operation attributemodifier$operation = AttributeModifier.Operation.fromValue(p_22213_.getInt(\"Operation\"));\n         return new AttributeModifier(uuid, p_22213_.getString(\"Name\"), p_22213_.getDouble(\"Amount\"), attributemodifier$operation);\n      } catch (Exception exception) {\n         LOGGER.warn(\"Unable to create attribute: {}\", (Object)exception.getMessage());\n         return null;\n      }\n   }\n\n   public static enum Operation {\n      ADDITION(0),\n      MULTIPLY_BASE(1),\n      MULTIPLY_TOTAL(2);\n\n      private static final AttributeModifier.Operation[] OPERATIONS = new AttributeModifier.Operation[]{ADDITION, MULTIPLY_BASE, MULTIPLY_TOTAL};\n      private final int value;\n\n      private Operation(int p_22234_) {\n         this.value = p_22234_;\n      }\n\n      public int toValue() {\n         return this.value;\n      }\n\n      public static AttributeModifier.Operation fromValue(int p_22237_) {\n         if (p_22237_ >= 0 && p_22237_ < OPERATIONS.length) {\n            return OPERATIONS[p_22237_];\n         } else {\n            throw new IllegalArgumentException(\"No operation with value \" + p_22237_);\n         }\n      }\n   }\n}",
+      "actual_read_scope": "Whole modifier identity/operation/serialization/load rejection policy. Support0.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Monster.java",
+      "entry_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+      "lines": [
+        1,
+        129
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.function.Predicate;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.ProjectileWeaponItem;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.LightLayer;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.dimension.DimensionType;\n\npublic abstract class Monster extends PathfinderMob implements Enemy {\n   protected Monster(EntityType<? extends Monster> p_33002_, Level p_33003_) {\n      super(p_33002_, p_33003_);\n      this.xpReward = 5;\n   }\n\n   public SoundSource getSoundSource() {\n      return SoundSource.HOSTILE;\n   }\n\n   public void aiStep() {\n      this.updateSwingTime();\n      this.updateNoActionTime();\n      super.aiStep();\n   }\n\n   protected void updateNoActionTime() {\n      float f = this.getLightLevelDependentMagicValue();\n      if (f > 0.5F) {\n         this.noActionTime += 2;\n      }\n\n   }\n\n   protected boolean shouldDespawnInPeaceful() {\n      return true;\n   }\n\n   protected SoundEvent getSwimSound() {\n      return SoundEvents.HOSTILE_SWIM;\n   }\n\n   protected SoundEvent getSwimSplashSound() {\n      return SoundEvents.HOSTILE_SPLASH;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_33034_) {\n      return SoundEvents.HOSTILE_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.HOSTILE_DEATH;\n   }\n\n   public LivingEntity.Fallsounds getFallSounds() {\n      return new LivingEntity.Fallsounds(SoundEvents.HOSTILE_SMALL_FALL, SoundEvents.HOSTILE_BIG_FALL);\n   }\n\n   public float getWalkTargetValue(BlockPos p_33013_, LevelReader p_33014_) {\n      return -p_33014_.getPathfindingCostFromLightLevels(p_33013_);\n   }\n\n   public static boolean isDarkEnoughToSpawn(ServerLevelAccessor p_219010_, BlockPos p_219011_, RandomSource p_219012_) {\n      if (p_219010_.getBrightness(LightLayer.SKY, p_219011_) > p_219012_.nextInt(32)) {\n         return false;\n      } else {\n         DimensionType dimensiontype = p_219010_.dimensionType();\n         int i = dimensiontype.monsterSpawnBlockLightLimit();\n         if (i < 15 && p_219010_.getBrightness(LightLayer.BLOCK, p_219011_) > i) {\n            return false;\n         } else {\n            int j = p_219010_.getLevel().isThundering() ? p_219010_.getMaxLocalRawBrightness(p_219011_, 10) : p_219010_.getMaxLocalRawBrightness(p_219011_);\n            return j <= dimensiontype.monsterSpawnLightTest().sample(p_219012_);\n         }\n      }\n   }\n\n   public static boolean checkMonsterSpawnRules(EntityType<? extends Monster> p_219014_, ServerLevelAccessor p_219015_, MobSpawnType p_219016_, BlockPos p_219017_, RandomSource p_219018_) {\n      return p_219015_.getDifficulty() != Difficulty.PEACEFUL && isDarkEnoughToSpawn(p_219015_, p_219017_, p_219018_) && checkMobSpawnRules(p_219014_, p_219015_, p_219016_, p_219017_, p_219018_);\n   }\n\n   public static boolean checkAnyLightMonsterSpawnRules(EntityType<? extends Monster> p_219020_, LevelAccessor p_219021_, MobSpawnType p_219022_, BlockPos p_219023_, RandomSource p_219024_) {\n      return p_219021_.getDifficulty() != Difficulty.PEACEFUL && checkMobSpawnRules(p_219020_, p_219021_, p_219022_, p_219023_, p_219024_);\n   }\n\n   public static AttributeSupplier.Builder createMonsterAttributes() {\n      return Mob.createMobAttributes().add(Attributes.ATTACK_DAMAGE);\n   }\n\n   public boolean shouldDropExperience() {\n      return true;\n   }\n\n   protected boolean shouldDropLoot() {\n      return true;\n   }\n\n   public boolean isPreventingPlayerRest(Player p_33036_) {\n      return true;\n   }\n\n   public ItemStack getProjectile(ItemStack p_33038_) {\n      if (p_33038_.getItem() instanceof ProjectileWeaponItem) {\n         Predicate<ItemStack> predicate = ((ProjectileWeaponItem)p_33038_.getItem()).getSupportedHeldProjectiles();\n         ItemStack itemstack = ProjectileWeaponItem.getHeldProjectile(this, predicate);\n         return net.minecraftforge.common.ForgeHooks.getProjectile(this, p_33038_, itemstack.isEmpty() ? new ItemStack(Items.ARROW) : itemstack);\n      } else {\n         return net.minecraftforge.common.ForgeHooks.getProjectile(this, p_33038_, ItemStack.EMPTY);\n      }\n   }\n}\n",
+      "actual_read_scope": "Whole direct parent including default darkness/difficulty/support predicate. Full inheritance not claimed.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        659,
+        706
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9e3774f3010fc21f4586263f2e6ad3ffecc78ebe2dfb525c32aaa51fec3904ce",
+      "raw_excerpt_utf8": "\n      }\n   }\n\n   public void remove(Entity.RemovalReason p_276115_) {\n      super.remove(p_276115_);\n      this.brain.clearMemories();\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_21145_) {\n      p_21145_.putFloat(\"Health\", this.getHealth());\n      p_21145_.putShort(\"HurtTime\", (short)this.hurtTime);\n      p_21145_.putInt(\"HurtByTimestamp\", this.lastHurtByMobTimestamp);\n      p_21145_.putShort(\"DeathTime\", (short)this.deathTime);\n      p_21145_.putFloat(\"AbsorptionAmount\", this.getAbsorptionAmount());\n      p_21145_.put(\"Attributes\", this.getAttributes().save());\n      if (!this.activeEffects.isEmpty()) {\n         ListTag listtag = new ListTag();\n\n         for(MobEffectInstance mobeffectinstance : this.activeEffects.values()) {\n            listtag.add(mobeffectinstance.save(new CompoundTag()));\n         }\n\n         p_21145_.put(\"ActiveEffects\", listtag);\n      }\n\n      p_21145_.putBoolean(\"FallFlying\", this.isFallFlying());\n      this.getSleepingPos().ifPresent((p_21099_) -> {\n         p_21145_.putInt(\"SleepingX\", p_21099_.getX());\n         p_21145_.putInt(\"SleepingY\", p_21099_.getY());\n         p_21145_.putInt(\"SleepingZ\", p_21099_.getZ());\n      });\n      DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);\n      dataresult.resultOrPartial(LOGGER::error).ifPresent((p_21102_) -> {\n         p_21145_.put(\"Brain\", p_21102_);\n      });\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_21096_) {\n      this.setAbsorptionAmount(p_21096_.getFloat(\"AbsorptionAmount\"));\n      if (p_21096_.contains(\"Attributes\", 9) && this.level() != null && !this.level().isClientSide) {\n         this.getAttributes().load(p_21096_.getList(\"Attributes\", 10));\n      }\n\n      if (p_21096_.contains(\"ActiveEffects\", 9)) {\n         ListTag listtag = p_21096_.getList(\"ActiveEffects\", 10);\n\n         for(int i = 0; i < listtag.size(); ++i) {\n",
+      "actual_read_scope": "Full local attribute writer within668..695; server-only Attributes read prefix697..706; readAdditionalSaveData rest not read.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/AttributeMap.java",
+      "entry_sha256": "d990ee1cb113e67c43d7ccdba57c944965ad75454d685dcd0d503d61fe0ffe0d",
+      "lines": [
+        121,
+        153
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0b0d13c51f9f504dc84bc7f0a348790df860444923583f82bd3bdc3a2b1d8b63",
+      "raw_excerpt_utf8": "            attributeinstance.replaceFrom(p_22177_);\n         }\n\n      });\n   }\n\n   public ListTag save() {\n      ListTag listtag = new ListTag();\n\n      for(AttributeInstance attributeinstance : this.attributes.values()) {\n         listtag.add(attributeinstance.save());\n      }\n\n      return listtag;\n   }\n\n   public void load(ListTag p_22169_) {\n      for(int i = 0; i < p_22169_.size(); ++i) {\n         CompoundTag compoundtag = p_22169_.getCompound(i);\n         String s = compoundtag.getString(\"Name\");\n         Util.ifElse(BuiltInRegistries.ATTRIBUTE.getOptional(ResourceLocation.tryParse(s)), (p_22167_) -> {\n            AttributeInstance attributeinstance = this.getInstance(p_22167_);\n            if (attributeinstance != null) {\n               attributeinstance.load(compoundtag);\n            }\n\n         }, () -> {\n            LOGGER.warn(\"Ignoring unknown attribute '{}'\", (Object)s);\n         });\n      }\n\n   }\n}",
+      "actual_read_scope": "Complete save/load with partial preceding assign tail; not whole map.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/AttributeMap.java",
+      "entry_sha256": "d990ee1cb113e67c43d7ccdba57c944965ad75454d685dcd0d503d61fe0ffe0d",
+      "lines": [
+        35,
+        63
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6e539ac85f3e52df43e11baa1954267f2be7987d8e3fd8b9c5c0bb1e3a41a725",
+      "raw_excerpt_utf8": "\n   }\n\n   public Set<AttributeInstance> getDirtyAttributes() {\n      return this.dirtyAttributes;\n   }\n\n   public Collection<AttributeInstance> getSyncableAttributes() {\n      return this.attributes.values().stream().filter((p_22184_) -> {\n         return p_22184_.getAttribute().isClientSyncable();\n      }).collect(Collectors.toList());\n   }\n\n   @Nullable\n   public AttributeInstance getInstance(Attribute p_22147_) {\n      return this.attributes.computeIfAbsent(p_22147_, (p_22188_) -> {\n         return this.supplier.createInstance(this::onAttributeModified, p_22188_);\n      });\n   }\n\n   @Nullable\n   public AttributeInstance getInstance(Holder<Attribute> p_250010_) {\n      return this.getInstance(p_250010_.value());\n   }\n\n   public boolean hasAttribute(Attribute p_22172_) {\n      return this.attributes.get(p_22172_) != null || this.supplier.hasAttribute(p_22172_);\n   }\n\n",
+      "actual_read_scope": "Full relevant getInstance and hasAttribute; not constructor/whole supplier.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/Attributes.java",
+      "entry_sha256": "72c8a021a97f71caa56394e6fc91f37fafca95af00aaf19a3f9e229e97034162",
+      "lines": [
+        1,
+        24
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "72c8a021a97f71caa56394e6fc91f37fafca95af00aaf19a3f9e229e97034162",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.attributes;\n\nimport net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;\n\npublic class Attributes {\n   public static final Attribute MAX_HEALTH = register(\"generic.max_health\", (new RangedAttribute(\"attribute.name.generic.max_health\", 20.0D, 1.0D, 1024.0D)).setSyncable(true));\n   public static final Attribute FOLLOW_RANGE = register(\"generic.follow_range\", new RangedAttribute(\"attribute.name.generic.follow_range\", 32.0D, 0.0D, 2048.0D));\n   public static final Attribute KNOCKBACK_RESISTANCE = register(\"generic.knockback_resistance\", new RangedAttribute(\"attribute.name.generic.knockback_resistance\", 0.0D, 0.0D, 1.0D));\n   public static final Attribute MOVEMENT_SPEED = register(\"generic.movement_speed\", (new RangedAttribute(\"attribute.name.generic.movement_speed\", (double)0.7F, 0.0D, 1024.0D)).setSyncable(true));\n   public static final Attribute FLYING_SPEED = register(\"generic.flying_speed\", (new RangedAttribute(\"attribute.name.generic.flying_speed\", (double)0.4F, 0.0D, 1024.0D)).setSyncable(true));\n   public static final Attribute ATTACK_DAMAGE = register(\"generic.attack_damage\", new RangedAttribute(\"attribute.name.generic.attack_damage\", 2.0D, 0.0D, 2048.0D));\n   public static final Attribute ATTACK_KNOCKBACK = register(\"generic.attack_knockback\", new RangedAttribute(\"attribute.name.generic.attack_knockback\", 0.0D, 0.0D, 5.0D));\n   public static final Attribute ATTACK_SPEED = register(\"generic.attack_speed\", (new RangedAttribute(\"attribute.name.generic.attack_speed\", 4.0D, 0.0D, 1024.0D)).setSyncable(true));\n   public static final Attribute ARMOR = register(\"generic.armor\", (new RangedAttribute(\"attribute.name.generic.armor\", 0.0D, 0.0D, 30.0D)).setSyncable(true));\n   public static final Attribute ARMOR_TOUGHNESS = register(\"generic.armor_toughness\", (new RangedAttribute(\"attribute.name.generic.armor_toughness\", 0.0D, 0.0D, 20.0D)).setSyncable(true));\n   public static final Attribute LUCK = register(\"generic.luck\", (new RangedAttribute(\"attribute.name.generic.luck\", 0.0D, -1024.0D, 1024.0D)).setSyncable(true));\n   public static final Attribute SPAWN_REINFORCEMENTS_CHANCE = register(\"zombie.spawn_reinforcements\", new RangedAttribute(\"attribute.name.zombie.spawn_reinforcements\", 0.0D, 0.0D, 1.0D));\n   public static final Attribute JUMP_STRENGTH = register(\"horse.jump_strength\", (new RangedAttribute(\"attribute.name.horse.jump_strength\", 0.7D, 0.0D, 2.0D)).setSyncable(true));\n\n   private static Attribute register(String p_22291_, Attribute p_22292_) {\n      return Registry.register(BuiltInRegistries.ATTRIBUTE, p_22291_, p_22292_);\n   }\n}",
+      "actual_read_scope": "Whole declaration: zombie.spawn_reinforcements default0 bounded0..1.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/RangedAttribute.java",
+      "entry_sha256": "4e6283a76f38c290f982fc4124194c19347ebcb44d6c7264a6f06644c5237407",
+      "lines": [
+        1,
+        33
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "4e6283a76f38c290f982fc4124194c19347ebcb44d6c7264a6f06644c5237407",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.attributes;\n\nimport net.minecraft.util.Mth;\n\npublic class RangedAttribute extends Attribute {\n   private final double minValue;\n   private final double maxValue;\n\n   public RangedAttribute(String p_22310_, double p_22311_, double p_22312_, double p_22313_) {\n      super(p_22310_, p_22311_);\n      this.minValue = p_22312_;\n      this.maxValue = p_22313_;\n      if (p_22312_ > p_22313_) {\n         throw new IllegalArgumentException(\"Minimum value cannot be bigger than maximum value!\");\n      } else if (p_22311_ < p_22312_) {\n         throw new IllegalArgumentException(\"Default value cannot be lower than minimum value!\");\n      } else if (p_22311_ > p_22313_) {\n         throw new IllegalArgumentException(\"Default value cannot be bigger than maximum value!\");\n      }\n   }\n\n   public double getMinValue() {\n      return this.minValue;\n   }\n\n   public double getMaxValue() {\n      return this.maxValue;\n   }\n\n   public double sanitizeValue(double p_22315_) {\n      return Double.isNaN(p_22315_) ? this.minValue : Mth.clamp(p_22315_, this.minValue, this.maxValue);\n   }\n}",
+      "actual_read_scope": "Whole bound/value sanitizer, NaN->min. Support0.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "entry_sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "lines": [
+        61,
+        107
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "059fd7cf01fe32f367992357065f2d20e2c5b345d2ce539c550e9c61f0822342",
+      "raw_excerpt_utf8": "   private boolean addEntityUuid(T p_157558_) {\n      if (!this.knownUuids.add(p_157558_.getUUID())) {\n         LOGGER.warn(\"UUID of added entity already exists: {}\", (Object)p_157558_);\n         return false;\n      } else {\n         return true;\n      }\n   }\n\n   public boolean addNewEntity(T p_157534_) {\n      return this.addEntity(p_157534_, false);\n   }\n\n   public boolean addNewEntityWithoutEvent(T entity) {\n      return this.addEntityWithoutEvent(entity, false);\n   }\n\n   private boolean addEntity(T p_157539_, boolean p_157540_) {\n      if (p_157539_ instanceof Entity entity && net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityJoinLevelEvent(entity, entity.level(), p_157540_))) return false;\n      return addEntityWithoutEvent(p_157539_, p_157540_);\n   }\n\n   private boolean addEntityWithoutEvent(T p_157539_, boolean p_157540_) {\n      if (!this.addEntityUuid(p_157539_)) {\n         return false;\n      } else {\n         long i = SectionPos.asLong(p_157539_.blockPosition());\n         EntitySection<T> entitysection = this.sectionStorage.getOrCreateSection(i);\n         entitysection.add(p_157539_);\n         p_157539_.setLevelCallback(new PersistentEntitySectionManager.Callback(p_157539_, i, entitysection));\n         if (!p_157540_) {\n            this.callbacks.onCreated(p_157539_);\n         }\n\n         Visibility visibility = getEffectiveStatus(p_157539_, entitysection.getStatus());\n         if (visibility.isAccessible()) {\n            this.startTracking(p_157539_);\n         }\n\n         if (visibility.isTicking()) {\n            this.startTicking(p_157539_);\n         }\n\n         return true;\n      }\n   }\n\n",
+      "actual_read_scope": "Complete UUID/addNew/addNewWithoutEvent/addEntity/addEntityWithoutEvent methods, not whole manager.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/common/ForgeConfig.java",
+      "entry_sha256": "44c74e998012dca6c187a9740c9e510b3ee555092a266c0d274687dc716fc211",
+      "lines": [
+        53,
+        66
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "01168157879d61a467c09b9c51c24df6bf2eba9ebd01b50e140a98fb2acb6d9a",
+      "raw_excerpt_utf8": "                    .translation(\"forge.configgui.fullBoundingBoxLadders\")\n                    .worldRestart()\n                    .define(\"fullBoundingBoxLadders\", false);\n\n            zombieBaseSummonChance = builder\n                    .comment(\"Base zombie summoning spawn chance. Allows changing the bonus zombie summoning mechanic.\")\n                    .translation(\"forge.configgui.zombieBaseSummonChance\")\n                    .worldRestart()\n                    .defineInRange(\"zombieBaseSummonChance\", 0.1D, 0.0D, 1.0D);\n\n            zombieBabyChance = builder\n                    .comment(\"Chance that a zombie (or subclass) is a baby. Allows changing the zombie spawning mechanic.\")\n                    .translation(\"forge.configgui.zombieBabyChance\")\n                    .worldRestart()\n",
+      "actual_read_scope": "Bounded config builder zombieBaseSummonChance default0.1 limits0..1 and worldRestart declaration; next config partial.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        827,
+        838
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "bb6bf6035ef041678ed35348b200c52ef57d6915ebfa50f84da53e6e4ddca938",
+      "raw_excerpt_utf8": "\n      return p_21377_ + f;\n   }\n\n   public static boolean checkMobSpawnRules(EntityType<? extends Mob> p_217058_, LevelAccessor p_217059_, MobSpawnType p_217060_, BlockPos p_217061_, RandomSource p_217062_) {\n      BlockPos blockpos = p_217061_.below();\n      return p_217060_ == MobSpawnType.SPAWNER || p_217059_.getBlockState(blockpos).isValidSpawn(p_217059_, blockpos, p_217058_);\n   }\n\n   public boolean checkSpawnRules(LevelAccessor p_21431_, MobSpawnType p_21432_) {\n      return true;\n   }\n",
+      "actual_read_scope": "Full static checkMobSpawnRules831..834 and simple instance rule; preceding method tail.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntitySelector.java",
+      "entry_sha256": "6cf797b7ab78a4ad764e29414bad359614aff8bbb3965d147e024d6d3dfe7a00",
+      "lines": [
+        1,
+        45
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f1a7ff197540dfff10e7ffd85675ec60266d87509e68d4855d2c4e7bb1632068",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity;\n\nimport com.google.common.base.Predicates;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.Container;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.scores.Team;\n\npublic final class EntitySelector {\n   public static final Predicate<Entity> ENTITY_STILL_ALIVE = Entity::isAlive;\n   public static final Predicate<Entity> LIVING_ENTITY_STILL_ALIVE = (p_20442_) -> {\n      return p_20442_.isAlive() && p_20442_ instanceof LivingEntity;\n   };\n   public static final Predicate<Entity> ENTITY_NOT_BEING_RIDDEN = (p_20440_) -> {\n      return p_20440_.isAlive() && !p_20440_.isVehicle() && !p_20440_.isPassenger();\n   };\n   public static final Predicate<Entity> CONTAINER_ENTITY_SELECTOR = (p_20438_) -> {\n      return p_20438_ instanceof Container && p_20438_.isAlive();\n   };\n   public static final Predicate<Entity> NO_CREATIVE_OR_SPECTATOR = (p_20436_) -> {\n      return !(p_20436_ instanceof Player) || !p_20436_.isSpectator() && !((Player)p_20436_).isCreative();\n   };\n   public static final Predicate<Entity> NO_SPECTATORS = (p_20434_) -> {\n      return !p_20434_.isSpectator();\n   };\n   public static final Predicate<Entity> CAN_BE_COLLIDED_WITH = NO_SPECTATORS.and(Entity::canBeCollidedWith);\n\n   private EntitySelector() {\n   }\n\n   public static Predicate<Entity> withinDistance(double p_20411_, double p_20412_, double p_20413_, double p_20414_) {\n      double d0 = p_20414_ * p_20414_;\n      return (p_20420_) -> {\n         return p_20420_ != null && p_20420_.distanceToSqr(p_20411_, p_20412_, p_20413_) <= d0;\n      };\n   }\n\n   public static Predicate<Entity> pushableBy(Entity p_20422_) {\n      Team team = p_20422_.getTeam();\n      Team.CollisionRule team$collisionrule = team == null ? Team.CollisionRule.ALWAYS : team.getCollisionRule();\n      return (Predicate<Entity>)(team$collisionrule == Team.CollisionRule.NEVER ? Predicates.alwaysFalse() : NO_SPECTATORS.and((p_20430_) -> {\n         if (!p_20430_.isPushable()) {\n            return false;\n",
+      "actual_read_scope": "Partial class; full actual alive/nonspectator predicate declarations, partial pushable helper.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/util/Mth.java",
+      "entry_sha256": "368c87075f7d5fd159ea89426e4f89bb29ecb4a76814f6a4c2eda10eb881bf43",
+      "lines": [
+        129,
+        134
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f09e97de403eff40a9215d958be8450478fd0d0c47a4cb13b3bd4baf88d7cb5f",
+      "raw_excerpt_utf8": "\n   public static int nextInt(RandomSource p_216272_, int p_216273_, int p_216274_) {\n      return p_216273_ >= p_216274_ ? p_216273_ : p_216272_.nextInt(p_216274_ - p_216273_ + 1) + p_216273_;\n   }\n\n   public static float nextFloat(RandomSource p_216268_, float p_216269_, float p_216270_) {\n",
+      "actual_read_scope": "Complete inclusive nextInt130..132; nextFloat header only.",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "artifact_native",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/attributes/DefaultAttributes.java",
+      "entry_sha256": "7bcc03544ee99393588fd95ca2e2e2ebd052a6f507525dd0421022f39c1e4dc5",
+      "lines": [
+        83,
+        90
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a44300727e0d53b14482385586dac602cb9c54e758f6a0df04e3e648c53e8d44",
+      "raw_excerpt_utf8": "   private static final Map<EntityType<? extends LivingEntity>, AttributeSupplier> SUPPLIERS = ImmutableMap.<EntityType<? extends LivingEntity>, AttributeSupplier>builder().put(EntityType.ALLAY, Allay.createAttributes().build()).put(EntityType.ARMOR_STAND, LivingEntity.createLivingAttributes().build()).put(EntityType.AXOLOTL, Axolotl.createAttributes().build()).put(EntityType.BAT, Bat.createAttributes().build()).put(EntityType.BEE, Bee.createAttributes().build()).put(EntityType.BLAZE, Blaze.createAttributes().build()).put(EntityType.CAT, Cat.createAttributes().build()).put(EntityType.CAMEL, Camel.createAttributes().build()).put(EntityType.CAVE_SPIDER, CaveSpider.createCaveSpider().build()).put(EntityType.CHICKEN, Chicken.createAttributes().build()).put(EntityType.COD, AbstractFish.createAttributes().build()).put(EntityType.COW, Cow.createAttributes().build()).put(EntityType.CREEPER, Creeper.createAttributes().build()).put(EntityType.DOLPHIN, Dolphin.createAttributes().build()).put(EntityType.DONKEY, AbstractChestedHorse.createBaseChestedHorseAttributes().build()).put(EntityType.DROWNED, Zombie.createAttributes().build()).put(EntityType.ELDER_GUARDIAN, ElderGuardian.createAttributes().build()).put(EntityType.ENDERMAN, EnderMan.createAttributes().build()).put(EntityType.ENDERMITE, Endermite.createAttributes().build()).put(EntityType.ENDER_DRAGON, EnderDragon.createAttributes().build()).put(EntityType.EVOKER, Evoker.createAttributes().build()).put(EntityType.FOX, Fox.createAttributes().build()).put(EntityType.FROG, Frog.createAttributes().build()).put(EntityType.GHAST, Ghast.createAttributes().build()).put(EntityType.GIANT, Giant.createAttributes().build()).put(EntityType.GLOW_SQUID, GlowSquid.createAttributes().build()).put(EntityType.GOAT, Goat.createAttributes().build()).put(EntityType.GUARDIAN, Guardian.createAttributes().build()).put(EntityType.HOGLIN, Hoglin.createAttributes().build()).put(EntityType.HORSE, AbstractHorse.createBaseHorseAttributes().build()).put(EntityType.HUSK, Zombie.createAttributes().build()).put(EntityType.ILLUSIONER, Illusioner.createAttributes().build()).put(EntityType.IRON_GOLEM, IronGolem.createAttributes().build()).put(EntityType.LLAMA, Llama.createAttributes().build()).put(EntityType.MAGMA_CUBE, MagmaCube.createAttributes().build()).put(EntityType.MOOSHROOM, Cow.createAttributes().build()).put(EntityType.MULE, AbstractChestedHorse.createBaseChestedHorseAttributes().build()).put(EntityType.OCELOT, Ocelot.createAttributes().build()).put(EntityType.PANDA, Panda.createAttributes().build()).put(EntityType.PARROT, Parrot.createAttributes().build()).put(EntityType.PHANTOM, Monster.createMonsterAttributes().build()).put(EntityType.PIG, Pig.createAttributes().build()).put(EntityType.PIGLIN, Piglin.createAttributes().build()).put(EntityType.PIGLIN_BRUTE, PiglinBrute.createAttributes().build()).put(EntityType.PILLAGER, Pillager.createAttributes().build()).put(EntityType.PLAYER, Player.createAttributes().build()).put(EntityType.POLAR_BEAR, PolarBear.createAttributes().build()).put(EntityType.PUFFERFISH, AbstractFish.createAttributes().build()).put(EntityType.RABBIT, Rabbit.createAttributes().build()).put(EntityType.RAVAGER, Ravager.createAttributes().build()).put(EntityType.SALMON, AbstractFish.createAttributes().build()).put(EntityType.SHEEP, Sheep.createAttributes().build()).put(EntityType.SHULKER, Shulker.createAttributes().build()).put(EntityType.SILVERFISH, Silverfish.createAttributes().build()).put(EntityType.SKELETON, AbstractSkeleton.createAttributes().build()).put(EntityType.SKELETON_HORSE, SkeletonHorse.createAttributes().build()).put(EntityType.SLIME, Monster.createMonsterAttributes().build()).put(EntityType.SNIFFER, Sniffer.createAttributes().build()).put(EntityType.SNOW_GOLEM, SnowGolem.createAttributes().build()).put(EntityType.SPIDER, Spider.createAttributes().build()).put(EntityType.SQUID, Squid.createAttributes().build()).put(EntityType.STRAY, AbstractSkeleton.createAttributes().build()).put(EntityType.STRIDER, Strider.createAttributes().build()).put(EntityType.TADPOLE, Tadpole.createAttributes().build()).put(EntityType.TRADER_LLAMA, Llama.createAttributes().build()).put(EntityType.TROPICAL_FISH, AbstractFish.createAttributes().build()).put(EntityType.TURTLE, Turtle.createAttributes().build()).put(EntityType.VEX, Vex.createAttributes().build()).put(EntityType.VILLAGER, Villager.createAttributes().build()).put(EntityType.VINDICATOR, Vindicator.createAttributes().build()).put(EntityType.WARDEN, Warden.createAttributes().build()).put(EntityType.WANDERING_TRADER, Mob.createMobAttributes().build()).put(EntityType.WITCH, Witch.createAttributes().build()).put(EntityType.WITHER, WitherBoss.createAttributes().build()).put(EntityType.WITHER_SKELETON, AbstractSkeleton.createAttributes().build()).put(EntityType.WOLF, Wolf.createAttributes().build()).put(EntityType.ZOGLIN, Zoglin.createAttributes().build()).put(EntityType.ZOMBIE, Zombie.createAttributes().build()).put(EntityType.ZOMBIE_HORSE, ZombieHorse.createAttributes().build()).put(EntityType.ZOMBIE_VILLAGER, Zombie.createAttributes().build()).put(EntityType.ZOMBIFIED_PIGLIN, ZombifiedPiglin.createAttributes().build()).build();\n\n   public static AttributeSupplier getSupplier(EntityType<? extends LivingEntity> p_22298_) {\n      AttributeSupplier supplier = net.minecraftforge.common.ForgeHooks.getAttributesView().get(p_22298_);\n      return supplier != null ? supplier : SUPPLIERS.get(p_22298_);\n   }\n\n   public static boolean hasSupplier(EntityType<?> p_22302_) {\n",
+      "actual_read_scope": "Complete physical line83 actually redisplayed untruncated after first lookup was clipped; full getSupplier85..88. Next method header only. Forge attribute view overrides fallback map.",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_read_range_count": 25,
+  "actual_read_entry_count": 21,
+  "actual_full_file_count": 8,
+  "actual_cited_unique_lines": 1674,
+  "line_inventory_not_credit": true,
+  "prior_own_typed_source_overlap_inventory": {
+    "net/minecraft/world/entity/monster/Zombie.java": {
+      "current_cited_unique_lines": 547,
+      "intersection_with_prior_own_typed_native_source_checks": 109
+    },
+    "net/minecraftforge/event/entity/living/ZombieEvent.java": {
+      "current_cited_unique_lines": 97,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraftforge/event/ForgeEventFactory.java": {
+      "current_cited_unique_lines": 15,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/SpawnPlacements.java": {
+      "current_cited_unique_lines": 119,
+      "intersection_with_prior_own_typed_native_source_checks": 32
+    },
+    "net/minecraft/world/level/NaturalSpawner.java": {
+      "current_cited_unique_lines": 54,
+      "intersection_with_prior_own_typed_native_source_checks": 54
+    },
+    "net/minecraft/world/level/EntityGetter.java": {
+      "current_cited_unique_lines": 31,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/level/ServerLevelAccessor.java": {
+      "current_cited_unique_lines": 12,
+      "intersection_with_prior_own_typed_native_source_checks": 12
+    },
+    "net/minecraft/server/level/ServerLevel.java": {
+      "current_cited_unique_lines": 47,
+      "intersection_with_prior_own_typed_native_source_checks": 25
+    },
+    "net/minecraft/world/entity/ai/attributes/AttributeInstance.java": {
+      "current_cited_unique_lines": 205,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/ai/attributes/AttributeModifier.java": {
+      "current_cited_unique_lines": 119,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/monster/Monster.java": {
+      "current_cited_unique_lines": 129,
+      "intersection_with_prior_own_typed_native_source_checks": 27
+    },
+    "net/minecraft/world/entity/LivingEntity.java": {
+      "current_cited_unique_lines": 48,
+      "intersection_with_prior_own_typed_native_source_checks": 10
+    },
+    "net/minecraft/world/entity/ai/attributes/AttributeMap.java": {
+      "current_cited_unique_lines": 62,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/ai/attributes/Attributes.java": {
+      "current_cited_unique_lines": 24,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/ai/attributes/RangedAttribute.java": {
+      "current_cited_unique_lines": 33,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/level/entity/PersistentEntitySectionManager.java": {
+      "current_cited_unique_lines": 47,
+      "intersection_with_prior_own_typed_native_source_checks": 46
+    },
+    "net/minecraftforge/common/ForgeConfig.java": {
+      "current_cited_unique_lines": 14,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/Mob.java": {
+      "current_cited_unique_lines": 12,
+      "intersection_with_prior_own_typed_native_source_checks": 12
+    },
+    "net/minecraft/world/entity/EntitySelector.java": {
+      "current_cited_unique_lines": 45,
+      "intersection_with_prior_own_typed_native_source_checks": 10
+    },
+    "net/minecraft/util/Mth.java": {
+      "current_cited_unique_lines": 6,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    },
+    "net/minecraft/world/entity/ai/attributes/DefaultAttributes.java": {
+      "current_cited_unique_lines": 8,
+      "intersection_with_prior_own_typed_native_source_checks": 0
+    }
+  },
+  "prior_own_source_receipt_bindings": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0028.json",
+      "sha256": "4c15cb7b3d7838d00d8d1815177f7dc47402e000a52650e2ce73db3f58e58273",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0029.json",
+      "sha256": "44423ab74e7bbcb4495259cfaae37b3dc7b531fb097906b6de5faf79d84f7447",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0030.json",
+      "sha256": "d3cdd40d71a4a5f6732717ccb6d874cadf8ece4053b05830c01a1c1b8f4441f0",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0031.json",
+      "sha256": "10f198a0a080432ff978dd5571a83255d620a0418f0d8b832f816be2d4cf20bf",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0032.json",
+      "sha256": "f1a5bbd31b4db7b6f056bfc5bef57f5fc20564a4fdb9a41ddbdbd90b45c765a1",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0033.json",
+      "sha256": "1c3c7e9234802410a9b89b2c3e8454a0ba59ad8ea95f6c6b832162ff48750e9c",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0034.json",
+      "sha256": "29cef6ee6d74f828a73b234a0f7eef22ca069b4b2046dba46c04f4aeda65d0f2",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0035.json",
+      "sha256": "ff88fdf020ba1f2e636783ac329ae1d211746b47f68d5233344daec4618aa2f4",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0036.json",
+      "sha256": "d2b05425006ec90fd80f7dce338dfff4498350a7ef52e3640c64168f854c3ef3",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0037.json",
+      "sha256": "6fcf018df55447a56b57ce4262e86e0922f80ef5e947faf0882fab5fa5e0e547",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0038.json",
+      "sha256": "1929db48db39ce89fa69ccc6666b52e37f0e66188ae963ba3c8f32a630be0f80",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0039.json",
+      "sha256": "9efd0a6f6687198c673b3a4a97036b64dcdf1cf1e13566ebc5800c159285d94a",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0040.json",
+      "sha256": "34659f79c070a08d93c3973dd4947ee31fb32e0e65eae687782cadf2126e6578",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0041.json",
+      "sha256": "dcc970c5fb4a679e78fda4f716ab20037b642214377d783f83bfc8c04263b3fb",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0042.json",
+      "sha256": "538a0f208aaf986008ca2915e9337a96b379dbfd77b2ab86d2a6add544e8dcf3",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0043.json",
+      "sha256": "c1bd24b0609c028bfd675d00fed441f0eda18b590740913cbedc804510ec9da1",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0044.json",
+      "sha256": "2799a220dcf0dd80da030e5574cbe396c2889da5b34b2de4ce8923e8adbfee1c",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0045.json",
+      "sha256": "499ccb24cfdace5ad634250561ecc75398367cf42cdd3565d92775689dc89a62",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0046.json",
+      "sha256": "ec056a9ef302608ff8852215a998cac5215437e5b85995cbc0c8bcbf2339b639",
+      "use": "Already-authored source-check range inventory only; no old semantic/source chains reread."
+    }
+  ],
+  "prior_own_source_scan_is_metadata_only_not_semantic_credit": true,
+  "display_recovery": "DefaultAttributes physical line83 clipped during first mixed lookup, then separately actually redisplayed fully with no truncation; original clipped output not credited as full reading.",
+  "observed_chain": [
+    "At most one related whole damage-conditioned reinforcement encounter policy: accepted parent hurt -> selected target -> Forge result -> default difficulty/chance/game rule -> bounded spatial candidates -> geometry/placement/player gates -> finalize/passenger add request -> both actors permanent probability penalties. Roles, attempts, coordinates, helpers and modifiers confer0 separately.",
+    "Entire Zombie547 and Monster129 actually displayed. Existing attack/retaliation goals can supply current target; hurt prefers getTarget, using DamageSource.getEntity LivingEntity only if current target null. Event attacker field therefore need not be the source attacker. No player-only attacker or original-target identity receipt.",
+    "Zombie.hurt first requires super.hurt true, then ServerLevel; accepted parent damage is not proved positive HP loss. Shown reinforcement body has no own caller isAlive or NoAI recheck. Whole inherited damage/event behavior and reachable fatal-hit outcomes not executed; no exploit claim.",
+    "Actual SummonAidEvent has result, is not cancellable; factory posts then returns it. DENY returns true without search. ALLOW short-circuits the outer default livingTarget/HARD/randomChance/doMobSpawning conjunction, but does not remove later position/placement/collision/player/liquid/admission conditions. Event Javadoc actuallyHurt location does not override actual caller hurt266..312.",
+    "Event captures chosen target and current chance as data. Default branch reads current chance AGAIN after event, not necessarily unchanged captured value. Custom Zombie is used only when ALLOW and nonnull; otherwise creates EntityType.ZOMBIE once before50loop. There is no explicit null guard before getType here. No arbitrary non-Zombie replacement or real null crash/existing-object exploit asserted.",
+    "Each trial recomputes x/y/z as floor caller coordinate plus inclusive7..40 times inclusive-1..1. Each axis can0; allzero possible and samples may repeat. Not a7..40 Euclidean shell,50unique sites, fifty simultaneous entities, loaded-chunk or collision guarantee. Same aid object is reused/repositioned across candidates.",
+    "First get type-specific placement then NaturalSpawner.isSpawnPositionOk, then SpawnPlacements.checkSpawnRules(REINFORCEMENT). Native ZOMBIE maps ON_GROUND/Monster.checkMonsterSpawnRules. NoRestrictions shortcut differs from ordinary border/support path; enum custompredicate and Forge placement-registration/view can alter applicability. Physical default body checks support and two empty cells, rules test nonPeaceful/darkness/below support for non-SPAWNER. Full block/shape/tag/current engine loading not expanded.",
+    "Forge checkSpawnPlacements posts default-result event and DEFAULT preserves/ALLOW true/DENY false; this overrides rule predicate only after first physical position gate. Effective event handlers/registered predicates/current config are unknown. SummonAid ALLOW alone does not prove daylight/Peaceful can pass default rules; later placement event may independently alter result.",
+    "After setting candidate position, excludes any living nonspectator player at strict squared distance<49; creative is not excluded by those actual two predicate declarations. No sight/protection/whole-world census is tested here. Also requests isUnobstructed/noCollision/no bounding-box liquid before finalization; lower physics/event behavior unexpanded.",
+    "If chosen target nonnull, assigns it before finalizeSpawn at actual candidate position using local candidate difficulty and REINFORCEMENT. No shown geometry recheck after finalization. Full Zombie finalization can assign baby, optional existing/new chicken jockey, equipment, holiday and attribute initialization. Those passenger/chicken requests are support0, primary request not total-population upper bound or guaranteed target preservation under overrides.",
+    "Void addFreshEntityWithPassengers iterates self/passengers and discards individual add boolean. ServerLevel addEntity rejects removed, PersistentEntitySectionManager posts cancelable EntityJoinLevelEvent and rejects known UUID. Each may prevent admission, with no atomic passenger group commit. Normal return alone does not certify one accepted new actor, exact UUID, survival, kill or material/player receipt.",
+    "After normal add request returns, adds new permanent caller charge and callee charge, each double-cast -0.05F ADDITION, then breaks50loop. It does not inspect admitted result; a normally rejected add can still be followed by both penalties. Exceptions earlier can interrupt order. No success-coupled cost/refund/rollback, actual penalty or native failure reproduced.",
+    "AttributeModifier(String,...) requests generated UUID per construction; identity uses UUID, so same display name is not replacement key. AttributeInstance permanent set is separate from transient, includes all permanent modifiers in save. Ranged zombie reinforcement chance default0 bounded0..1, effective calculation sanitizes includingNaN->min. No fixed finite call-count or per-night cap guarantee: ALLOW can bypass probability and external modifiers/config/initialization can differ.",
+    "Zombie randomizes base chance as randomDouble*Forge zombieBaseSummonChance; source config default0.1 in0..1 is a declaration, not current loaded value. Local difficulty leader branch adds additional chance and health modifiers; base chance and penalties are actor attribute state, not player currency or material payment. Forge attributes view takes precedence over DefaultAttributes fallback map whose ZOMBIE entry calls Zombie.createAttributes.",
+    "LivingEntity own attribute writer, server Attributes reader prefix, AttributeMap save/load and complete AttributeInstance/Modifier show a source persistence route for base/permanent modifiers. Unknown attributes may be ignored, malformed modifiers returnnull, reused instance load is not general clear/reset. No actual save flush/reload/chunk, arbitrary capability/UUID migration or player Clone retention claimed.",
+    "Zombie own saved water/baby/door policy and cured/old-role ZombieVillager are three existing complete migration owners retained0. New read of whole Zombie does not recredit drowning, skull drops, turtle eggs, jockey, base class, attribute registration/helper, source counts or each penalty.",
+    "Complete current EA16/32/36/39 selected semantic fields and current45 accepted semantic-key index compared; differences concern individual hurt/event/probability and caller+callee attr ownership, not mere species or unchecked boolean. This is bounded source purpose comparison, not exhaustive global uniqueness. If a full equivalent exists Main must merge0. No formal ID/package/author receipt or production acceptance here."
+  ],
+  "mandatory_constraints": [
+    "Maximum1 whole related policy pending distinct Main semantic/relevance review; individual sources/classes,50attempts, axis values, targets, spawn roles, modifiers and helpers0.",
+    "Retain actual super.hurt-then-server entry, current target preferred over source living attacker, and no own posthurt alive/NoAI gate. Do not infer positive HP damage, player attacker, safe fatal-hit behavior or reproduced exploit.",
+    "Keep independent SummonAid and SpawnPlacement result contracts. SummonAid DENY denies search; ALLOW bypasses ONLY its outer default target/HARD/RNG/doMobSpawning conjunction, not later environment or admission. Current listeners/modifiers/configs unproved.",
+    "Custom aid is Zombie-typed and only ALLOW+nonnull; nullable factory is not guarded here. Same object used for all trials; no guaranteed fresh safe custom actor or native crash claim.",
+    "Coordinates are independently {0,+/-7..40} offsets per axis, may repeat and allzero;50bounded trials not50unique sites, radius guarantee, born actors, successful population or runtime performance.",
+    "Default ZOMBIE ON_GROUND/Monster checks and Forge placement callback remain separate from world body/collision/liquid/player gates. No current pack/biome/tag/cap/exemption/loaded chunk proof or global mob-cap bypass claim.",
+    "Player avoidance is strict distance7 against living nonspectators, including creative; no LOS/permission/all-player correctness or reachability guaranteed.",
+    "Finalization runs after body checks and can change baby/passenger/equipment/attributes; primary try count not total entity bound, no arbitrary superclass/crossmod validation or target/geometry preservation guarantee.",
+    "Add-with-passengers is void and per-entity boolean discarded. Removed/join-veto/duplicate UUID can reject. Charges occur after normal request without admission acknowledgment; keep exceptions, partial group admission and no rollback/refund/native proof limitations.",
+    "Each charge uses generated UUID identity and -0.05F addition, not replacing same-named modifier or a material currency. Effective attr bounded0..1, source configuration/leader modifiers/external ALLOW preclude universal finite quota claim.",
+    "Saved permanent attribute route is source-only; transient state is separate. Do not claim real save flush/reload, arbitrary malformed/reused instance recovery, lineage, all attributes or migration/Clone entitlement.",
+    "Preserve full current EA16/32/36/39 semantic judgments/limits and three Zombie migration owners0; whole source overlap and generated/cited line inventory not semantic1000 credit or exhaustive global dedup.",
+    "No task changes, material/reward integration, production spawn rules/caps/probability repair, models/textures/buildings, Java/game/QA/world/sharedJar/UI/audio/brightness/Git/network. Source research gate unmet; preserve original IDs/rewards/progress and require authoritative native result before future quest completion."
+  ],
+  "mandatory_corrections": [],
+  "limits": [
+    "Fixed mapped local Forge1.20.1/47.4.10 source only; no fresh remote authenticity/current game deployment/config/listener/attribute registry/biome/tag loaded-state proof.",
+    "Full8 declarations plus bounded methods; no full generic damage/AI/scheduler/world/chunk/collision/attribute supplier/Forge event-bus/native factory/IO/crash-atomicity or all inherited lifecycle audit.",
+    "Accepted parent hurt is not positive HP loss; event-target reference, absence of own recheck or null guard are conditional source implications, not runtime bugs/exploits reproduced.",
+    "No actual admission/persisted-world actor, birth count, caller/callee effective attr change, save/reload, summoned target combat, material payment/drop/pickup/player reward/quest/survival/performance validation.",
+    "Native positions/chances/attribute helpers overlap accepted policies and prior own source ranges; all line/file/range/registration/property/helper inventory0 independently. Old semantic/source chains not rerun; new whole purpose still needs distinct Main review, may merge0.",
+    "Existing shared master observed45/1000 and migration1000 cannot satisfy applicable ecology1000; proposal0formal/global/migration/native credit, no ID or production authority.",
+    "Only this new immutable own research proposal is written. No tool/validator/fixture/schema installation/receipt/aggregate, no professional art or shared tracking mutation, no active-hours claim."
+  ],
+  "actual_raw_base_resource_reads": [],
+  "prior_whole_decisions": [
+    {
+      "id": "EA-0016",
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759",
+      "complete_selected_semantic_judgment_fields": {
+        "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+        "observation": [
+          "Actual registry constructor and entry instantiate Skreecher as CREATURE despite Monster superclass. Own static placement checks nonpeaceful/darkness/SCULK and instance roll uses config with SPAWNER bypass; class/max cluster1 does not prove deployed natural biome pool/cap. These support a real called mechanism, not NATURAL spawn success.",
+          "Registered HurtByTargetGoal and player NearestTarget3D consumer can feed FollowTargetGoal. Anonymous target search uses bounding box inflated16 inX/Z and fixedY[-64,320], overriding helper cube. Follow canUse needs own live target and clingCooldown<=0; tick moves/looks and sets clapping within horizontal2.5 when cooldown==0. Target may come from retaliation, not necessarily a player. Base Goal/TargetGoal/GoalSelector scheduling/continuation and AI reachability remain unexpanded.",
+          "Qualified own tick needs clapping+ownalive+cooldown<=0. Counter starts0; modulo8 branch requests clap sound, ENTITY_ROAR, anger-nearby and particle; else-if15 gives other call. Multiples of both take8 branch. These are alarm requests, not add success, and100 is local qualifying-counter threshold rather than a guaranteed100 world-tick duration.",
+          "At clapTick>=100, configtrue and !hasAttempted immediately write attemptedtrue BEFORE downward support search, biome lookup, server guard, local existing-Warden and allowed-tag checks. False config leaves flag unspent while counter may continue; later enabling can enter without a fresh100-count period. Config default/assignment do not prove loaded value.",
+          "Search begins own block below, descends whileY>-64 and not sturdyUP, and can end at/below-64 with no supported floor. Holder biome is read at search ground position before server guard, not proof the actual child bounding box orY+1 position is safe/eligible. Hardcoded lower bound is not world min-height. No obstruction, full-body free-space or natural cap admission check shown.",
+          "Only when server, local Warden query empty and holder tag matches does create occur. No null guard. It moves to own exactX/Z and searchY+1, calls finalizeSpawn(TRIGGERED) using difficulty at original Skreecher block, sets attack target to THIS Skreecher, requests79 anger then calls unchecked addFreshEntity. The originally followed living target is not the target assigned to new Warden. Rejection/null/failed add do not refund flag.",
+          "After possible spawn it increments clapTick then server revalidates target alive/LOS/notinvisible/selfnotblind and horizontal<=20; failure calls setClapping(false), which resets counter. This order permits no source-level guarantee target was still eligible before spawn; it is not a reproduced stale-target gameplay event. Target reset and clap interruption do not reset attempted flag.",
+          "Nearby Warden AABB is X/Z±35 withY endpoints ownY+(cling?5:25) and-64. Native constructor normalizes all endpoints, so reverse-writtenY does not make it empty. Query is current local returned list, not radius35 sphere, whole-world count, alive/available encounter guarantee, durable lock or atomic reservation. Every8 qualifying iteration requests anger100 for returned Wardens with LOS. No cross-actor exclusivity/duplicate race or actual anger outcome is established.",
+          "NBT SummonedWarden serializes hasAttempted, not child UUID/add-result. Clinging/CeilDist/ClingCooldown also saved; clapTick/CLAPPING/jump progress not in own additional data. Complete class has no normal reset of attempted besides reading saved value; setClapping(false) resets counter only. Persistence/reload is conditional on actual engine save/load, not verified. Existing-Warden/biome rejection consumes opportunity; absence of sturdy support has no post-search rejection gate; repeated ordinary clapping will not retry for an already flagged instance.",
+          "Own hurt first clears cling/clap and sets200..399 cooldown before delegating super.hurt, without checking its result. Therefore a rejected hurt may still request interruption; neither actual HP decrease nor authoritative successful damage is required by these local mutations. No universal control immunity or native sound/particle rendering guarantee is inferred.",
+          "Native Warden.finalizeSpawn sets DIG_COOLDOWN1200, TRIGGERED EMERGING pose and temporary IS_EMERGING plus sound request before parent. setAttackTarget writes Brain attack target and resets roar/reach/sonic cooldown. increaseAngerAt requires !noAI and native canTargetEntity, then changes anger and optional listening feedback. Requests occur before actual add; not successful population/attack receipts. Warden hurt separately can request anger/target after super call independent of its returnedflag; contextual0 credit.",
+          "Native ServerLevel addFreshEntity returns addEntity boolean; removed entities rejected, failed entityManager add returnsfalse, success then onAddedToWorld. Caller ignores boolean. EntityManager/Forge join, UUID and chunk/saving internals unexpanded. Warden removeWhenFarAway=false only rejects that ordinary removal policy; complete emerging/digging/Brain lifetime/peaceful/external removal and postspawn survival are not proved.",
+          "Actual fixed tag67 bytes declares replacefalse and minecraft:deep_dark. Fixed Git blob/source checks bind resource content, not installed merged tag, dimension rules, config or loaded biome deployment. All registry/native/tag/sound/threshold/attempt/serialization support belongs to at most one AI-alarm/local-suppression/attempt-latch encounter family.",
+          "There is NO explicit post-search sturdy-floor rejection gate. The loop may stop atY<=-64 without a sturdyUP face, then still performs biome/server/local-Warden tests and can proceed to create/move/finalize/add if those pass. Unsupported ground is not a demonstrated independent rejection path.",
+          "The attempt flag is consumed before search. Biome/local-existing-Warden rejection or a subsequent failed create/add cannot restore it; lack of sturdy support itself does not block the shown spawn path. Do not infer a safe-floor guarantee or a ground-failure no-spawn guard."
+        ],
+        "application": [
+          "Separate alarm activity, consumed attempt, environmental/local suppression, initialization requests and actual add result. A persisted variable named Summoned is not sufficient population evidence.",
+          "1000 before any Dynasty ecology implementation; no cap/category/probability workaround or random repeated runtime."
+        ],
+        "limits": [
+          "At most one whole AI-alarm/local-suppression/persisted-attempt encounter family proposed; helper, roar, native methods, registration, tag, spawnroll, counter constants and species each support0. No accepted EA identifier/ledger credit created by this file. Existing build_tenth EA16 is a draft association only.",
+          "Unlike EA1 world/weather/chance recurring encounter, this is an individual active-target alarm and durable consumed attempt before environment/local suppression. Unlike EA9 structure postProcess cohorts, no structure start/pieces. EA11 is rider-associated expiry, EA14 host effect brood, EA17 paired pregnancy/world egg. These actual old decision fields were compared, not their full source chains reread.",
+          "No loaded tags/config, engine AI/GoalSelector scheduling, target-predicate consumers, EntityType.create internals, Warden complete Brain/anger management/emerging/digging behavior, parent finalizeSpawn, entityManager/Forge entity-join event path, chunk reload or post-reload replay was executed or fully expanded.",
+          "One single fixed-commit verified-HTTPS request fetched only67byte tag with exact pinned Git blob match; no API retry/TLS bypass, acquisition/file/range count earns0. All other inputs local, actual new source read recorded; constructor binding explicitly reused at same hash.",
+          "No Java/Gradle/game/GUI/server, no native spawn/birth/kill/material/performance/cap success, no production/asset/sharedJar/world/TODO change, no hours claimed. Master remains15/1000; independent semantic review and proper formal receipt required.",
+          "Draft packaging only. Full review and immutable floor clarification both required; no successful Warden or native/cap credit.",
+          "No ground rejection gate exists after the search. Initial Warden target/anger recipient is this Skreecher.",
+          "Author is original proposal coordinator; packaging draft author is separate existing reviewer thread. No new semantic reading credit."
+        ]
+      },
+      "actually_read_current_fields": true,
+      "old_source_chains_reread": false,
+      "new_credit_for_prior": 0,
+      "rationale": "Skreecher uses live-target alarm plus a persisted single attempt exhausted BEFORE environmental/admission eligibility. Zombie uses accepted hurt, an overridable event/default current-target HARD/chance rule, repeated spatial trials, and caller/callee chance penalties only after qualifying request; no once-lifetime latch. Generic alarm/add helpers0."
+    },
+    {
+      "id": "EA-0032",
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11",
+      "complete_selected_semantic_judgment_fields": {
+        "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+        "observation": [
+          "One object-owned exact-time village setup/veto then finite attempted hostile wave. Complete135-line VillageSiege,61-line cancellable event and19-line time interface actually read; supporting counters, nested samples, variants and failure paths are not individual references.",
+          "Native startup/chunk dispatch and native-admission support are exactly covered by own prior Cat/Allay reads,12bound ranges reused0. Overworld custom list differs from natural SpawnState loop; doMobSpawning/debug/dimension/flags constrain entry. Current pack category caps, actual scheduling and admitted actors are not certified.",
+          "Own tick guards !isDay and hostile flag; friendly flag unused. Else DONE and hasSetup=false only. Count/delay/coordinates remain; disabled host calls can freeze own state. Level369..375 fixed-time/isDay body read, no entire world/light/host model claim.",
+          "Float timeOfDay at exact double0.5 causes nextInt10 reroll before DONE/setup checks. FullLevelTimeAccess and DimensionType95..101 map dayTime through fixed-or-day normalized cosine curve, interpolation argument unused. No once-night latch: repeated delivered same-time calls can reroll even prior active state; no guarantee current clock visits equality. CAN_ACTIVATE enum is unused here.",
+          "players() returns actual list; ordered first nonspectator currently village and not excluded biome is selected, no own isAlive check. Village section-distance/occupiedVILLAGE POI semantics reused from actual prior Cat study, not HOME quota. One raw mushroom_fields tag read from exact archive; loaded effective biome tag not established.",
+          "At most10ring anchors32 from playerXZ/currentY; each helper at most10 random offsets[-8,7] with WORLD_SURFACE height, village and Monster.EVENT tests. These are bounded potentially repeated samples, not100distinct sites/wholeplayers/terrain readiness/guaranteed setup.",
+          "Monster81..107 and Mob827..842 actually read: nonPeaceful,sky RNG,dimension block-light threshold, thunder/raw-brightness sampler, below-block valid spawn because EVENT!=SPAWNER. Own helper never instance-checks full body/bbox/liquid/above/worldborder; light/chunk/provider/event internals unexpanded. No reliable collision safety, cap bypass or actual encounter.",
+          "Valid probe posts cancelable VillageSiegeEvent with siege/level/player/attemptedVec3. Cancellation returnsfalse before quota/delay, leaves hasSetupfalse/TONIGHT under normal tick return; no durable stop-the-night latch despite event Javadoc. Externally reentrant/modifying handlers unexpanded. Probe is not final actor destination or native-add receipt.",
+          "Setup initializes nextSpawnTime0 and quota20 only on valid noncancelled probe. Critically first eligible player returns true even all10anchor probes fail: tick sets hasSetuptrue, fresh zero quota may finish and return1 with no spawn; reused fields can retain leftover count/delay while coordinates were replaced. No next-player search then. Source implication only, not reproduced bug.",
+          "Positive delay decrements and returns0; zero/nonpositive resets2, attempts only if remaining>0 then debits after normal void helper return; else setsDONE but still returns1. Two positive-delay delivered calls then a zero call between opportunities, not guaranteed walltime. Twenty initializes primary attempt budget, not20successful actors or total-actor upper bound.",
+          "Each trySpawn resamples near stored anchor, not earlier event probe. Null location normalreturn, nullable create dereference/finalization inside Exception catch normalreturn, so outerdebit still occurs. move/add outside catch; not all throws swallowed/debited. No atomic wave entitlement or success-coupled commit.",
+          "ZOMBIE registration286 is concrete Zombie::new MONSTER0.6x1.95. Nullable feature-gated factory support reused0. Own actual constructor88..105 only bounded partial surrounding behavior. Caller passes getCurrentDifficultyAt(zombie.blockPosition()) and EVENT BEFORE intendedVec3 move. No constructor/full inherited graph/current behavior or observed origin exploit certified.",
+          "Full Zombie.finalizeSpawn421..471 delegates super first, uses supplied local multiplier, creates optional baby/Jockey group, equipment/enchants/holiday and attributes. Actual421..501 plus538..547 read; Forge baby/reinforcement config getters are dependencies, actual config values unproved. Baby path may selectexistingChicken or create/move/finalizeJOCKEY/flag/request ride/add before outer move; add/ride results ignored. Secondary requests make primary20 not totalactors guarantee. Chicken/attributes/ride/light/runtime remain bounded.",
+          "Zombie then moveTo candidate and void addFreshEntityWithPassengers. Reused verified ServerLevel855..867 and persistentmanager61..106/134..142 support removed/cancelledJoin/UUID-rejection boundaries; own normal-return counters ignore admission. No strict birth/kill/loot/itemUUID/playerdamage/payment/worldsave proof.",
+          "Complete source has no own read/save/NBT or durable pending receipt. Object reconstruction, skipped clocks, repeatedexacttime, cancelretry, stalequota and terminal1 remain explicit. No native reproduction/performance, allworldchance or savedwave acceptance.",
+          "Whole-policy differences: EA1weather-clocked bounded beached encounter has no finite village setup veto/debited wave; EA2seedhabitat persisted giveup no delivered hostile quota; EA3/EA7table/predicate injection no direct object wave; EA9worldgen persistenthome cohort no clock/event cancellation; EA11trader-attached rider expiry no standalone wave. Cat occupiedHOME/local-density replenishment has no exact-time finitehostile budget. Shared clocks/helpers/ignoredadmission are0. Prior actual MainCat complete-decision reads reused, not old source chains reread."
+        ],
+        "application": [
+          "Later Dynasty threat work must distinguish eligibility/time trigger, actual setup acceptance, canceled event, attempted wave budget and admitted actors. Preserve original quest progression/rewards/IDs and native acquisition/birth/kill receipts.",
+          "Separate material/debit opportunity, active wave and saved entitlement owner; do not copy transient counters into player Clone whitelist or equate return count with completed encounter. Source study alone does not authorize implementing below applicable1000 gate."
+        ],
+        "limits": [
+          "One original-author complete source policy proposal only; distinct Main semantic review before formal ID/package/schema/receipt/aggregation. No global novelty, migration, native birth/kill/pickup/player payment/gameplay credit.",
+          "Local pinned source/base raw bytes only, not loaded current pack tags/configs, fresh upstream authentication, compatible build or game deployment. Full inherited constructors, world/light/chunk/POI/event-bus, Zombie/Chicken/equipment/attribute/ride/collision/admission runtime remain bounded.",
+          "Do not claim exactly once per night,20 accepted or total actors, permanent event veto, safe body clearance, reliable saved wave, native category cap bypass or observed exploit. No Java/Gradle/game/network/production/assets/source cache/shared tool/master/session/Git/checklist changes; no active-hours claim.",
+          "Main original-source study only, not paper implementation, production repair, current spawn pipeline validation or formal candidate receipt. No Cat/Phantom/Patrol proposal itself silently accepted as old complete policy.",
+          "Original proposal remains immutable historical evidence. Its copied Cat-specific prior difference strings are explicitly superseded by Main independent_findings[15] in all current comparison fields. This private proposed association is not a formal acceptance/identity assignment. No production/game/Git/checklist/master changes."
+        ]
+      },
+      "actually_read_current_fields": true,
+      "old_source_chains_reread": false,
+      "new_credit_for_prior": 0,
+      "rationale": "VillageSiege is exact-time village setup veto and object finite wave quota/delay independent of individual damage. Zombie owns per-actor damage-conditioned probability and both actor reinforcement attribute depletion, not a world night quota. Shared Zombie finalize/jockey/attribute and add supports0."
+    },
+    {
+      "id": "EA-0036",
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78",
+      "complete_selected_semantic_judgment_fields": {
+        "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+        "observation": [
+          "单项完整潜伏栖地危险机制：活体可把普通兼容host状态变成infested状态并去除自身；受伤延迟扫描当前周边潜伏块，按每次griefing判定选择破坏尝试释放或还原host去虫。转换与空间招援/去虫必须整项合并；不按物种/6变体/半径/反例/组件数拆。最多1相关完整策略建议，正式0。",
+          "完整Silverfish注册wake priority3、melee4、merge5和player/retaliation目标，原生MONSTER0.4x0.3。Goal/RandomStroll完整本体与注册可核实际方法关系，不证明GoalSelector公平调度、寻路、环境自然来源/容量机会或完整父类执行。",
+          "merge.canUse先target!=null或navigation未done拒绝；随后Forge per-entity griefing允许且nextInt(reducedTickDelay(10))==0才挑一个随机方向，按当前X/Y+0.5/Z相邻host身份图判断。Goal默认false和Mth正向向上除2使bound5，不能说每10世界tick一次。失败清doMerge走RandomStroll，fallback又有vehicle/noAction和非force随机、nullable位置及navigation请求，不保证移动到合适石块。",
+          "merge.start若doMerge再以当前actor位置+记住方向重读host，不复验target/nav/griefing/random；兼容则setBlock(infestedState,3)忽略bool，随后spawnAnim并discard旧actor。Level实际可因buildheight/debug/chunk setState null返回false；不是原子pop保存或失败保留。没有把原UUID/health/name/物品/NBT写进宿主。只据源码顺序，不报复现丢失/漏洞。",
+          "完整InfestedBlock构造把host到infested登记identity map；转换缓存按BlockState，只有同一Property对象在目标状态存在才复制属性。6个Blocks注册是stone/cobble/stonebrick变体支撑0；不是每actor槽位、colony容量或原对象快照，未审worldgen潜伏库和完整world/chunk持久化。",
+          "hurt先isInvulnerableTo则false；否则source entity非null或ALWAYS_TRIGGERS_SILVERFISH tag且friendsGoal存在即notify，然后才super.hurt。通知不依赖后续真实掉血结果。原base魔法tag实际只有minecraft:magic，不能推当前合并tag或外部伤害事件顺序。",
+          "notify仅计数0时写adjustedTickDelay20。该Goal未覆写requiresUpdateEveryTick，实际结果10，需抵达10次own goal.tick而非20固定世界tick；正值再次通知不延长。每tick先--再<=0扫描，结束计数0可再次受伤启动；完整类无own该alarm save/read，瞬时状态不等持久单次attempt latch。",
+          "扫描中心是届时currentblockPosition而非受伤坐标；Y0,+1,-1至±5，内X同序至±10，再Z至±10。无提前return上限11*21*21=4851块，不是球、路径、视线、无加载或性能承诺。每遇InfestedBlock重新问同actorForge griefing。",
+          "griefing ALLOW/DEFAULTtrue走destroyBlock(pos,true,actor)，DENY/DEFAULTfalse转hostStateByInfested并setBlock3；每个实际遇块操作后nextBoolean可能立刻return，与write/add成功无关。DENY去虫不是放出虫或等待下次release的可靠队列；无确切一次出生/全域清理/持续机会保证。",
+          "LevelWriter三参destroy委托四参512；Level.destroy非air先levelEvent并读取fluid，然后dropResources，最后setBlock(fluidlegacy,3,recursion)，仅flagtrue发BLOCK_DESTROY。Block.dropResources在ServerLevel先请求loot/pop，再spawnAfterBreak。故调用释放callback可以先于旧块真正去除；完整callback重入/掉落/事务/保存未审，不以失败bool当额外机制或已复现复制。",
+          "BlockStateBase.spawnAfterBreak动态到InfestedBlock，override先superXP hook，再要求doTileDrops和实际silklevel==0才spawnInfestation；EnchantmentHelper委托ItemStack extension未展开，空工具不推出所有mod必返回0。griefing之外还有此独立gate。仅审该正常drop路径，不能泛化到所有爆炸/玩家/creative/活塞/外部remove。",
+          "spawnInfestation nullable create新Silverfish，中心X/Z+0.5与blockY定位，uncheckedadd后spawnAnim。该helper没有显式finalize/obstruction/checkSilverfishSpawnRules/cap/doMobSpawning判断；单独static自然规则AnyLightMonster且5内无eligibleplayer不在此直接调用。无跨mod/Peaceful/存活/cap豁免保证。",
+          "复用Main先前Allay亲读3原生admission范围，拒绝removed、join取消、已知UUID仍可能使调用不接纳。构造、动画、破坏反馈、丢弃旧actor皆不证明新出生或人口守恒，不算死亡KILLED/同UUID继承/材料掉落拾取通过。",
+          "最近EA10整链已覆盖活体进巢存NBT、占巢条件与add成功才消费/失败保留队列；单独隐藏或存储/重建不能另计。本完整项的独特玩法组织是普通空间host无个体payload的潜伏库，由受伤的当前actor在盒区域招援或按griefing去虫，且破坏callback在实际块替换前。此额外入口/分支/空间状态不在EA10巢队列timer出口重试内，故全机制合并最多1，而非仅因丢bool/缺NBT加数。EA16永久父latch一次招新不是现存潜伏块招援/去虫；EA18跨孕/卵/桶双亲payload保存反而是不同目标。旧全判断实际读取或本轮Pearl读过EA16复用0，不称重读这些旧原源。"
+        ],
+        "application": [
+          "未来将潜伏栖地招援/去虫与个体持久存储分开设计；必须真实回读block replacement/newactor UUID和归属，不能alarm/动画/旧实体移除即算获得材料或生态出生。",
+          "当前仍未达到生态1000相关机制，不据此改cap/category/概率或生产。"
+        ],
+        "limits": [
+          "Bounded fixed local native sources only; no fresh upstream authenticity/complete Forge ecosystem/inheritance/GoalSelector/navigation/physics/targeting/damage authority/actual loaded rule/tag composition or runtime validation.",
+          "No reliable stored individual, NBT lineage, original UUID/health/name/inventory restoration, exact population conservation or unlimited/sustainable spawning guarantee. Infested block records host-state category/properties; world/chunk save and natural reservoir generation unexpanded.",
+          "The two caller booleans ignored: rejected setBlock can precede old actor discard, and drop/spawnAfterBreak calls can precede failed destroy write. These are source order conditions, not reproduced gameplay loss/duplication or permission exploits. No main code fix authorized by source evidence.",
+          "Griefing DENY route restores host instead of wake release; doTileDrops and current silk-level exactly0 independently gate InfestedBlock callback. Forge ALLOW/DENY override vanilla griefing result, handlers not executed. Raw magic tag is base resource only, not current runtime membership.",
+          "Alarm delay10 means own goal-tick deliveries; scheduler/noAI/load interruption not studied. Offset upper bound4851 not actual performance/cap/generation acceptance. Ordered scan and random stop give no fair/complete cleanup or exact output.",
+          "Only normal dropResources/spawnAfterBreak call path studied. Full player harvesting/correct tool/creative/event/loot/XPhook/explosion/piston/external-mod routes and item-extension silk calculation not expanded. No general statement on explosions or all block removals.",
+          "Existing accepted-row broad keyword screen found Sniffer whole-owner3fb8a71067bc8689fcce; it is not a new foraging reference and no Sniffer source studied here. No verified complete Silverfish/Infested family found in bounded semantic metadata screen; not exhaustive global novelty. Global/migration credit0.",
+          "16source ranges/14entries/6whole declarations/one raw resource/three prior admission ranges/allregistrations/properties are support0. At most1 whole policy pending distinct Main; same lifecycle coverage must merge0 if existing owner suffices.1000 gate remains unmet, no checklist deletion.",
+          "No Java/Gradle/game/server/network/download/UI/process/focus/wake/display/audio/brightness/world/sharedJar/asset/Git/shared tools/master/session/checklist action. This new immutable proposal only; no active hours claimed.",
+          "本独立完整源码策略收据只有max1建议，正式仍0。原来所有适用研究保留，不把本范围6whole/16ranges/14files当16实现，未执行上游或Java。未来需要隔离研究最小增量、Main审安装、真实作者确认、Main单次严格聚合。",
+          "Private association is not formal acceptance. Bounded no-matching-owner metadata screen is not global novelty. No production/game/Git/checklist/master changes."
+        ]
+      },
+      "actually_read_current_fields": true,
+      "old_source_chains_reread": false,
+      "new_credit_for_prior": 0,
+      "rationale": "Silverfish damage arms local delayed release/defusing of existing infested block reservoir, including prior live hiding. Zombie neither stores an actor in blocks nor restores a host; constructs/custom-supplies aid then requests placement under event and attribute policy. Generic damage and add supports0."
+    },
+    {
+      "id": "EA-0039",
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807",
+      "complete_selected_semantic_judgment_fields": {
+        "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+        "observation": [
+          "One whole periodic natural-spawn admission-budget policy: per-delivery reconstructed global category counts, ANY eligible nearby-player local capacity, and biome-configured spatial potential; request-coupled afterSpawn accounting. At most one related family, preformal credit0. Files/ranges/categories/biomes/charges/players/pack branches earn0 separately.",
+          "Actual bounded nondebug ServerChunkCache tickChunks creates fresh SpawnState from getAllEntities and new LocalMobCapCalculator, stores lastSpawnState, obtains ready ticking chunks and shuffles. No saved durable reservation or guaranteed wall-clock delivery. DistanceManager runs counter updates; getFullChunk callback only for visible holder already-ready future. Unavailable callbacks can omit actors entirely from all three initial counts.",
+          "createState skips Mob if persistenceRequired OR requiresCustomPersistence. Then Forge getClassification(true), excludes MISC, callback rough noise-biome cost -> optional spatial charge; only Mob affects local counts, all reached non-MISC actors global. No own isAlive predicate. Exact virtual classification and getAllEntities lifecycle bounded; not certified census of all live actors.",
+          "Native enum defaults70/10/15/5/5/5/20 and MISC-1, getters and Forge extensible codec read. Category isPersistent is a different field from actor persistence; native CREATURE true gates at caller gameTime%400==0. No current category configuration/cap proof. SPAWNING_CATEGORIES excludes MISC.",
+          "Normal caller gate (naturalAllowed&&anyPlayerClose)||shouldForceTicks, then doMobSpawning/enemy-or-friendly/worldborder; spawnForChunk flags enforce friendly/hostile/category-persistent before category budget. Custom spawners later get no SpawnState; not certified current customspawner cap bypass or loaded pack behavior.",
+          "Global budget is maxInstances*spawnableChunkCount/289 integer threshold, rejecting count>=threshold; after that local gate. Local caches ChunkPos->ChunkMap players; addMob increments ALL eligible players, gate accepts ANY absent counter or count<category max; empty list false. No exclusive allocation, subtraction, all-player cap or guaranteed fairness.",
+          "Actual ChunkMap eligible list first requires counter hasPlayersNearby, then non-spectator horizontal distance from chunk center x*16+8,z*16+8 squared<16384. No vertical-distance or explicit isAlive test. Backend playerMap/ticket propagation/list freshness not fully read; not all living players in exact3D128radius.",
+          "Global/local category gates occur once outside spawnCategoryForChunk. Per-candidate SpawnState.canSpawn only energy, not repeated category quota; afterSpawn increments do not impose a shown per-actor category veto. This is source order, not reproduced overpopulation or precise overshoot. Three outer packs with fixedY driftingXZ, weighted min/max reset, distance/table/rules/AABB/factory/position checks remain common support0.",
+          "canSpawn caches mutable-position object reference and type identity, rough noise-biome cost from original passed ChunkAccess. Null cost returns true with lastCharge0; else candidateCharge*sum(pointCharge/distance)<=energyBudget. Original chunk persists as argument even for drifted candidate. No current cross-chunk biome correctness or cache-race exploit proved.",
+          "PotentialCalculator stores nonzero charges without copying position. Candidate0 returns0 without summation; nonzero loops all stored points, exact same position yields positiveInfinity independent stored sign, then multiplies candidate. Negative/nonfinite inputs are not explicitly clamped by own record/builder/plain Codec.DOUBLE; primitive codec behavior/current loaded data unexpanded. No hard safe radius, universally positive monotone field or finite cap claim.",
+          "SoulSandValley real producer supplies SKELETON/GHAST/ENDERMAN/STRIDER .7charge/.15budget via addMobCharge(type,charge,budget), constructor stores record(energyBudget,charge). Immutable map built, settings passed into biome, actual BiomeData registration read. Concrete source data binding only, not current data deployment or four references.",
+          "After positioncheck passes, finalizeSpawn then ++pack counters then void addFreshEntityWithPassengers then afterSpawn. Previous actual Main admission sources reused0 show ignored boolean joins, removed/cancelled/UUID rejection. afterSpawn is request accounting, not admitted UUID/survival/kill/pickup/payment receipt; no rollback atomicity. Null factory aborts branch; failed final-position has no callback here.",
+          "afterSpawn reads final actor blockPosition/type; reuses charge only when equal cachedpos AND identicaltype, otherwise rough-biome recompute still originalchunk. Adds charge then global type.getCategory then local final actor chunk. Initial Forge classification and later static typecategory API need not be equal; virtual finalization changes remain bounded. No native exploit reproduced.",
+          "Forge packsize uses event.getMaxPackSize only if result ALLOW, otherwise virtual max cluster; then separate maxGroup check. Full source debug overload always-true predicate/no-op callback and chunk-generation path no SpawnState are exclusions/support0, not extra mechanisms. Generation four attempts/creature opportunity/flag still not native admission proof.",
+          "Complete EA0003 accepted judgments: actual structure-state/piece-index/conquest event table replacement, empty preserves original; category-specific limits and newer NeoForge API. Complete EA0007: weighted biome injection plus shared dimension/sky/substrate/structure predicate and missing-config bypass; NeoForge and WorldGenRegion/candidate-not-actual-start limits. Current policy instead owns reconstructed population capacity and energy state; selection/predicate helpers remain prior support0.",
+          "Actual existing whole migration row cf00e6ea8f4e17dc67e8 canonical8f8c644b.. preserved0: tent nested-key loss resets quota/delay, daily/local camp consumer, batch once and UtilLib unexpanded. Full current non-evidence judgment read, embedded oldsource not reread. No new global/migration/serialization credit; helpers, thresholds or shared unchecked-add defects alone are not new families."
+        ],
+        "application": "Only after applicable1000 and separately authorized production work, distinguish per-state eligibility budget from native admission receipt, combine real player-local capacity with habitat pressure, and keep category timing/persistence/classification semantics explicit. Current output is offline research, not implemented spawning repair.",
+        "limits": [
+          "One whole layered periodic natural-spawn population-budget family, currently formal0 and max1 pending independent complete semantic/relevance/dedup review. No sources/ranges/category/biome/players/helper/parameters counted separately; 1000 gate unmet.",
+          "Fixed local native source bytes only, not fresh upstream authentication, current loaded code/data/rules/categories/biomes/configs/positions/full lifecycle/virtual classification/NoAI/visibility/current pack source/runtime. No Java, native code or build executed.",
+          "Full source core and bounded caller/data producer only. DistanceManager propagation/playerMap, full ChunkHolder/chunk readiness/loaded world, event bus/placement/table/virtual entity finalization/classification/geometry/backend IO are not complete verified. Conditional callbacks and ignored add results do not prove census, successful placement, fairness, strict per-actor cap or native birth.",
+          "Use category quota input names carefully: isPersistent category400-tick flag differs Mob persistenceRequired/customPersistence exclusion; global initial Forgeclassification differs afterSpawn typecategory; rough-biome original chunk parameter may differ actual candidate location. Numeric fields are not proven positive/finiteness-safe current config.",
+          "No override/fixture/schema/tool/source cache/actualauthorreceipt/strictaggregate/production/model/texture/building/sharedJar/userworld/game/server/network/process/UI/wake/focus/sound/brightness/Git/checklist/master/session/ownership action. No active-hours claim.",
+          "Main source provenance checks only fixed local artifact bytes; no actual current pack, fresh upstream authentication, production repair, all-lifecycle census or positive finite numeric configuration proof."
+        ]
+      },
+      "actually_read_current_fields": true,
+      "old_source_chains_reread": false,
+      "new_credit_for_prior": 0,
+      "rationale": "Natural SpawnState rebuilds global/local/biome energy budget. This direct hurt route does not explicitly obtain/use SpawnState; that observation is not a global cap bypass guarantee. Probability penalties in actual caller/callee attributes have distinct owner from periodic world budget, common placement/admission supports0."
+    }
+  ],
+  "current45_accepted_semantic_index": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    }
+  ],
+  "current_formal_baseline_observed": {
+    "independently_accepted": 45,
+    "master_sha256": "a29beb75891e31e622872bc3d3059f74a4486db54df7237ae608ec4a5aa727f6",
+    "gate_met": false
+  },
+  "migration_ledger": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0"
+  },
+  "existing_global_migration_whole_owners": [
+    {
+      "candidate_id": "abe752118e938ce1e323",
+      "canonical_complete_row_sha256": "9a545b13d3ada6404bfdeb2e95cd7dc6ef25224062733a47f2fac45d489d835a",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "abe752118e938ce1e323",
+        "status": "accepted",
+        "family": "native-zombie-villager-conversion-earned-state-retention",
+        "trigger": "ZombieVillager saved read and finishConversion consumer",
+        "input": "stored villager profession, Offers/Gossips raw payload, conversion time/player UUID and typed Xp",
+        "output": "reloads pending cure when nonnegative time; actual conversion transfers profession, gossip, offer payload and villagerXp to new living villager",
+        "preservation": "Paired writer stores same retained fields; finishConversion inspected through actual setGossips/setOffers/setVillagerXp then finalizeSpawn. This is real owner transition retaining earned progress, not assigning5sample keys.",
+        "application_limit": "Raw offers/gossips stored by reference; conversion has intended item-binding/drop policies and cure reward side effects. Do not replay cure reward consumer during legacy import or copy entire old entity state.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "current_complete_structured_judgment_actually_read": true,
+      "old_source_chains_reread": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "083f516c0431c881b25a",
+      "canonical_complete_row_sha256": "aa146d4b93b631bf593ebbd26de0b224fb0d97f7496a3c66e71a99e88ac5916c",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "083f516c0431c881b25a",
+        "status": "accepted",
+        "family": "native-zombie-villager-old-role-and-profession-compatibility-chain",
+        "trigger": "DataFixers502 then702 + whole ZombieVillagerType and ZombieSplit",
+        "input": "legacy IsVillager/VillagerProfession with optional existing ZombieType",
+        "output": "existing ZombieType wins, else bounded profession or random0..5; next split emits ZombieVillager/Profession or Husk and removes ZombieType",
+        "preservation": "Read actual two-stage fallback and role consumer, not pure rename table. One old zombie-villager role restoration chain, distinct current earned trades conversion process. Migration changes type + profession payload together.",
+        "application_limit": "Fallback0 passes through next split as ordinary Zombie despite IsVillager true removed; bounded5→Profession4, profession6 excluded. Random default is nondeterministic and not appropriate Dynasty permanent recovery. No guarantee preserving corrupt unknown profession, no game run.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "current_complete_structured_judgment_actually_read": true,
+      "old_source_chains_reread": false,
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "53ff19e44ddb7e110904",
+      "canonical_complete_row_sha256": "59b59b93637802080ee2bb42e06366b0189f0efb6d87eac9a41cdef5cb24e0d1",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "53ff19e44ddb7e110904",
+        "status": "accepted",
+        "family": "native-zombie-two-stage-drowning-progress-and-door-role-restoration",
+        "trigger": "Full Zombie pair/tick/startUnderWaterConversion/convertToZombieType + Mob.convertTo",
+        "input": "InWaterTime plus DrownedConversionTime sentinel-1, IsBaby/CanBreakDoors",
+        "output": "restore babyattribute and actualdoor goal, startconversion only numeric remaining>=0; submerged600 then conversion300. Native conversion selectively retains gear and doorability only if target supports",
+        "preservation": "Distinct two-stage owner with precondition exposure phase plus committed pending conversion; not key-only nethercounter clone. Remaining==0 preserved for nexttickcompletion; equipmenttransfer samehelper support0.",
+        "application_limit": "AbsentInWaterTime0 vsoutofwaterwriter-1; once started, air doesnot cancelconversion. Reusedobject absent conversionflag notcleared. New target attributes rerolled by handleAttributes; arbitrary acquiredmodprogress not transferred. Mob.convertTo spawn failure ignored; native runtime not tested.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "current_complete_structured_judgment_actually_read": true,
+      "old_source_chains_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "bounded_preliminary_owner_screen": "Shrieker/Sniffer/Bee/Turtle/Goat prior family metadata indicated already owned scopes; those were not studied or credited anew. No unobserved functionality or exhaustive owner absence claimed.",
+  "application": "Later encounter design must distinguish accepted damage/current target, effective Forge result, habitat rules, candidate trials, initialization, admitted actor(s), durable attribute opportunity penalty and actual native encounter/material receipt. Preserve existing IDs/rewards; no current Dynasty implementation from this incomplete gate.",
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "upstream_code_executed": false,
+  "production_changes": 0,
+  "art_changes": 0,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": 0,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "duration_hours_claimed": null
+}

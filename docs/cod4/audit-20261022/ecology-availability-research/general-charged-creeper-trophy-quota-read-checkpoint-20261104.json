@@ -1,0 +1,341 @@
+{
+  "recorded_at": "2026-11-03T21:17:41.422425+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_OFFLINE_READ_CHECKPOINT_WHOLE_POLICY_DEDUP_PENDING_NO_PACKAGE",
+  "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Creeper.java",
+      "entry_sha256": "ce3799cb8a0fdbec10801073edcb67538fc8d64f09c8e866f7243368eee6913d",
+      "lines": [
+        1,
+        269
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "ce3799cb8a0fdbec10801073edcb67538fc8d64f09c8e866f7243368eee6913d",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.Collection;\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.AreaEffectCloud;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.PowerableMob;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.AvoidEntityGoal;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.SwellGoal;\nimport net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.animal.Cat;\nimport net.minecraft.world.entity.animal.Ocelot;\nimport net.minecraft.world.entity.animal.goat.Goat;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class Creeper extends Monster implements PowerableMob {\n   private static final EntityDataAccessor<Integer> DATA_SWELL_DIR = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.INT);\n   private static final EntityDataAccessor<Boolean> DATA_IS_POWERED = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_IS_IGNITED = SynchedEntityData.defineId(Creeper.class, EntityDataSerializers.BOOLEAN);\n   private int oldSwell;\n   private int swell;\n   private int maxSwell = 30;\n   private int explosionRadius = 3;\n   private int droppedSkulls;\n\n   public Creeper(EntityType<? extends Creeper> p_32278_, Level p_32279_) {\n      super(p_32278_, p_32279_);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(1, new FloatGoal(this));\n      this.goalSelector.addGoal(2, new SwellGoal(this));\n      this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Ocelot.class, 6.0F, 1.0D, 1.2D));\n      this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Cat.class, 6.0F, 1.0D, 1.2D));\n      this.goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8D));\n      this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));\n      this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Player.class, true));\n      this.targetSelector.addGoal(2, new HurtByTargetGoal(this));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25D);\n   }\n\n   public int getMaxFallDistance() {\n      return this.getTarget() == null ? 3 : 3 + (int)(this.getHealth() - 1.0F);\n   }\n\n   public boolean causeFallDamage(float p_149687_, float p_149688_, DamageSource p_149689_) {\n      boolean flag = super.causeFallDamage(p_149687_, p_149688_, p_149689_);\n      this.swell += (int)(p_149687_ * 1.5F);\n      if (this.swell > this.maxSwell - 5) {\n         this.swell = this.maxSwell - 5;\n      }\n\n      return flag;\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_SWELL_DIR, -1);\n      this.entityData.define(DATA_IS_POWERED, false);\n      this.entityData.define(DATA_IS_IGNITED, false);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_32304_) {\n      super.addAdditionalSaveData(p_32304_);\n      if (this.entityData.get(DATA_IS_POWERED)) {\n         p_32304_.putBoolean(\"powered\", true);\n      }\n\n      p_32304_.putShort(\"Fuse\", (short)this.maxSwell);\n      p_32304_.putByte(\"ExplosionRadius\", (byte)this.explosionRadius);\n      p_32304_.putBoolean(\"ignited\", this.isIgnited());\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_32296_) {\n      super.readAdditionalSaveData(p_32296_);\n      this.entityData.set(DATA_IS_POWERED, p_32296_.getBoolean(\"powered\"));\n      if (p_32296_.contains(\"Fuse\", 99)) {\n         this.maxSwell = p_32296_.getShort(\"Fuse\");\n      }\n\n      if (p_32296_.contains(\"ExplosionRadius\", 99)) {\n         this.explosionRadius = p_32296_.getByte(\"ExplosionRadius\");\n      }\n\n      if (p_32296_.getBoolean(\"ignited\")) {\n         this.ignite();\n      }\n\n   }\n\n   public void tick() {\n      if (this.isAlive()) {\n         this.oldSwell = this.swell;\n         if (this.isIgnited()) {\n            this.setSwellDir(1);\n         }\n\n         int i = this.getSwellDir();\n         if (i > 0 && this.swell == 0) {\n            this.playSound(SoundEvents.CREEPER_PRIMED, 1.0F, 0.5F);\n            this.gameEvent(GameEvent.PRIME_FUSE);\n         }\n\n         this.swell += i;\n         if (this.swell < 0) {\n            this.swell = 0;\n         }\n\n         if (this.swell >= this.maxSwell) {\n            this.swell = this.maxSwell;\n            this.explodeCreeper();\n         }\n      }\n\n      super.tick();\n   }\n\n   public void setTarget(@Nullable LivingEntity p_149691_) {\n      if (!(p_149691_ instanceof Goat)) {\n         super.setTarget(p_149691_);\n      }\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_32309_) {\n      return SoundEvents.CREEPER_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.CREEPER_DEATH;\n   }\n\n   protected void dropCustomDeathLoot(DamageSource p_32292_, int p_32293_, boolean p_32294_) {\n      super.dropCustomDeathLoot(p_32292_, p_32293_, p_32294_);\n      Entity entity = p_32292_.getEntity();\n      if (entity != this && entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(Items.CREEPER_HEAD);\n         }\n      }\n\n   }\n\n   public boolean doHurtTarget(Entity p_32281_) {\n      return true;\n   }\n\n   public boolean isPowered() {\n      return this.entityData.get(DATA_IS_POWERED);\n   }\n\n   public float getSwelling(float p_32321_) {\n      return Mth.lerp(p_32321_, (float)this.oldSwell, (float)this.swell) / (float)(this.maxSwell - 2);\n   }\n\n   public int getSwellDir() {\n      return this.entityData.get(DATA_SWELL_DIR);\n   }\n\n   public void setSwellDir(int p_32284_) {\n      this.entityData.set(DATA_SWELL_DIR, p_32284_);\n   }\n\n   public void thunderHit(ServerLevel p_32286_, LightningBolt p_32287_) {\n      super.thunderHit(p_32286_, p_32287_);\n      this.entityData.set(DATA_IS_POWERED, true);\n   }\n\n   protected InteractionResult mobInteract(Player p_32301_, InteractionHand p_32302_) {\n      ItemStack itemstack = p_32301_.getItemInHand(p_32302_);\n      if (itemstack.is(ItemTags.CREEPER_IGNITERS)) {\n         SoundEvent soundevent = itemstack.is(Items.FIRE_CHARGE) ? SoundEvents.FIRECHARGE_USE : SoundEvents.FLINTANDSTEEL_USE;\n         this.level().playSound(p_32301_, this.getX(), this.getY(), this.getZ(), soundevent, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);\n         if (!this.level().isClientSide) {\n            this.ignite();\n            if (!itemstack.isDamageableItem()) {\n               itemstack.shrink(1);\n            } else {\n               itemstack.hurtAndBreak(1, p_32301_, (p_32290_) -> {\n                  p_32290_.broadcastBreakEvent(p_32302_);\n               });\n            }\n         }\n\n         return InteractionResult.sidedSuccess(this.level().isClientSide);\n      } else {\n         return super.mobInteract(p_32301_, p_32302_);\n      }\n   }\n\n   private void explodeCreeper() {\n      if (!this.level().isClientSide) {\n         float f = this.isPowered() ? 2.0F : 1.0F;\n         this.dead = true;\n         this.level().explode(this, this.getX(), this.getY(), this.getZ(), (float)this.explosionRadius * f, Level.ExplosionInteraction.MOB);\n         this.discard();\n         this.spawnLingeringCloud();\n      }\n\n   }\n\n   private void spawnLingeringCloud() {\n      Collection<MobEffectInstance> collection = this.getActiveEffects();\n      if (!collection.isEmpty()) {\n         AreaEffectCloud areaeffectcloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());\n         areaeffectcloud.setRadius(2.5F);\n         areaeffectcloud.setRadiusOnUse(-0.5F);\n         areaeffectcloud.setWaitTime(10);\n         areaeffectcloud.setDuration(areaeffectcloud.getDuration() / 2);\n         areaeffectcloud.setRadiusPerTick(-areaeffectcloud.getRadius() / (float)areaeffectcloud.getDuration());\n\n         for(MobEffectInstance mobeffectinstance : collection) {\n            areaeffectcloud.addEffect(new MobEffectInstance(mobeffectinstance));\n         }\n\n         this.level().addFreshEntity(areaeffectcloud);\n      }\n\n   }\n\n   public boolean isIgnited() {\n      return this.entityData.get(DATA_IS_IGNITED);\n   }\n\n   public void ignite() {\n      this.entityData.set(DATA_IS_IGNITED, true);\n   }\n\n   public boolean canDropMobsSkull() {\n      return this.isPowered() && this.droppedSkulls < 1;\n   }\n\n   public void increaseDroppedSkulls() {\n      ++this.droppedSkulls;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Zombie.java",
+      "entry_sha256": "89cb879e634cce1ffb7d23ed14d22a188280ac599b03edeb12cfe85f24418e5e",
+      "lines": [
+        501,
+        518
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0f55075a949624ff4775ea732d90a17938b71427c165bf72dfbc2470035c5dee",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_34291_, int p_34292_, boolean p_34293_) {\n      super.dropCustomDeathLoot(p_34291_, p_34292_, p_34293_);\n      Entity entity = p_34291_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            ItemStack itemstack = this.getSkull();\n            if (!itemstack.isEmpty()) {\n               creeper.increaseDroppedSkulls();\n               this.spawnAtLocation(itemstack);\n            }\n         }\n      }\n\n   }\n\n   protected ItemStack getSkull() {\n      return new ItemStack(Items.ZOMBIE_HEAD);\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Skeleton.java",
+      "entry_sha256": "7d7332f3fc7e247ecef6fe604f64f8a19c1f9aabe27089cd2df1afd65b8a8c1d",
+      "lines": [
+        113,
+        123
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c61cd937f6ddc7b337ada426257c5a2b502600533d16152324c3aee2e0353dd6",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_33574_, int p_33575_, boolean p_33576_) {\n      super.dropCustomDeathLoot(p_33574_, p_33575_, p_33576_);\n      Entity entity = p_33574_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(Items.SKELETON_SKULL);\n         }\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/WitherSkeleton.java",
+      "entry_sha256": "1a248237a091012280b2ba8d85fe47316e66e9a5fdd33e1819b81b8186294f09",
+      "lines": [
+        57,
+        67
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3ff77c206073f8ba7570e3f855ad734c8a35ed5ce6efa6348bcb25750a690730",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_34174_, int p_34175_, boolean p_34176_) {\n      super.dropCustomDeathLoot(p_34174_, p_34175_, p_34176_);\n      Entity entity = p_34174_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(Items.WITHER_SKELETON_SKULL);\n         }\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        1303,
+        1336
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b6075fcfc280780ca555c32643962fccc7754caa8f034c00f59c5e0710c73ac2",
+      "raw_excerpt_utf8": "   public void die(DamageSource p_21014_) {\n      if (net.minecraftforge.common.ForgeHooks.onLivingDeath(this, p_21014_)) return;\n      if (!this.isRemoved() && !this.dead) {\n         Entity entity = p_21014_.getEntity();\n         LivingEntity livingentity = this.getKillCredit();\n         if (this.deathScore >= 0 && livingentity != null) {\n            livingentity.awardKillScore(this, this.deathScore, p_21014_);\n         }\n\n         if (this.isSleeping()) {\n            this.stopSleeping();\n         }\n\n         if (!this.level().isClientSide && this.hasCustomName()) {\n            LOGGER.info(\"Named entity {} died: {}\", this, this.getCombatTracker().getDeathMessage().getString());\n         }\n\n         this.dead = true;\n         this.getCombatTracker().recheckStatus();\n         Level level = this.level();\n         if (level instanceof ServerLevel) {\n            ServerLevel serverlevel = (ServerLevel)level;\n            if (entity == null || entity.killedEntity(serverlevel, this)) {\n               this.gameEvent(GameEvent.ENTITY_DIE);\n               this.dropAllDeathLoot(p_21014_);\n               this.createWitherRose(livingentity);\n            }\n\n            this.level().broadcastEntityEvent(this, (byte)3);\n         }\n\n         this.setPose(Pose.DYING);\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        1360,
+        1378
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6d41871a1da2e9e12291d8819c5e27db0031a2b8207d30f31c1275b7f2ea893e",
+      "raw_excerpt_utf8": "   protected void dropAllDeathLoot(DamageSource p_21192_) {\n      Entity entity = p_21192_.getEntity();\n\n      int i = net.minecraftforge.common.ForgeHooks.getLootingLevel(this, entity, p_21192_);\n      this.captureDrops(new java.util.ArrayList<>());\n\n      boolean flag = this.lastHurtByPlayerTime > 0;\n      if (this.shouldDropLoot() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {\n         this.dropFromLootTable(p_21192_, flag);\n         this.dropCustomDeathLoot(p_21192_, i, flag);\n      }\n\n      this.dropEquipment();\n      this.dropExperience();\n\n      Collection<ItemEntity> drops = captureDrops(null);\n      if (!net.minecraftforge.common.ForgeHooks.onLivingDrops(this, p_21192_, drops, i, lastHurtByPlayerTime > 0))\n         drops.forEach(e -> level().addFreshEntity(e));\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        559,
+        561
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ed984833ce8b69f92820cc0e626961bc28290e3198e1dbec584eb4038270cd34",
+      "raw_excerpt_utf8": "   protected boolean shouldDropLoot() {\n      return !this.isBaby();\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        1804,
+        1833
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "1307d7e52b8ef3bea0897400a1034ede4b6112a193dc698224ec03d2e52949c0",
+      "raw_excerpt_utf8": "   @Nullable\n   public ItemEntity spawnAtLocation(ItemLike p_19999_) {\n      return this.spawnAtLocation(p_19999_, 0);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemLike p_20001_, int p_20002_) {\n      return this.spawnAtLocation(new ItemStack(p_20001_), (float)p_20002_);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemStack p_19984_) {\n      return this.spawnAtLocation(p_19984_, 0.0F);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemStack p_19985_, float p_19986_) {\n      if (p_19985_.isEmpty()) {\n         return null;\n      } else if (this.level().isClientSide) {\n         return null;\n      } else {\n         ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY() + (double)p_19986_, this.getZ(), p_19985_);\n         itementity.setDefaultPickUpDelay();\n         if (captureDrops() != null) captureDrops().add(itementity);\n         else\n         this.level().addFreshEntity(itementity);\n         return itementity;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        2328,
+        2330
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9d44694865ddb80168b819cb3ac2ef7f9b75846b52036918a2e3a655321168ce",
+      "raw_excerpt_utf8": "   public boolean killedEntity(ServerLevel p_216988_, LivingEntity p_216989_) {\n      return true;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        3408,
+        3417
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c491f449e9a61c83ace766e14c8f5f0f46b393a88f0361bc370aa3f8a846a080",
+      "raw_excerpt_utf8": "   @Override\n   public java.util.Collection<ItemEntity> captureDrops() {\n      return captureDrops;\n   }\n   @Override\n   public java.util.Collection<ItemEntity> captureDrops(java.util.Collection<ItemEntity> value) {\n      java.util.Collection<ItemEntity> ret = captureDrops;\n      this.captureDrops = value;\n      return ret;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/common/ForgeHooks.java",
+      "entry_sha256": "e21acd3d13778b54be47ed9b4f8407bfbad3957206281c085219c166e405102c",
+      "lines": [
+        304,
+        312
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9f401d1ef9d6b84c2f140cb9277a581da6f3ac066dd806e33f751de58634af21",
+      "raw_excerpt_utf8": "    public static boolean onLivingDeath(LivingEntity entity, DamageSource src)\n    {\n        return MinecraftForge.EVENT_BUS.post(new LivingDeathEvent(entity, src));\n    }\n\n    public static boolean onLivingDrops(LivingEntity entity, DamageSource source, Collection<ItemEntity> drops, int lootingLevel, boolean recentlyHit)\n    {\n        return MinecraftForge.EVENT_BUS.post(new LivingDropsEvent(entity, source, drops, lootingLevel, recentlyHit));\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/damagesource/DamageSource.java",
+      "entry_sha256": "8b19b3cb51c9139b48464bb0c6700ea27a652a677afde0e8daf812f08b3e4dd1",
+      "lines": [
+        58,
+        66
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "639ba92e86fbaf192619d9d01c86762baa147cd7bb435eba2258c93d4ccb9505",
+      "raw_excerpt_utf8": "   @Nullable\n   public Entity getDirectEntity() {\n      return this.directEntity;\n   }\n\n   @Nullable\n   public Entity getEntity() {\n      return this.causingEntity;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Monster.java",
+      "entry_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+      "lines": [
+        112,
+        114
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "1e05f8056988d4703c0bc27e258ec260aedde39e34bb8bdf6149697622146634",
+      "raw_excerpt_utf8": "   protected boolean shouldDropLoot() {\n      return true;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/living/LivingDropsEvent.java",
+      "entry_sha256": "6fbcc14f8cf95ec2dbad23b2d4b1cdc04e38452e5a9321703795830ae0574c95",
+      "lines": [
+        1,
+        72
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "6fbcc14f8cf95ec2dbad23b2d4b1cdc04e38452e5a9321703795830ae0574c95",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.living;\n\nimport java.util.Collection;\n\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraftforge.common.ForgeHooks;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\n/**\n * LivingDropsEvent is fired when an Entity's death causes dropped items to appear.<br>\n * This event is fired whenever an Entity dies and drops items in\n * {@link LivingEntity#die(DamageSource)}.<br>\n * <br>\n * This event is fired via the {@link ForgeHooks#onLivingDrops(LivingEntity, DamageSource, Collection, int, boolean)} .<br>\n * <br>\n * {@link #source} contains the DamageSource that caused the drop to occur.<br>\n * {@link #drops} contains the ArrayList of EntityItems that will be dropped.<br>\n * {@link #lootingLevel} contains the amount of loot that will be dropped.<br>\n * {@link #recentlyHit} determines whether the Entity doing the drop has recently been damaged.<br>\n * <br>\n * This event is {@link Cancelable}.<br>\n * If this event is canceled, the Entity does not drop anything.<br>\n * <br>\n * This event does not have a result. {@link HasResult}<br>\n * <br>\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.\n **/\n@net.minecraftforge.eventbus.api.Cancelable\npublic class LivingDropsEvent extends LivingEvent\n{\n    private final DamageSource source;\n    private final Collection<ItemEntity> drops;\n    private final int lootingLevel;\n    private final boolean recentlyHit;\n\n    public LivingDropsEvent(LivingEntity entity, DamageSource source, Collection<ItemEntity> drops, int lootingLevel, boolean recentlyHit)\n    {\n        super(entity);\n        this.source = source;\n        this.drops = drops;\n        this.lootingLevel = lootingLevel;\n        this.recentlyHit = recentlyHit;\n    }\n\n    public DamageSource getSource()\n    {\n        return source;\n    }\n\n    public Collection<ItemEntity> getDrops()\n    {\n        return drops;\n    }\n\n    public int getLootingLevel()\n    {\n        return lootingLevel;\n    }\n\n    public boolean isRecentlyHit()\n    {\n        return recentlyHit;\n    }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        897,
+        914
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5235df5faae4f155422767a38a34043d6a187d069c4364caa231ac51f7527217",
+      "raw_excerpt_utf8": "   protected void dropCustomDeathLoot(DamageSource p_21385_, int p_21386_, boolean p_21387_) {\n      super.dropCustomDeathLoot(p_21385_, p_21386_, p_21387_);\n\n      for(EquipmentSlot equipmentslot : EquipmentSlot.values()) {\n         ItemStack itemstack = this.getItemBySlot(equipmentslot);\n         float f = this.getEquipmentDropChance(equipmentslot);\n         boolean flag = f > 1.0F;\n         if (!itemstack.isEmpty() && !EnchantmentHelper.hasVanishingCurse(itemstack) && (p_21387_ || flag) && Math.max(this.random.nextFloat() - (float)p_21386_ * 0.01F, 0.0F) < f) {\n            if (!flag && itemstack.isDamageableItem()) {\n               itemstack.setDamageValue(itemstack.getMaxDamage() - this.random.nextInt(1 + this.random.nextInt(Math.max(itemstack.getMaxDamage() - 3, 1))));\n            }\n\n            this.spawnAtLocation(itemstack);\n            this.setItemSlot(equipmentslot, ItemStack.EMPTY);\n         }\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_read_range_count": 15,
+  "actual_read_entry_count": 11,
+  "actual_full_file_count": 2,
+  "actual_cited_lines": 519,
+  "prior_actual_own_support_reused_zero": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-zombie-villager-treatment-read-checkpoint-20261104.json",
+      "sha256": "8c1b3a2467a9e85f350b3ceedb69e93ecf2c9c1e1fc0c6940e5e6fb13943797b",
+      "entry": "net/minecraft/world/entity/monster/ZombieVillager.java",
+      "lines": [
+        279,
+        281
+      ],
+      "scope": "actual prior own whole317-line read: getSkull returns EMPTY; no repeated source read",
+      "credit": 0
+    }
+  ],
+  "existing_global_whole_decisions_for_pending_comparison": [
+    {
+      "candidate_id": "8ad211e564c4feac13fe",
+      "canonical_complete_row_sha256": "5295f514235813275d330165374e77bb0c01511195113231ec8a1464bb24b03d",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "8ad211e564c4feac13fe",
+        "status": "accepted",
+        "family": "native-armed-explosive-fuse-storage-contrasted-with-unsaved-elapsed-charge",
+        "trigger": "Full PrimedTnt/MinecartTNT/Creeper pairs and tick/explode/igniter consumers",
+        "input": "TNT short remaining Fuse; cart int TNTFuse default-1; creeper maxFuse/radius/powered/ignited",
+        "output": "TNT actual decrements to discard+explode; cart positive decrements then zero explodes using current speed; creeper ignition persists but current swell notsaved",
+        "preservation": "Group related explosive timers ONE family, avoids per-key countdown clones. Concrete timing unit/default contrast: TNT absent0 immediatelydetonates, cart absent retains-1, creeper missing max retains30.",
+        "application_limit": "PrimedTnt owner notsaved; creeper elapsed swell/droppedSkulls absent, so save is not complete encounter receipt. TNT signedshort truncation and cart arbitrarynegative can disable countdown; creeper byte radius signed. No explosions/testworld started.",
+        "supporting_candidates": [
+          "c28050c6f64a70919dc1",
+          "3c326d84f463e0669541"
+        ],
+        "credit": 1
+      },
+      "complete_current_judgment_previously_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    },
+    {
+      "candidate_id": "50baaef9f4ca718c77da",
+      "canonical_complete_row_sha256": "d2d5e543b22e947290dfc2b64491ee1c9ef7821182b27c6777bd087ceccd2acc",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "50baaef9f4ca718c77da",
+        "status": "accepted",
+        "family": "native-retained-adult-frog-phenotype-to-prey-death-material-conversion",
+        "trigger": "Adult biome phenotype survives ordinary save/load and actual frog-caused prey death supplies material loot",
+        "input": "Namespaced FrogVariant saved identity, actual attacker DamageSource, actual victim loot context",
+        "output": "Resolved variant restored without local biome reroll; actual magma-cube loot selects retained-phenotype-specific froglight through registered source_entity type_specific predicate",
+        "preservation": "Real biome-tag-selected adult FrogVariant namespacedidentity persists; ordinary load updates only when registryresolves and subsequentAI doesnotrecomputecurrentbiome phenotype. RealFrogcanEat admits size1 SlimeinclMagmaCube fromactualjarfoodtag. Sensor/AI activity choosesrealprey andShootTongue makesnormalMobAttack; actualDamageSource retains same frog direct/causingentity. NativeLivingEntitydeath sendsDAMAGE_SOURCE to actualvictimlootcontext. Exactminecraft1.20.1 client.jar magma_cube lootfulltext hasactualwarm/cold/temperate sourceentityvariantpredicates selectingpearlescent/verdant/ochre stacks. EntityPredicate.fromJson calls type_specific parser; actualEntitySubPredicate.Types map registers frog toFROGvariantpredicate andgetterFrog.getVariant; recordequals determinesmatching. The retained trait actually changes repeatable products fromanotherentitydeath afterreload, notcolor/UI or3independentbranches. Onewholeadultretainedphenotype as crossentitymaterialproduction selector, no extra registry/helper/loot/phenotypepervaluecredit. Dedup: Tadpolepaidgrowth createsadult handoff, but no lateradultpredator phenotype-dependentexternalvictimlootwas credited. Sheepresource depletion/regrowth consumesownboundedstock; thisFrogtrait persists withoutperkillcounterandclassifiesanotherentity actualdeathmaterial. Mooshroomspendschosenpendingstewonce; here no nextmealpayload toclear. Beanplant ownstatefood/clone selection differs from actualattacker-phenotype→victimcause-of-death attribution channel. Panda inheritedgene drivesownbehavior/attributes, notmaterial conversion by preydeath. Native8ad armedexplosive includesCreeperpowered and omittedskullcounter assupport; itscreditedinvariant is fuse/currentcharge timing, notFrogsbiome-acquired adultclass feedingregisteredvictimloot. ChargedCreepercanillustrate similar killer-state-to-head reward but wedonotproposenewCreepercredit/attributecredit; noledgerexistingfullpredator-phenotype-to-preymaterialownerfound. Mostimportantdifference is sourceentityphenotype selection onthevictimslootcontext; variant+prettytexturesalonewould0. Independentworldsourceimplementationmax1 ratherthanallanimalvariant wrappers.",
+        "application_limit": "Whole Frog355/FrogAi141/ShootTongue149/FrogVariant15/AttackablesSensor25/EntityVariantPredicate70/DamageSourcePredicate134/DamageSourceCondition51 actualread; onlyselectedothers. Firstwrong ShootTongue path missed thencorrectanimal/frog file read fully. ActualVanillaEntityLoot onlyline78, NOTentiremonsterloottables. Sourcehash/registry/candidatecountnotsemanticcredits. Twojarresourcesfullyread, outputnotgame. No actualgame/two-player/entitykill/lootdelivery/saveflush/survival/renderer tests orproductionchanges. Currentpack canoverride vanillaJSON/tag/damage/events; exactvanillaarchivemembers donotprove currentDynastyrecipe/dropbalance or ecologyavailability. Lootdrop bool/onLivingDrops cancancel, addFreshEntityreturnignored, no exactlyonce/perkill delivery guarantee. Persistedkey absent/wrongstring/invalid/unresolved lookupdoesnotcallsetVariant, freshobjectinitialTEMPERATE; reusedobjectkeepsoldvariant. ReaderdoesnotquarantineunknownID. Detailedregistryregistrationmapimplementation/codecunknownaliases notfullyunfolded, no arbitraryformatmigration guarantee. BuiltInregisterSimpledeclarationselected, lookupMappedRegistryselected. Variantrownamesstable, no versionaliasesexamined. FrogVariantrecord equalscomparestexture ResourceLocation, andEntityVariantPredicate comparesrecordequals, notexplicitregisteredkeyidentity. Customvariantwithsame texture maycompareequal; externaldynamicregistry/customregistrationnotreproduced. Savedconstructorname outputandpredicatecomparison distinct semantic surfaces, no universalcustomvariantguarantee. BiomevariantassignedonlywhenfinalizeSpawn called. Here wholeFrog offspringcreatesnewentityandinitMemories, no directparentvariantinheritance; priorTadpoleconversioncallsfinalizeSpawn inthatpriorreceipt butthisproposaldoesnotre-readitsentirechain orcountagain. Do not describegeneticparentphenotypeinheritance/paidbreedledger orplayerownershipUUID. Frog.canEat requires tagand ifSlimesize==1; vanillafoodtag isSlime+MagmaCube. Sensorhuntingcooldown/attackable/reach/10distance andactualtonguepathdistance<1.75 gate; completeenginepathfinder/Mob.hurt hooksnotread. No guaranteedpredation/proximity/nativeAIperformance. LootJSON froglightbranches onlycheck frogvariant, NOTexplicitvictimsize; unnaturalfrogcausedlargemagmakillcouldstillmatch table. NaturalAI sizegate isseparateauthority, no blanketloot-sizeenforcementclaim. ShootTongue attack attempts onlyifcurrentlyalive, ignoresbooleanhurtreturn thenchecksentityalive andremoveKILLED. ForgeLivingDeath veto, targethealth/armoreffects canpreventdeath; no killreceipt merelyfromcandidate/animation. Slime.remove onlysplitswhen size>1anddead; no splittingofordinaryAI-targetsize1. WholeMagmaCubeclassnotread, onlyextendsSlimeandselectedheader through100; additionaloverride absence searchnotwholebehaviorreview. ActualdamageSource constructor ties frogcausingentity. DamageSourceCondition consumesactualcontextDAMAGE_SOURCE, sourceEntitypredicate ultimatelyFrogVariant getter. LivingEntity.death usesactuallastcause, notarbitraryKillCredit; customsourceoverride orsameownerprojectile canmeet sourcepredicate withouttongueattack, noexclusiveactionproof. MobcustomLootTable overridesdefault and datapacks/hooks canreplace/dropdeny. No fullenginecrash-atomicproof. Persistentvariantpolicy NOTallFrogbrainfields! Frog inheritsnativeBrainserialization; pregnancy/AI memories notauditedforpersistencehere, no assertionallunsaved. TongueDATA targetnumericID andanimationstate notwritteninlocaladditionalpair; wholeparentreadmayownotherfields. No transfer of temporarytarget/flight/QAflags intoDynastyplayerClone. No newcredit percolor/frog/sensor/lootcondition/helper. This isonlyproposedwholematerialconversioninvariant beyondcosmetics, notautomaticacceptbecausefilesorlines. Sharedgenericregistry/damage/drop/codec allsupport0, no architecture/model/texture/ecology credit. Actualreifiedarchive isvanillabase, not proofcurrentDynastyalloverridedatapacks/materialproduction tested. NoJava/game/entityspawn/kill/sound/worldmutation. Readzipbytesonly. Packet/lootdispatch/Gsonregistrytop-level engine notfullaudit; supplementalEntityPredicateparser/type-mapclosesconcretebinding butallgenericcodec machinerysupport0. SourceclaimedfullFrog355 andFrogAi141 ranges omitfinalouterclosingbrace inactualsplitlines356/142; independentalreadyreadwhole356/142 priorreview. No executablelogic omitted; evidencecounts1245 refer listedexactranges, not bytecountingimprovedcredit. ShootTongue149similarlyincludesinnerenumclosebutouterbrace150exists; actualfullbehaviorsemanticsread, no completenessclaimforgenericparentclasses. Frog.canEat Slime size1 isAI targetselection, lootfroglightbranches doNOTsizecheck. Lootallowsanyfrog-causingDamageSource, notexclusiveTongueAbility or guaranteedlastplayerkillcredit. Genericdamage hooks/killveto/dropcancel/addentity failure remain. Selection doesnotestablish globallyoneitemperactualpredation acrossmods/crash. FrogVariantJava record equality comparesitssoletextureResourceLocation, notregisteredID. Customsame-texture registeredvariant couldequal vanilla predicate; no unseenmodalias compatibilityclaim. Mainreaderreturnsnochangeifresolvednull, defaultTEMPERATEfresh vsoldvalue reused; unknownIDsnotroundtripped/quarantined. No proposednewDyastyecology/variant/asset/recipe/Clonepolicy. Retainedphenotype iscreaturefact, notperplayerownedentitlement; innatebiomeassignmentnotearnedpaidprogress itself. Sourceillustrates semanticretention affectingactualmaterial, notpermissiontocopyarbitrarycooldown/brainstate.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "complete_current_judgment_previously_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    }
+  ],
+  "observed_so_far": [
+    "One attacker-object shared trophy-attempt quota across shown Creeper/Zombie/Skeleton/WitherSkeleton death callbacks; variants/support/helpers0. Novel whole-policy comparison is pending, not accepted.",
+    "Creeper canDropMobsSkull needs powered and droppedSkulls<1; all shown eligible victim callbacks increment killer before spawnAtLocation. Zombie virtual skull must be nonempty; prior whole ZombieVillager source returns EMPTY. No all-variant coverage claim.",
+    "DamageSource.getEntity returns causingEntity, distinct getDirectEntity; victim callbacks do not explicitly require explosion damage tag/type. Ordinary callback order determines first qualifying request, not guaranteed one admitted trophy per explosion.",
+    "Own droppedSkulls initialized only default0 and omitted from own save/read. Fresh object resets own counter; reused object read does not explicitly reset; no actual reload/lifecycle or full inherited persistence proof.",
+    "LivingEntity.die first death event then removed/dead guard, server and causingEntity.killedEntity gate. Base Entity killedEntity true; current complete dynamic/event dispatch graph is not proven.",
+    "Monster override shouldDropLoot true differs LivingEntity base !isBaby; dropAllDeathLoot separately checks doMobLoot. Loot table before custom, then equipment/experience, then captured mutable collection and cancellable LivingDropsEvent.",
+    "Entity spawnAtLocation rejects empty/client, constructs item/delay then captures if collection else requests add and returns object ignoring add Boolean. Capture getter/setter swaps field, event exposes same collection. Cancel/removal/admission failure is after attacker quota debit, no refund/accepted ItemUUID/playerpickup proof.",
+    "Creeper ignite/thunder/explode/full own class read; current8ad whole explosive persistence owner includes missing skull counter as boundary. Those timer/charge fields do not become new migration/reference credit. Frog full retained phenotype-to-loot owner also must be compared as a whole."
+  ],
+  "pending": [
+    "Complete whole comparison against both retained owners and closest ecology whole judgments before any proposal/formal credit.",
+    "No complete explosion propagation, effective handlers, whole inheritance, native item admission or player acquisition studied or executed.",
+    "Switch to Main-authorized Natural budget private package; continue this checkpoint later without replaying old source."
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

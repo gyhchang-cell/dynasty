@@ -1,0 +1,127 @@
+{
+  "recorded_at": "2026-11-09T14:28:46.278296+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "BOUNDED_PIGLIN_ADMIRATION_PAYMENT_HANDOFF_READ_ONLY_NOT_WHOLE_POLICY_OR_PACKAGE",
+  "actual_displayed_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/PiglinAi.java",
+      "entry_sha256": "de751d885280bf4efcab1324aeb0fb57cfb92b568c57b3aa13769c8393132dcd",
+      "lines": [
+        221,
+        378
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ef51f0d069f111c13c22383cbf28940a3d847e80b675741e064d3d52f1233341",
+      "raw_excerpt_utf8": "   protected static void pickUpItem(Piglin p_34844_, ItemEntity p_34845_) {\n      stopWalking(p_34844_);\n      ItemStack itemstack;\n      if (p_34845_.getItem().is(Items.GOLD_NUGGET)) {\n         p_34844_.take(p_34845_, p_34845_.getItem().getCount());\n         itemstack = p_34845_.getItem();\n         p_34845_.discard();\n      } else {\n         p_34844_.take(p_34845_, 1);\n         itemstack = removeOneItemFromItemEntity(p_34845_);\n      }\n\n      if (isLovedItem(itemstack)) {\n         p_34844_.getBrain().eraseMemory(MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM);\n         holdInOffhand(p_34844_, itemstack);\n         admireGoldItem(p_34844_);\n      } else if (isFood(itemstack) && !hasEatenRecently(p_34844_)) {\n         eat(p_34844_);\n      } else {\n         boolean flag = !p_34844_.equipItemIfPossible(itemstack).equals(ItemStack.EMPTY);\n         if (!flag) {\n            putInInventory(p_34844_, itemstack);\n         }\n      }\n   }\n\n   private static void holdInOffhand(Piglin p_34933_, ItemStack p_34934_) {\n      if (isHoldingItemInOffHand(p_34933_)) {\n         p_34933_.spawnAtLocation(p_34933_.getItemInHand(InteractionHand.OFF_HAND));\n      }\n\n      p_34933_.holdInOffHand(p_34934_);\n   }\n\n   private static ItemStack removeOneItemFromItemEntity(ItemEntity p_34823_) {\n      ItemStack itemstack = p_34823_.getItem();\n      ItemStack itemstack1 = itemstack.split(1);\n      if (itemstack.isEmpty()) {\n         p_34823_.discard();\n      } else {\n         p_34823_.setItem(itemstack);\n      }\n\n      return itemstack1;\n   }\n\n   protected static void stopHoldingOffHandItem(Piglin p_34868_, boolean p_34869_) {\n      ItemStack itemstack = p_34868_.getItemInHand(InteractionHand.OFF_HAND);\n      p_34868_.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);\n      if (p_34868_.isAdult()) {\n         boolean flag = itemstack.isPiglinCurrency();\n         if (p_34869_ && flag) {\n            throwItems(p_34868_, getBarterResponseItems(p_34868_));\n         } else if (!flag) {\n            boolean flag1 = !p_34868_.equipItemIfPossible(itemstack).isEmpty();\n            if (!flag1) {\n               putInInventory(p_34868_, itemstack);\n            }\n         }\n      } else {\n         boolean flag2 = !p_34868_.equipItemIfPossible(itemstack).isEmpty();\n         if (!flag2) {\n            ItemStack itemstack1 = p_34868_.getMainHandItem();\n            if (isLovedItem(itemstack1)) {\n               putInInventory(p_34868_, itemstack1);\n            } else {\n               throwItems(p_34868_, Collections.singletonList(itemstack1));\n            }\n\n            p_34868_.holdInMainHand(itemstack);\n         }\n      }\n\n   }\n\n   protected static void cancelAdmiring(Piglin p_34928_) {\n      if (isAdmiringItem(p_34928_) && !p_34928_.getOffhandItem().isEmpty()) {\n         p_34928_.spawnAtLocation(p_34928_.getOffhandItem());\n         p_34928_.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);\n      }\n\n   }\n\n   private static void putInInventory(Piglin p_34953_, ItemStack p_34954_) {\n      ItemStack itemstack = p_34953_.addToInventory(p_34954_);\n      throwItemsTowardRandomPos(p_34953_, Collections.singletonList(itemstack));\n   }\n\n   private static void throwItems(Piglin p_34861_, List<ItemStack> p_34862_) {\n      Optional<Player> optional = p_34861_.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER);\n      if (optional.isPresent()) {\n         throwItemsTowardPlayer(p_34861_, optional.get(), p_34862_);\n      } else {\n         throwItemsTowardRandomPos(p_34861_, p_34862_);\n      }\n\n   }\n\n   private static void throwItemsTowardRandomPos(Piglin p_34913_, List<ItemStack> p_34914_) {\n      throwItemsTowardPos(p_34913_, p_34914_, getRandomNearbyPos(p_34913_));\n   }\n\n   private static void throwItemsTowardPlayer(Piglin p_34851_, Player p_34852_, List<ItemStack> p_34853_) {\n      throwItemsTowardPos(p_34851_, p_34853_, p_34852_.position());\n   }\n\n   private static void throwItemsTowardPos(Piglin p_34864_, List<ItemStack> p_34865_, Vec3 p_34866_) {\n      if (!p_34865_.isEmpty()) {\n         p_34864_.swing(InteractionHand.OFF_HAND);\n\n         for(ItemStack itemstack : p_34865_) {\n            BehaviorUtils.throwItem(p_34864_, itemstack, p_34866_.add(0.0D, 1.0D, 0.0D));\n         }\n      }\n\n   }\n\n   private static List<ItemStack> getBarterResponseItems(Piglin p_34997_) {\n      LootTable loottable = p_34997_.level().getServer().getLootData().getLootTable(BuiltInLootTables.PIGLIN_BARTERING);\n      List<ItemStack> list = loottable.getRandomItems((new LootParams.Builder((ServerLevel)p_34997_.level())).withParameter(LootContextParams.THIS_ENTITY, p_34997_).create(LootContextParamSets.PIGLIN_BARTER));\n      return list;\n   }\n\n   private static boolean wantsToDance(LivingEntity p_34811_, LivingEntity p_34812_) {\n      if (p_34812_.getType() != EntityType.HOGLIN) {\n         return false;\n      } else {\n         return RandomSource.create(p_34811_.level().getGameTime()).nextFloat() < 0.1F;\n      }\n   }\n\n   protected static boolean wantsToPickup(Piglin p_34858_, ItemStack p_34859_) {\n      if (p_34858_.isBaby() && p_34859_.is(ItemTags.IGNORED_BY_PIGLIN_BABIES)) {\n         return false;\n      } else if (p_34859_.is(ItemTags.PIGLIN_REPELLENTS)) {\n         return false;\n      } else if (isAdmiringDisabled(p_34858_) && p_34858_.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {\n         return false;\n      } else if (p_34859_.isPiglinCurrency()) {\n         return isNotHoldingLovedItemInOffHand(p_34858_);\n      } else {\n         boolean flag = p_34858_.canAddToInventory(p_34859_);\n         if (p_34859_.is(Items.GOLD_NUGGET)) {\n            return flag;\n         } else if (isFood(p_34859_)) {\n            return !hasEatenRecently(p_34858_) && flag;\n         } else if (!isLovedItem(p_34859_)) {\n            return p_34858_.canReplaceCurrentItem(p_34859_);\n         } else {\n            return isNotHoldingLovedItemInOffHand(p_34858_) && flag;\n         }\n      }\n   }\n\n   protected static boolean isLovedItem(ItemStack p_149966_) {\n      return p_149966_.is(ItemTags.PIGLIN_LOVED);\n   }\n\n",
+      "reading_claim": "Actually displayed current source text, not complete full policy or novel semantic credit",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/PiglinAi.java",
+      "entry_sha256": "de751d885280bf4efcab1324aeb0fb57cfb92b568c57b3aa13769c8393132dcd",
+      "lines": [
+        444,
+        480
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8cc0a13a1f9f11831eda68c96ad81c910d454e72e55aa562ede7bf1210c1ea27",
+      "raw_excerpt_utf8": "   public static InteractionResult mobInteract(Piglin p_34847_, Player p_34848_, InteractionHand p_34849_) {\n      ItemStack itemstack = p_34848_.getItemInHand(p_34849_);\n      if (canAdmire(p_34847_, itemstack)) {\n         ItemStack itemstack1 = itemstack.split(1);\n         holdInOffhand(p_34847_, itemstack1);\n         admireGoldItem(p_34847_);\n         stopWalking(p_34847_);\n         return InteractionResult.CONSUME;\n      } else {\n         return InteractionResult.PASS;\n      }\n   }\n\n   protected static boolean canAdmire(Piglin p_34910_, ItemStack p_34911_) {\n      return !isAdmiringDisabled(p_34910_) && !isAdmiringItem(p_34910_) && p_34910_.isAdult() && p_34911_.isPiglinCurrency();\n   }\n\n   protected static void wasHurtBy(Piglin p_34838_, LivingEntity p_34839_) {\n      if (!(p_34839_ instanceof Piglin)) {\n         if (isHoldingItemInOffHand(p_34838_)) {\n            stopHoldingOffHandItem(p_34838_, false);\n         }\n\n         Brain<Piglin> brain = p_34838_.getBrain();\n         brain.eraseMemory(MemoryModuleType.CELEBRATE_LOCATION);\n         brain.eraseMemory(MemoryModuleType.DANCING);\n         brain.eraseMemory(MemoryModuleType.ADMIRING_ITEM);\n         if (p_34839_ instanceof Player) {\n            brain.setMemoryWithExpiry(MemoryModuleType.ADMIRING_DISABLED, true, 400L);\n         }\n\n         getAvoidTarget(p_34838_).ifPresent((p_289470_) -> {\n            if (p_289470_.getType() != p_34839_.getType()) {\n               brain.eraseMemory(MemoryModuleType.AVOID_TARGET);\n            }\n\n         });\n",
+      "reading_claim": "Actually displayed current source text, not complete full policy or novel semantic credit",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/PiglinAi.java",
+      "entry_sha256": "de751d885280bf4efcab1324aeb0fb57cfb92b568c57b3aa13769c8393132dcd",
+      "lines": [
+        694,
+        760
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "462d6d0b9e6361ff6610e96cf7774ab6e076a59a42edb04d9c430b8823e46074",
+      "raw_excerpt_utf8": "      return vec3 == null ? p_35017_.position() : vec3;\n   }\n\n   private static boolean hasEatenRecently(Piglin p_35019_) {\n      return p_35019_.getBrain().hasMemoryValue(MemoryModuleType.ATE_RECENTLY);\n   }\n\n   protected static boolean isIdle(AbstractPiglin p_34943_) {\n      return p_34943_.getBrain().isActive(Activity.IDLE);\n   }\n\n   private static boolean hasCrossbow(LivingEntity p_34919_) {\n      return p_34919_.isHolding(is -> is.getItem() instanceof net.minecraft.world.item.CrossbowItem);\n   }\n\n   private static void admireGoldItem(LivingEntity p_34939_) {\n      p_34939_.getBrain().setMemoryWithExpiry(MemoryModuleType.ADMIRING_ITEM, true, 120L);\n   }\n\n   private static boolean isAdmiringItem(Piglin p_35021_) {\n      return p_35021_.getBrain().hasMemoryValue(MemoryModuleType.ADMIRING_ITEM);\n   }\n\n   private static boolean isBarterCurrency(ItemStack p_149968_) {\n      return p_149968_.is(BARTERING_ITEM);\n   }\n\n   private static boolean isFood(ItemStack p_149970_) {\n      return p_149970_.is(ItemTags.PIGLIN_FOOD);\n   }\n\n   private static boolean isNearRepellent(Piglin p_35023_) {\n      return p_35023_.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_REPELLENT);\n   }\n\n   private static boolean seesPlayerHoldingLovedItem(LivingEntity p_34972_) {\n      return p_34972_.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_PLAYER_HOLDING_WANTED_ITEM);\n   }\n\n   private static boolean doesntSeeAnyPlayerHoldingLovedItem(LivingEntity p_34983_) {\n      return !seesPlayerHoldingLovedItem(p_34983_);\n   }\n\n   public static boolean isPlayerHoldingLovedItem(LivingEntity p_34884_) {\n      return p_34884_.getType() == EntityType.PLAYER && p_34884_.isHolding(PiglinAi::isLovedItem);\n   }\n\n   private static boolean isAdmiringDisabled(Piglin p_35025_) {\n      return p_35025_.getBrain().hasMemoryValue(MemoryModuleType.ADMIRING_DISABLED);\n   }\n\n   private static boolean wasHurtRecently(LivingEntity p_34989_) {\n      return p_34989_.getBrain().hasMemoryValue(MemoryModuleType.HURT_BY);\n   }\n\n   private static boolean isHoldingItemInOffHand(Piglin p_35027_) {\n      return !p_35027_.getOffhandItem().isEmpty();\n   }\n\n   private static boolean isNotHoldingLovedItemInOffHand(Piglin p_35029_) {\n      return p_35029_.getOffhandItem().isEmpty() || !isLovedItem(p_35029_.getOffhandItem());\n   }\n\n   public static boolean isZombified(EntityType<?> p_34807_) {\n      return p_34807_ == EntityType.ZOMBIFIED_PIGLIN || p_34807_ == EntityType.ZOGLIN;\n   }\n}\n",
+      "reading_claim": "Actually displayed current source text, not complete full policy or novel semantic credit",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/StartAdmiringItemIfSeen.java",
+      "entry_sha256": "224b4ca83dd40a31d554b9d26b52ab07d108b971ce2e9ef056337b6083b3832b",
+      "lines": [
+        1,
+        25
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "224b4ca83dd40a31d554b9d26b52ab07d108b971ce2e9ef056337b6083b3832b",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.item.ItemEntity;\n\npublic class StartAdmiringItemIfSeen {\n   public static BehaviorControl<LivingEntity> create(int p_259418_) {\n      return BehaviorBuilder.create((p_259264_) -> {\n         return p_259264_.group(p_259264_.present(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM), p_259264_.absent(MemoryModuleType.ADMIRING_ITEM), p_259264_.absent(MemoryModuleType.ADMIRING_DISABLED), p_259264_.absent(MemoryModuleType.DISABLE_WALK_TO_ADMIRE_ITEM)).apply(p_259264_, (p_259343_, p_260195_, p_259697_, p_259511_) -> {\n            return (p_260130_, p_259946_, p_259235_) -> {\n               ItemEntity itementity = p_259264_.get(p_259343_);\n               if (!PiglinAi.isLovedItem(itementity.getItem())) {\n                  return false;\n               } else {\n                  p_260195_.setWithExpiry(true, (long)p_259418_);\n                  return true;\n               }\n            };\n         });\n      });\n   }\n}",
+      "reading_claim": "Actually displayed current source text, not complete full policy or novel semantic credit",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/StopHoldingItemIfNoLongerAdmiring.java",
+      "entry_sha256": "63aeba0139edfd4065037f81da6682be01ef40b8e69d5223f173ef6411bfd854",
+      "lines": [
+        1,
+        23
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "63aeba0139edfd4065037f81da6682be01ef40b8e69d5223f173ef6411bfd854",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.item.Items;\n\npublic class StopHoldingItemIfNoLongerAdmiring {\n   public static BehaviorControl<Piglin> create() {\n      return BehaviorBuilder.create((p_259197_) -> {\n         return p_259197_.group(p_259197_.absent(MemoryModuleType.ADMIRING_ITEM)).apply(p_259197_, (p_259512_) -> {\n            return (p_289481_, p_289482_, p_289483_) -> {\n               if (!p_289482_.getOffhandItem().isEmpty() && !p_289482_.getOffhandItem().canPerformAction(net.minecraftforge.common.ToolActions.SHIELD_BLOCK)) {\n                  PiglinAi.stopHoldingOffHandItem(p_289482_, true);\n                  return true;\n               } else {\n                  return false;\n               }\n            };\n         });\n      });\n   }\n}\n",
+      "reading_claim": "Actually displayed current source text, not complete full policy or novel semantic credit",
+      "credit": 0
+    }
+  ],
+  "actual_displayed_lines": 310,
+  "current_formal_master": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "6c39b9f164509ed353687de94697668dbc5ea23d82181578a1a0307c6ce59242",
+    "independently_accepted": 43
+  },
+  "previous_private_package": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-peer-sharing-v28-private-delta-handoff-20261109.json",
+    "sha256": "7a8c914bf5925bb4dc62f308cb66aa3b18cbb925d62b442c6cfb88a57f494652",
+    "state": "Handed to Main for independent review; no second package here"
+  },
+  "bounded_observations": [
+    "Direct mobInteract canAdmire requires adult, no admiring/disabled memory, and stack.isPiglinCurrency, then splits one from held stack into offhand and sets120 admiration memory before CONSUME; actual caller client/server/item API and all prior interaction context still untraced.",
+    "Dropped-item path removes one through split except GOLD_NUGGET takes whole stack; loved-item tag leads offhand admiration, food/inventory/equip are separate. Currency extension and loved tag overlap are not established for current pack.",
+    "StopHolding observer requires admiration memory absent and offhand nonempty/non-SHIELD_BLOCK action. Adult stop clears offhand before testing currency and loot-table generation. Interrupted stop(false) for adult currency does not request barter response in the displayed path; no runtime loss or rollback proof.",
+    "Barter response table requests THIS_ENTITY in PIGLIN_BARTER context. throwItems chooses current NEAREST_VISIBLE_PLAYER or random nearby position, not a remembered payer. Target position and known throw helper do not prove intended player inventory acquisition.",
+    "StartAdmiring item-seen wrapper only has nearest wanted item plus admiration/disabled/walk-disable memory conditions and PIGLIN_LOVED check; setting admiration does not itself debit/acquire item.",
+    "Mapped paths actually invoke Forge stack isPiglinCurrency and SHIELD_BLOCK action. GOLD_INGOT/BARTERING_ITEM or unused helper alone cannot establish accepted current currency; exact extension implementation and current pack resources/events remain to read."
+  ],
+  "limits": [
+    "Only5 displayed ranges310lines, two complete small helper classes, not full PiglinAi/Piglin/brain/Forge interaction/loot/pickup/save lifecycle.",
+    "Ranges444-480 and694-760 include partial surrounding hurt/random-position methods; never label them complete methods.",
+    "No current raw barter table, datapack/tag/currency membership, payer binding, add admission, same-UUID pickup or native receipt examined.",
+    "No whole-policy semantic independence judgment yet against prior Hero/Cat/peer exchange and global item/Brain migration owners; helpers/ranges/classes carry0.",
+    "No second candidate ID/package/receipt/validator or master change; first guessed helper namespace was absent in archive, corrected by reading actual archive catalog."
+  ],
+  "formal_candidate_id": null,
+  "reference_credit": 0,
+  "applied_credit": 0,
+  "production_changes": 0,
+  "shared_tool_writes": 0,
+  "shared_jar_writes": 0,
+  "checklist_deletions": 0,
+  "native_preparation_writes": 0,
+  "validator_or_fixture_or_aggregate_executed": false,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "active_hours_claimed": null,
+  "next": "Continue actual fixed-source Piglin caller/brain/admiration interruption and extension/loot/pickup handoff reading, reuse prior helpers0, compare whole policies before proposing max1. Do not create another package while peer v28 awaits its Main decision."
+}

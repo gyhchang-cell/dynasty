@@ -1,0 +1,317 @@
+{
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "semantic_key": "weakness-and-apple-funded-persistent-treatment-with-probabilistic-local-accelerator-and-starter-attributed-villager-restoration",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/ZombieVillager.java",
+      "entry_sha256": "c0b00a1fe24a0bbdd22d8d56053a2fb4cc917e20a7cc7f5eecb224d9b6e620cc",
+      "lines": [
+        1,
+        317
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "c0b00a1fe24a0bbdd22d8d56053a2fb4cc917e20a7cc7f5eecb224d9b6e620cc",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport com.mojang.logging.LogUtils;\nimport com.mojang.serialization.DataResult;\nimport com.mojang.serialization.Dynamic;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.NbtOps;\nimport net.minecraft.nbt.Tag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.ai.village.ReputationEventType;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.npc.VillagerData;\nimport net.minecraft.world.entity.npc.VillagerDataHolder;\nimport net.minecraft.world.entity.npc.VillagerProfession;\nimport net.minecraft.world.entity.npc.VillagerType;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.item.trading.MerchantOffers;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.BedBlock;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport org.slf4j.Logger;\n\npublic class ZombieVillager extends Zombie implements VillagerDataHolder {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final EntityDataAccessor<Boolean> DATA_CONVERTING_ID = SynchedEntityData.defineId(ZombieVillager.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<VillagerData> DATA_VILLAGER_DATA = SynchedEntityData.defineId(ZombieVillager.class, EntityDataSerializers.VILLAGER_DATA);\n   private static final int VILLAGER_CONVERSION_WAIT_MIN = 3600;\n   private static final int VILLAGER_CONVERSION_WAIT_MAX = 6000;\n   private static final int MAX_SPECIAL_BLOCKS_COUNT = 14;\n   private static final int SPECIAL_BLOCK_RADIUS = 4;\n   private int villagerConversionTime;\n   @Nullable\n   private UUID conversionStarter;\n   @Nullable\n   private Tag gossips;\n   @Nullable\n   private CompoundTag tradeOffers;\n   private int villagerXp;\n\n   public ZombieVillager(EntityType<? extends ZombieVillager> p_34368_, Level p_34369_) {\n      super(p_34368_, p_34369_);\n      BuiltInRegistries.VILLAGER_PROFESSION.getRandom(this.random).ifPresent((p_255550_) -> {\n         this.setVillagerData(this.getVillagerData().setProfession(p_255550_.value()));\n      });\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_CONVERTING_ID, false);\n      this.entityData.define(DATA_VILLAGER_DATA, new VillagerData(VillagerType.PLAINS, VillagerProfession.NONE, 1));\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_34397_) {\n      super.addAdditionalSaveData(p_34397_);\n      VillagerData.CODEC.encodeStart(NbtOps.INSTANCE, this.getVillagerData()).resultOrPartial(LOGGER::error).ifPresent((p_204072_) -> {\n         p_34397_.put(\"VillagerData\", p_204072_);\n      });\n      if (this.tradeOffers != null) {\n         p_34397_.put(\"Offers\", this.tradeOffers);\n      }\n\n      if (this.gossips != null) {\n         p_34397_.put(\"Gossips\", this.gossips);\n      }\n\n      p_34397_.putInt(\"ConversionTime\", this.isConverting() ? this.villagerConversionTime : -1);\n      if (this.conversionStarter != null) {\n         p_34397_.putUUID(\"ConversionPlayer\", this.conversionStarter);\n      }\n\n      p_34397_.putInt(\"Xp\", this.villagerXp);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_34387_) {\n      super.readAdditionalSaveData(p_34387_);\n      if (p_34387_.contains(\"VillagerData\", 10)) {\n         DataResult<VillagerData> dataresult = VillagerData.CODEC.parse(new Dynamic<>(NbtOps.INSTANCE, p_34387_.get(\"VillagerData\")));\n         dataresult.resultOrPartial(LOGGER::error).ifPresent(this::setVillagerData);\n      }\n\n      if (p_34387_.contains(\"Offers\", 10)) {\n         this.tradeOffers = p_34387_.getCompound(\"Offers\");\n      }\n\n      if (p_34387_.contains(\"Gossips\", 9)) {\n         this.gossips = p_34387_.getList(\"Gossips\", 10);\n      }\n\n      if (p_34387_.contains(\"ConversionTime\", 99) && p_34387_.getInt(\"ConversionTime\") > -1) {\n         this.startConverting(p_34387_.hasUUID(\"ConversionPlayer\") ? p_34387_.getUUID(\"ConversionPlayer\") : null, p_34387_.getInt(\"ConversionTime\"));\n      }\n\n      if (p_34387_.contains(\"Xp\", 3)) {\n         this.villagerXp = p_34387_.getInt(\"Xp\");\n      }\n\n   }\n\n   public void tick() {\n      if (!this.level().isClientSide && this.isAlive() && this.isConverting()) {\n         int i = this.getConversionProgress();\n         this.villagerConversionTime -= i;\n         if (this.villagerConversionTime <= 0 && net.minecraftforge.event.ForgeEventFactory.canLivingConvert(this, EntityType.VILLAGER, (timer) -> this.villagerConversionTime = timer)) {\n            this.finishConversion((ServerLevel)this.level());\n         }\n      }\n\n      super.tick();\n   }\n\n   public InteractionResult mobInteract(Player p_34394_, InteractionHand p_34395_) {\n      ItemStack itemstack = p_34394_.getItemInHand(p_34395_);\n      if (itemstack.is(Items.GOLDEN_APPLE)) {\n         if (this.hasEffect(MobEffects.WEAKNESS)) {\n            if (!p_34394_.getAbilities().instabuild) {\n               itemstack.shrink(1);\n            }\n\n            if (!this.level().isClientSide) {\n               this.startConverting(p_34394_.getUUID(), this.random.nextInt(2401) + 3600);\n            }\n\n            return InteractionResult.SUCCESS;\n         } else {\n            return InteractionResult.CONSUME;\n         }\n      } else {\n         return super.mobInteract(p_34394_, p_34395_);\n      }\n   }\n\n   protected boolean convertsInWater() {\n      return false;\n   }\n\n   public boolean removeWhenFarAway(double p_34414_) {\n      return !this.isConverting() && this.villagerXp == 0;\n   }\n\n   public boolean isConverting() {\n      return this.getEntityData().get(DATA_CONVERTING_ID);\n   }\n\n   private void startConverting(@Nullable UUID p_34384_, int p_34385_) {\n      this.conversionStarter = p_34384_;\n      this.villagerConversionTime = p_34385_;\n      this.getEntityData().set(DATA_CONVERTING_ID, true);\n      this.removeEffect(MobEffects.WEAKNESS);\n      this.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, p_34385_, Math.min(this.level().getDifficulty().getId() - 1, 0)));\n      this.level().broadcastEntityEvent(this, (byte)16);\n   }\n\n   public void handleEntityEvent(byte p_34372_) {\n      if (p_34372_ == 16) {\n         if (!this.isSilent()) {\n            this.level().playLocalSound(this.getX(), this.getEyeY(), this.getZ(), SoundEvents.ZOMBIE_VILLAGER_CURE, this.getSoundSource(), 1.0F + this.random.nextFloat(), this.random.nextFloat() * 0.7F + 0.3F, false);\n         }\n\n      } else {\n         super.handleEntityEvent(p_34372_);\n      }\n   }\n\n   private void finishConversion(ServerLevel p_34399_) {\n      Villager villager = this.convertTo(EntityType.VILLAGER, false);\n\n      for(EquipmentSlot equipmentslot : EquipmentSlot.values()) {\n         ItemStack itemstack = this.getItemBySlot(equipmentslot);\n         if (!itemstack.isEmpty()) {\n            if (EnchantmentHelper.hasBindingCurse(itemstack)) {\n               villager.getSlot(equipmentslot.getIndex() + 300).set(itemstack);\n            } else {\n               double d0 = (double)this.getEquipmentDropChance(equipmentslot);\n               if (d0 > 1.0D) {\n                  this.spawnAtLocation(itemstack);\n               }\n            }\n         }\n      }\n\n      villager.setVillagerData(this.getVillagerData());\n      if (this.gossips != null) {\n         villager.setGossips(this.gossips);\n      }\n\n      if (this.tradeOffers != null) {\n         villager.setOffers(new MerchantOffers(this.tradeOffers));\n      }\n\n      villager.setVillagerXp(this.villagerXp);\n      villager.finalizeSpawn(p_34399_, p_34399_.getCurrentDifficultyAt(villager.blockPosition()), MobSpawnType.CONVERSION, (SpawnGroupData)null, (CompoundTag)null);\n      villager.refreshBrain(p_34399_);\n      if (this.conversionStarter != null) {\n         Player player = p_34399_.getPlayerByUUID(this.conversionStarter);\n         if (player instanceof ServerPlayer) {\n            CriteriaTriggers.CURED_ZOMBIE_VILLAGER.trigger((ServerPlayer)player, this, villager);\n            p_34399_.onReputationEvent(ReputationEventType.ZOMBIE_VILLAGER_CURED, player, villager);\n         }\n      }\n\n      villager.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));\n      if (!this.isSilent()) {\n         p_34399_.levelEvent((Player)null, 1027, this.blockPosition(), 0);\n      }\n      net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, villager);\n   }\n\n   private int getConversionProgress() {\n      int i = 1;\n      if (this.random.nextFloat() < 0.01F) {\n         int j = 0;\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();\n\n         for(int k = (int)this.getX() - 4; k < (int)this.getX() + 4 && j < 14; ++k) {\n            for(int l = (int)this.getY() - 4; l < (int)this.getY() + 4 && j < 14; ++l) {\n               for(int i1 = (int)this.getZ() - 4; i1 < (int)this.getZ() + 4 && j < 14; ++i1) {\n                  BlockState blockstate = this.level().getBlockState(blockpos$mutableblockpos.set(k, l, i1));\n                  if (blockstate.is(Blocks.IRON_BARS) || blockstate.getBlock() instanceof BedBlock) {\n                     if (this.random.nextFloat() < 0.3F) {\n                        ++i;\n                     }\n\n                     ++j;\n                  }\n               }\n            }\n         }\n      }\n\n      return i;\n   }\n\n   public float getVoicePitch() {\n      return this.isBaby() ? (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 2.0F : (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F;\n   }\n\n   public SoundEvent getAmbientSound() {\n      return SoundEvents.ZOMBIE_VILLAGER_AMBIENT;\n   }\n\n   public SoundEvent getHurtSound(DamageSource p_34404_) {\n      return SoundEvents.ZOMBIE_VILLAGER_HURT;\n   }\n\n   public SoundEvent getDeathSound() {\n      return SoundEvents.ZOMBIE_VILLAGER_DEATH;\n   }\n\n   public SoundEvent getStepSound() {\n      return SoundEvents.ZOMBIE_VILLAGER_STEP;\n   }\n\n   protected ItemStack getSkull() {\n      return ItemStack.EMPTY;\n   }\n\n   public void setTradeOffers(CompoundTag p_34412_) {\n      this.tradeOffers = p_34412_;\n   }\n\n   public void setGossips(Tag p_34392_) {\n      this.gossips = p_34392_;\n   }\n\n   @Nullable\n   public SpawnGroupData finalizeSpawn(ServerLevelAccessor p_34378_, DifficultyInstance p_34379_, MobSpawnType p_34380_, @Nullable SpawnGroupData p_34381_, @Nullable CompoundTag p_34382_) {\n      this.setVillagerData(this.getVillagerData().setType(VillagerType.byBiome(p_34378_.getBiome(this.blockPosition()))));\n      return super.finalizeSpawn(p_34378_, p_34379_, p_34380_, p_34381_, p_34382_);\n   }\n\n   public void setVillagerData(VillagerData p_34376_) {\n      VillagerData villagerdata = this.getVillagerData();\n      if (villagerdata.getProfession() != p_34376_.getProfession()) {\n         this.tradeOffers = null;\n      }\n\n      this.entityData.set(DATA_VILLAGER_DATA, p_34376_);\n   }\n\n   public VillagerData getVillagerData() {\n      return this.entityData.get(DATA_VILLAGER_DATA);\n   }\n\n   public int getVillagerXp() {\n      return this.villagerXp;\n   }\n\n   public void setVillagerXp(int p_34374_) {\n      this.villagerXp = p_34374_;\n   }\n}\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        1204,
+        1249
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "2a151df860156fc8e005e1337d8d5ede91a7a9b17bac8eb13948ccaeda27e6e1",
+      "raw_excerpt_utf8": "   @Nullable\n   public <T extends Mob> T convertTo(EntityType<T> p_21407_, boolean p_21408_) {\n      if (this.isRemoved()) {\n         return (T)null;\n      } else {\n         T t = p_21407_.create(this.level());\n         if (t == null) {\n            return (T)null;\n         } else {\n            t.copyPosition(this);\n            t.setBaby(this.isBaby());\n            t.setNoAi(this.isNoAi());\n            if (this.hasCustomName()) {\n               t.setCustomName(this.getCustomName());\n               t.setCustomNameVisible(this.isCustomNameVisible());\n            }\n\n            if (this.isPersistenceRequired()) {\n               t.setPersistenceRequired();\n            }\n\n            t.setInvulnerable(this.isInvulnerable());\n            if (p_21408_) {\n               t.setCanPickUpLoot(this.canPickUpLoot());\n\n               for(EquipmentSlot equipmentslot : EquipmentSlot.values()) {\n                  ItemStack itemstack = this.getItemBySlot(equipmentslot);\n                  if (!itemstack.isEmpty()) {\n                     t.setItemSlot(equipmentslot, itemstack.copyAndClear());\n                     t.setDropChance(equipmentslot, this.getEquipmentDropChance(equipmentslot));\n                  }\n               }\n            }\n\n            this.level().addFreshEntity(t);\n            if (this.isPassenger()) {\n               Entity entity = this.getVehicle();\n               this.stopRiding();\n               t.startRiding(entity, true);\n            }\n\n            this.discard();\n            return t;\n         }\n      }\n   }\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        836,
+        844
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "744fe3245c3c5f2c254d09979c9e6aab7b3019895ae9247a1ab0e617b86bffc7",
+      "raw_excerpt_utf8": "    public static boolean canLivingConvert(LivingEntity entity, EntityType<? extends LivingEntity> outcome, Consumer<Integer> timer)\n    {\n        return !MinecraftForge.EVENT_BUS.post(new LivingConversionEvent.Pre(entity, outcome, timer));\n    }\n\n    public static void onLivingConvert(LivingEntity entity, LivingEntity outcome)\n    {\n        MinecraftForge.EVENT_BUS.post(new LivingConversionEvent.Post(entity, outcome));\n    }\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        657,
+        659
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e80579e9a3ede9612111913a369224ecf136baaaa94aa6524ebc1b3b789bb5bb",
+      "raw_excerpt_utf8": "   public void setOffers(MerchantOffers p_35477_) {\n      this.offers = p_35477_;\n   }\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        691,
+        706
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e410a5155e4563b56e4f62c1e0c2ea95b49d4fe1dfe7cab2795b26ca22cc4a80",
+      "raw_excerpt_utf8": "   @Nullable\n   public SpawnGroupData finalizeSpawn(ServerLevelAccessor p_35439_, DifficultyInstance p_35440_, MobSpawnType p_35441_, @Nullable SpawnGroupData p_35442_, @Nullable CompoundTag p_35443_) {\n      if (p_35441_ == MobSpawnType.BREEDING) {\n         this.setVillagerData(this.getVillagerData().setProfession(VillagerProfession.NONE));\n      }\n\n      if (p_35441_ == MobSpawnType.COMMAND || p_35441_ == MobSpawnType.SPAWN_EGG || p_35441_ == MobSpawnType.SPAWNER || p_35441_ == MobSpawnType.DISPENSER) {\n         this.setVillagerData(this.getVillagerData().setType(VillagerType.byBiome(p_35439_.getBiome(this.blockPosition()))));\n      }\n\n      if (p_35441_ == MobSpawnType.STRUCTURE) {\n         this.assignProfessionWhenSpawned = true;\n      }\n\n      return super.finalizeSpawn(p_35439_, p_35440_, p_35441_, p_35442_, p_35443_);\n   }\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        836,
+        869
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "aa2b106abcd58cdef0e79ce7854a4d5f05b0119579fdeafdbfcb9375079f7e6e",
+      "raw_excerpt_utf8": "   public void onReputationEventFrom(ReputationEventType p_35431_, Entity p_35432_) {\n      if (p_35431_ == ReputationEventType.ZOMBIE_VILLAGER_CURED) {\n         this.gossips.add(p_35432_.getUUID(), GossipType.MAJOR_POSITIVE, 20);\n         this.gossips.add(p_35432_.getUUID(), GossipType.MINOR_POSITIVE, 25);\n      } else if (p_35431_ == ReputationEventType.TRADE) {\n         this.gossips.add(p_35432_.getUUID(), GossipType.TRADING, 2);\n      } else if (p_35431_ == ReputationEventType.VILLAGER_HURT) {\n         this.gossips.add(p_35432_.getUUID(), GossipType.MINOR_NEGATIVE, 25);\n      } else if (p_35431_ == ReputationEventType.VILLAGER_KILLED) {\n         this.gossips.add(p_35432_.getUUID(), GossipType.MAJOR_NEGATIVE, 25);\n      }\n\n   }\n\n   public int getVillagerXp() {\n      return this.villagerXp;\n   }\n\n   public void setVillagerXp(int p_35547_) {\n      this.villagerXp = p_35547_;\n   }\n\n   private void resetNumberOfRestocks() {\n      this.catchUpDemand();\n      this.numberOfRestocksToday = 0;\n   }\n\n   public GossipContainer getGossips() {\n      return this.gossips;\n   }\n\n   public void setGossips(Tag p_35456_) {\n      this.gossips.update(new Dynamic<>(NbtOps.INSTANCE, p_35456_));\n   }\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        1262,
+        1264
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "64ea9242eccacada55f8e972a2d3591ce6e378901c011da85bb90087a541b16b",
+      "raw_excerpt_utf8": "   public void onReputationEvent(ReputationEventType p_8671_, Entity p_8672_, ReputationEventHandler p_8673_) {\n      p_8673_.onReputationEventFrom(p_8671_, p_8672_);\n   }\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/advancements/critereon/CuredZombieVillagerTrigger.java",
+      "entry_sha256": "7e843f0a214bb2cee81ebb5a8c04e9de05f9c16786ee2d1eafc1da94c1ee735a",
+      "lines": [
+        1,
+        60
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "7e843f0a214bb2cee81ebb5a8c04e9de05f9c16786ee2d1eafc1da94c1ee735a",
+      "raw_excerpt_utf8": "package net.minecraft.advancements.critereon;\n\nimport com.google.gson.JsonObject;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.entity.monster.Zombie;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.level.storage.loot.LootContext;\n\npublic class CuredZombieVillagerTrigger extends SimpleCriterionTrigger<CuredZombieVillagerTrigger.TriggerInstance> {\n   static final ResourceLocation ID = new ResourceLocation(\"cured_zombie_villager\");\n\n   public ResourceLocation getId() {\n      return ID;\n   }\n\n   public CuredZombieVillagerTrigger.TriggerInstance createInstance(JsonObject p_286832_, ContextAwarePredicate p_286917_, DeserializationContext p_286335_) {\n      ContextAwarePredicate contextawarepredicate = EntityPredicate.fromJson(p_286832_, \"zombie\", p_286335_);\n      ContextAwarePredicate contextawarepredicate1 = EntityPredicate.fromJson(p_286832_, \"villager\", p_286335_);\n      return new CuredZombieVillagerTrigger.TriggerInstance(p_286917_, contextawarepredicate, contextawarepredicate1);\n   }\n\n   public void trigger(ServerPlayer p_24275_, Zombie p_24276_, Villager p_24277_) {\n      LootContext lootcontext = EntityPredicate.createContext(p_24275_, p_24276_);\n      LootContext lootcontext1 = EntityPredicate.createContext(p_24275_, p_24277_);\n      this.trigger(p_24275_, (p_24285_) -> {\n         return p_24285_.matches(lootcontext, lootcontext1);\n      });\n   }\n\n   public static class TriggerInstance extends AbstractCriterionTriggerInstance {\n      private final ContextAwarePredicate zombie;\n      private final ContextAwarePredicate villager;\n\n      public TriggerInstance(ContextAwarePredicate p_286338_, ContextAwarePredicate p_286686_, ContextAwarePredicate p_286773_) {\n         super(CuredZombieVillagerTrigger.ID, p_286338_);\n         this.zombie = p_286686_;\n         this.villager = p_286773_;\n      }\n\n      public static CuredZombieVillagerTrigger.TriggerInstance curedZombieVillager() {\n         return new CuredZombieVillagerTrigger.TriggerInstance(ContextAwarePredicate.ANY, ContextAwarePredicate.ANY, ContextAwarePredicate.ANY);\n      }\n\n      public boolean matches(LootContext p_24300_, LootContext p_24301_) {\n         if (!this.zombie.matches(p_24300_)) {\n            return false;\n         } else {\n            return this.villager.matches(p_24301_);\n         }\n      }\n\n      public JsonObject serializeToJson(SerializationContext p_24298_) {\n         JsonObject jsonobject = super.serializeToJson(p_24298_);\n         jsonobject.add(\"zombie\", this.zombie.toJson(p_24298_));\n         jsonobject.add(\"villager\", this.villager.toJson(p_24298_));\n         return jsonobject;\n      }\n   }\n}",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    },
+    {
+      "kind": "fixed_local_native_source_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/living/LivingConversionEvent.java",
+      "entry_sha256": "bf608e4498d0b2c2629c8271e3f2289dbdc73337e97d0ab0aab8349c4c66e225",
+      "lines": [
+        1,
+        94
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "bf608e4498d0b2c2629c8271e3f2289dbdc73337e97d0ab0aab8349c4c66e225",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.living;\n\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraftforge.eventbus.api.Cancelable;\n\nimport java.util.function.Consumer;\n\npublic class LivingConversionEvent extends LivingEvent\n{\n    public LivingConversionEvent(LivingEntity entity)\n    {\n        super(entity);\n    }\n\n    /**\n     * LivingConversionEvent.Pre is triggered when an entity is trying\n     * to replace itself with another entity\n     *\n     * This event may trigger every tick even if it was cancelled last tick\n     * for entities like Zombies and Hoglins. To prevent it, the conversion\n     * timer needs to be changed or reset\n     *\n     * This event is {@link Cancelable}\n     * If cancelled, the replacement will not occur\n     */\n    @Cancelable\n    public static class Pre extends LivingConversionEvent\n    {\n        private final EntityType<? extends LivingEntity> outcome;\n        private final Consumer<Integer> timer;\n\n        public Pre(LivingEntity entity, EntityType<? extends LivingEntity> outcome, Consumer<Integer> timer)\n        {\n            super(entity);\n            this.outcome = outcome;\n            this.timer = timer;\n        }\n\n        /**\n         * Gets the entity type of the new entity this living entity is\n         * converting to\n         * @return the entity type of the new entity\n         */\n        public EntityType<? extends LivingEntity> getOutcome()\n        {\n            return outcome;\n        }\n\n        /**\n         * Sets the conversion timer, by changing this it prevents the\n         * event being triggered every tick\n         * Do note the timer of some of the entities are increments, but\n         * some of them are decrements\n         * Not every conversion is applicable for this\n         * @param ticks timer ticks\n         */\n        public void setConversionTimer(int ticks)\n        {\n            timer.accept(ticks);\n        }\n    }\n\n    /**\n     * LivingConversionEvent.Post is triggered when an entity is replacing\n     * itself with another entity.\n     * The old living entity is likely to be removed right after this event.\n     */\n    public static class Post extends LivingConversionEvent\n    {\n        private final LivingEntity outcome;\n\n        public Post(LivingEntity entity, LivingEntity outcome)\n        {\n            super(entity);\n            this.outcome = outcome;\n        }\n\n        /**\n         * Gets the finalized new entity (with all data like potion\n         * effect and equipments set)\n         * @return the finalized new entity\n         */\n        public LivingEntity getOutcome()\n        {\n            return outcome;\n        }\n    }\n}\n",
+      "reading_basis": "Actual line-numbered original artifact text read in current research; each listed range contiguous, support/counts not separate semantic references.",
+      "range_credit": 0
+    }
+  ],
+  "actual_read_range_count": 9,
+  "actual_read_entry_count": 7,
+  "actual_full_file_count": 3,
+  "actual_cited_lines": 582,
+  "read_support_overlap_not_fresh_semantic_credit": {
+    "previous_EA20_method_and_event_context": [
+      "Mob.convertTo",
+      "ForgeEventFactory.canLivingConvert/onLivingConvert",
+      "LivingConversionEvent"
+    ],
+    "range_indices_zero_based": [
+      1,
+      2,
+      8
+    ],
+    "lines": 149,
+    "new_credit": 0,
+    "old_whole_source_chains_reread": false
+  },
+  "existing_global_whole_owner": {
+    "ledger": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "candidate_id": "abe752118e938ce1e323",
+    "whole_row_canonical_sha256": "9a545b13d3ada6404bfdeb2e95cd7dc6ef25224062733a47f2fac45d489d835a",
+    "actual_complete_current_non_evidence_decision": {
+      "candidate_id": "abe752118e938ce1e323",
+      "status": "accepted",
+      "family": "native-zombie-villager-conversion-earned-state-retention",
+      "trigger": "ZombieVillager saved read and finishConversion consumer",
+      "input": "stored villager profession, Offers/Gossips raw payload, conversion time/player UUID and typed Xp",
+      "output": "reloads pending cure when nonnegative time; actual conversion transfers profession, gossip, offer payload and villagerXp to new living villager",
+      "preservation": "Paired writer stores same retained fields; finishConversion inspected through actual setGossips/setOffers/setVillagerXp then finalizeSpawn. This is real owner transition retaining earned progress, not assigning5sample keys.",
+      "application_limit": "Raw offers/gossips stored by reference; conversion has intended item-binding/drop policies and cure reward side effects. Do not replay cure reward consumer during legacy import or copy entire old entity state.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    "evidence_metadata_read_not_old_source_chain": true,
+    "new_credit": 0
+  },
+  "prior_complete_semantic_decisions": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/coordinator-EA0020.json",
+      "sha256": "8291c7df5c8315f056cd08a913e88a55648b5b11a8ae6a32ccc421673d0f33d8",
+      "actual_complete_semantic_decision_fields": {
+        "id": "EA-0020",
+        "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION",
+        "accepted_credit": 1,
+        "observed_chain": [
+          "Actual fixed AlexsMobs registry/constructor wires Tusklin CREATURE factory, attribute subscriber and ordinary placement; core501-line class was read completely. Natural biome deployment/tags/spawn-roll loaded config and parent acquisition are not established. Ordinary spawn predicates and standard breeding are supporting context only.",
+          "Own isInNether is exact Level.NETHER dimension-key identity AND !isNoAi, not an arbitrary piglinSafe dimension type. tick calls super first then increments conversionTime in both sides whenever this condition holds, but the conversion call is guarded server-side and strictly >300. Initial0 implies301 qualifying invocations under uninterrupted normal execution, not guaranteed301 world ticks or an exact wall time.",
+          "The complete class has no counter else reset and no own NBT encode/reset for conversionTime. Leaving the Nether or noAI true pauses that in-memory counter; it is cumulative across eligible episodes in the same object. Fresh reconstruction initializes0, while invoking the shown readAdditionalSaveData on an existing object does not itself explicitly clear it. Full save/portal object recreation/mixin/capability lifecycle is unexpanded.",
+          "On eligible server branch Tusklin calls inherited convertTo(HOGLIN,false). Native Mob.convertTo returnsnull if old actor removed or factory disabled/returnsnull. There is no own HP/alive gate beyond these local checks, no explicit collision/checkSpawnRules/finalizeSpawn in the shown conversion path; direct-dead-call reachability is not proven.",
+          "Native convertTo copies position/yaw/pitch, baby boolean, noAI, optional custom name/visibility, explicit persistence-required flag and invulnerability. It does not copy full NBT/UUID/HP/love/passiveTicks/saddle/custom cooldowns. Its false equipment parameter skips the equipment/canPickUpLoot transfer branch. Ageable.setBaby maps to age-24000 or0, so boolean stage is preserved but exact age is not; full state conservation is not inferred.",
+          "Crucial consumer order: native convertTo calls level.addFreshEntity(newActor) and ignores boolean, transfers old actor own vehicle membership when isPassenger via unchecked startRiding, then discards old actor and returns newActor. Thus return nonnull does not mean admitted success, and caller already runs after old removal on normal return. Old passengers are not transferred by this method; Entity.setRemoved requests passenger dismount. Neither riding success nor post-callback state conservation is proven.",
+          "Only after nonnull conversion returns does Tusklin request CONFUSION200, invoke own dropEquipment, call addFreshEntity with the SAME returned Hoglin object a second time and remove old Tusklin DISCARDED again. No result checks or rollback. Continuing tick after these calls is visible in complete class, not a proven second population or an ordinary-life exploit.",
+          "Server addFreshEntity dispatches to PersistentEntitySectionManager. It posts EntityJoinLevelEvent before known-UUID insertion; canceled post returnsfalse. Successful first add reserves UUID before callbacks/tracking. If that UUID remains registered and no intervening listener/mutation changes state, second same-instance submission is rejected by knownUuids.add, not a second newborn. If first was canceled with no UUID insertion, the second can be a later attempt on the same object. Actual listeners, callback effects, UUID mutation, section storage failure/reentrancy and loaded-state outcomes remain untested.",
+          "Own dropEquipment delegates to empty LivingEntity.dropEquipment through shown no-override parent inventory, then on server requests saddle and shoe ItemEntity drops and clears saddle/shoes regardless add outcome. Conversion false does not run normal death custom-loot/XP/equipment branch. Entity.spawnAtLocation may capture drops or invoke unchecked item add and return object; no material/pickup reward or successful recovery follows from that request. Other equipment is not explicitly copied or dropped by the shown conversion branch.",
+          "Native discard invokes virtual remove(DISCARDED); LivingEntity.remove invokes Entity.remove/setRemoved/cap invalidation then Brain.clearMemories. First stored reason is retained but passenger/callback work can still be requested on repeat. No death/kill receipt, inherited callback atomicity or universal idempotence follows from the caller repeated remove.",
+          "The actual resulting Hoglin has a distinct native policy: inside customServerAiStep, isConverting tests !dimensionType.piglinSafe, !immune and !noAI; qualifying calls increment timeInOverworld and >300 consult cancellable Forge Pre with timer consumer before finishConversion. False condition resets timer only when that AI method executes. Complete Hoglin NBT writes TimeInOverworld/immune/cannotBeHunted, unlike Tusklin own unsaved exposure field. Do not infer Level.NETHER always has a particular loaded piglinSafe value, or noAI always executes/reset this AI method.",
+          "Hoglin finishConversion calls same native convertTo(ZOGLIN,true), requests confusion after nonnull and publishes Post. The true branch copies-and-clears equipment and drop chances, unlike first-leg false. Pre publication returns !post and permits timer setter; Post is notification, not add success. This downstream policy is bounded support for the first mod conversion unit, not a second source implementation, complete Zoglin-body/Brain/engine scheduler review or observed subsequent Zoglin birth.",
+          "All registration, ordinary breeding, rider/attack/grass/mushroom/animation, native methods, error/duplicate-submit observations and downstream second policy are merged support0. The proposed single unit is environmental cumulative exposure driving a heterogeneous live actor handoff through an engine API that already submits/removes, with a mismatched caller-owned equipment/post-add phase; no production change or natural cap remedy is claimed.",
+          "Tusklin is a registered CREATURE whose complete tick accumulates conversionTime whenever exact Level.NETHER key and !noAI hold, including client increments but server-only conversion call. It uses >300; leaving dimension or noAI pauses this same-object counter because there is no else reset. Own extra-save/read omits timer; does not prove full cross-dimension/reload semantics or exact301 world ticks.",
+          "Complete Mob.convertTo consumer, not method name inference: null iff old removed or target factory null; selected copy of pose/baby/noAI/name/persistence/invulnerability. false equipment flag skips loot/equipment transfer. It then requests new add without checking return, transfers old actor own vehicle if passenger, discards old and returns. This is already a precommitted live handoff before mod caller resumes, not simple entity construction.",
+          "Ageable boolean baby copy normalizes age to-24000 or0, rather than preserving age. Neither current HP, full NBT/UUID, exact age, love, passive state nor saddle/shoes are explicitly copied by shown contract. Vehicle riding is attempted after add; old passengers are not transferred in shown consumer and Entity.setRemoved requests their dismount. External hooks/callbacks/serialization remain outside scope.",
+          "Tusklin nonnull-return phase requests confusion200, invokes own equipment drop (saddle and FEET shoe) and clears those fields, submits exactly same returned Hoglin again, then repeats old remove. Direct callback effects, current creature status and actual item admission/pickup not established. dropEquipment inherited dispatch and removal declarations checked without claiming full parent files.",
+          "Server add routes through PersistentEntitySectionManager, whose EntityJoinLevelEvent precedes known-UUID insertion. Under retained UUID and no external mutation, first admitted entity makes second same-instance add fail knownUuids.add; no second-born object. First-canceled/no-reserved-UUID can allow a second attempt. Event side effects may happen twice, but listeners/reentrancy/callback/UUID changes not audited. add results ignored in both native and caller stages; return is not durable success.",
+          "First Tusklin conversion directly calls Mob.convertTo and shows no caller Conversion Pre/Post publication, unlike complete Hoglin customServerAiStep which tests !dimensionType.piglinSafe/!immune/!noAI, uses reset-on-false timer and cancellable Pre(timer setter), then Post after nonnull convert. EntityJoinLevelEvent still independently can veto admission. This is a static source contract distinction, not a universal cancellation bypass or native runtime exploit.",
+          "Hoglin own TimeInOverworld is serialized and true-equipment convert branch can copyAndClear slots to Zoglin. Full Hoglin body and event definitions were read as downstream support; HoglinAi/Brain scheduler/Zoglin body and complete second lifecycle not expanded. Never another ecology/native Minecraft credit.",
+          "Closest EA13 is a planted/paid-food hunger-plateau maturation whose caller creates adult/adds/discards directly; current whole policy is environment/noAI accumulated exposure plus selected native replacement ownership and post-handoff equipment phase. Distinction depends on this complete state/owner contract, not species name, integer threshold, duplicated submission defect, category or helper counts. EA10 storage successful-release queue, EA11 rider expiry, EA14 hosted brood, EA16 external alarm attempt and EA19 quantitative donor aggregation differ in lifecycle ownership. At most one whole mechanism.",
+          "Native request and callback ordering does not prove entity or item conservation, safe placement, current cap permission, actual natural parent acquisition, exact timing, death/kill/loot/XP, same-UUID pickup, world survival or any Dynasty gameplay behavior. No gameplay checklist entry can be removed for this research."
+        ],
+        "limits": [
+          "At most1 proposed complete mod-related first-leg conversion family, pending independent whole-chain semantic review; accepted/applied credit0. No new EA/candidate identifier, formal batch/receipt/validator/master or checklist change.",
+          "Old18 decisions compared in substantive observation/application/limits/dedup fields. EA17/18/19 own actual earlier readings reused at unchanged batch bytes; no claim of18 renewed complete upstream source-chain readings or1000 references. Native Hoglin/Zoglin leg remains supporting context, never another mod credit.",
+          "Only Tusklin whole501, Ageable whole199, Hoglin whole330 and LivingConversionEvent whole94 are complete-text scopes here. Other large mod/native registries, Mob/LivingEntity/Entity/ServerLevel/ForgeEventFactory/PersistentEntitySectionManager are explicitly bounded. Symbol inventories are machine support, not full-class semantic reading; PathfinderMob77 uses prior immutable actual reading.",
+          "No game/Java/Gradle/server/GUI/network/source download/retry/process/display/sound/brightness/wake/focus/world/asset/sharedJar/Git/automation action, no active-hours claim. Only this immutable proposal is written.",
+          "No actual natural deployment, parent acquisition, biome/merged tag/config, ordinary breeding, dimension travel, scheduler/noAI behavior, 301tick timing, save/reopen/counter persistence, accepted conversion, exactly-once species replacement or cross-dimension live state/UUID conservation proved.",
+          "Engine EntityType creation/selected convertTo/add/event/UUID consumer read as stated, but not all constructor Brain/attribute/capability, event bus internals/listeners, section callback/tracking/storage, loading/unloading, full save/portal transfer or concurrent/reentrant lifecycle. Exception and callback paths may interrupt order; same UUID no-second-add conclusion is conditional on retained UUID and no external state changes.",
+          "No runtime birth/kill/material/drop/XP/payment/pickup/cap/performance/1000-gate acceptance. Core convert return or visual confusion/item feedback is not success. No ordinary death duplication exploit or guaranteed total equipment loss/recovery inference.",
+          "Novelty must be judged for whole exposure/native-handoff/equipment ownership lifecycle, not just another species/threshold or a duplicated add bug. If independent reviewer finds environmental conversion semantically merged with EA13 mature replacement, hold0 rather than split helper/native branches.",
+          "Native Hoglin follow-on is not complete second live cycle: full Hoglin source and Pre/Post definitions read, but AI engine scheduling/HoglinAi behaviors/Zoglin complete downstream body or end-to-end runtime not expanded. No second transition credited.",
+          "Bind immutable original proposal and this actual independent review; do not fabricate reviewer receipt or copy another role.",
+          "At most1 whole family in new draft formal package. No ledger/count change before exact staged validator/source/batch independently reviewed.",
+          "Validate all8mod/22native exact raw source identities, including line endings; missing inputs reject0.",
+          "Replay all18 existing accepted objects unchanged. Reject malformed source, omitted core consumer/native ranges, mismatched semantic key/author/reviewer, duplicates and conflicts. Synthetic cases0 research.",
+          "No production/ecology cap/category/probability/assets/Jar/game/world/task changes. Native gaps and1000 requirements remain."
+        ],
+        "verification_correction": "Main actually read the pinned whole mechanism before formal packaging, then inspected exact staged validator/source/batch delta and preserved old18 full objects. This is a separately authored real coordinator acceptance, not the General author RAM audit receipt. Range counts/synthetic cases/native context confer0 separate credit."
+      },
+      "old_whole_source_chains_reread": false,
+      "credit": 0
+    }
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0,
+  "recorded_at": "2026-11-03T20:50:24.799271+00:00",
+  "status": "ORIGINAL_BOUNDED_TREATMENT_SOURCE_POLICY_PENDING_DISTINCT_MAIN_WHOLE_REVIEW_POSSIBLE_MERGE0",
+  "continuation_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-zombie-villager-treatment-read-checkpoint-20261104.json",
+    "sha256": "8c1b3a2467a9e85f350b3ceedb69e93ecf2c9c1e1fc0c6940e5e6fb13943797b"
+  },
+  "observed_chain": [
+    "Full native ZombieVillager317 read including construction/synced data/save/load/tick/interact/start/finish/progress/finalize setters, plus selected conversion/event/receiver/criterion consumers. Material-gated actor restoration may be atmost1 whole proposal pending independent comparison, never perbed/bars/savedfield/hook/timer/advancement references.",
+    "Golden apple identity plus currently has WEAKNESS gates path; noncreative shrink1 happens before server guard/start call. Exact random nextInt2401+3600 gives3600..6000. No full interaction networking/client authoritative debit audit; no normal source access or actual payment receipt. Apple without weakness returns CONSUME; nonapple delegates super.",
+    "No own isConverting guard in interact: another externally applied weakness can make another apple/start request replace timer and conversionStarter. start stores UUID/time then setsconverting, removesweakness, requests DAMAGE_BOOST with literal Math.min(difficultyId-1,0) and durationtime, broadcasts16. Effect add/removal/event success not inspected; no guaranteed protection/status or main-player ownership.",
+    "Tick server/isAlive/isConverting gate runs before super.tick, irrespective ownnoAI guard. Progress>=1 subtracted each delivered eligible tick; at<=0 Forge canLivingConvert Pre posts cancellable event and exposes direct timer setter. Canceled event may repeat if timer remains<=0, listener may reset it; no bounded walltime or guaranteed finish.",
+    "Progress baseline1; 1% random scan visits intcast actor coordinates [center-4,center+3] on each axis, towardzero notfloor. Loop truncates after14 qualifying IRON_BARS blocks or instanceofBedBlock cells; eachqualifier independent30%increment. Atmost15localprogress this call, not14whole beds, sphere radius4, nearest14, population cap or guaranteed acceleration. No LOS/path/ownership/worldloaded branch here.",
+    "Own paired save/read stores VillagerData codec, optional Offers/Gossips raw fields, ConversionTime whenconvertingelse-1, optional ConversionPlayer and Xp. Reader callsstart onlynumericTime>-1 with UUIDornull. Missing/negativeTime doesnotexplicitlyclear existing converting/time/starter; missingoffers/gossip/xp retains existing fields. Freshobject defaults vsreadexisting differ; malformedcodecresultorpartial/setprofession canclear offers beforeoptionalrestore. Full inherited world persistence not proven.",
+    "removeWhenFarAway returns !isConverting &&villagerXp==0, a caller predicate only, not universaldespawn immunity/chunkloading. convertsInWaterfalse suppresses parentwaterpolicy locally, not allpossible conversion paths.",
+    "finish first calls inheritedconvertTo(VILLAGER,false), which returnsnull forremovedold ornulltargetcreate. Caller hasno nullguard, then maydereference in equipmentloop or unconditionalsetVillagerData; no runtimecrash reproduced. Native helper copiespose/baby/noAI/name/persistence/invulnerable thenunchecked addFreshEntity, vehicleattempt, discardold andreturn before finish restorablepayload/rewardphase. Nonnullnotadmitted/finalized/committednewactor.",
+    "False equipmentflag skipsnormal equipment/canpickup transfer. Finish inspectseacholdnonemptyslot: BindingCurse requests targetgetSlot(index+300).set sameitemstack andignoresboolean; else onlydropchance>1 requestsdrop. Full targetslot implementation/dropevent/admission nottraced; no allinventory/equipment conservation or guaranteedrecovery. OriginalUUID/fullNBT/HP/exactage notpromised.",
+    "After equipment, target VillagerData/gossips/MerchantOffers(rawcompound)/Xp set, thenfinalizeSpawn(CONVERSION,null,null) andrefreshBrain. Selected finalize branches onlyresetprofessionforBREEDING, selectbiometypeforCOMMAND/SPAWN_EGG/SPAWNER/DISPENSER, orassignflagforSTRUCTURE; CONVERSION skips those visiblebranches butparent/capabilities stilloutside. Existing globalowner already owns earnedstate-retention, newmigration0.",
+    "If starterUUID resolves to currently present ServerPlayer, requestsCURED_ZOMBIE_VILLAGER criterion andserveronReputationEvent; no onlineplayer meansskip. Server wrapperdirectlycalls targethandler; native targetaddsMAJOR_POSITIVE20/MINOR_POSITIVE25. Actual GossipContainer caps/discount/tradereward nottraced. Criterionfull60 creates2lootcontexts and appliesconfiguredpredicates; ultimateadvancement award/runtimeevent listener/progression effect notproven.",
+    "Finally targetconfusion200 requested, nonsilentlevelEvent1027 andForgePost(old,target). Post carriesoutcome andisnot admissionack; oldwasalreadydiscardedon normalhelperreturn. Calls/memory mutations maythrow orlistenerinterrupt, no atomicrefund/rollback/doubleaward/idempotence guarantee.",
+    "Complete actualEA20 judgment22observations14limits pluscorrectionread forwholecomparison. That acceptedfamily environmental cumulativeexactNether/noAI exposure andmodpost-handoff equipment/doubleadd phase,withnativeHoglin followon0; currenttreatmentcandidate carries realappleinventory intent, persistenttreatmenttimer/starter, stochasticenvironmentalaccelerator andcompletion-attribution policy. GenericMobconvertTo, ForgePre/Post, saved earnedstate andoldmigrationowner are support0 andmaystillforcewholemergeunderMainreview."
+  ],
+  "mandatory_constraints": [
+    "Atmost1 whole treatment restoration family; Main must decide distinction against entireEA20 and existing earned-state-retention owner, otherwise merge0. MobconvertTo/events/payload/equipment/criteria/cell types/numeric cases cannot split into more references.",
+    "Bind exact mappedForge1.20.1-47.4.10 archive bytes and actual9selectedranges7entries3whole582lines. ThreeoldEA20overlapranges149lines are supporting context0, no oldwholechain reread or new mechanism from them. No source fetching/execution.",
+    "Appleidentity+WEAKNESS predicate only, noncreative shrinkbefore serverstart; nativeclient/serverinteractionbackend untraced. Preserve nextInt2401+3600, no exactwalltime or successfulmaterialtransaction assertion.",
+    "No ownisConverting guard; reappliedweakness can allow newtimer/starter intent. Start removesweakness andrequestsdamageboost with literalMath.min(difficultyId-1,0), durationtimer; no actualeffectapplication/beneficiaryownership proof.",
+    "Eligible conversion ticks require server/alive/converting before super.tick. ForgePrecancel/timersettermay defer/repeat; no noAI predicate here, no boundedtime/unconditionalconversionguarantee.",
+    "Onepercent scan atintcastcoord,8x8x8box [-4,+3], first14qualifyingblockcells,30percentincrement each, baseline1/max15thiscall. Bedparts maybothqualify; notsphere/nearest14/14wholebeds/lineofsight/guaranteedacceleration.",
+    "OwnpairedNBTcodec/typed/optional reads only; nonnegativeTime callsstart withUUIDornull, missing/negativeTime noexplicit existingstateclear. Missingoffers/gossips/xp existingfieldsretain; professionchange canclearoffers. No unconditional fullworldsave/reload recovery.",
+    "Predicate removeWhenFarAway=!converting&&xp==0 and convertsInWaterfalse are bounded callers, notuniversaldespawn/infection immunity/chunkloading guarantee.",
+    "InheritedconvertTo nullable; finishhasno nullguard. Nativeuncheckedadd/vehicleattempt/discardold precedesreturnedtargetpayloadrestore/finalize/rewards. Nonnullorpost notadmission, durableconversion, successfulbirth/death or stateconservation receipt; no livecrash/dupe exploit claimed.",
+    "Falseequipmentflag, cursedslotindex+300 setunchecked, dropchance>1drop request; targetslot/drop/exceptionbackends unexpanded. No fullequipment/inventory/UUID/HP/exactage preservation or refund guarantee.",
+    "VillagerData/gossip/offers/Xp retainexisting globalownerabe752118e938ce1e323, newmigration/globalcredit0. VisibleCONVERSIONfinalize skipslistedBREEDING/COMMAND/SPAWN_EGG/SPAWNER/DISPENSER/STRUCTURE branches only; parent/capability lifecycle outside.",
+    "StarterlookupmustresolveServerPlayerforcriterion/reputationcalls. Nativehandleraddsmajor20/minor25 intents, criterionpredicates evaluated; actualadvancementaward/discount/questpayment/successfulplayeroutcome unverified. Postoutcomenotaddack, no exactlyonce reward proof.",
+    "No Dynastyproduction/art/building/model/texture/sharedJar/userworld/UI/game/Gradle/Java/Git/checklist/master/session changes or durationclaim.1000gate remains unmet; no task deletion from this proposal."
+  ],
+  "mandatory_corrections": [],
+  "limits": [
+    "Parameterized bounded local sourcepolicy, no normal source acquisition/weakness/applerecipe/currentloadeddata/eventlisteners/network authority or endtoend gameplay proved.",
+    "All source-order observations assume earlier calls return normally. No atomic transaction, rollback, null-safety, registered-targetcreation, equipmentconservation, liveworld conversion or playerreward acknowledgement.",
+    "No complete ItemStack capability/targetslot/MerchantOffers/GossipContainer/parser/effectbackend/brain/collision/entitymanager/reentrancy audit; no claim malformedNBT/equipmenthandledlosslessly.",
+    "Actual current globalearnedstateowner fullnon-evidence judgment read and retained0; other migrationrows only metadata screen, not newnovelty proof.",
+    "CurrentEA20 actual wholedecision all22observations14limits+verificationcorrection read; historical old replay/test/packaging wording is evidenceonly, not a command toexecute again. No currentoldtest replay.",
+    "Candidate max1 pending independentMainwholecomparison; possiblemerge0. Existingformal35 baseline mayadvance by other Mainwork; thiswriterdoesnotbind or editglobalcount.",
+    "No nativebirth/kill/pickup/payment/performance/material/cap/1000gate/task acceptance. No promptsremoved."
+  ],
+  "application": "Study a paid persistent treatment with environment-limited acceleration and stored-starter completion attribution. Dynasty may adapt the custody/attempt/result separation only after applicable1000 references and later native proof; preserve original IDs/quest/rewards/progress and never invoke cure reward consumers during legacy import. Current proposal changes no code or assets."
+}

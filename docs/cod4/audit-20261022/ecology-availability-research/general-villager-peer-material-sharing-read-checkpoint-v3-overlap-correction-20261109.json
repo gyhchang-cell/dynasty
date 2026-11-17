@@ -1,0 +1,364 @@
+{
+  "recorded_at": "2026-11-09T10:49:45.458907+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_WHOLE_CHAIN_READ_WITH_PRIOR_COVERAGE_CORRECTION_FORMAL0",
+  "supersedes_reading_novelty_only": [
+    "general-villager-peer-material-sharing-read-checkpoint-20261109.json",
+    "general-villager-peer-material-sharing-read-checkpoint-v2-20261109.json"
+  ],
+  "important_correction": "TradeWithVillager full114, Sensor55, NearestLiving37, gossip8 and BehaviorUtils16 were already actual prior Golem source contexts. Earlier local checkpoints recorded real displays but incorrectly implied all were new; immutable old records retained, this explicit correction governs counting. They all earn0additional credit.",
+  "actual_displayed_current_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/TradeWithVillager.java",
+      "entry_sha256": "f45a9527f962d7cd02142f6c22788201768f7dddd195534d1c05864a7d929141",
+      "lines": [
+        1,
+        114
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "f45a9527f962d7cd02142f6c22788201768f7dddd195534d1c05864a7d929141",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.ImmutableSet;\nimport java.util.Set;\nimport java.util.stream.Collectors;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.npc.VillagerProfession;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\n\npublic class TradeWithVillager extends Behavior<Villager> {\n   private static final int INTERACT_DIST_SQR = 5;\n   private static final float SPEED_MODIFIER = 0.5F;\n   private Set<Item> trades = ImmutableSet.of();\n\n   public TradeWithVillager() {\n      super(ImmutableMap.of(MemoryModuleType.INTERACTION_TARGET, MemoryStatus.VALUE_PRESENT, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryStatus.VALUE_PRESENT));\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_24416_, Villager p_24417_) {\n      return BehaviorUtils.targetIsValid(p_24417_.getBrain(), MemoryModuleType.INTERACTION_TARGET, EntityType.VILLAGER);\n   }\n\n   protected boolean canStillUse(ServerLevel p_24419_, Villager p_24420_, long p_24421_) {\n      return this.checkExtraStartConditions(p_24419_, p_24420_);\n   }\n\n   protected void start(ServerLevel p_24437_, Villager p_24438_, long p_24439_) {\n      Villager villager = (Villager)p_24438_.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();\n      BehaviorUtils.lockGazeAndWalkToEachOther(p_24438_, villager, 0.5F);\n      this.trades = figureOutWhatIAmWillingToTrade(p_24438_, villager);\n   }\n\n   protected void tick(ServerLevel p_24445_, Villager p_24446_, long p_24447_) {\n      Villager villager = (Villager)p_24446_.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();\n      if (!(p_24446_.distanceToSqr(villager) > 5.0D)) {\n         BehaviorUtils.lockGazeAndWalkToEachOther(p_24446_, villager, 0.5F);\n         p_24446_.gossip(p_24445_, villager, p_24447_);\n         if (p_24446_.hasExcessFood() && (p_24446_.getVillagerData().getProfession() == VillagerProfession.FARMER || villager.wantsMoreFood())) {\n            throwHalfStack(p_24446_, Villager.FOOD_POINTS.keySet(), villager);\n         }\n\n         if (villager.getVillagerData().getProfession() == VillagerProfession.FARMER && p_24446_.getInventory().countItem(Items.WHEAT) > Items.WHEAT.getMaxStackSize() / 2) {\n            throwHalfStack(p_24446_, ImmutableSet.of(Items.WHEAT), villager);\n         }\n\n         if (!this.trades.isEmpty() && p_24446_.getInventory().hasAnyOf(this.trades)) {\n            throwHalfStack(p_24446_, this.trades, villager);\n         }\n\n      }\n   }\n\n   protected void stop(ServerLevel p_24453_, Villager p_24454_, long p_24455_) {\n      p_24454_.getBrain().eraseMemory(MemoryModuleType.INTERACTION_TARGET);\n   }\n\n   private static Set<Item> figureOutWhatIAmWillingToTrade(Villager p_24423_, Villager p_24424_) {\n      ImmutableSet<Item> immutableset = p_24424_.getVillagerData().getProfession().requestedItems();\n      ImmutableSet<Item> immutableset1 = p_24423_.getVillagerData().getProfession().requestedItems();\n      return immutableset.stream().filter((p_24431_) -> {\n         return !immutableset1.contains(p_24431_);\n      }).collect(Collectors.toSet());\n   }\n\n   private static void throwHalfStack(Villager p_24426_, Set<Item> p_24427_, LivingEntity p_24428_) {\n      SimpleContainer simplecontainer = p_24426_.getInventory();\n      ItemStack itemstack = ItemStack.EMPTY;\n      int i = 0;\n\n      while(i < simplecontainer.getContainerSize()) {\n         ItemStack itemstack1;\n         Item item;\n         int j;\n         label28: {\n            itemstack1 = simplecontainer.getItem(i);\n            if (!itemstack1.isEmpty()) {\n               item = itemstack1.getItem();\n               if (p_24427_.contains(item)) {\n                  if (itemstack1.getCount() > itemstack1.getMaxStackSize() / 2) {\n                     j = itemstack1.getCount() / 2;\n                     break label28;\n                  }\n\n                  if (itemstack1.getCount() > 24) {\n                     j = itemstack1.getCount() - 24;\n                     break label28;\n                  }\n               }\n            }\n\n            ++i;\n            continue;\n         }\n\n         itemstack1.shrink(j);\n         itemstack = new ItemStack(item, j);\n         break;\n      }\n\n      if (!itemstack.isEmpty()) {\n         BehaviorUtils.throwItem(p_24426_, itemstack, p_24428_.position());\n      }\n\n   }\n}",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.java",
+      "entry_sha256": "a73430bb0bd78a47e1e8a3aa7d1265ba3463c119a797a6dedb47195a147e75e9",
+      "lines": [
+        32,
+        81
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0d3edba6380fd593b0092e91171ad564f26b8155702259d07e7f395b4de7fd47",
+      "raw_excerpt_utf8": "   public static void lockGazeAndWalkToEachOther(LivingEntity p_22603_, LivingEntity p_22604_, float p_22605_) {\n      lookAtEachOther(p_22603_, p_22604_);\n      setWalkAndLookTargetMemoriesToEachOther(p_22603_, p_22604_, p_22605_);\n   }\n\n   public static boolean entityIsVisible(Brain<?> p_22637_, LivingEntity p_22638_) {\n      Optional<NearestVisibleLivingEntities> optional = p_22637_.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);\n      return optional.isPresent() && optional.get().contains(p_22638_);\n   }\n\n   public static boolean targetIsValid(Brain<?> p_22640_, MemoryModuleType<? extends LivingEntity> p_22641_, EntityType<?> p_22642_) {\n      return targetIsValid(p_22640_, p_22641_, (p_289317_) -> {\n         return p_289317_.getType() == p_22642_;\n      });\n   }\n\n   private static boolean targetIsValid(Brain<?> p_22644_, MemoryModuleType<? extends LivingEntity> p_22645_, Predicate<LivingEntity> p_22646_) {\n      return p_22644_.getMemory(p_22645_).filter(p_22646_).filter(LivingEntity::isAlive).filter((p_186037_) -> {\n         return entityIsVisible(p_22644_, p_186037_);\n      }).isPresent();\n   }\n\n   private static void lookAtEachOther(LivingEntity p_22671_, LivingEntity p_22672_) {\n      lookAtEntity(p_22671_, p_22672_);\n      lookAtEntity(p_22672_, p_22671_);\n   }\n\n   public static void lookAtEntity(LivingEntity p_22596_, LivingEntity p_22597_) {\n      p_22596_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new EntityTracker(p_22597_, true));\n   }\n\n   private static void setWalkAndLookTargetMemoriesToEachOther(LivingEntity p_22661_, LivingEntity p_22662_, float p_22663_) {\n      int i = 2;\n      setWalkAndLookTargetMemories(p_22661_, p_22662_, p_22663_, 2);\n      setWalkAndLookTargetMemories(p_22662_, p_22661_, p_22663_, 2);\n   }\n\n   public static void setWalkAndLookTargetMemories(LivingEntity p_22591_, Entity p_22592_, float p_22593_, int p_22594_) {\n      setWalkAndLookTargetMemories(p_22591_, new EntityTracker(p_22592_, true), p_22593_, p_22594_);\n   }\n\n   public static void setWalkAndLookTargetMemories(LivingEntity p_22618_, BlockPos p_22619_, float p_22620_, int p_22621_) {\n      setWalkAndLookTargetMemories(p_22618_, new BlockPosTracker(p_22619_), p_22620_, p_22621_);\n   }\n\n   public static void setWalkAndLookTargetMemories(LivingEntity p_217129_, PositionTracker p_217130_, float p_217131_, int p_217132_) {\n      WalkTarget walktarget = new WalkTarget(p_217130_, p_217131_, p_217132_);\n      p_217129_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, p_217130_);\n      p_217129_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, walktarget);\n   }\n",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.java",
+      "entry_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc",
+      "lines": [
+        1,
+        74
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "eb5dff7cbeb9311004731a3075cc54730861e1d20e169406d4e2918567ad92cc",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.memory;\n\nimport com.google.common.collect.Iterables;\nimport it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.function.Predicate;\nimport java.util.stream.Stream;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\n\npublic class NearestVisibleLivingEntities {\n   private static final NearestVisibleLivingEntities EMPTY = new NearestVisibleLivingEntities();\n   private final List<LivingEntity> nearbyEntities;\n   private final Predicate<LivingEntity> lineOfSightTest;\n\n   private NearestVisibleLivingEntities() {\n      this.nearbyEntities = List.of();\n      this.lineOfSightTest = (p_186122_) -> {\n         return false;\n      };\n   }\n\n   public NearestVisibleLivingEntities(LivingEntity p_186104_, List<LivingEntity> p_186105_) {\n      this.nearbyEntities = p_186105_;\n      Object2BooleanOpenHashMap<LivingEntity> object2booleanopenhashmap = new Object2BooleanOpenHashMap<>(p_186105_.size());\n      Predicate<LivingEntity> predicate = (p_186111_) -> {\n         return Sensor.isEntityTargetable(p_186104_, p_186111_);\n      };\n      this.lineOfSightTest = (p_186115_) -> {\n         return object2booleanopenhashmap.computeIfAbsent(p_186115_, predicate);\n      };\n   }\n\n   public static NearestVisibleLivingEntities empty() {\n      return EMPTY;\n   }\n\n   public Optional<LivingEntity> findClosest(Predicate<LivingEntity> p_186117_) {\n      for(LivingEntity livingentity : this.nearbyEntities) {\n         if (p_186117_.test(livingentity) && this.lineOfSightTest.test(livingentity)) {\n            return Optional.of(livingentity);\n         }\n      }\n\n      return Optional.empty();\n   }\n\n   public Iterable<LivingEntity> findAll(Predicate<LivingEntity> p_186124_) {\n      return Iterables.filter(this.nearbyEntities, (p_186127_) -> {\n         return p_186124_.test(p_186127_) && this.lineOfSightTest.test(p_186127_);\n      });\n   }\n\n   public Stream<LivingEntity> find(Predicate<LivingEntity> p_186129_) {\n      return this.nearbyEntities.stream().filter((p_186120_) -> {\n         return p_186129_.test(p_186120_) && this.lineOfSightTest.test(p_186120_);\n      });\n   }\n\n   public boolean contains(LivingEntity p_186108_) {\n      return this.nearbyEntities.contains(p_186108_) && this.lineOfSightTest.test(p_186108_);\n   }\n\n   public boolean contains(Predicate<LivingEntity> p_186131_) {\n      for(LivingEntity livingentity : this.nearbyEntities) {\n         if (p_186131_.test(livingentity) && this.lineOfSightTest.test(livingentity)) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n}",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        96,
+        96
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "35364ef0849f78b5b6c03af9e1fc725b30baa07f680520ea63d251ac6a31657e",
+      "raw_excerpt_utf8": "   public static final Map<Item, Integer> FOOD_POINTS = ImmutableMap.of(Items.BREAD, 4, Items.POTATO, 1, Items.CARROT, 1, Items.BEETROOT, 1);\n",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        794,
+        801
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "79c25ccecb678785e11c013b884e09b0e2fac291fb8d5f4497ebc626ef77cfdb",
+      "raw_excerpt_utf8": "   public void gossip(ServerLevel p_35412_, Villager p_35413_, long p_35414_) {\n      if ((p_35414_ < this.lastGossipTime || p_35414_ >= this.lastGossipTime + 1200L) && (p_35414_ < p_35413_.lastGossipTime || p_35414_ >= p_35413_.lastGossipTime + 1200L)) {\n         this.gossips.transferFrom(p_35413_.gossips, this.random, 10);\n         this.lastGossipTime = p_35414_;\n         p_35413_.lastGossipTime = p_35414_;\n         this.spawnGolemIfNeeded(p_35412_, p_35414_, 5);\n      }\n   }\n",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/sensing/Sensor.java",
+      "entry_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c",
+      "lines": [
+        1,
+        55
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "0fc39f909652f51cfe79917e894cbd342a5c25e8c9607d06ac43497ef8774e3c",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.sensing;\n\nimport java.util.Set;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\n\npublic abstract class Sensor<E extends LivingEntity> {\n   private static final RandomSource RANDOM = RandomSource.createThreadSafe();\n   private static final int DEFAULT_SCAN_RATE = 20;\n   protected static final int TARGETING_RANGE = 16;\n   private static final TargetingConditions TARGET_CONDITIONS = TargetingConditions.forNonCombat().range(16.0D);\n   private static final TargetingConditions TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = TargetingConditions.forNonCombat().range(16.0D).ignoreInvisibilityTesting();\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS = TargetingConditions.forCombat().range(16.0D);\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING = TargetingConditions.forCombat().range(16.0D).ignoreInvisibilityTesting();\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT = TargetingConditions.forCombat().range(16.0D).ignoreLineOfSight();\n   private static final TargetingConditions ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT = TargetingConditions.forCombat().range(16.0D).ignoreLineOfSight().ignoreInvisibilityTesting();\n   private final int scanRate;\n   private long timeToTick;\n\n   public Sensor(int p_26800_) {\n      this.scanRate = p_26800_;\n      this.timeToTick = (long)RANDOM.nextInt(p_26800_);\n   }\n\n   public Sensor() {\n      this(20);\n   }\n\n   public final void tick(ServerLevel p_26807_, E p_26808_) {\n      if (--this.timeToTick <= 0L) {\n         this.timeToTick = (long)this.scanRate;\n         this.doTick(p_26807_, p_26808_);\n      }\n\n   }\n\n   protected abstract void doTick(ServerLevel p_26801_, E p_26802_);\n\n   public abstract Set<MemoryModuleType<?>> requires();\n\n   public static boolean isEntityTargetable(LivingEntity p_26804_, LivingEntity p_26805_) {\n      return p_26804_.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, p_26805_) ? TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(p_26804_, p_26805_) : TARGET_CONDITIONS.test(p_26804_, p_26805_);\n   }\n\n   public static boolean isEntityAttackable(LivingEntity p_148313_, LivingEntity p_148314_) {\n      return p_148313_.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, p_148314_) ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_TESTING.test(p_148313_, p_148314_) : ATTACK_TARGET_CONDITIONS.test(p_148313_, p_148314_);\n   }\n\n   public static boolean isEntityAttackableIgnoringLineOfSight(LivingEntity p_182378_, LivingEntity p_182379_) {\n      return p_182378_.getBrain().isMemoryValue(MemoryModuleType.ATTACK_TARGET, p_182379_) ? ATTACK_TARGET_CONDITIONS_IGNORE_INVISIBILITY_AND_LINE_OF_SIGHT.test(p_182378_, p_182379_) : ATTACK_TARGET_CONDITIONS_IGNORE_LINE_OF_SIGHT.test(p_182378_, p_182379_);\n   }\n}",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java",
+      "entry_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b",
+      "lines": [
+        1,
+        37
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "3fb6aaff1f79a5e785d91b6ba6fc617eb98646a9dfc410d5f57539caaf6c426b",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.sensing;\n\nimport com.google.common.collect.ImmutableSet;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.Set;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;\nimport net.minecraft.world.phys.AABB;\n\npublic class NearestLivingEntitySensor<T extends LivingEntity> extends Sensor<T> {\n   protected void doTick(ServerLevel p_26710_, T p_26711_) {\n      AABB aabb = p_26711_.getBoundingBox().inflate((double)this.radiusXZ(), (double)this.radiusY(), (double)this.radiusXZ());\n      List<LivingEntity> list = p_26710_.getEntitiesOfClass(LivingEntity.class, aabb, (p_26717_) -> {\n         return p_26717_ != p_26711_ && p_26717_.isAlive();\n      });\n      list.sort(Comparator.comparingDouble(p_26711_::distanceToSqr));\n      Brain<?> brain = p_26711_.getBrain();\n      brain.setMemory(MemoryModuleType.NEAREST_LIVING_ENTITIES, list);\n      brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, new NearestVisibleLivingEntities(p_26711_, list));\n   }\n\n   protected int radiusXZ() {\n      return 16;\n   }\n\n   protected int radiusY() {\n      return 16;\n   }\n\n   public Set<MemoryModuleType<?>> requires() {\n      return ImmutableSet.of(MemoryModuleType.NEAREST_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES);\n   }\n}",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/InteractWith.java",
+      "entry_sha256": "78c8b1cea5ddbd92e9aafb5a2af7260ca060c7e93e23e983f0a69ef3871d728a",
+      "lines": [
+        1,
+        47
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "78c8b1cea5ddbd92e9aafb5a2af7260ca060c7e93e23e983f0a69ef3871d728a",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport java.util.Optional;\nimport java.util.function.Predicate;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;\nimport net.minecraft.world.entity.ai.memory.WalkTarget;\n\npublic class InteractWith {\n   public static <T extends LivingEntity> BehaviorControl<LivingEntity> of(EntityType<? extends T> p_259703_, int p_260224_, MemoryModuleType<T> p_259995_, float p_259991_, int p_259933_) {\n      return of(p_259703_, p_260224_, (p_23287_) -> {\n         return true;\n      }, (p_23285_) -> {\n         return true;\n      }, p_259995_, p_259991_, p_259933_);\n   }\n\n   public static <E extends LivingEntity, T extends LivingEntity> BehaviorControl<E> of(EntityType<? extends T> p_259366_, int p_259564_, Predicate<E> p_259570_, Predicate<T> p_260254_, MemoryModuleType<T> p_260229_, float p_259369_, int p_259065_) {\n      int i = p_259564_ * p_259564_;\n      Predicate<LivingEntity> predicate = (p_289327_) -> {\n         return p_259366_.equals(p_289327_.getType()) && p_260254_.test((T)p_289327_);\n      };\n      return BehaviorBuilder.create((p_258426_) -> {\n         return p_258426_.group(p_258426_.registered(p_260229_), p_258426_.registered(MemoryModuleType.LOOK_TARGET), p_258426_.absent(MemoryModuleType.WALK_TARGET), p_258426_.present(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)).apply(p_258426_, (p_258439_, p_258440_, p_258441_, p_258442_) -> {\n            return (p_258413_, p_258414_, p_258415_) -> {\n               NearestVisibleLivingEntities nearestvisiblelivingentities = p_258426_.get(p_258442_);\n               if (p_259570_.test(p_258414_) && nearestvisiblelivingentities.contains(predicate)) {\n                  Optional<LivingEntity> optional = nearestvisiblelivingentities.findClosest((p_258419_) -> {\n                     return p_258419_.distanceToSqr(p_258414_) <= (double)i && predicate.test(p_258419_);\n                  });\n                  optional.ifPresent((p_258432_) -> {\n                     p_258439_.set((T)p_258432_);\n                     p_258440_.set(new EntityTracker(p_258432_, true));\n                     p_258441_.set(new WalkTarget(new EntityTracker(p_258432_, false), p_259369_, p_259065_));\n                  });\n                  return true;\n               } else {\n                  return false;\n               }\n            };\n         });\n      });\n   }\n}",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/GateBehavior.java",
+      "entry_sha256": "a9b4506ce8c51efd35a427de32f5bb570d7ac83589ada9db88ae282af91bb413",
+      "lines": [
+        1,
+        133
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a9b4506ce8c51efd35a427de32f5bb570d7ac83589ada9db88ae282af91bb413",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.mojang.datafixers.util.Pair;\nimport java.util.List;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.function.Consumer;\nimport java.util.stream.Collectors;\nimport java.util.stream.Stream;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\n\npublic class GateBehavior<E extends LivingEntity> implements BehaviorControl<E> {\n   private final Map<MemoryModuleType<?>, MemoryStatus> entryCondition;\n   private final Set<MemoryModuleType<?>> exitErasedMemories;\n   private final GateBehavior.OrderPolicy orderPolicy;\n   private final GateBehavior.RunningPolicy runningPolicy;\n   private final ShufflingList<BehaviorControl<? super E>> behaviors = new ShufflingList<>();\n   private Behavior.Status status = Behavior.Status.STOPPED;\n\n   public GateBehavior(Map<MemoryModuleType<?>, MemoryStatus> p_22873_, Set<MemoryModuleType<?>> p_22874_, GateBehavior.OrderPolicy p_22875_, GateBehavior.RunningPolicy p_22876_, List<Pair<? extends BehaviorControl<? super E>, Integer>> p_22877_) {\n      this.entryCondition = p_22873_;\n      this.exitErasedMemories = p_22874_;\n      this.orderPolicy = p_22875_;\n      this.runningPolicy = p_22876_;\n      p_22877_.forEach((p_258332_) -> {\n         this.behaviors.add(p_258332_.getFirst(), p_258332_.getSecond());\n      });\n   }\n\n   public Behavior.Status getStatus() {\n      return this.status;\n   }\n\n   private boolean hasRequiredMemories(E p_259419_) {\n      for(Map.Entry<MemoryModuleType<?>, MemoryStatus> entry : this.entryCondition.entrySet()) {\n         MemoryModuleType<?> memorymoduletype = entry.getKey();\n         MemoryStatus memorystatus = entry.getValue();\n         if (!p_259419_.getBrain().checkMemory(memorymoduletype, memorystatus)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public final boolean tryStart(ServerLevel p_259362_, E p_259746_, long p_259560_) {\n      if (this.hasRequiredMemories(p_259746_)) {\n         this.status = Behavior.Status.RUNNING;\n         this.orderPolicy.apply(this.behaviors);\n         this.runningPolicy.apply(this.behaviors.stream(), p_259362_, p_259746_, p_259560_);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   public final void tickOrStop(ServerLevel p_259934_, E p_259790_, long p_260259_) {\n      this.behaviors.stream().filter((p_258342_) -> {\n         return p_258342_.getStatus() == Behavior.Status.RUNNING;\n      }).forEach((p_258336_) -> {\n         p_258336_.tickOrStop(p_259934_, p_259790_, p_260259_);\n      });\n      if (this.behaviors.stream().noneMatch((p_258344_) -> {\n         return p_258344_.getStatus() == Behavior.Status.RUNNING;\n      })) {\n         this.doStop(p_259934_, p_259790_, p_260259_);\n      }\n\n   }\n\n   public final void doStop(ServerLevel p_259962_, E p_260250_, long p_259847_) {\n      this.status = Behavior.Status.STOPPED;\n      this.behaviors.stream().filter((p_258337_) -> {\n         return p_258337_.getStatus() == Behavior.Status.RUNNING;\n      }).forEach((p_258341_) -> {\n         p_258341_.doStop(p_259962_, p_260250_, p_259847_);\n      });\n      this.exitErasedMemories.forEach(p_260250_.getBrain()::eraseMemory);\n   }\n\n   public String debugString() {\n      return this.getClass().getSimpleName();\n   }\n\n   public String toString() {\n      Set<? extends BehaviorControl<? super E>> set = this.behaviors.stream().filter((p_258343_) -> {\n         return p_258343_.getStatus() == Behavior.Status.RUNNING;\n      }).collect(Collectors.toSet());\n      return \"(\" + this.getClass().getSimpleName() + \"): \" + set;\n   }\n\n   public static enum OrderPolicy {\n      ORDERED((p_147530_) -> {\n      }),\n      SHUFFLED(ShufflingList::shuffle);\n\n      private final Consumer<ShufflingList<?>> consumer;\n\n      private OrderPolicy(Consumer<ShufflingList<?>> p_22930_) {\n         this.consumer = p_22930_;\n      }\n\n      public void apply(ShufflingList<?> p_147528_) {\n         this.consumer.accept(p_147528_);\n      }\n   }\n\n   public static enum RunningPolicy {\n      RUN_ONE {\n         public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> p_147537_, ServerLevel p_147538_, E p_147539_, long p_147540_) {\n            p_147537_.filter((p_258349_) -> {\n               return p_258349_.getStatus() == Behavior.Status.STOPPED;\n            }).filter((p_258348_) -> {\n               return p_258348_.tryStart(p_147538_, p_147539_, p_147540_);\n            }).findFirst();\n         }\n      },\n      TRY_ALL {\n         public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> p_147542_, ServerLevel p_147543_, E p_147544_, long p_147545_) {\n            p_147542_.filter((p_258350_) -> {\n               return p_258350_.getStatus() == Behavior.Status.STOPPED;\n            }).forEach((p_258354_) -> {\n               p_258354_.tryStart(p_147543_, p_147544_, p_147545_);\n            });\n         }\n      };\n\n      public abstract <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> p_147532_, ServerLevel p_147533_, E p_147534_, long p_147535_);\n   }\n}",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/VillagerProfession.java",
+      "entry_sha256": "264b3c3630e374181cf2788f166beb543415441d66b9edae98ed7377f26d46f5",
+      "lines": [
+        1,
+        20
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "159f0450917ce540a6cc33f57ee7dd9a3e08156d566479b3a969555a0d3201e2",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.npc;\n\nimport com.google.common.collect.ImmutableSet;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.Holder;\nimport net.minecraft.core.Registry;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.resources.ResourceKey;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.PoiTypeTags;\nimport net.minecraft.world.entity.ai.village.poi.PoiType;\nimport net.minecraft.world.entity.ai.village.poi.PoiTypes;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\n\n",
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/VillagerProfession.java",
+      "entry_sha256": "264b3c3630e374181cf2788f166beb543415441d66b9edae98ed7377f26d46f5",
+      "lines": [
+        33,
+        68
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8156734320b3c0ccca7c3f67adf6228d7209bab4988b84389d6e2629c39c640c",
+      "raw_excerpt_utf8": "   public static final VillagerProfession LEATHERWORKER = register(\"leatherworker\", PoiTypes.LEATHERWORKER, SoundEvents.VILLAGER_WORK_LEATHERWORKER);\n   public static final VillagerProfession LIBRARIAN = register(\"librarian\", PoiTypes.LIBRARIAN, SoundEvents.VILLAGER_WORK_LIBRARIAN);\n   public static final VillagerProfession MASON = register(\"mason\", PoiTypes.MASON, SoundEvents.VILLAGER_WORK_MASON);\n   public static final VillagerProfession NITWIT = register(\"nitwit\", PoiType.NONE, PoiType.NONE, (SoundEvent)null);\n   public static final VillagerProfession SHEPHERD = register(\"shepherd\", PoiTypes.SHEPHERD, SoundEvents.VILLAGER_WORK_SHEPHERD);\n   public static final VillagerProfession TOOLSMITH = register(\"toolsmith\", PoiTypes.TOOLSMITH, SoundEvents.VILLAGER_WORK_TOOLSMITH);\n   public static final VillagerProfession WEAPONSMITH = register(\"weaponsmith\", PoiTypes.WEAPONSMITH, SoundEvents.VILLAGER_WORK_WEAPONSMITH);\n\n   public String toString() {\n      return this.name;\n   }\n\n   private static VillagerProfession register(String p_219644_, ResourceKey<PoiType> p_219645_, @Nullable SoundEvent p_219646_) {\n      return register(p_219644_, (p_219668_) -> {\n         return p_219668_.is(p_219645_);\n      }, (p_219640_) -> {\n         return p_219640_.is(p_219645_);\n      }, p_219646_);\n   }\n\n   private static VillagerProfession register(String p_219654_, Predicate<Holder<PoiType>> p_219655_, Predicate<Holder<PoiType>> p_219656_, @Nullable SoundEvent p_219657_) {\n      return register(p_219654_, p_219655_, p_219656_, ImmutableSet.of(), ImmutableSet.of(), p_219657_);\n   }\n\n   private static VillagerProfession register(String p_219648_, ResourceKey<PoiType> p_219649_, ImmutableSet<Item> p_219650_, ImmutableSet<Block> p_219651_, @Nullable SoundEvent p_219652_) {\n      return register(p_219648_, (p_238234_) -> {\n         return p_238234_.is(p_219649_);\n      }, (p_238237_) -> {\n         return p_238237_.is(p_219649_);\n      }, p_219650_, p_219651_, p_219652_);\n   }\n\n   private static VillagerProfession register(String p_219659_, Predicate<Holder<PoiType>> p_219660_, Predicate<Holder<PoiType>> p_219661_, ImmutableSet<Item> p_219662_, ImmutableSet<Block> p_219663_, @Nullable SoundEvent p_219664_) {\n      return Registry.register(BuiltInRegistries.VILLAGER_PROFESSION, new ResourceLocation(p_219659_), new VillagerProfession(p_219659_, p_219660_, p_219661_, p_219662_, p_219663_, p_219664_));\n   }\n}",
+      "credit": 0
+    }
+  ],
+  "prior_read_overlap_inventory_not_credit": [
+    {
+      "entry": "net/minecraft/world/entity/ai/behavior/TradeWithVillager.java",
+      "lines": [
+        1,
+        114
+      ],
+      "actually_displayed_lines": 114,
+      "covered_by_prior_actual_read": 114,
+      "additional_distinct_source_lines": 0,
+      "prior_actual_sources": [
+        {
+          "proposal": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-whole-policy-proposal-20261104.json",
+          "sha256": "eae9f9c0284cf5f73cd97ec0b903e7844ec9848ad444f2ade884991f5909f590",
+          "prior_lines": [
+            1,
+            114
+          ]
+        }
+      ]
+    },
+    {
+      "entry": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.java",
+      "lines": [
+        32,
+        81
+      ],
+      "actually_displayed_lines": 50,
+      "covered_by_prior_actual_read": 16,
+      "additional_distinct_source_lines": 34,
+      "prior_actual_sources": [
+        {
+          "proposal": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-whole-policy-proposal-20261104.json",
+          "sha256": "eae9f9c0284cf5f73cd97ec0b903e7844ec9848ad444f2ade884991f5909f590",
+          "prior_lines": [
+            37,
+            52
+          ]
+        }
+      ]
+    },
+    {
+      "entry": "net/minecraft/world/entity/ai/memory/NearestVisibleLivingEntities.java",
+      "lines": [
+        1,
+        74
+      ],
+      "actually_displayed_lines": 74,
+      "covered_by_prior_actual_read": 0,
+      "additional_distinct_source_lines": 74,
+      "prior_actual_sources": []
+    },
+    {
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "lines": [
+        96,
+        96
+      ],
+      "actually_displayed_lines": 1,
+      "covered_by_prior_actual_read": 0,
+      "additional_distinct_source_lines": 1,
+      "prior_actual_sources": []
+    },
+    {
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "lines": [
+        794,
+        801
+      ],
+      "actually_displayed_lines": 8,
+      "covered_by_prior_actual_read": 8,
+      "additional_distinct_source_lines": 0,
+      "prior_actual_sources": [
+        {
+          "proposal": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-whole-policy-proposal-20261104.json",
+          "sha256": "eae9f9c0284cf5f73cd97ec0b903e7844ec9848ad444f2ade884991f5909f590",
+          "prior_lines": [
+            794,
+            834
+          ]
+        }
+      ]
+    },
+    {
+      "entry": "net/minecraft/world/entity/ai/sensing/Sensor.java",
+      "lines": [
+        1,
+        55
+      ],
+      "actually_displayed_lines": 55,
+      "covered_by_prior_actual_read": 55,
+      "additional_distinct_source_lines": 0,
+      "prior_actual_sources": [
+        {
+          "proposal": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-whole-policy-proposal-20261104.json",
+          "sha256": "eae9f9c0284cf5f73cd97ec0b903e7844ec9848ad444f2ade884991f5909f590",
+          "prior_lines": [
+            1,
+            55
+          ]
+        }
+      ]
+    },
+    {
+      "entry": "net/minecraft/world/entity/ai/sensing/NearestLivingEntitySensor.java",
+      "lines": [
+        1,
+        37
+      ],
+      "actually_displayed_lines": 37,
+      "covered_by_prior_actual_read": 37,
+      "additional_distinct_source_lines": 0,
+      "prior_actual_sources": [
+        {
+          "proposal": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-whole-policy-proposal-20261104.json",
+          "sha256": "eae9f9c0284cf5f73cd97ec0b903e7844ec9848ad444f2ade884991f5909f590",
+          "prior_lines": [
+            1,
+            37
+          ]
+        }
+      ]
+    },
+    {
+      "entry": "net/minecraft/world/entity/ai/behavior/InteractWith.java",
+      "lines": [
+        1,
+        47
+      ],
+      "actually_displayed_lines": 47,
+      "covered_by_prior_actual_read": 0,
+      "additional_distinct_source_lines": 47,
+      "prior_actual_sources": []
+    },
+    {
+      "entry": "net/minecraft/world/entity/ai/behavior/GateBehavior.java",
+      "lines": [
+        1,
+        133
+      ],
+      "actually_displayed_lines": 133,
+      "covered_by_prior_actual_read": 0,
+      "additional_distinct_source_lines": 133,
+      "prior_actual_sources": []
+    },
+    {
+      "entry": "net/minecraft/world/entity/npc/VillagerProfession.java",
+      "lines": [
+        1,
+        20
+      ],
+      "actually_displayed_lines": 20,
+      "covered_by_prior_actual_read": 0,
+      "additional_distinct_source_lines": 20,
+      "prior_actual_sources": []
+    },
+    {
+      "entry": "net/minecraft/world/entity/npc/VillagerProfession.java",
+      "lines": [
+        33,
+        68
+      ],
+      "actually_displayed_lines": 36,
+      "covered_by_prior_actual_read": 0,
+      "additional_distinct_source_lines": 36,
+      "prior_actual_sources": []
+    }
+  ],
+  "actually_displayed_lines": 575,
+  "prior_covered_lines": 230,
+  "additional_distinct_lines": 345,
+  "new_boundary_observations": [
+    "Complete InteractWith builds declarative registered target+LOOK, absentWALK and presentnearest-visible gates. It first tests any predicate-matching rememberedvisible actor, then searches closest matching actor within squared requestedrange. It can returntrue while the bounded closest Optional is empty; callback true is not selected target/arrival/hand-off receipt.",
+    "InteractWith registered target is not necessarily absent; when walk absent it can overwrite interaction target. No mutual peer handshake or same-target token is created by this producer. Full Brain interleaving remains outside.",
+    "Sensor constructor randomizes initial phase, default20 delivered tick calls; its refresh stores a new nearby-list and visibility-cache wrapper. Default20 is not guaranteed world/wall ticks. ATTACK_TARGET match selects ignore-invisibility variant, otherwise ordinary noncombat targetability; complete TargetingConditions previously read Evoker source remains support0.",
+    "GateBehavior status goesRUNNING/returns true if own entrymemories pass even if no child starts. RUN_ONE tries STOPPED children until first tryStart true, ORDERED does not shuffle. tick visits running children then stops when none running; stop erases configured exit memories, not owned exchange receipt.",
+    "MEET/IDLE Trade wrapper and parentBehavior60 remain exact prior Golem contexts0. Default60 endTimestamp/strict gameTime>timestamp timeout differs from a timed material invoice; no guaranteed60delivered exchange ticks or fair arbitration.",
+    "VillagerProfession new1..20 and33..68 combined with exact prior Farmer21..32 bounds role request construction; simpler register overloads supply empty requested/secondary sets. Runtime registry mutation/role replacement is not frozen by base declarations."
+  ],
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "formal_candidate_id": null,
+  "production_changes": 0,
+  "checklist_deletions": 0,
+  "old_validator_or_aggregate_replayed": false,
+  "active_hours_claimed": null,
+  "next": "Freeze full current Farmer/Golem and4legacy owner judgments, then submit bounded complete peer-material-sharing policy to distinct Main for merge0/max1 judgment. Existing whole-class reading alone is not novelty."
+}

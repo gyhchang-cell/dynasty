@@ -1,0 +1,1096 @@
+{
+  "recorded_at": "2026-11-09T18:30:06.752238+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ORIGINAL_ACTUAL_PIGLIN_WHOLE_ECOLOGY_APPLICABILITY_PENDING_DISTINCT_MAIN_GLOBAL_OWNER_REUSED0",
+  "semantic_key": "physical-currency-offhand-custody-and-admiration-lease-to-interruptible-generated-barter-response-with-current-visible-beneficiary-and-uncommitted-throw",
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "actual_native_read_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/Piglin.java",
+      "entry_sha256": "33bae43a9e28f53364f2cb9c66c67117f8694cfeb426ca824b557a6388e86df1",
+      "lines": [
+        1,
+        414
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "33bae43a9e28f53364f2cb9c66c67117f8694cfeb426ca824b557a6388e86df1",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport com.google.common.collect.ImmutableList;\nimport com.mojang.serialization.Dynamic;\nimport java.util.List;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.util.VisibleForDebug;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.attributes.AttributeInstance;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\nimport net.minecraft.world.entity.ai.sensing.SensorType;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.monster.Creeper;\nimport net.minecraft.world.entity.monster.CrossbowAttackMob;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.npc.InventoryCarrier;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.ProjectileWeaponItem;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class Piglin extends AbstractPiglin implements CrossbowAttackMob, InventoryCarrier {\n   private static final EntityDataAccessor<Boolean> DATA_BABY_ID = SynchedEntityData.defineId(Piglin.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_IS_CHARGING_CROSSBOW = SynchedEntityData.defineId(Piglin.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_IS_DANCING = SynchedEntityData.defineId(Piglin.class, EntityDataSerializers.BOOLEAN);\n   private static final UUID SPEED_MODIFIER_BABY_UUID = UUID.fromString(\"766bfa64-11f3-11ea-8d71-362b9e155667\");\n   private static final AttributeModifier SPEED_MODIFIER_BABY = new AttributeModifier(SPEED_MODIFIER_BABY_UUID, \"Baby speed boost\", (double)0.2F, AttributeModifier.Operation.MULTIPLY_BASE);\n   private static final int MAX_HEALTH = 16;\n   private static final float MOVEMENT_SPEED_WHEN_FIGHTING = 0.35F;\n   private static final int ATTACK_DAMAGE = 5;\n   private static final float CROSSBOW_POWER = 1.6F;\n   private static final float CHANCE_OF_WEARING_EACH_ARMOUR_ITEM = 0.1F;\n   private static final int MAX_PASSENGERS_ON_ONE_HOGLIN = 3;\n   private static final float PROBABILITY_OF_SPAWNING_AS_BABY = 0.2F;\n   private static final float BABY_EYE_HEIGHT_ADJUSTMENT = 0.82F;\n   private static final double PROBABILITY_OF_SPAWNING_WITH_CROSSBOW_INSTEAD_OF_SWORD = 0.5D;\n   private final SimpleContainer inventory = new SimpleContainer(8);\n   private boolean cannotHunt;\n   protected static final ImmutableList<SensorType<? extends Sensor<? super Piglin>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.NEAREST_ITEMS, SensorType.HURT_BY, SensorType.PIGLIN_SPECIFIC_SENSOR);\n   protected static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.LOOK_TARGET, MemoryModuleType.DOORS_TO_CLOSE, MemoryModuleType.NEAREST_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ADULT_PIGLINS, MemoryModuleType.NEARBY_ADULT_PIGLINS, MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM, MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS, MemoryModuleType.HURT_BY, MemoryModuleType.HURT_BY_ENTITY, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.ATTACK_TARGET, MemoryModuleType.ATTACK_COOLING_DOWN, MemoryModuleType.INTERACTION_TARGET, MemoryModuleType.PATH, MemoryModuleType.ANGRY_AT, MemoryModuleType.UNIVERSAL_ANGER, MemoryModuleType.AVOID_TARGET, MemoryModuleType.ADMIRING_ITEM, MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM, MemoryModuleType.ADMIRING_DISABLED, MemoryModuleType.DISABLE_WALK_TO_ADMIRE_ITEM, MemoryModuleType.CELEBRATE_LOCATION, MemoryModuleType.DANCING, MemoryModuleType.HUNTED_RECENTLY, MemoryModuleType.NEAREST_VISIBLE_BABY_HOGLIN, MemoryModuleType.NEAREST_VISIBLE_NEMESIS, MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED, MemoryModuleType.RIDE_TARGET, MemoryModuleType.VISIBLE_ADULT_PIGLIN_COUNT, MemoryModuleType.VISIBLE_ADULT_HOGLIN_COUNT, MemoryModuleType.NEAREST_VISIBLE_HUNTABLE_HOGLIN, MemoryModuleType.NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD, MemoryModuleType.NEAREST_PLAYER_HOLDING_WANTED_ITEM, MemoryModuleType.ATE_RECENTLY, MemoryModuleType.NEAREST_REPELLENT);\n\n   public Piglin(EntityType<? extends AbstractPiglin> p_34683_, Level p_34684_) {\n      super(p_34683_, p_34684_);\n      this.xpReward = 5;\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_34751_) {\n      super.addAdditionalSaveData(p_34751_);\n      if (this.isBaby()) {\n         p_34751_.putBoolean(\"IsBaby\", true);\n      }\n\n      if (this.cannotHunt) {\n         p_34751_.putBoolean(\"CannotHunt\", true);\n      }\n\n      this.writeInventoryToTag(p_34751_);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_34725_) {\n      super.readAdditionalSaveData(p_34725_);\n      this.setBaby(p_34725_.getBoolean(\"IsBaby\"));\n      this.setCannotHunt(p_34725_.getBoolean(\"CannotHunt\"));\n      this.readInventoryFromTag(p_34725_);\n   }\n\n   @VisibleForDebug\n   public SimpleContainer getInventory() {\n      return this.inventory;\n   }\n\n   protected void dropCustomDeathLoot(DamageSource p_34697_, int p_34698_, boolean p_34699_) {\n      super.dropCustomDeathLoot(p_34697_, p_34698_, p_34699_);\n      Entity entity = p_34697_.getEntity();\n      if (entity instanceof Creeper creeper) {\n         if (creeper.canDropMobsSkull()) {\n            ItemStack itemstack = new ItemStack(Items.PIGLIN_HEAD);\n            creeper.increaseDroppedSkulls();\n            this.spawnAtLocation(itemstack);\n         }\n      }\n\n      this.inventory.removeAllItems().forEach(this::spawnAtLocation);\n   }\n\n   protected ItemStack addToInventory(ItemStack p_34779_) {\n      return this.inventory.addItem(p_34779_);\n   }\n\n   protected boolean canAddToInventory(ItemStack p_34781_) {\n      return this.inventory.canAddItem(p_34781_);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_BABY_ID, false);\n      this.entityData.define(DATA_IS_CHARGING_CROSSBOW, false);\n      this.entityData.define(DATA_IS_DANCING, false);\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_34727_) {\n      super.onSyncedDataUpdated(p_34727_);\n      if (DATA_BABY_ID.equals(p_34727_)) {\n         this.refreshDimensions();\n      }\n\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 16.0D).add(Attributes.MOVEMENT_SPEED, (double)0.35F).add(Attributes.ATTACK_DAMAGE, 5.0D);\n   }\n\n   public static boolean checkPiglinSpawnRules(EntityType<Piglin> p_219198_, LevelAccessor p_219199_, MobSpawnType p_219200_, BlockPos p_219201_, RandomSource p_219202_) {\n      return !p_219199_.getBlockState(p_219201_.below()).is(Blocks.NETHER_WART_BLOCK);\n   }\n\n   @Nullable\n   public SpawnGroupData finalizeSpawn(ServerLevelAccessor p_34717_, DifficultyInstance p_34718_, MobSpawnType p_34719_, @Nullable SpawnGroupData p_34720_, @Nullable CompoundTag p_34721_) {\n      RandomSource randomsource = p_34717_.getRandom();\n      if (p_34719_ != MobSpawnType.STRUCTURE) {\n         if (randomsource.nextFloat() < 0.2F) {\n            this.setBaby(true);\n         } else if (this.isAdult()) {\n            this.setItemSlot(EquipmentSlot.MAINHAND, this.createSpawnWeapon());\n         }\n      }\n\n      PiglinAi.initMemories(this, p_34717_.getRandom());\n      this.populateDefaultEquipmentSlots(randomsource, p_34718_);\n      this.populateDefaultEquipmentEnchantments(randomsource, p_34718_);\n      return super.finalizeSpawn(p_34717_, p_34718_, p_34719_, p_34720_, p_34721_);\n   }\n\n   protected boolean shouldDespawnInPeaceful() {\n      return false;\n   }\n\n   public boolean removeWhenFarAway(double p_34775_) {\n      return !this.isPersistenceRequired();\n   }\n\n   protected void populateDefaultEquipmentSlots(RandomSource p_219189_, DifficultyInstance p_219190_) {\n      if (this.isAdult()) {\n         this.maybeWearArmor(EquipmentSlot.HEAD, new ItemStack(Items.GOLDEN_HELMET), p_219189_);\n         this.maybeWearArmor(EquipmentSlot.CHEST, new ItemStack(Items.GOLDEN_CHESTPLATE), p_219189_);\n         this.maybeWearArmor(EquipmentSlot.LEGS, new ItemStack(Items.GOLDEN_LEGGINGS), p_219189_);\n         this.maybeWearArmor(EquipmentSlot.FEET, new ItemStack(Items.GOLDEN_BOOTS), p_219189_);\n      }\n\n   }\n\n   private void maybeWearArmor(EquipmentSlot p_219192_, ItemStack p_219193_, RandomSource p_219194_) {\n      if (p_219194_.nextFloat() < 0.1F) {\n         this.setItemSlot(p_219192_, p_219193_);\n      }\n\n   }\n\n   protected Brain.Provider<Piglin> brainProvider() {\n      return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);\n   }\n\n   protected Brain<?> makeBrain(Dynamic<?> p_34723_) {\n      return PiglinAi.makeBrain(this, this.brainProvider().makeBrain(p_34723_));\n   }\n\n   public Brain<Piglin> getBrain() {\n      return (Brain<Piglin>)super.getBrain();\n   }\n\n   public InteractionResult mobInteract(Player p_34745_, InteractionHand p_34746_) {\n      InteractionResult interactionresult = super.mobInteract(p_34745_, p_34746_);\n      if (interactionresult.consumesAction()) {\n         return interactionresult;\n      } else if (!this.level().isClientSide) {\n         return PiglinAi.mobInteract(this, p_34745_, p_34746_);\n      } else {\n         boolean flag = PiglinAi.canAdmire(this, p_34745_.getItemInHand(p_34746_)) && this.getArmPose() != PiglinArmPose.ADMIRING_ITEM;\n         return flag ? InteractionResult.SUCCESS : InteractionResult.PASS;\n      }\n   }\n\n   protected float getStandingEyeHeight(Pose p_34740_, EntityDimensions p_34741_) {\n      float f = super.getStandingEyeHeight(p_34740_, p_34741_);\n      return this.isBaby() ? f - 0.82F : f;\n   }\n\n   public double getPassengersRidingOffset() {\n      return (double)this.getBbHeight() * 0.92D;\n   }\n\n   public void setBaby(boolean p_34729_) {\n      this.getEntityData().set(DATA_BABY_ID, p_34729_);\n      if (!this.level().isClientSide) {\n         AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);\n         attributeinstance.removeModifier(SPEED_MODIFIER_BABY);\n         if (p_34729_) {\n            attributeinstance.addTransientModifier(SPEED_MODIFIER_BABY);\n         }\n      }\n\n   }\n\n   public boolean isBaby() {\n      return this.getEntityData().get(DATA_BABY_ID);\n   }\n\n   private void setCannotHunt(boolean p_34792_) {\n      this.cannotHunt = p_34792_;\n   }\n\n   protected boolean canHunt() {\n      return !this.cannotHunt;\n   }\n\n   protected void customServerAiStep() {\n      this.level().getProfiler().push(\"piglinBrain\");\n      this.getBrain().tick((ServerLevel)this.level(), this);\n      this.level().getProfiler().pop();\n      PiglinAi.updateActivity(this);\n      super.customServerAiStep();\n   }\n\n   public int getExperienceReward() {\n      return this.xpReward;\n   }\n\n   protected void finishConversion(ServerLevel p_34756_) {\n      PiglinAi.cancelAdmiring(this);\n      this.inventory.removeAllItems().forEach(this::spawnAtLocation);\n      super.finishConversion(p_34756_);\n   }\n\n   private ItemStack createSpawnWeapon() {\n      return (double)this.random.nextFloat() < 0.5D ? new ItemStack(Items.CROSSBOW) : new ItemStack(Items.GOLDEN_SWORD);\n   }\n\n   private boolean isChargingCrossbow() {\n      return this.entityData.get(DATA_IS_CHARGING_CROSSBOW);\n   }\n\n   public void setChargingCrossbow(boolean p_34753_) {\n      this.entityData.set(DATA_IS_CHARGING_CROSSBOW, p_34753_);\n   }\n\n   public void onCrossbowAttackPerformed() {\n      this.noActionTime = 0;\n   }\n\n   public PiglinArmPose getArmPose() {\n      if (this.isDancing()) {\n         return PiglinArmPose.DANCING;\n      } else if (PiglinAi.isLovedItem(this.getOffhandItem())) {\n         return PiglinArmPose.ADMIRING_ITEM;\n      } else if (this.isAggressive() && this.isHoldingMeleeWeapon()) {\n         return PiglinArmPose.ATTACKING_WITH_MELEE_WEAPON;\n      } else if (this.isChargingCrossbow()) {\n         return PiglinArmPose.CROSSBOW_CHARGE;\n      } else {\n         return this.isAggressive() && this.isHolding(is -> is.getItem() instanceof net.minecraft.world.item.CrossbowItem) ? PiglinArmPose.CROSSBOW_HOLD : PiglinArmPose.DEFAULT;\n      }\n   }\n\n   public boolean isDancing() {\n      return this.entityData.get(DATA_IS_DANCING);\n   }\n\n   public void setDancing(boolean p_34790_) {\n      this.entityData.set(DATA_IS_DANCING, p_34790_);\n   }\n\n   public boolean hurt(DamageSource p_34694_, float p_34695_) {\n      boolean flag = super.hurt(p_34694_, p_34695_);\n      if (this.level().isClientSide) {\n         return false;\n      } else {\n         if (flag && p_34694_.getEntity() instanceof LivingEntity) {\n            PiglinAi.wasHurtBy(this, (LivingEntity)p_34694_.getEntity());\n         }\n\n         return flag;\n      }\n   }\n\n   public void performRangedAttack(LivingEntity p_34704_, float p_34705_) {\n      this.performCrossbowAttack(this, 1.6F);\n   }\n\n   public void shootCrossbowProjectile(LivingEntity p_34707_, ItemStack p_34708_, Projectile p_34709_, float p_34710_) {\n      this.shootCrossbowProjectile(this, p_34707_, p_34709_, p_34710_, 1.6F);\n   }\n\n   public boolean canFireProjectileWeapon(ProjectileWeaponItem p_34715_) {\n      return p_34715_ == Items.CROSSBOW;\n   }\n\n   protected void holdInMainHand(ItemStack p_34784_) {\n      this.setItemSlotAndDropWhenKilled(EquipmentSlot.MAINHAND, p_34784_);\n   }\n\n   protected void holdInOffHand(ItemStack p_34786_) {\n      if (p_34786_.isPiglinCurrency()) {\n         this.setItemSlot(EquipmentSlot.OFFHAND, p_34786_);\n         this.setGuaranteedDrop(EquipmentSlot.OFFHAND);\n      } else {\n         this.setItemSlotAndDropWhenKilled(EquipmentSlot.OFFHAND, p_34786_);\n      }\n\n   }\n\n   public boolean wantsToPickUp(ItemStack p_34777_) {\n      return net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), this) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, p_34777_);\n   }\n\n   protected boolean canReplaceCurrentItem(ItemStack p_34788_) {\n      EquipmentSlot equipmentslot = Mob.getEquipmentSlotForItem(p_34788_);\n      ItemStack itemstack = this.getItemBySlot(equipmentslot);\n      return this.canReplaceCurrentItem(p_34788_, itemstack);\n   }\n\n   protected boolean canReplaceCurrentItem(ItemStack p_34712_, ItemStack p_34713_) {\n      if (EnchantmentHelper.hasBindingCurse(p_34713_)) {\n         return false;\n      } else {\n         boolean flag = PiglinAi.isLovedItem(p_34712_) || p_34712_.is(Items.CROSSBOW);\n         boolean flag1 = PiglinAi.isLovedItem(p_34713_) || p_34713_.is(Items.CROSSBOW);\n         if (flag && !flag1) {\n            return true;\n         } else if (!flag && flag1) {\n            return false;\n         } else {\n            return this.isAdult() && !p_34712_.is(Items.CROSSBOW) && p_34713_.is(Items.CROSSBOW) ? false : super.canReplaceCurrentItem(p_34712_, p_34713_);\n         }\n      }\n   }\n\n   protected void pickUpItem(ItemEntity p_34743_) {\n      this.onItemPickup(p_34743_);\n      PiglinAi.pickUpItem(this, p_34743_);\n   }\n\n   public boolean startRiding(Entity p_34701_, boolean p_34702_) {\n      if (this.isBaby() && p_34701_.getType() == EntityType.HOGLIN) {\n         p_34701_ = this.getTopPassenger(p_34701_, 3);\n      }\n\n      return super.startRiding(p_34701_, p_34702_);\n   }\n\n   private Entity getTopPassenger(Entity p_34731_, int p_34732_) {\n      List<Entity> list = p_34731_.getPassengers();\n      return p_34732_ != 1 && !list.isEmpty() ? this.getTopPassenger(list.get(0), p_34732_ - 1) : p_34731_;\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return this.level().isClientSide ? null : PiglinAi.getSoundForCurrentActivity(this).orElse((SoundEvent)null);\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_34767_) {\n      return SoundEvents.PIGLIN_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.PIGLIN_DEATH;\n   }\n\n   protected void playStepSound(BlockPos p_34748_, BlockState p_34749_) {\n      this.playSound(SoundEvents.PIGLIN_STEP, 0.15F, 1.0F);\n   }\n\n   protected void playSoundEvent(SoundEvent p_219196_) {\n      this.playSound(p_219196_, this.getSoundVolume(), this.getVoicePitch());\n   }\n\n   protected void playConvertedSound() {\n      this.playSoundEvent(SoundEvents.PIGLIN_CONVERTED_TO_ZOMBIFIED);\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/PiglinAi.java",
+      "entry_sha256": "de751d885280bf4efcab1324aeb0fb57cfb92b568c57b3aa13769c8393132dcd",
+      "lines": [
+        1,
+        760
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "de751d885280bf4efcab1324aeb0fb57cfb92b568c57b3aa13769c8393132dcd",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport com.google.common.collect.ImmutableList;\nimport com.google.common.collect.ImmutableSet;\nimport com.mojang.datafixers.util.Pair;\nimport java.util.Collections;\nimport java.util.List;\nimport java.util.Optional;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.util.TimeUtil;\nimport net.minecraft.util.valueproviders.UniformInt;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.PathfinderMob;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.behavior.BackUpIfTooClose;\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.BehaviorUtils;\nimport net.minecraft.world.entity.ai.behavior.CopyMemoryWithExpiry;\nimport net.minecraft.world.entity.ai.behavior.CrossbowAttack;\nimport net.minecraft.world.entity.ai.behavior.DismountOrSkipMounting;\nimport net.minecraft.world.entity.ai.behavior.DoNothing;\nimport net.minecraft.world.entity.ai.behavior.EraseMemoryIf;\nimport net.minecraft.world.entity.ai.behavior.GoToTargetLocation;\nimport net.minecraft.world.entity.ai.behavior.GoToWantedItem;\nimport net.minecraft.world.entity.ai.behavior.InteractWith;\nimport net.minecraft.world.entity.ai.behavior.InteractWithDoor;\nimport net.minecraft.world.entity.ai.behavior.LookAtTargetSink;\nimport net.minecraft.world.entity.ai.behavior.MeleeAttack;\nimport net.minecraft.world.entity.ai.behavior.Mount;\nimport net.minecraft.world.entity.ai.behavior.MoveToTargetSink;\nimport net.minecraft.world.entity.ai.behavior.OneShot;\nimport net.minecraft.world.entity.ai.behavior.RandomStroll;\nimport net.minecraft.world.entity.ai.behavior.RunOne;\nimport net.minecraft.world.entity.ai.behavior.SetEntityLookTarget;\nimport net.minecraft.world.entity.ai.behavior.SetEntityLookTargetSometimes;\nimport net.minecraft.world.entity.ai.behavior.SetLookAndInteract;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetAwayFrom;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetFromAttackTargetIfTargetOutOfReach;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetFromLookTarget;\nimport net.minecraft.world.entity.ai.behavior.StartAttacking;\nimport net.minecraft.world.entity.ai.behavior.StartCelebratingIfTargetDead;\nimport net.minecraft.world.entity.ai.behavior.StopAttackingIfTargetInvalid;\nimport net.minecraft.world.entity.ai.behavior.StopBeingAngryIfTargetDead;\nimport net.minecraft.world.entity.ai.behavior.TriggerGate;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.behavior.declarative.Trigger;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\nimport net.minecraft.world.entity.ai.util.LandRandomPos;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.monster.hoglin.Hoglin;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.schedule.Activity;\nimport net.minecraft.world.item.ArmorItem;\nimport net.minecraft.world.item.ArmorMaterials;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.storage.loot.BuiltInLootTables;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.LootTable;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.Vec3;\n\npublic class PiglinAi {\n   public static final int REPELLENT_DETECTION_RANGE_HORIZONTAL = 8;\n   public static final int REPELLENT_DETECTION_RANGE_VERTICAL = 4;\n   public static final Item BARTERING_ITEM = Items.GOLD_INGOT;\n   private static final int PLAYER_ANGER_RANGE = 16;\n   private static final int ANGER_DURATION = 600;\n   private static final int ADMIRE_DURATION = 120;\n   private static final int MAX_DISTANCE_TO_WALK_TO_ITEM = 9;\n   private static final int MAX_TIME_TO_WALK_TO_ITEM = 200;\n   private static final int HOW_LONG_TIME_TO_DISABLE_ADMIRE_WALKING_IF_CANT_REACH_ITEM = 200;\n   private static final int CELEBRATION_TIME = 300;\n   protected static final UniformInt TIME_BETWEEN_HUNTS = TimeUtil.rangeOfSeconds(30, 120);\n   private static final int BABY_FLEE_DURATION_AFTER_GETTING_HIT = 100;\n   private static final int HIT_BY_PLAYER_MEMORY_TIMEOUT = 400;\n   private static final int MAX_WALK_DISTANCE_TO_START_RIDING = 8;\n   private static final UniformInt RIDE_START_INTERVAL = TimeUtil.rangeOfSeconds(10, 40);\n   private static final UniformInt RIDE_DURATION = TimeUtil.rangeOfSeconds(10, 30);\n   private static final UniformInt RETREAT_DURATION = TimeUtil.rangeOfSeconds(5, 20);\n   private static final int MELEE_ATTACK_COOLDOWN = 20;\n   private static final int EAT_COOLDOWN = 200;\n   private static final int DESIRED_DISTANCE_FROM_ENTITY_WHEN_AVOIDING = 12;\n   private static final int MAX_LOOK_DIST = 8;\n   private static final int MAX_LOOK_DIST_FOR_PLAYER_HOLDING_LOVED_ITEM = 14;\n   private static final int INTERACTION_RANGE = 8;\n   private static final int MIN_DESIRED_DIST_FROM_TARGET_WHEN_HOLDING_CROSSBOW = 5;\n   private static final float SPEED_WHEN_STRAFING_BACK_FROM_TARGET = 0.75F;\n   private static final int DESIRED_DISTANCE_FROM_ZOMBIFIED = 6;\n   private static final UniformInt AVOID_ZOMBIFIED_DURATION = TimeUtil.rangeOfSeconds(5, 7);\n   private static final UniformInt BABY_AVOID_NEMESIS_DURATION = TimeUtil.rangeOfSeconds(5, 7);\n   private static final float PROBABILITY_OF_CELEBRATION_DANCE = 0.1F;\n   private static final float SPEED_MULTIPLIER_WHEN_AVOIDING = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_RETREATING = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_MOUNTING = 0.8F;\n   private static final float SPEED_MULTIPLIER_WHEN_GOING_TO_WANTED_ITEM = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_GOING_TO_CELEBRATE_LOCATION = 1.0F;\n   private static final float SPEED_MULTIPLIER_WHEN_DANCING = 0.6F;\n   private static final float SPEED_MULTIPLIER_WHEN_IDLING = 0.6F;\n\n   protected static Brain<?> makeBrain(Piglin p_34841_, Brain<Piglin> p_34842_) {\n      initCoreActivity(p_34842_);\n      initIdleActivity(p_34842_);\n      initAdmireItemActivity(p_34842_);\n      initFightActivity(p_34841_, p_34842_);\n      initCelebrateActivity(p_34842_);\n      initRetreatActivity(p_34842_);\n      initRideHoglinActivity(p_34842_);\n      p_34842_.setCoreActivities(ImmutableSet.of(Activity.CORE));\n      p_34842_.setDefaultActivity(Activity.IDLE);\n      p_34842_.useDefaultActivity();\n      return p_34842_;\n   }\n\n   protected static void initMemories(Piglin p_219206_, RandomSource p_219207_) {\n      int i = TIME_BETWEEN_HUNTS.sample(p_219207_);\n      p_219206_.getBrain().setMemoryWithExpiry(MemoryModuleType.HUNTED_RECENTLY, true, (long)i);\n   }\n\n   private static void initCoreActivity(Brain<Piglin> p_34821_) {\n      p_34821_.addActivity(Activity.CORE, 0, ImmutableList.of(new LookAtTargetSink(45, 90), new MoveToTargetSink(), InteractWithDoor.create(), babyAvoidNemesis(), avoidZombified(), StopHoldingItemIfNoLongerAdmiring.create(), StartAdmiringItemIfSeen.create(120), StartCelebratingIfTargetDead.create(300, PiglinAi::wantsToDance), StopBeingAngryIfTargetDead.create()));\n   }\n\n   private static void initIdleActivity(Brain<Piglin> p_34892_) {\n      p_34892_.addActivity(Activity.IDLE, 10, ImmutableList.of(SetEntityLookTarget.create(PiglinAi::isPlayerHoldingLovedItem, 14.0F), StartAttacking.<Piglin>create(AbstractPiglin::isAdult, PiglinAi::findNearestValidAttackTarget), BehaviorBuilder.triggerIf(Piglin::canHunt, StartHuntingHoglin.create()), avoidRepellent(), babySometimesRideBabyHoglin(), createIdleLookBehaviors(), createIdleMovementBehaviors(), SetLookAndInteract.create(EntityType.PLAYER, 4)));\n   }\n\n   private static void initFightActivity(Piglin p_34904_, Brain<Piglin> p_34905_) {\n      p_34905_.addActivityAndRemoveMemoryWhenStopped(Activity.FIGHT, 10, ImmutableList.<net.minecraft.world.entity.ai.behavior.BehaviorControl<? super Piglin>>of(StopAttackingIfTargetInvalid.<Piglin>create((p_34981_) -> {\n         return !isNearestValidAttackTarget(p_34904_, p_34981_);\n      }), BehaviorBuilder.triggerIf(PiglinAi::hasCrossbow, BackUpIfTooClose.create(5, 0.75F)), SetWalkTargetFromAttackTargetIfTargetOutOfReach.create(1.0F), MeleeAttack.create(20), new CrossbowAttack(), RememberIfHoglinWasKilled.create(), EraseMemoryIf.create(PiglinAi::isNearZombified, MemoryModuleType.ATTACK_TARGET)), MemoryModuleType.ATTACK_TARGET);\n   }\n\n   private static void initCelebrateActivity(Brain<Piglin> p_34921_) {\n      p_34921_.addActivityAndRemoveMemoryWhenStopped(Activity.CELEBRATE, 10, ImmutableList.of(avoidRepellent(), SetEntityLookTarget.create(PiglinAi::isPlayerHoldingLovedItem, 14.0F), StartAttacking.<Piglin>create(AbstractPiglin::isAdult, PiglinAi::findNearestValidAttackTarget), BehaviorBuilder.<Piglin>triggerIf((p_34804_) -> {\n         return !p_34804_.isDancing();\n      }, GoToTargetLocation.create(MemoryModuleType.CELEBRATE_LOCATION, 2, 1.0F)), BehaviorBuilder.<Piglin>triggerIf(Piglin::isDancing, GoToTargetLocation.create(MemoryModuleType.CELEBRATE_LOCATION, 4, 0.6F)), new RunOne<Piglin>(ImmutableList.of(Pair.of(SetEntityLookTarget.create(EntityType.PIGLIN, 8.0F), 1), Pair.of(RandomStroll.stroll(0.6F, 2, 1), 1), Pair.of(new DoNothing(10, 20), 1)))), MemoryModuleType.CELEBRATE_LOCATION);\n   }\n\n   private static void initAdmireItemActivity(Brain<Piglin> p_34941_) {\n      p_34941_.addActivityAndRemoveMemoryWhenStopped(Activity.ADMIRE_ITEM, 10, ImmutableList.of(GoToWantedItem.create(PiglinAi::isNotHoldingLovedItemInOffHand, 1.0F, true, 9), StopAdmiringIfItemTooFarAway.create(9), StopAdmiringIfTiredOfTryingToReachItem.create(200, 200)), MemoryModuleType.ADMIRING_ITEM);\n   }\n\n   private static void initRetreatActivity(Brain<Piglin> p_34959_) {\n      p_34959_.addActivityAndRemoveMemoryWhenStopped(Activity.AVOID, 10, ImmutableList.of(SetWalkTargetAwayFrom.entity(MemoryModuleType.AVOID_TARGET, 1.0F, 12, true), createIdleLookBehaviors(), createIdleMovementBehaviors(), EraseMemoryIf.<Piglin>create(PiglinAi::wantsToStopFleeing, MemoryModuleType.AVOID_TARGET)), MemoryModuleType.AVOID_TARGET);\n   }\n\n   private static void initRideHoglinActivity(Brain<Piglin> p_34974_) {\n      p_34974_.addActivityAndRemoveMemoryWhenStopped(Activity.RIDE, 10, ImmutableList.of(Mount.create(0.8F), SetEntityLookTarget.create(PiglinAi::isPlayerHoldingLovedItem, 8.0F), BehaviorBuilder.sequence(BehaviorBuilder.triggerIf(Entity::isPassenger), TriggerGate.triggerOneShuffled(ImmutableList.<Pair<? extends Trigger<? super LivingEntity>, Integer>>builder().addAll(createLookBehaviors()).add(Pair.of(BehaviorBuilder.triggerIf((p_258950_) -> {\n         return true;\n      }), 1)).build())), DismountOrSkipMounting.<Piglin>create(8, PiglinAi::wantsToStopRiding)), MemoryModuleType.RIDE_TARGET);\n   }\n\n   private static ImmutableList<Pair<OneShot<LivingEntity>, Integer>> createLookBehaviors() {\n      return ImmutableList.of(Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 1), Pair.of(SetEntityLookTarget.create(EntityType.PIGLIN, 8.0F), 1), Pair.of(SetEntityLookTarget.create(8.0F), 1));\n   }\n\n   private static RunOne<LivingEntity> createIdleLookBehaviors() {\n      return new RunOne<>(ImmutableList.<Pair<? extends BehaviorControl<? super LivingEntity>, Integer>>builder().addAll(createLookBehaviors()).add(Pair.of(new DoNothing(30, 60), 1)).build());\n   }\n\n   private static RunOne<Piglin> createIdleMovementBehaviors() {\n      return new RunOne<>(ImmutableList.of(Pair.of(RandomStroll.stroll(0.6F), 2), Pair.of(InteractWith.of(EntityType.PIGLIN, 8, MemoryModuleType.INTERACTION_TARGET, 0.6F, 2), 2), Pair.of(BehaviorBuilder.triggerIf(PiglinAi::doesntSeeAnyPlayerHoldingLovedItem, SetWalkTargetFromLookTarget.create(0.6F, 3)), 2), Pair.of(new DoNothing(30, 60), 1)));\n   }\n\n   private static BehaviorControl<PathfinderMob> avoidRepellent() {\n      return SetWalkTargetAwayFrom.pos(MemoryModuleType.NEAREST_REPELLENT, 1.0F, 8, false);\n   }\n\n   private static BehaviorControl<Piglin> babyAvoidNemesis() {\n      return CopyMemoryWithExpiry.create(Piglin::isBaby, MemoryModuleType.NEAREST_VISIBLE_NEMESIS, MemoryModuleType.AVOID_TARGET, BABY_AVOID_NEMESIS_DURATION);\n   }\n\n   private static BehaviorControl<Piglin> avoidZombified() {\n      return CopyMemoryWithExpiry.create(PiglinAi::isNearZombified, MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED, MemoryModuleType.AVOID_TARGET, AVOID_ZOMBIFIED_DURATION);\n   }\n\n   protected static void updateActivity(Piglin p_34899_) {\n      Brain<Piglin> brain = p_34899_.getBrain();\n      Activity activity = brain.getActiveNonCoreActivity().orElse((Activity)null);\n      brain.setActiveActivityToFirstValid(ImmutableList.of(Activity.ADMIRE_ITEM, Activity.FIGHT, Activity.AVOID, Activity.CELEBRATE, Activity.RIDE, Activity.IDLE));\n      Activity activity1 = brain.getActiveNonCoreActivity().orElse((Activity)null);\n      if (activity != activity1) {\n         getSoundForCurrentActivity(p_34899_).ifPresent(p_34899_::playSoundEvent);\n      }\n\n      p_34899_.setAggressive(brain.hasMemoryValue(MemoryModuleType.ATTACK_TARGET));\n      if (!brain.hasMemoryValue(MemoryModuleType.RIDE_TARGET) && isBabyRidingBaby(p_34899_)) {\n         p_34899_.stopRiding();\n      }\n\n      if (!brain.hasMemoryValue(MemoryModuleType.CELEBRATE_LOCATION)) {\n         brain.eraseMemory(MemoryModuleType.DANCING);\n      }\n\n      p_34899_.setDancing(brain.hasMemoryValue(MemoryModuleType.DANCING));\n   }\n\n   private static boolean isBabyRidingBaby(Piglin p_34993_) {\n      if (!p_34993_.isBaby()) {\n         return false;\n      } else {\n         Entity entity = p_34993_.getVehicle();\n         return entity instanceof Piglin && ((Piglin)entity).isBaby() || entity instanceof Hoglin && ((Hoglin)entity).isBaby();\n      }\n   }\n\n   protected static void pickUpItem(Piglin p_34844_, ItemEntity p_34845_) {\n      stopWalking(p_34844_);\n      ItemStack itemstack;\n      if (p_34845_.getItem().is(Items.GOLD_NUGGET)) {\n         p_34844_.take(p_34845_, p_34845_.getItem().getCount());\n         itemstack = p_34845_.getItem();\n         p_34845_.discard();\n      } else {\n         p_34844_.take(p_34845_, 1);\n         itemstack = removeOneItemFromItemEntity(p_34845_);\n      }\n\n      if (isLovedItem(itemstack)) {\n         p_34844_.getBrain().eraseMemory(MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM);\n         holdInOffhand(p_34844_, itemstack);\n         admireGoldItem(p_34844_);\n      } else if (isFood(itemstack) && !hasEatenRecently(p_34844_)) {\n         eat(p_34844_);\n      } else {\n         boolean flag = !p_34844_.equipItemIfPossible(itemstack).equals(ItemStack.EMPTY);\n         if (!flag) {\n            putInInventory(p_34844_, itemstack);\n         }\n      }\n   }\n\n   private static void holdInOffhand(Piglin p_34933_, ItemStack p_34934_) {\n      if (isHoldingItemInOffHand(p_34933_)) {\n         p_34933_.spawnAtLocation(p_34933_.getItemInHand(InteractionHand.OFF_HAND));\n      }\n\n      p_34933_.holdInOffHand(p_34934_);\n   }\n\n   private static ItemStack removeOneItemFromItemEntity(ItemEntity p_34823_) {\n      ItemStack itemstack = p_34823_.getItem();\n      ItemStack itemstack1 = itemstack.split(1);\n      if (itemstack.isEmpty()) {\n         p_34823_.discard();\n      } else {\n         p_34823_.setItem(itemstack);\n      }\n\n      return itemstack1;\n   }\n\n   protected static void stopHoldingOffHandItem(Piglin p_34868_, boolean p_34869_) {\n      ItemStack itemstack = p_34868_.getItemInHand(InteractionHand.OFF_HAND);\n      p_34868_.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);\n      if (p_34868_.isAdult()) {\n         boolean flag = itemstack.isPiglinCurrency();\n         if (p_34869_ && flag) {\n            throwItems(p_34868_, getBarterResponseItems(p_34868_));\n         } else if (!flag) {\n            boolean flag1 = !p_34868_.equipItemIfPossible(itemstack).isEmpty();\n            if (!flag1) {\n               putInInventory(p_34868_, itemstack);\n            }\n         }\n      } else {\n         boolean flag2 = !p_34868_.equipItemIfPossible(itemstack).isEmpty();\n         if (!flag2) {\n            ItemStack itemstack1 = p_34868_.getMainHandItem();\n            if (isLovedItem(itemstack1)) {\n               putInInventory(p_34868_, itemstack1);\n            } else {\n               throwItems(p_34868_, Collections.singletonList(itemstack1));\n            }\n\n            p_34868_.holdInMainHand(itemstack);\n         }\n      }\n\n   }\n\n   protected static void cancelAdmiring(Piglin p_34928_) {\n      if (isAdmiringItem(p_34928_) && !p_34928_.getOffhandItem().isEmpty()) {\n         p_34928_.spawnAtLocation(p_34928_.getOffhandItem());\n         p_34928_.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);\n      }\n\n   }\n\n   private static void putInInventory(Piglin p_34953_, ItemStack p_34954_) {\n      ItemStack itemstack = p_34953_.addToInventory(p_34954_);\n      throwItemsTowardRandomPos(p_34953_, Collections.singletonList(itemstack));\n   }\n\n   private static void throwItems(Piglin p_34861_, List<ItemStack> p_34862_) {\n      Optional<Player> optional = p_34861_.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER);\n      if (optional.isPresent()) {\n         throwItemsTowardPlayer(p_34861_, optional.get(), p_34862_);\n      } else {\n         throwItemsTowardRandomPos(p_34861_, p_34862_);\n      }\n\n   }\n\n   private static void throwItemsTowardRandomPos(Piglin p_34913_, List<ItemStack> p_34914_) {\n      throwItemsTowardPos(p_34913_, p_34914_, getRandomNearbyPos(p_34913_));\n   }\n\n   private static void throwItemsTowardPlayer(Piglin p_34851_, Player p_34852_, List<ItemStack> p_34853_) {\n      throwItemsTowardPos(p_34851_, p_34853_, p_34852_.position());\n   }\n\n   private static void throwItemsTowardPos(Piglin p_34864_, List<ItemStack> p_34865_, Vec3 p_34866_) {\n      if (!p_34865_.isEmpty()) {\n         p_34864_.swing(InteractionHand.OFF_HAND);\n\n         for(ItemStack itemstack : p_34865_) {\n            BehaviorUtils.throwItem(p_34864_, itemstack, p_34866_.add(0.0D, 1.0D, 0.0D));\n         }\n      }\n\n   }\n\n   private static List<ItemStack> getBarterResponseItems(Piglin p_34997_) {\n      LootTable loottable = p_34997_.level().getServer().getLootData().getLootTable(BuiltInLootTables.PIGLIN_BARTERING);\n      List<ItemStack> list = loottable.getRandomItems((new LootParams.Builder((ServerLevel)p_34997_.level())).withParameter(LootContextParams.THIS_ENTITY, p_34997_).create(LootContextParamSets.PIGLIN_BARTER));\n      return list;\n   }\n\n   private static boolean wantsToDance(LivingEntity p_34811_, LivingEntity p_34812_) {\n      if (p_34812_.getType() != EntityType.HOGLIN) {\n         return false;\n      } else {\n         return RandomSource.create(p_34811_.level().getGameTime()).nextFloat() < 0.1F;\n      }\n   }\n\n   protected static boolean wantsToPickup(Piglin p_34858_, ItemStack p_34859_) {\n      if (p_34858_.isBaby() && p_34859_.is(ItemTags.IGNORED_BY_PIGLIN_BABIES)) {\n         return false;\n      } else if (p_34859_.is(ItemTags.PIGLIN_REPELLENTS)) {\n         return false;\n      } else if (isAdmiringDisabled(p_34858_) && p_34858_.getBrain().hasMemoryValue(MemoryModuleType.ATTACK_TARGET)) {\n         return false;\n      } else if (p_34859_.isPiglinCurrency()) {\n         return isNotHoldingLovedItemInOffHand(p_34858_);\n      } else {\n         boolean flag = p_34858_.canAddToInventory(p_34859_);\n         if (p_34859_.is(Items.GOLD_NUGGET)) {\n            return flag;\n         } else if (isFood(p_34859_)) {\n            return !hasEatenRecently(p_34858_) && flag;\n         } else if (!isLovedItem(p_34859_)) {\n            return p_34858_.canReplaceCurrentItem(p_34859_);\n         } else {\n            return isNotHoldingLovedItemInOffHand(p_34858_) && flag;\n         }\n      }\n   }\n\n   protected static boolean isLovedItem(ItemStack p_149966_) {\n      return p_149966_.is(ItemTags.PIGLIN_LOVED);\n   }\n\n   private static boolean wantsToStopRiding(Piglin p_34835_, Entity p_34836_) {\n      if (!(p_34836_ instanceof Mob mob)) {\n         return false;\n      } else {\n         return !mob.isBaby() || !mob.isAlive() || wasHurtRecently(p_34835_) || wasHurtRecently(mob) || mob instanceof Piglin && mob.getVehicle() == null;\n      }\n   }\n\n   private static boolean isNearestValidAttackTarget(Piglin p_34901_, LivingEntity p_34902_) {\n      return findNearestValidAttackTarget(p_34901_).filter((p_34887_) -> {\n         return p_34887_ == p_34902_;\n      }).isPresent();\n   }\n\n   private static boolean isNearZombified(Piglin p_34999_) {\n      Brain<Piglin> brain = p_34999_.getBrain();\n      if (brain.hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED)) {\n         LivingEntity livingentity = brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED).get();\n         return p_34999_.closerThan(livingentity, 6.0D);\n      } else {\n         return false;\n      }\n   }\n\n   private static Optional<? extends LivingEntity> findNearestValidAttackTarget(Piglin p_35001_) {\n      Brain<Piglin> brain = p_35001_.getBrain();\n      if (isNearZombified(p_35001_)) {\n         return Optional.empty();\n      } else {\n         Optional<LivingEntity> optional = BehaviorUtils.getLivingEntityFromUUIDMemory(p_35001_, MemoryModuleType.ANGRY_AT);\n         if (optional.isPresent() && Sensor.isEntityAttackableIgnoringLineOfSight(p_35001_, optional.get())) {\n            return optional;\n         } else {\n            if (brain.hasMemoryValue(MemoryModuleType.UNIVERSAL_ANGER)) {\n               Optional<Player> optional1 = brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER);\n               if (optional1.isPresent()) {\n                  return optional1;\n               }\n            }\n\n            Optional<Mob> optional3 = brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_NEMESIS);\n            if (optional3.isPresent()) {\n               return optional3;\n            } else {\n               Optional<Player> optional2 = brain.getMemory(MemoryModuleType.NEAREST_TARGETABLE_PLAYER_NOT_WEARING_GOLD);\n               return optional2.isPresent() && Sensor.isEntityAttackable(p_35001_, optional2.get()) ? optional2 : Optional.empty();\n            }\n         }\n      }\n   }\n\n   public static void angerNearbyPiglins(Player p_34874_, boolean p_34875_) {\n      List<Piglin> list = p_34874_.level().getEntitiesOfClass(Piglin.class, p_34874_.getBoundingBox().inflate(16.0D));\n      list.stream().filter(PiglinAi::isIdle).filter((p_34881_) -> {\n         return !p_34875_ || BehaviorUtils.canSee(p_34881_, p_34874_);\n      }).forEach((p_289467_) -> {\n         if (p_289467_.level().getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER)) {\n            setAngerTargetToNearestTargetablePlayerIfFound(p_289467_, p_34874_);\n         } else {\n            setAngerTarget(p_289467_, p_34874_);\n         }\n\n      });\n   }\n\n   public static InteractionResult mobInteract(Piglin p_34847_, Player p_34848_, InteractionHand p_34849_) {\n      ItemStack itemstack = p_34848_.getItemInHand(p_34849_);\n      if (canAdmire(p_34847_, itemstack)) {\n         ItemStack itemstack1 = itemstack.split(1);\n         holdInOffhand(p_34847_, itemstack1);\n         admireGoldItem(p_34847_);\n         stopWalking(p_34847_);\n         return InteractionResult.CONSUME;\n      } else {\n         return InteractionResult.PASS;\n      }\n   }\n\n   protected static boolean canAdmire(Piglin p_34910_, ItemStack p_34911_) {\n      return !isAdmiringDisabled(p_34910_) && !isAdmiringItem(p_34910_) && p_34910_.isAdult() && p_34911_.isPiglinCurrency();\n   }\n\n   protected static void wasHurtBy(Piglin p_34838_, LivingEntity p_34839_) {\n      if (!(p_34839_ instanceof Piglin)) {\n         if (isHoldingItemInOffHand(p_34838_)) {\n            stopHoldingOffHandItem(p_34838_, false);\n         }\n\n         Brain<Piglin> brain = p_34838_.getBrain();\n         brain.eraseMemory(MemoryModuleType.CELEBRATE_LOCATION);\n         brain.eraseMemory(MemoryModuleType.DANCING);\n         brain.eraseMemory(MemoryModuleType.ADMIRING_ITEM);\n         if (p_34839_ instanceof Player) {\n            brain.setMemoryWithExpiry(MemoryModuleType.ADMIRING_DISABLED, true, 400L);\n         }\n\n         getAvoidTarget(p_34838_).ifPresent((p_289470_) -> {\n            if (p_289470_.getType() != p_34839_.getType()) {\n               brain.eraseMemory(MemoryModuleType.AVOID_TARGET);\n            }\n\n         });\n         if (p_34838_.isBaby()) {\n            brain.setMemoryWithExpiry(MemoryModuleType.AVOID_TARGET, p_34839_, 100L);\n            if (Sensor.isEntityAttackableIgnoringLineOfSight(p_34838_, p_34839_)) {\n               broadcastAngerTarget(p_34838_, p_34839_);\n            }\n\n         } else if (p_34839_.getType() == EntityType.HOGLIN && hoglinsOutnumberPiglins(p_34838_)) {\n            setAvoidTargetAndDontHuntForAWhile(p_34838_, p_34839_);\n            broadcastRetreat(p_34838_, p_34839_);\n         } else {\n            maybeRetaliate(p_34838_, p_34839_);\n         }\n      }\n   }\n\n   protected static void maybeRetaliate(AbstractPiglin p_34827_, LivingEntity p_34828_) {\n      if (!p_34827_.getBrain().isActive(Activity.AVOID)) {\n         if (Sensor.isEntityAttackableIgnoringLineOfSight(p_34827_, p_34828_)) {\n            if (!BehaviorUtils.isOtherTargetMuchFurtherAwayThanCurrentAttackTarget(p_34827_, p_34828_, 4.0D)) {\n               if (p_34828_.getType() == EntityType.PLAYER && p_34827_.level().getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER)) {\n                  setAngerTargetToNearestTargetablePlayerIfFound(p_34827_, p_34828_);\n                  broadcastUniversalAnger(p_34827_);\n               } else {\n                  setAngerTarget(p_34827_, p_34828_);\n                  broadcastAngerTarget(p_34827_, p_34828_);\n               }\n\n            }\n         }\n      }\n   }\n\n   public static Optional<SoundEvent> getSoundForCurrentActivity(Piglin p_34948_) {\n      return p_34948_.getBrain().getActiveNonCoreActivity().map((p_34908_) -> {\n         return getSoundForActivity(p_34948_, p_34908_);\n      });\n   }\n\n   private static SoundEvent getSoundForActivity(Piglin p_34855_, Activity p_34856_) {\n      if (p_34856_ == Activity.FIGHT) {\n         return SoundEvents.PIGLIN_ANGRY;\n      } else if (p_34855_.isConverting()) {\n         return SoundEvents.PIGLIN_RETREAT;\n      } else if (p_34856_ == Activity.AVOID && isNearAvoidTarget(p_34855_)) {\n         return SoundEvents.PIGLIN_RETREAT;\n      } else if (p_34856_ == Activity.ADMIRE_ITEM) {\n         return SoundEvents.PIGLIN_ADMIRING_ITEM;\n      } else if (p_34856_ == Activity.CELEBRATE) {\n         return SoundEvents.PIGLIN_CELEBRATE;\n      } else if (seesPlayerHoldingLovedItem(p_34855_)) {\n         return SoundEvents.PIGLIN_JEALOUS;\n      } else {\n         return isNearRepellent(p_34855_) ? SoundEvents.PIGLIN_RETREAT : SoundEvents.PIGLIN_AMBIENT;\n      }\n   }\n\n   private static boolean isNearAvoidTarget(Piglin p_35003_) {\n      Brain<Piglin> brain = p_35003_.getBrain();\n      return !brain.hasMemoryValue(MemoryModuleType.AVOID_TARGET) ? false : brain.getMemory(MemoryModuleType.AVOID_TARGET).get().closerThan(p_35003_, 12.0D);\n   }\n\n   protected static List<AbstractPiglin> getVisibleAdultPiglins(Piglin p_35005_) {\n      return p_35005_.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_ADULT_PIGLINS).orElse(ImmutableList.of());\n   }\n\n   private static List<AbstractPiglin> getAdultPiglins(AbstractPiglin p_34961_) {\n      return p_34961_.getBrain().getMemory(MemoryModuleType.NEARBY_ADULT_PIGLINS).orElse(ImmutableList.of());\n   }\n\n   public static boolean isWearingGold(LivingEntity p_34809_) {\n      for(ItemStack itemstack : p_34809_.getArmorSlots()) {\n         Item item = itemstack.getItem();\n         if (itemstack.makesPiglinsNeutral(p_34809_)) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n   private static void stopWalking(Piglin p_35007_) {\n      p_35007_.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);\n      p_35007_.getNavigation().stop();\n   }\n\n   private static BehaviorControl<LivingEntity> babySometimesRideBabyHoglin() {\n      SetEntityLookTargetSometimes.Ticker setentitylooktargetsometimes$ticker = new SetEntityLookTargetSometimes.Ticker(RIDE_START_INTERVAL);\n      return CopyMemoryWithExpiry.create((p_289472_) -> {\n         return p_289472_.isBaby() && setentitylooktargetsometimes$ticker.tickDownAndCheck(p_289472_.level().random);\n      }, MemoryModuleType.NEAREST_VISIBLE_BABY_HOGLIN, MemoryModuleType.RIDE_TARGET, RIDE_DURATION);\n   }\n\n   protected static void broadcastAngerTarget(AbstractPiglin p_34896_, LivingEntity p_34897_) {\n      getAdultPiglins(p_34896_).forEach((p_289474_) -> {\n         if (p_34897_.getType() != EntityType.HOGLIN || p_289474_.canHunt() && ((Hoglin)p_34897_).canBeHunted()) {\n            setAngerTargetIfCloserThanCurrent(p_289474_, p_34897_);\n         }\n      });\n   }\n\n   protected static void broadcastUniversalAnger(AbstractPiglin p_34825_) {\n      getAdultPiglins(p_34825_).forEach((p_34991_) -> {\n         getNearestVisibleTargetablePlayer(p_34991_).ifPresent((p_149964_) -> {\n            setAngerTarget(p_34991_, p_149964_);\n         });\n      });\n   }\n\n   protected static void setAngerTarget(AbstractPiglin p_34925_, LivingEntity p_34926_) {\n      if (Sensor.isEntityAttackableIgnoringLineOfSight(p_34925_, p_34926_)) {\n         p_34925_.getBrain().eraseMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE);\n         p_34925_.getBrain().setMemoryWithExpiry(MemoryModuleType.ANGRY_AT, p_34926_.getUUID(), 600L);\n         if (p_34926_.getType() == EntityType.HOGLIN && p_34925_.canHunt()) {\n            dontKillAnyMoreHoglinsForAWhile(p_34925_);\n         }\n\n         if (p_34926_.getType() == EntityType.PLAYER && p_34925_.level().getGameRules().getBoolean(GameRules.RULE_UNIVERSAL_ANGER)) {\n            p_34925_.getBrain().setMemoryWithExpiry(MemoryModuleType.UNIVERSAL_ANGER, true, 600L);\n         }\n\n      }\n   }\n\n   private static void setAngerTargetToNearestTargetablePlayerIfFound(AbstractPiglin p_34945_, LivingEntity p_34946_) {\n      Optional<Player> optional = getNearestVisibleTargetablePlayer(p_34945_);\n      if (optional.isPresent()) {\n         setAngerTarget(p_34945_, optional.get());\n      } else {\n         setAngerTarget(p_34945_, p_34946_);\n      }\n\n   }\n\n   private static void setAngerTargetIfCloserThanCurrent(AbstractPiglin p_34963_, LivingEntity p_34964_) {\n      Optional<LivingEntity> optional = getAngerTarget(p_34963_);\n      LivingEntity livingentity = BehaviorUtils.getNearestTarget(p_34963_, optional, p_34964_);\n      if (!optional.isPresent() || optional.get() != livingentity) {\n         setAngerTarget(p_34963_, livingentity);\n      }\n   }\n\n   private static Optional<LivingEntity> getAngerTarget(AbstractPiglin p_34976_) {\n      return BehaviorUtils.getLivingEntityFromUUIDMemory(p_34976_, MemoryModuleType.ANGRY_AT);\n   }\n\n   public static Optional<LivingEntity> getAvoidTarget(Piglin p_34987_) {\n      return p_34987_.getBrain().hasMemoryValue(MemoryModuleType.AVOID_TARGET) ? p_34987_.getBrain().getMemory(MemoryModuleType.AVOID_TARGET) : Optional.empty();\n   }\n\n   public static Optional<Player> getNearestVisibleTargetablePlayer(AbstractPiglin p_34894_) {\n      return p_34894_.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER) ? p_34894_.getBrain().getMemory(MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER) : Optional.empty();\n   }\n\n   private static void broadcastRetreat(Piglin p_34930_, LivingEntity p_34931_) {\n      getVisibleAdultPiglins(p_34930_).stream().filter((p_34985_) -> {\n         return p_34985_ instanceof Piglin;\n      }).forEach((p_34819_) -> {\n         retreatFromNearestTarget((Piglin)p_34819_, p_34931_);\n      });\n   }\n\n   private static void retreatFromNearestTarget(Piglin p_34950_, LivingEntity p_34951_) {\n      Brain<Piglin> brain = p_34950_.getBrain();\n      LivingEntity $$3 = BehaviorUtils.getNearestTarget(p_34950_, brain.getMemory(MemoryModuleType.AVOID_TARGET), p_34951_);\n      $$3 = BehaviorUtils.getNearestTarget(p_34950_, brain.getMemory(MemoryModuleType.ATTACK_TARGET), $$3);\n      setAvoidTargetAndDontHuntForAWhile(p_34950_, $$3);\n   }\n\n   private static boolean wantsToStopFleeing(Piglin p_35009_) {\n      Brain<Piglin> brain = p_35009_.getBrain();\n      if (!brain.hasMemoryValue(MemoryModuleType.AVOID_TARGET)) {\n         return true;\n      } else {\n         LivingEntity livingentity = brain.getMemory(MemoryModuleType.AVOID_TARGET).get();\n         EntityType<?> entitytype = livingentity.getType();\n         if (entitytype == EntityType.HOGLIN) {\n            return piglinsEqualOrOutnumberHoglins(p_35009_);\n         } else if (isZombified(entitytype)) {\n            return !brain.isMemoryValue(MemoryModuleType.NEAREST_VISIBLE_ZOMBIFIED, livingentity);\n         } else {\n            return false;\n         }\n      }\n   }\n\n   private static boolean piglinsEqualOrOutnumberHoglins(Piglin p_35011_) {\n      return !hoglinsOutnumberPiglins(p_35011_);\n   }\n\n   private static boolean hoglinsOutnumberPiglins(Piglin p_35013_) {\n      int i = p_35013_.getBrain().getMemory(MemoryModuleType.VISIBLE_ADULT_PIGLIN_COUNT).orElse(0) + 1;\n      int j = p_35013_.getBrain().getMemory(MemoryModuleType.VISIBLE_ADULT_HOGLIN_COUNT).orElse(0);\n      return j > i;\n   }\n\n   private static void setAvoidTargetAndDontHuntForAWhile(Piglin p_34968_, LivingEntity p_34969_) {\n      p_34968_.getBrain().eraseMemory(MemoryModuleType.ANGRY_AT);\n      p_34968_.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);\n      p_34968_.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);\n      p_34968_.getBrain().setMemoryWithExpiry(MemoryModuleType.AVOID_TARGET, p_34969_, (long)RETREAT_DURATION.sample(p_34968_.level().random));\n      dontKillAnyMoreHoglinsForAWhile(p_34968_);\n   }\n\n   protected static void dontKillAnyMoreHoglinsForAWhile(AbstractPiglin p_34923_) {\n      p_34923_.getBrain().setMemoryWithExpiry(MemoryModuleType.HUNTED_RECENTLY, true, (long)TIME_BETWEEN_HUNTS.sample(p_34923_.level().random));\n   }\n\n   private static void eat(Piglin p_35015_) {\n      p_35015_.getBrain().setMemoryWithExpiry(MemoryModuleType.ATE_RECENTLY, true, 200L);\n   }\n\n   private static Vec3 getRandomNearbyPos(Piglin p_35017_) {\n      Vec3 vec3 = LandRandomPos.getPos(p_35017_, 4, 2);\n      return vec3 == null ? p_35017_.position() : vec3;\n   }\n\n   private static boolean hasEatenRecently(Piglin p_35019_) {\n      return p_35019_.getBrain().hasMemoryValue(MemoryModuleType.ATE_RECENTLY);\n   }\n\n   protected static boolean isIdle(AbstractPiglin p_34943_) {\n      return p_34943_.getBrain().isActive(Activity.IDLE);\n   }\n\n   private static boolean hasCrossbow(LivingEntity p_34919_) {\n      return p_34919_.isHolding(is -> is.getItem() instanceof net.minecraft.world.item.CrossbowItem);\n   }\n\n   private static void admireGoldItem(LivingEntity p_34939_) {\n      p_34939_.getBrain().setMemoryWithExpiry(MemoryModuleType.ADMIRING_ITEM, true, 120L);\n   }\n\n   private static boolean isAdmiringItem(Piglin p_35021_) {\n      return p_35021_.getBrain().hasMemoryValue(MemoryModuleType.ADMIRING_ITEM);\n   }\n\n   private static boolean isBarterCurrency(ItemStack p_149968_) {\n      return p_149968_.is(BARTERING_ITEM);\n   }\n\n   private static boolean isFood(ItemStack p_149970_) {\n      return p_149970_.is(ItemTags.PIGLIN_FOOD);\n   }\n\n   private static boolean isNearRepellent(Piglin p_35023_) {\n      return p_35023_.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_REPELLENT);\n   }\n\n   private static boolean seesPlayerHoldingLovedItem(LivingEntity p_34972_) {\n      return p_34972_.getBrain().hasMemoryValue(MemoryModuleType.NEAREST_PLAYER_HOLDING_WANTED_ITEM);\n   }\n\n   private static boolean doesntSeeAnyPlayerHoldingLovedItem(LivingEntity p_34983_) {\n      return !seesPlayerHoldingLovedItem(p_34983_);\n   }\n\n   public static boolean isPlayerHoldingLovedItem(LivingEntity p_34884_) {\n      return p_34884_.getType() == EntityType.PLAYER && p_34884_.isHolding(PiglinAi::isLovedItem);\n   }\n\n   private static boolean isAdmiringDisabled(Piglin p_35025_) {\n      return p_35025_.getBrain().hasMemoryValue(MemoryModuleType.ADMIRING_DISABLED);\n   }\n\n   private static boolean wasHurtRecently(LivingEntity p_34989_) {\n      return p_34989_.getBrain().hasMemoryValue(MemoryModuleType.HURT_BY);\n   }\n\n   private static boolean isHoldingItemInOffHand(Piglin p_35027_) {\n      return !p_35027_.getOffhandItem().isEmpty();\n   }\n\n   private static boolean isNotHoldingLovedItemInOffHand(Piglin p_35029_) {\n      return p_35029_.getOffhandItem().isEmpty() || !isLovedItem(p_35029_.getOffhandItem());\n   }\n\n   public static boolean isZombified(EntityType<?> p_34807_) {\n      return p_34807_ == EntityType.ZOMBIFIED_PIGLIN || p_34807_ == EntityType.ZOGLIN;\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/AbstractPiglin.java",
+      "entry_sha256": "8302674fcacbe551e0df1ad1b21af3e3cc92f7fe06151cd3eb1f578033a3e1da",
+      "lines": [
+        1,
+        141
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "8302674fcacbe551e0df1ad1b21af3e3cc92f7fe06151cd3eb1f578033a3e1da",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.game.DebugPackets;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.navigation.GroundPathNavigation;\nimport net.minecraft.world.entity.ai.util.GoalUtils;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.monster.ZombifiedPiglin;\nimport net.minecraft.world.item.TieredItem;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\n\npublic abstract class AbstractPiglin extends Monster {\n   protected static final EntityDataAccessor<Boolean> DATA_IMMUNE_TO_ZOMBIFICATION = SynchedEntityData.defineId(AbstractPiglin.class, EntityDataSerializers.BOOLEAN);\n   protected static final int CONVERSION_TIME = 300;\n   protected static final float PIGLIN_EYE_HEIGHT = 1.79F;\n   protected int timeInOverworld;\n\n   public AbstractPiglin(EntityType<? extends AbstractPiglin> p_34652_, Level p_34653_) {\n      super(p_34652_, p_34653_);\n      this.setCanPickUpLoot(true);\n      this.applyOpenDoorsAbility();\n      this.setPathfindingMalus(BlockPathTypes.DANGER_FIRE, 16.0F);\n      this.setPathfindingMalus(BlockPathTypes.DAMAGE_FIRE, -1.0F);\n   }\n\n   private void applyOpenDoorsAbility() {\n      if (GoalUtils.hasGroundPathNavigation(this)) {\n         ((GroundPathNavigation)this.getNavigation()).setCanOpenDoors(true);\n      }\n\n   }\n\n   protected float getStandingEyeHeight(Pose p_259213_, EntityDimensions p_259279_) {\n      return 1.79F;\n   }\n\n   protected abstract boolean canHunt();\n\n   public void setImmuneToZombification(boolean p_34671_) {\n      this.getEntityData().set(DATA_IMMUNE_TO_ZOMBIFICATION, p_34671_);\n   }\n\n   protected boolean isImmuneToZombification() {\n      return this.getEntityData().get(DATA_IMMUNE_TO_ZOMBIFICATION);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_IMMUNE_TO_ZOMBIFICATION, false);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_34661_) {\n      super.addAdditionalSaveData(p_34661_);\n      if (this.isImmuneToZombification()) {\n         p_34661_.putBoolean(\"IsImmuneToZombification\", true);\n      }\n\n      p_34661_.putInt(\"TimeInOverworld\", this.timeInOverworld);\n   }\n\n   public double getMyRidingOffset() {\n      return this.isBaby() ? -0.05D : -0.45D;\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_34659_) {\n      super.readAdditionalSaveData(p_34659_);\n      this.setImmuneToZombification(p_34659_.getBoolean(\"IsImmuneToZombification\"));\n      this.timeInOverworld = p_34659_.getInt(\"TimeInOverworld\");\n   }\n\n   protected void customServerAiStep() {\n      super.customServerAiStep();\n      if (this.isConverting()) {\n         ++this.timeInOverworld;\n      } else {\n         this.timeInOverworld = 0;\n         this.timeInOverworld = 0;\n      }\n\n      if (this.timeInOverworld > 300 && net.minecraftforge.event.ForgeEventFactory.canLivingConvert(this, EntityType.ZOMBIFIED_PIGLIN, (timer) -> this.timeInOverworld = timer)) {\n         this.playConvertedSound();\n         this.finishConversion((ServerLevel)this.level());\n      }\n\n   }\n\n   public boolean isConverting() {\n      return !this.level().dimensionType().piglinSafe() && !this.isImmuneToZombification() && !this.isNoAi();\n   }\n\n   protected void finishConversion(ServerLevel p_34663_) {\n      ZombifiedPiglin zombifiedpiglin = this.convertTo(EntityType.ZOMBIFIED_PIGLIN, true);\n      if (zombifiedpiglin != null) {\n         zombifiedpiglin.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));\n         net.minecraftforge.event.ForgeEventFactory.onLivingConvert(this, zombifiedpiglin);\n      }\n\n   }\n\n   public boolean isAdult() {\n      return !this.isBaby();\n   }\n\n   public abstract PiglinArmPose getArmPose();\n\n   @Nullable\n   public LivingEntity getTarget() {\n      return this.brain.getMemory(MemoryModuleType.ATTACK_TARGET).orElse((LivingEntity)null);\n   }\n\n   protected boolean isHoldingMeleeWeapon() {\n      return this.getMainHandItem().getItem() instanceof TieredItem;\n   }\n\n   public void playAmbientSound() {\n      if (PiglinAi.isIdle(this)) {\n         super.playAmbientSound();\n      }\n\n   }\n\n   protected void sendDebugPackets() {\n      super.sendDebugPackets();\n      DebugPackets.sendEntityBrain(this);\n   }\n\n   protected abstract void playConvertedSound();\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/StopHoldingItemIfNoLongerAdmiring.java",
+      "entry_sha256": "63aeba0139edfd4065037f81da6682be01ef40b8e69d5223f173ef6411bfd854",
+      "lines": [
+        1,
+        23
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "63aeba0139edfd4065037f81da6682be01ef40b8e69d5223f173ef6411bfd854",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.item.Items;\n\npublic class StopHoldingItemIfNoLongerAdmiring {\n   public static BehaviorControl<Piglin> create() {\n      return BehaviorBuilder.create((p_259197_) -> {\n         return p_259197_.group(p_259197_.absent(MemoryModuleType.ADMIRING_ITEM)).apply(p_259197_, (p_259512_) -> {\n            return (p_289481_, p_289482_, p_289483_) -> {\n               if (!p_289482_.getOffhandItem().isEmpty() && !p_289482_.getOffhandItem().canPerformAction(net.minecraftforge.common.ToolActions.SHIELD_BLOCK)) {\n                  PiglinAi.stopHoldingOffHandItem(p_289482_, true);\n                  return true;\n               } else {\n                  return false;\n               }\n            };\n         });\n      });\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/StartAdmiringItemIfSeen.java",
+      "entry_sha256": "224b4ca83dd40a31d554b9d26b52ab07d108b971ce2e9ef056337b6083b3832b",
+      "lines": [
+        1,
+        25
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "224b4ca83dd40a31d554b9d26b52ab07d108b971ce2e9ef056337b6083b3832b",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.item.ItemEntity;\n\npublic class StartAdmiringItemIfSeen {\n   public static BehaviorControl<LivingEntity> create(int p_259418_) {\n      return BehaviorBuilder.create((p_259264_) -> {\n         return p_259264_.group(p_259264_.present(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM), p_259264_.absent(MemoryModuleType.ADMIRING_ITEM), p_259264_.absent(MemoryModuleType.ADMIRING_DISABLED), p_259264_.absent(MemoryModuleType.DISABLE_WALK_TO_ADMIRE_ITEM)).apply(p_259264_, (p_259343_, p_260195_, p_259697_, p_259511_) -> {\n            return (p_260130_, p_259946_, p_259235_) -> {\n               ItemEntity itementity = p_259264_.get(p_259343_);\n               if (!PiglinAi.isLovedItem(itementity.getItem())) {\n                  return false;\n               } else {\n                  p_260195_.setWithExpiry(true, (long)p_259418_);\n                  return true;\n               }\n            };\n         });\n      });\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/StopAdmiringIfTiredOfTryingToReachItem.java",
+      "entry_sha256": "b57234eeea65368688dc24dd21aa82ac54004e4db7595dd307ac2296084799bd",
+      "lines": [
+        1,
+        37
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b57234eeea65368688dc24dd21aa82ac54004e4db7595dd307ac2296084799bd",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport java.util.Optional;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\n\npublic class StopAdmiringIfTiredOfTryingToReachItem {\n   public static BehaviorControl<LivingEntity> create(int p_259110_, int p_259200_) {\n      return BehaviorBuilder.create((p_260320_) -> {\n         return p_260320_.group(p_260320_.present(MemoryModuleType.ADMIRING_ITEM), p_260320_.present(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM), p_260320_.registered(MemoryModuleType.TIME_TRYING_TO_REACH_ADMIRE_ITEM), p_260320_.registered(MemoryModuleType.DISABLE_WALK_TO_ADMIRE_ITEM)).apply(p_260320_, (p_260184_, p_259407_, p_259388_, p_259580_) -> {\n            return (p_259044_, p_259229_, p_259125_) -> {\n               if (!p_259229_.getOffhandItem().isEmpty()) {\n                  return false;\n               } else {\n                  Optional<Integer> optional = p_260320_.tryGet(p_259388_);\n                  if (optional.isEmpty()) {\n                     p_259388_.set(0);\n                  } else {\n                     int i = optional.get();\n                     if (i > p_259110_) {\n                        p_260184_.erase();\n                        p_259388_.erase();\n                        p_259580_.setWithExpiry(true, (long)p_259200_);\n                     } else {\n                        p_259388_.set(i + 1);\n                     }\n                  }\n\n                  return true;\n               }\n            };\n         });\n      });\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/piglin/StopAdmiringIfItemTooFarAway.java",
+      "entry_sha256": "a305cb824f2986a93dd57994ed46738ac62fadf22ab233a733d06e9a3b472e2e",
+      "lines": [
+        1,
+        30
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a305cb824f2986a93dd57994ed46738ac62fadf22ab233a733d06e9a3b472e2e",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.piglin;\n\nimport java.util.Optional;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.item.ItemEntity;\n\npublic class StopAdmiringIfItemTooFarAway<E extends Piglin> {\n   public static BehaviorControl<LivingEntity> create(int p_259415_) {\n      return BehaviorBuilder.create((p_259152_) -> {\n         return p_259152_.group(p_259152_.present(MemoryModuleType.ADMIRING_ITEM), p_259152_.registered(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM)).apply(p_259152_, (p_260178_, p_259241_) -> {\n            return (p_259613_, p_259304_, p_259748_) -> {\n               if (!p_259304_.getOffhandItem().isEmpty()) {\n                  return false;\n               } else {\n                  Optional<ItemEntity> optional = p_259152_.tryGet(p_259241_);\n                  if (optional.isPresent() && optional.get().closerThan(p_259304_, (double)p_259415_)) {\n                     return false;\n                  } else {\n                     p_260178_.erase();\n                     return true;\n                  }\n               }\n            };\n         });\n      });\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/InventoryCarrier.java",
+      "entry_sha256": "34a7e00aa0d11bd46f264a278b27c59c0fce68f2378b272d109e8412b6991a64",
+      "lines": [
+        1,
+        46
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "34a7e00aa0d11bd46f264a278b27c59c0fce68f2378b272d109e8412b6991a64",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.npc;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.item.ItemStack;\n\npublic interface InventoryCarrier {\n   String TAG_INVENTORY = \"Inventory\";\n\n   SimpleContainer getInventory();\n\n   static void pickUpItem(Mob p_219612_, InventoryCarrier p_219613_, ItemEntity p_219614_) {\n      ItemStack itemstack = p_219614_.getItem();\n      if (p_219612_.wantsToPickUp(itemstack)) {\n         SimpleContainer simplecontainer = p_219613_.getInventory();\n         boolean flag = simplecontainer.canAddItem(itemstack);\n         if (!flag) {\n            return;\n         }\n\n         p_219612_.onItemPickup(p_219614_);\n         int i = itemstack.getCount();\n         ItemStack itemstack1 = simplecontainer.addItem(itemstack);\n         p_219612_.take(p_219614_, i - itemstack1.getCount());\n         if (itemstack1.isEmpty()) {\n            p_219614_.discard();\n         } else {\n            itemstack.setCount(itemstack1.getCount());\n         }\n      }\n\n   }\n\n   default void readInventoryFromTag(CompoundTag p_253699_) {\n      if (p_253699_.contains(\"Inventory\", 9)) {\n         this.getInventory().fromTag(p_253699_.getList(\"Inventory\", 10));\n      }\n\n   }\n\n   default void writeInventoryToTag(CompoundTag p_254428_) {\n      p_254428_.put(\"Inventory\", this.getInventory().createTag());\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/sensing/NearestItemSensor.java",
+      "entry_sha256": "b42309d16fd225fbc430a7a5b2acf0ce62dba2b270c1f9f84de9aa6397a27463",
+      "lines": [
+        1,
+        36
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b42309d16fd225fbc430a7a5b2acf0ce62dba2b270c1f9f84de9aa6397a27463",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.sensing;\n\nimport com.google.common.collect.ImmutableSet;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.Set;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.item.ItemEntity;\n\npublic class NearestItemSensor extends Sensor<Mob> {\n   private static final long XZ_RANGE = 32L;\n   private static final long Y_RANGE = 16L;\n   public static final int MAX_DISTANCE_TO_WANTED_ITEM = 32;\n\n   public Set<MemoryModuleType<?>> requires() {\n      return ImmutableSet.of(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM);\n   }\n\n   protected void doTick(ServerLevel p_26697_, Mob p_26698_) {\n      Brain<?> brain = p_26698_.getBrain();\n      List<ItemEntity> list = p_26697_.getEntitiesOfClass(ItemEntity.class, p_26698_.getBoundingBox().inflate(32.0D, 16.0D, 32.0D), (p_26703_) -> {\n         return true;\n      });\n      list.sort(Comparator.comparingDouble(p_26698_::distanceToSqr));\n      Optional<ItemEntity> optional = list.stream().filter((p_26706_) -> {\n         return p_26698_.wantsToPickUp(p_26706_.getItem());\n      }).filter((p_26701_) -> {\n         return p_26701_.closerThan(p_26698_, 32.0D);\n      }).filter(p_26698_::hasLineOfSight).findFirst();\n      brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM, optional);\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/sensing/PlayerSensor.java",
+      "entry_sha256": "0ff9c47874f2c8806d0385a1f284b13a2110785a9fa75c245ef888c07408a421",
+      "lines": [
+        1,
+        36
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "0ff9c47874f2c8806d0385a1f284b13a2110785a9fa75c245ef888c07408a421",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.sensing;\n\nimport com.google.common.collect.ImmutableSet;\nimport java.util.Comparator;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.stream.Collectors;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.player.Player;\n\npublic class PlayerSensor extends Sensor<LivingEntity> {\n   public Set<MemoryModuleType<?>> requires() {\n      return ImmutableSet.of(MemoryModuleType.NEAREST_PLAYERS, MemoryModuleType.NEAREST_VISIBLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER);\n   }\n\n   protected void doTick(ServerLevel p_26740_, LivingEntity p_26741_) {\n      List<Player> list = p_26740_.players().stream().filter(EntitySelector.NO_SPECTATORS).filter((p_26744_) -> {\n         return p_26741_.closerThan(p_26744_, 16.0D);\n      }).sorted(Comparator.comparingDouble(p_26741_::distanceToSqr)).collect(Collectors.toList());\n      Brain<?> brain = p_26741_.getBrain();\n      brain.setMemory(MemoryModuleType.NEAREST_PLAYERS, list);\n      List<Player> list1 = list.stream().filter((p_26747_) -> {\n         return isEntityTargetable(p_26741_, p_26747_);\n      }).collect(Collectors.toList());\n      brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER, list1.isEmpty() ? null : list1.get(0));\n      Optional<Player> optional = list1.stream().filter((p_148304_) -> {\n         return isEntityAttackable(p_26741_, p_148304_);\n      }).findFirst();\n      brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER, optional);\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/SimpleContainer.java",
+      "entry_sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+      "lines": [
+        1,
+        241
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+      "raw_excerpt_utf8": "package net.minecraft.world;\n\nimport com.google.common.collect.Lists;\nimport java.util.List;\nimport java.util.stream.Collectors;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.NonNullList;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.player.StackedContents;\nimport net.minecraft.world.inventory.StackedContentsCompatible;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\n\npublic class SimpleContainer implements Container, StackedContentsCompatible {\n   private final int size;\n   private final NonNullList<ItemStack> items;\n   @Nullable\n   private List<ContainerListener> listeners;\n\n   public SimpleContainer(int p_19150_) {\n      this.size = p_19150_;\n      this.items = NonNullList.withSize(p_19150_, ItemStack.EMPTY);\n   }\n\n   public SimpleContainer(ItemStack... p_19152_) {\n      this.size = p_19152_.length;\n      this.items = NonNullList.of(ItemStack.EMPTY, p_19152_);\n   }\n\n   public void addListener(ContainerListener p_19165_) {\n      if (this.listeners == null) {\n         this.listeners = Lists.newArrayList();\n      }\n\n      this.listeners.add(p_19165_);\n   }\n\n   public void removeListener(ContainerListener p_19182_) {\n      if (this.listeners != null) {\n         this.listeners.remove(p_19182_);\n      }\n\n   }\n\n   public ItemStack getItem(int p_19157_) {\n      return p_19157_ >= 0 && p_19157_ < this.items.size() ? this.items.get(p_19157_) : ItemStack.EMPTY;\n   }\n\n   public List<ItemStack> removeAllItems() {\n      List<ItemStack> list = this.items.stream().filter((p_19197_) -> {\n         return !p_19197_.isEmpty();\n      }).collect(Collectors.toList());\n      this.clearContent();\n      return list;\n   }\n\n   public ItemStack removeItem(int p_19159_, int p_19160_) {\n      ItemStack itemstack = ContainerHelper.removeItem(this.items, p_19159_, p_19160_);\n      if (!itemstack.isEmpty()) {\n         this.setChanged();\n      }\n\n      return itemstack;\n   }\n\n   public ItemStack removeItemType(Item p_19171_, int p_19172_) {\n      ItemStack itemstack = new ItemStack(p_19171_, 0);\n\n      for(int i = this.size - 1; i >= 0; --i) {\n         ItemStack itemstack1 = this.getItem(i);\n         if (itemstack1.getItem().equals(p_19171_)) {\n            int j = p_19172_ - itemstack.getCount();\n            ItemStack itemstack2 = itemstack1.split(j);\n            itemstack.grow(itemstack2.getCount());\n            if (itemstack.getCount() == p_19172_) {\n               break;\n            }\n         }\n      }\n\n      if (!itemstack.isEmpty()) {\n         this.setChanged();\n      }\n\n      return itemstack;\n   }\n\n   public ItemStack addItem(ItemStack p_19174_) {\n      if (p_19174_.isEmpty()) {\n         return ItemStack.EMPTY;\n      } else {\n         ItemStack itemstack = p_19174_.copy();\n         this.moveItemToOccupiedSlotsWithSameType(itemstack);\n         if (itemstack.isEmpty()) {\n            return ItemStack.EMPTY;\n         } else {\n            this.moveItemToEmptySlots(itemstack);\n            return itemstack.isEmpty() ? ItemStack.EMPTY : itemstack;\n         }\n      }\n   }\n\n   public boolean canAddItem(ItemStack p_19184_) {\n      boolean flag = false;\n\n      for(ItemStack itemstack : this.items) {\n         if (itemstack.isEmpty() || ItemStack.isSameItemSameTags(itemstack, p_19184_) && itemstack.getCount() < itemstack.getMaxStackSize()) {\n            flag = true;\n            break;\n         }\n      }\n\n      return flag;\n   }\n\n   public ItemStack removeItemNoUpdate(int p_19180_) {\n      ItemStack itemstack = this.items.get(p_19180_);\n      if (itemstack.isEmpty()) {\n         return ItemStack.EMPTY;\n      } else {\n         this.items.set(p_19180_, ItemStack.EMPTY);\n         return itemstack;\n      }\n   }\n\n   public void setItem(int p_19162_, ItemStack p_19163_) {\n      this.items.set(p_19162_, p_19163_);\n      if (!p_19163_.isEmpty() && p_19163_.getCount() > this.getMaxStackSize()) {\n         p_19163_.setCount(this.getMaxStackSize());\n      }\n\n      this.setChanged();\n   }\n\n   public int getContainerSize() {\n      return this.size;\n   }\n\n   public boolean isEmpty() {\n      for(ItemStack itemstack : this.items) {\n         if (!itemstack.isEmpty()) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public void setChanged() {\n      if (this.listeners != null) {\n         for(ContainerListener containerlistener : this.listeners) {\n            containerlistener.containerChanged(this);\n         }\n      }\n\n   }\n\n   public boolean stillValid(Player p_19167_) {\n      return true;\n   }\n\n   public void clearContent() {\n      this.items.clear();\n      this.setChanged();\n   }\n\n   public void fillStackedContents(StackedContents p_19169_) {\n      for(ItemStack itemstack : this.items) {\n         p_19169_.accountStack(itemstack);\n      }\n\n   }\n\n   public String toString() {\n      return this.items.stream().filter((p_19194_) -> {\n         return !p_19194_.isEmpty();\n      }).collect(Collectors.toList()).toString();\n   }\n\n   private void moveItemToEmptySlots(ItemStack p_19190_) {\n      for(int i = 0; i < this.size; ++i) {\n         ItemStack itemstack = this.getItem(i);\n         if (itemstack.isEmpty()) {\n            this.setItem(i, p_19190_.copyAndClear());\n            return;\n         }\n      }\n\n   }\n\n   private void moveItemToOccupiedSlotsWithSameType(ItemStack p_19192_) {\n      for(int i = 0; i < this.size; ++i) {\n         ItemStack itemstack = this.getItem(i);\n         if (ItemStack.isSameItemSameTags(itemstack, p_19192_)) {\n            this.moveItemsBetweenStacks(p_19192_, itemstack);\n            if (p_19192_.isEmpty()) {\n               return;\n            }\n         }\n      }\n\n   }\n\n   private void moveItemsBetweenStacks(ItemStack p_19186_, ItemStack p_19187_) {\n      int i = Math.min(this.getMaxStackSize(), p_19187_.getMaxStackSize());\n      int j = Math.min(p_19186_.getCount(), i - p_19187_.getCount());\n      if (j > 0) {\n         p_19187_.grow(j);\n         p_19186_.shrink(j);\n         this.setChanged();\n      }\n\n   }\n\n   public void fromTag(ListTag p_19178_) {\n      this.clearContent();\n\n      for(int i = 0; i < p_19178_.size(); ++i) {\n         ItemStack itemstack = ItemStack.of(p_19178_.getCompound(i));\n         if (!itemstack.isEmpty()) {\n            this.addItem(itemstack);\n         }\n      }\n\n   }\n\n   public ListTag createTag() {\n      ListTag listtag = new ListTag();\n\n      for(int i = 0; i < this.getContainerSize(); ++i) {\n         ItemStack itemstack = this.getItem(i);\n         if (!itemstack.isEmpty()) {\n            listtag.add(itemstack.save(new CompoundTag()));\n         }\n      }\n\n      return listtag;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/common/extensions/IForgeItemStack.java",
+      "entry_sha256": "683e0be451a9178960eb5404871ba81d38b1d7c4d348b93934df8f9487aee79f",
+      "lines": [
+        461,
+        464
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "794c63bc3a27430ff2bc1d0b31400c8d22e0cfae06f81907a64c532656a36d54",
+      "raw_excerpt_utf8": "    default boolean isPiglinCurrency()\n    {\n        return self().getItem().isPiglinCurrency(self());\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/common/extensions/IForgeItem.java",
+      "entry_sha256": "949587914b3853e476f4c3508191b3c1ad1ad46917076ee758d7e3fc627699bf",
+      "lines": [
+        108,
+        111
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d240e31f23eaf9ba52f7745c40f43267738cb75ca70791246498c95df2b21f59",
+      "raw_excerpt_utf8": "    default boolean isPiglinCurrency(ItemStack stack)\n    {\n        return stack.getItem() == PiglinAi.BARTERING_ITEM;\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/BehaviorUtils.java",
+      "entry_sha256": "a73430bb0bd78a47e1e8a3aa7d1265ba3463c119a797a6dedb47195a147e75e9",
+      "lines": [
+        83,
+        97
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "dc719c0986a990f434b647a89b61d48cd056bcfee6ef12b23a8d6f1f3f8d69e1",
+      "raw_excerpt_utf8": "   public static void throwItem(LivingEntity p_22614_, ItemStack p_22615_, Vec3 p_22616_) {\n      Vec3 vec3 = new Vec3((double)0.3F, (double)0.3F, (double)0.3F);\n      throwItem(p_22614_, p_22615_, p_22616_, vec3, 0.3F);\n   }\n\n   public static void throwItem(LivingEntity p_217134_, ItemStack p_217135_, Vec3 p_217136_, Vec3 p_217137_, float p_217138_) {\n      double d0 = p_217134_.getEyeY() - (double)p_217138_;\n      ItemEntity itementity = new ItemEntity(p_217134_.level(), p_217134_.getX(), d0, p_217134_.getZ(), p_217135_);\n      itementity.setThrower(p_217134_.getUUID());\n      Vec3 vec3 = p_217136_.subtract(p_217134_.position());\n      vec3 = vec3.normalize().multiply(p_217137_.x, p_217137_.y, p_217137_.z);\n      itementity.setDeltaMovement(vec3);\n      itementity.setDefaultPickUpDelay();\n      p_217134_.level().addFreshEntity(itementity);\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "entry_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "lines": [
+        84,
+        87
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a86d6756fb9e912d87b220f3437bc61a189bc5e01cabda57e09e39a5cd281eb9",
+      "raw_excerpt_utf8": "   public static final MemoryModuleType<Boolean> ADMIRING_ITEM = register(\"admiring_item\", Codec.BOOL);\n   public static final MemoryModuleType<Integer> TIME_TRYING_TO_REACH_ADMIRE_ITEM = register(\"time_trying_to_reach_admire_item\");\n   public static final MemoryModuleType<Boolean> DISABLE_WALK_TO_ADMIRE_ITEM = register(\"disable_walk_to_admire_item\");\n   public static final MemoryModuleType<Boolean> ADMIRING_DISABLED = register(\"admiring_disabled\", Codec.BOOL);\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        241,
+        241
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "054b769f3d6aa7b353081d9d6017dcbee0e9384fa6ce7c1127282b350889cc54",
+      "raw_excerpt_utf8": "   public static final EntityType<Piglin> PIGLIN = register(\"piglin\", EntityType.Builder.of(Piglin::new, MobCategory.MONSTER).sized(0.6F, 1.95F).clientTrackingRange(8));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        199,
+        214
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b5df61ccccdb50e304297e1b30da96c842a750e14b7c172b9ea2a2a4f4df5bbb",
+      "raw_excerpt_utf8": "   public ItemStack split(int p_41621_) {\n      int i = Math.min(p_41621_, this.getCount());\n      ItemStack itemstack = this.copyWithCount(i);\n      this.shrink(i);\n      return itemstack;\n   }\n\n   public ItemStack copyAndClear() {\n      if (this.isEmpty()) {\n         return EMPTY;\n      } else {\n         ItemStack itemstack = this.copy();\n         this.setCount(0);\n         return itemstack;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        423,
+        445
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f6707211ccc5e7d92c7b2b474dcee4e7d9fb634e8a7d44da79e75dda476c03d5",
+      "raw_excerpt_utf8": "   public ItemStack copy() {\n      if (this.isEmpty()) {\n         return EMPTY;\n      } else {\n         ItemStack itemstack = new ItemStack(this.getItem(), this.count, this.serializeCaps());\n         itemstack.setPopTime(this.getPopTime());\n         if (this.tag != null) {\n            itemstack.tag = this.tag.copy();\n         }\n\n         return itemstack;\n      }\n   }\n\n   public ItemStack copyWithCount(int p_256354_) {\n      if (this.isEmpty()) {\n         return EMPTY;\n      } else {\n         ItemStack itemstack = this.copy();\n         itemstack.setCount(p_256354_);\n         return itemstack;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/ItemStack.java",
+      "entry_sha256": "5cd8e9d52eb755adf954b33e8c643f823b1dfe755b75b0d1dcecf4046a46d763",
+      "lines": [
+        950,
+        964
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "41d9e7371d1df639127a1ab0ce2808bd2c224839af8390ba9ec1121fa01f90a4",
+      "raw_excerpt_utf8": "   public int getCount() {\n      return this.isEmpty() ? 0 : this.count;\n   }\n\n   public void setCount(int p_41765_) {\n      this.count = p_41765_;\n   }\n\n   public void grow(int p_41770_) {\n      this.setCount(this.getCount() + p_41770_);\n   }\n\n   public void shrink(int p_41775_) {\n      this.grow(-p_41775_);\n   }\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_range_count": 19,
+  "actual_entry_count": 17,
+  "actual_full_file_count": 11,
+  "actual_line_occurrences": 1871,
+  "actual_distinct_cited_lines": 1871,
+  "source_provenance": "Fixed local mapped artifact, not remote Git/current runtime.",
+  "actual_archive_local_resource_absences": [
+    "data/minecraft/tags/items/piglin_loved.json",
+    "data/minecraft/loot_tables/gameplay/piglin_bartering.json"
+  ],
+  "current_master_binding": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "70f6e4fc629947aa59f7d54badef38a6fb9e712ad632e42fcb246609580a982a",
+    "bytes": 1503806
+  },
+  "current_formal_accepted": 49,
+  "current_formal_gap": 951,
+  "current_complete_record_identity_index_integrity0": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    },
+    {
+      "id": "EA-0047",
+      "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+      "batch_sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+      "canonical_record_sha256": "51bb8cdea916d3fc39c13b37ff58fe0f2f786ff661cfbe2cf11f8c2a6f07f0cf"
+    },
+    {
+      "id": "EA-0048",
+      "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-039.json",
+      "batch_sha256": "5368642e47c777bedd8c8298665b73175345b81b75150d1ecfea8593c4fec9e4",
+      "canonical_record_sha256": "d958c35f6ee66c780e579d3bf8230ffb0a84ebb6869bcca13643c8f2a014cced"
+    },
+    {
+      "id": "EA-0049",
+      "semantic_key": "owner-bound-habitat-weather-phased-fishing-window-to-event-vetoable-reel-loot-and-rod-damage-request-without-acquisition-ack",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-040.json",
+      "batch_sha256": "a2bf20337a0f06dc687a690e08f1afb7f593a246a8ca17686b37d9a1b56692bb",
+      "canonical_record_sha256": "dde78c2150e406f98d1579fee1476ecbfcfb5dc2a02b918d0a76b9d0e34c87a8"
+    },
+    {
+      "id": "EA-0050",
+      "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+      "batch_sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b"
+    }
+  ],
+  "all_prior_upstream_chains_reread": false,
+  "current_complete_selected_ecology_judgments": [
+    {
+      "id": "EA-0026",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+        "sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+        "bytes": 984161
+      },
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2",
+      "complete_selected_four_fields": {
+        "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+        "observation": [
+          "{\"registered_actor_and_access\": \"Actual SEAL registry is CREATURE, NO_RESTRICTIONS placement invokes concrete canSealSpawn: frozen/deep frozen ocean uses ice+brightness>8; other biomes tag substrate+brightness>8. This is a placement predicate only, not native spawn opportunity/cap/biome population proof. Species climate finalization sets Arctic/variant and air. Native resource tags not locally available.\"}",
+          "{\"payment_entry\": \"No own mobInteract implementation. Own dropped-item target accepts offerings OR breedables. Existing complete CreatureAITargetItems/ITargetsDroppedItems callback-before-one-shrink chain is reused via Crow record, not newly read/counted. OnGetItem offerings increments persistent fishFeedings, EAT/CAT_EAT; at>=3, only currently resolving ItemEntity.getOwner (native thrower entity, not pickup target or necessarily Player) overwrites feederUUID, then count resets0 even absent thrower. Non-offering branch clears feederUUID; all accepted callback items heal10. No own baby/creative/feeder-null/server guard. Third payer receives service identity even if first two were others; absent third thrower preserves old feederUUID.\"}",
+          "{\"eligibility_and_scheduler\": \"Dive goal priority6, constructor sets no flags. Reused exact native Goal/GoalSelector/WrappedGoal empty flag set means it does not reserve MOVE/JUMP/LOOK, not priority exclusivity. canUse only checks feederUUID resolves in current level player list and revengeCooldown<=0, then samples location; no fishFeedings>=3, adult, empty-hand, target or lastHurt check there. Native EntityGetter UUID loop has no alive/spectator test. canContinue checks no target/revenge/lastHurt, cached thrower nonnull, feederUUID nonnull, digPos and water above. It does not re-resolve player, alive/dimension/UUID equality; water condition applies also during return.\"}",
+          "{\"location_and_count\": \"Water actor:15 random x/z offsets in[-7,7], descend while water and y>1 to tagged dig substrate. Land actor:15 water probes starting y+3 descend through empty space; each successful water probe may start independent15 seafloor search, so nested bounded sampling not225 references or guaranteed reachable substrate. Initial seafloor selection does not itself require water above; continuation does. Dig counts only evaluated close distanceSquared<2 updates, persists across moving away within same goal; no requiresUpdateEveryTick override. >=100 cumulative close evaluations, not100worldticks, asks named gameplay seal_reward loot with only THIS_ENTITY under PIGLIN_BARTER.\"}",
+          "{\"loot_and_handoff\": \"Reused actual LootDataManager/Resolver/Params/Table/ForgeHooks boundaries: missing table resolves empty, params require THIS_ENTITY/default luck and global modifiers possible. Raw exact loot content absent. Nonempty list: first stack copy replaces current main hand without prior hand reconciliation; remaining stack copies spawn unchecked. Return flagtrue; empty loot resets digTime0 but leaves entitlement and retry enabled with no own cap. dig feedback false each100; intermediate true and periodic substrate hit sound, not player reward receipt.\"}",
+          "{\"return_and_stop\": \"Return moves cached Player until distance<2. Copies hand then clears hand BEFORE nullable spawnAtLocation, optionally velocity toward player, clears feederUUID and stop regardless of spawn or pickup. Native spawn helper only returns an object after capture/unchecked add, no admission guarantee. It sets no pickup target/owner or exact same ItemEntityUUID player receipt. Native playerTouch separately requires delay/target/Forge gate/inventory insertion. stop clears goal-local state,digTime,return flag and fishFeedings, drops nonempty hand unchecked+clears it but does NOT clear feederUUID. Interrupted retained entitlement can retry; not lossless escrow or guaranteed once payout.\"}",
+          "{\"persistence\": \"Own save/read persists FishFeedings/optional FeederUUID plus Arctic/Basking/baskingTimer/swimTimer/Variant. Missing FeederUUID does not clear same-object old field; fresh object defaultnull. Own data does not save revenge,Digging,goal digPos/cached Player/digTime/returnToPlayer. Actual native Mob whole additional writer365..439/reader441..499 serializes handItems independently. Fresh loaded entity may retain hand reward+feeder but new goal starts dig rather than resume return, and first new loot can overwrite hand; this is a conditional static boundary, no exploit/native restart tested. Read on reused goal object is distinct and no goal reset claim.\"}",
+          "{\"dedup\": \"Migration already has the SAME whole threshold/feeder/payload/delivery owner6280c8bfd261f72241e9; preserve its1 and add0 migration/global novelty. Only potential ecology service applicability max1, not helpers/constants/3fish/15samples/tags/skin variants. Closest own complete prior Platypus, Hummingbird, Raccoon judgments reused; no independent formal ecological credit until actual second review. All20accepted label screen alone is not20whole-source reading.\"}",
+          "Actual complete EntitySeal485, SealAIDiveForItems174 and SealAIBask35 plus eight bounded declaration ranges were independently read. Actual registry CREATURE1.45x0.9 and NO_RESTRICTIONS placement still invoke concrete biome/ice-or-tag+brightness>8 predicate. Finalize arctic/variant/air does not prove native biome spawn opportunity/cap/source material availability; all6 raw resource files absent in both known source roots.",
+          "Whole class has no own mobInteract. Dropped-item predicate accepts offerings OR breedables; callback offering branch increments fishFeedings with EAT/CAT_EAT. At>=3 only current native resolved thrower entity can overwrite feederUUID and counter resets0 even no thrower. Firsttwo payers need not match third. Missing thirdthrower leaves old feederUUID, not necessarily null; nonoffering accepted branch clears feederUUID but DOES NOT reset partial fishFeedings. Every callback heals10. No own age/side/creative/currentfeeder guard. Native getOwner is server thrower-entity lookup, not pickup-target UUID or necessarilyplayer.",
+          "Prior actual whole CreatureAITargetItems167/interface23 reused: callback runs before actual targetstack shrink1, so feedback/counter assignment itself is not payment receipt; handbreeding inheritedAnimal does not inherently increment this dropped-offering counter. Source does not tie all material ownership/debits to one beneficiary. Existing pending rewards can be reassigned by a later third offering or cleared by nonoffering callback.",
+          "Dive constructor has empty native goalflags; priority6 does not reserve MOVE/JUMP/LOOK. Actual Bask priority0 reservesMOVE/JUMP and stopsnavigation, but emptyflag Dive is not excluded by that alone; Dive tick also clears basking and moves. Find/leavewater/breed/panic/melee/air goals can affect state/navigation. Their exact controller/path/execution interleavings were not run or fully expanded; no reachability/exclusivity/strict timedelivery claim.",
+          "canUse requires feederUUID that resolves through current level players list and revengeCooldown<=0, samplesdigpos then caches Player. No fishFeedings>=3, emptyhand, adult, target/lastHurt check in entry. Actual EntityGetter loop matchesUUID only, no explicit alive/spectator guard. Continue checks targetnull,revenge0,lastHurtnull,cachedPlayernonnull,feedernonnull,digPosnonnull,waterabove. It does not re-resolve player or require currentUUID equals cachedPlayer UUID, playeralive/samedimension. Changed entitlement during active service may differ from cached beneficiary; no late ownership proof.",
+          "Inwater seafloor search15 x/z[-7,7] attempts descends while water/y>1 then tests diggabletag. Land15 probes starty+3 and descendempty; each water probe may call another15 seafloor sampler. Samples may repeat, not225 references or guaranteed distinct/water-above/pathreachable positions. Initial candidate lacks explicit waterabove check; continuation adds it but entry/start tick ordering is separate. Move target digPos differs from distancecenter(digPos.above); no arrival/admission guarantee.",
+          "Digging qualifying distanceSquared<2 increments digTime, navigationstop and every5 feedback; separation does not reset counter in tick. At>=100 cumulative close deliveredgoalupdates requests table, not100worldticks/seconds/consecutiveframes because no own requiresUpdateEveryTick override and native scheduling conditional. Stop resetsprogress. Source sampling/feedback/counter thresholds each0 reference.",
+          "Named seal_reward lookup under THIS_ENTITY/PIGLIN_BARTER uses defaultluck unless lower behavior alters it. Own actual Platypus whole LootDataManager/Resolver/Params/Table plus ForgeHooks reused: missingtable EMPTY, pool/function/feature and Forge globalmodifier behavior can change output. Raw seal rewardcontent absent; no guaranteed fish/reward/listquantity/admission. Actual PIGLIN_BARTER requiresTHIS_ENTITY; this is not fishing context or player luck linkage.",
+          "Only list.size>0 triggers return: removefirst then copy replaces mainhand WITHOUT reconciling old hand; remaining copies spawn unchecked. Listnonempty is not proof firststacknonempty/admitted. Emptylist resetsdigTime0 and leaves returnfalse+entitlement for further attempts under conditions, with no shown own retrycap. Old retained reward on reconstruction can be overwritten by newfirstloot; this is a conditional source boundary, not reproduced loss/dupe exploit.",
+          "Return navigates cachedPlayer untildistance<2, copies hand then CLEARS hand before nullable spawnAtLocation; optional velocity merely throws toward target. feederUUID is cleared and ownstop called after normal helper return regardless nullable result/pickup. No setTarget/setThrower/actualItemEntityUUID acquisition link. Native Entity spawn helper reused: captureDrops/unchecked addFreshEntity/non-null pointer differ from successful world admission. Actual ItemEntity.playerTouch343..367 additionally gates side/delay/target/Forge/inventory, may partialpickup; no actual correlated inventory receipt.",
+          "stop clears Digging,digPos,cachedPlayer,digTime,returnflag,fishFeedings and if handnonempty requests spawn then clears it, but does NOT clear feederUUID. Therefore interruption can discard progress/partial offering count while retaining entitlement for retry; not fully rolledback/refunded/once-only escrow. Return explicitly clears feeder beforestop, so handoffattempt and cancellation differ. Unhandled lower exceptions/reentrancy can interrupt source order; no guaranteed atomicity inferred.",
+          "Own NBT persistsFishFeedings,optionalFeederUUID,Arctic/Basking/timers/variant. MissingvalidUUID leaves old feeder in same object, fresh constructor null; count is rawint notclamped. Own DIGGING/revenge and goal progress/return/cachedPlayer/digPos omitted. Actual nativeMob350..505 containingcontext includes whole additional writer365..439 andreader441..499, retains hand independently. Fresh retainedhand+feeder can begin newdig not resume return; same-object NBTread need not resetexistinggoal. No universal save safety/payloadloss/native reloadproof.",
+          "Existing migrationowner6280c8bfd261f72241e9 already accepted EXACT SAME threshold/recipient/heldpayload/return lifecycle. Full actual current row matched precise ID and originalproposal row, with canonical binding; globalnovelty0/newmigration0. At mostone PARAMETERIZED ecology applicability entry may reuse wholemechanism after mainclosure. Whole thirdpayer pooledentitlement→retriable underwater loot→cachedbeneficiary handreturn differs from Platypus onecharge tier+finite rolls/direct worlddrops, Crow commanded frameinventory, Raccoon shorewash/delayedpetowner, Hummingbird sharedcropcounter. Helpers, species, offeringthresholds, variants/keys/failures do not create extra refs."
+        ],
+        "application": "For Dynasty material→payment→native receipt requirements, threshold/feeder identity and held loot are distinct from committed payout; retain both prior migration owner and ecology shortfall until independent applicability acceptance. No new quest IDs/rewards/payouts implemented.",
+        "limits": [
+          "No actual produceradmission/ownedpickup/materialreceipt/reload/playeralive/AIpath runtime verification.",
+          "No exact6rawcontents/currentdeployedconfiguration or positive naturalpopulation/cap proof.",
+          "Surroundinggoal/navigation/nativeinventorystore/chunk/permission/crossmod consumers not fully expanded; sourcepolicyonly.",
+          "Existingmigrationowner notnewglobalreference; independentreview0applied; 1000gate/native/taskacceptance remainunmet.",
+          "Bind originalc71546, this true independent review and mainclosure. Atmostone parameterized whole ecology applicability; applied0 until main accepts. Existingmigration6280samewhole remains1previous, newmigration/globalnovelty0. No helper/species/threshold/tag/lootrow/defect splitting.",
+          "All6 rawtag/loot gaps and parameterized_source_policy_only remain. Registry/spawnpredicate/finalize are not current biome/cap/natural supply proof; no concrete offering, intersection or rewardcontents/quantity/deployedconfig claim. Localabsence not upstreamabsence.",
+          "Callback-before-shrink, nativeowner=resolvedthrowerentity, thirdofferingoverwriteonlywhennonnull and counterreset0 even noowner; nonoffering clearsfeeder but retains partialcount. No unique payer conservation/validplayer/paymentreceipt, no age/side/creative guarantee.",
+          "Emptygoalflags mean no exclusive navigation despitepriority; exact surroundingBask/air/findleave/panic/melee conditions remain unexecuted. Entryandcontinue differ; cachedPlayer not re-resolved nor UUID-matched later. No exclusivity, guaranteed beneficiary/reachability or strictseconds.",
+          "15/15x15 samples may repeat; initialcandidate lacks waterabove check later continuation has; close cumulative100 deliveredupdates not100worldticks. No finite arrival/workdeadline, no unconditional suitable substrate success.",
+          "Loot resolverEMPTY/defaultluck/THIS_ENTITY+PIGLIN_BARTER/globalmodifier boundaries retained. Emptylist retry, firststacknotnecessarilynonempty, overwriteoldhand and extras uncheckedspawn. Rolls/listcontents/admitteditems/playerreceipts separate.",
+          "Return clears hand before request and clearsfeeder after normal helperreturn even null. Directedvelocity not targetownership/receipt; captureDrops/uncheckedadd and playerTouchdelay/target/Forge/inventory/partialpickup need actual correlated native proof. No guaranteed transactional/once-only/refund/runtime loss or exploit.",
+          "Interruptedstop clears partialcounter/work and drops/clearsheldcargo unchecked but preservesfeeder; returnnormal explicitlyclearsfeeder. Lowerexception/reentrancy may break sourceorder. Do not claim cancellation equal successful reward or complete rollback.",
+          "Keep inheritedHandItems alongside ownFishFeedings/FeederUUID; missingUUID oldobjectretention versusfreshnull; omittedgoalprogress/return/revenge state differs fresh vs in-place. No fullreloadcontinuation/save safety/universal payloadloss claim.",
+          "No production/cap/category/probability/quest/art/world/sharedJar/Java/Gradle/network/Git/master/checklist changes. No nativebirth/strictkill/material/playerpickup credit, no1000gate/taskdeletion or activehour claim. Exact sourcechecks/oldwhole judgments reused0, labelscreen not fullsource semantics.",
+          "No actual produceradmission/ownedpickup/materialreceipt/reload/playeralive/AIpath runtime verification.",
+          "No exact6rawcontents/currentdeployedconfiguration or positive naturalpopulation/cap proof.",
+          "Surroundinggoal/navigation/nativeinventorystore/chunk/permission/crossmod consumers not fully expanded; sourcepolicyonly.",
+          "Existingmigrationowner notnewglobalreference; independentreview0applied; 1000gate/native/taskacceptance remainunmet."
+        ]
+      },
+      "reading_scope": "EA26/40/45 complete four fields actually read this continuation; EA50 exact own actual author reading reused from preceding continuation, not new source reading.",
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Seal pools offerings into third-feeder entitlement, then environmental underwater work retries and carries reward back to cached beneficiary. Piglin directly escrows one currency stack in offhand and an admiration lease, clears it before table response, selects current visible player instead of payer, and has hurt/baby/equipment diversion. This may support one ecology applicability whole, not another global ownership/migration reference.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0040",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+        "sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+        "bytes": 414474
+      },
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519",
+      "complete_selected_four_fields": {
+        "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+        "observation": [
+          "One complete effect-qualified Villager social-resource distribution policy is relevant to material/quest reward ownership, at most1 after real author/minimum-delta/strict aggregation. Fourteen ranges, eleven entries, three whole classes, six prior supports, professions/items/table/parameters are context0, not independent implementations.",
+          "Full PlayerSensor first filters nonspectator players within strict16-distance, sorts nearest and applies inherited targetability, then stores only the first visible player. GiveGift filters THAT memory by HERO_OF_THE_VILLAGE. A nearer nonhero can mask a farther hero. Full targeting/visibility/alive graph remains outside bounded proof.",
+          "Brain REGISTERED checks for WALK/LOOK/INTERACTION do not require those memories empty; NEAREST_VISIBLE_PLAYER must be present. Only eligible visible-hero extra-start checks decrement positive timeUntilNextGift. Initial600/later600..6600 are eligible-check counts, not independently elapsed world/wall ticks.",
+          "Prior exact Main Golem contexts establish separate GiveGift100 objects in WORK/MEET/IDLE and parent scheduling/timeout. Plain per-object timer/given/starttime has no own serializer. No single durable per-Villager cooldown, reload continuity or exact-once entitlement is proved.",
+          "Start resets givenfalse, records supplied gameTime and stores current interaction target. Continuation and tick re-fetch current nearest hero rather than binding stored recipient. Recipient can change without restarting original delay. BlockPos closerThan5 and gameTime-start>20 are source conditions; walk/look target requests are not path or arrival receipts.",
+          "Parent timeout100 and hero-visible&&!given gate terminate this instance conditionally. Every normal stop resamples600+nextInt6001 and erases INTERACTION/WALK/LOOK even hero loss/timeout before gift, not only successful award. No per-memory ownership isolation or successful reward is inferred from cleanup.",
+          "Baby POPPY, thirteen mapped adult profession loot IDs and unmapped WHEAT_SEEDS are branches of the same mechanism. Baby branch code alone does not prove actual baby schedule. No own inventory debit or payer requirement; GIFT has Villager THIS_ENTITY+ORIGIN, defaultluck, no recipient player loot context.",
+          "Exact LootDataResolver missing named table returns EMPTY; constructor slices show zero pools. getRandomItems applies feature splitting, functions/pools and external Forge modifier after base generation, so missing base table alone does not prove final empty list. Full context/random/function/modifier graph remains unexpanded.",
+          "Actual raw armorer table in fixed local derived client-extra archive has one pool/one roll/four chainmail entries and named random_sequence. Raw content and source mapping do not prove current loaded table membership, current feature availability, output distribution or a real item draw; no Git/published-coordinate impersonation.",
+          "BehaviorUtils.throwItem constructs ItemEntity at Villager eyeY-.3, sets THROWER to Villager UUID, computes normalized directed velocity and default pickup delay, then ignores addFreshEntity result. Thrower, trajectory, object allocation and invocation are not recipient ownership, admission, intended-player inventory insertion or task receipt.",
+          "giftGiven flips true after normal result-loop return even empty output or rejected additions. No retry-until-owned, refund, escrow, atomic entity/inventory transaction or exactly-once delivery. Lower exceptions/hooks can interrupt normal source order; no native reproduction.",
+          "Complete current EA0026 decision read: all21 observations/18 limits plus substantive independent judgment bound exactly. Seal owns pooled third-offering beneficiary, durable entitlement, cumulative underwater work, retry and held return; Hero owns external effect/current visibility, per-instance eligible-check clock and delayed moving-beneficiary distribution with abort cooldown. These are different whole policy organizations, not a different profession/loot table/helper reference.",
+          "Current semantic recommendation max1 preformal0; no new migration/global novelty. Six prior Main Golem native contexts verified exact and reused0, not freshly reread. Existing accepted decisions survive; name metadata screening alone is not comprehensive global whole-source deduplication.",
+          "No effect-award/raid-victory persistence chain, loaded ecological opportunity, native material payment, exact item UUID pickup, actual task integration/gameplay, production or art acceptance. Preserve original IDs/rewards and require authoritative intended-player inventory receipt before extending a real quest acquisition chain."
+        ],
+        "application": "Separate social eligibility/beneficiary scheduling from paid ownership and actual native inventory receipt when integrating existing material or quest chains; no production implementation before applicable1000.",
+        "limits": [
+          "Fixed local Forge mapped1.20.1/47.4.10 sources archive and derived base resource bytes only; no upstream freshness, full pack compatibility, source execution/build or in-game validation.",
+          "Hero effect award/raid victory/progression chain, duration/amplifier, complete target predicate/AI lifecycle, parent state persistence and dynamic event/global loot modifier behavior are external inputs, not read or verified here.",
+          "Saved applicable references are retained at0.14new ranges393lines/11entries/3whole,6previous supports and1raw table are context counts, not reference credit. Source-policy maximum1 only after distinct Main independently accepts;1000 gate remains unmet.",
+          "Cooldown is per newly constructed behavior instance; only eligible start checks decrement it, while stop resets it even without gift. Do not report durable cooldown, real-time cadence, global fair distribution or completed reward.",
+          "Nearest eligible-sensor player is selected before hero predicate. Current-memory re-fetch can switch beneficiary. Block coordinate distance and aimed velocity do not prove reachable path, item collision, recipient ownership or authoritative inventory pickup.",
+          "EMPTY table fallback is before external global modifier. Raw armorer source does not prove current loaded loot, one actual chainmail reward, current item feature availability or expected outcome. Full pool/context/random/modifier graph remains bounded.",
+          "No actual item registration, payment, material source route, native birth/kill/pickup or quest receipt. No production IDs or crafted assets introduced; no task deletion justified.",
+          "Only exact source slices read; LootTable gaps47,52–53 remain unread. Prior Seal21observations/18limits complete decision was actually read, not its entire old source chain. Bounded name metadata screen is not exhaustive global novelty.",
+          "No Java/Gradle/game/server/network/download/UI/process/focus/display/brightness/audio/world/sharedJar/production/assets/Git/master/session/checklist mutation. Only a new immutable research proposal; no active-hour claim."
+        ]
+      },
+      "reading_scope": "EA26/40/45 complete four fields actually read this continuation; EA50 exact own actual author reading reused from preceding continuation, not new source reading.",
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Hero gift is unpriced effect/visibility eligibility with behavior-local check clock and abort cooldown; no currency debit. Piglin barter is acquired physical currency held through a Brain lease before consumption, but both aimed world throws lack intended-recipient pickup acknowledgement. Shared PlayerSensor/throwItem/loot helpers remain0.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0045",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+        "sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+        "bytes": 744612
+      },
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21",
+      "complete_selected_four_fields": {
+        "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+        "observation": [
+          "Villager registers typed memories/sensors and MEET plus IDLE packages; MEET additionally needs meeting-point memory. No complete Brain/declarative scheduler/interleaving or current pack activation audit is inferred.",
+          "Trade requires a valid live Villager in remembered-visible collection. The earlier inspected wrapper memoizes targetability per entity; no fresh line-of-sight or exclusive partner lease is proved. InteractWith may return true with empty closest optional.",
+          "Start caches receiver requested-items minus sender requested-items. Tick reacquires current interaction target and only validates type/alive/remembered visibility through lifecycle. A valid changed partner/role can leave demand cached; this is conditional static exposure, no demonstrated exploit.",
+          "distanceToSqr <=5 causes mutual LOOK/WALK requests, gossip then three independent sharing branches. Default parent duration60 uses strict greater-than timeout, not guaranteed60 work ticks; Gate RUN_ONE is no fairness or reservation guarantee.",
+          "Food surplus24 and recipient hunger12 are weighted food points (bread4, potato/carrot/beetroot1). Wheat qualification counts whole inventory before per-slot splitting. They are not merchant currency, global reserve24 or guaranteed transferable wheat.",
+          "Each branch scans the first eligible slot. Count greater than maxStack/2 splits floor-half, otherwise count greater than24 splits count-24. Branches can independently send, no whole-inventory half or conserved aggregate reserve guarantee.",
+          "The slot shrinks before new ItemStack(item,j). The source does not copy original stack tag/capabilities or inspect world admission success; no atomic debit/refund/NBT preservation is established. No exploit reproduction is claimed.",
+          "Correction made explicit: BehaviorUtils.throwItem sets the THROWER UUID. It does not bind an intended RECIPIENT UUID or acknowledge that recipient inventory acquired the output. Do not describe the ItemEntity as having no UUID/ownership metadata at all.",
+          "Ordinary mob looting independently gates server/alive/griefing/pickup reach/delay/wanted item/capacity. InventoryCarrier.addItem reads actual remainder and discards only when exhausted; it does not enforce the original intended recipient. No same-UUID pickup or player reward was observed.",
+          "Gossip transfers other reputation into the initiator only after both clocks satisfy backwards/1200 conditions; both timestamps change before quorum5 spawn request. Existing EA0038 owns this side effect, with zero new credit. Normal gossip return does not predicate later food branches.",
+          "Trade stop erases interaction memory with no token and leaves its cached demand set. Parent stop/status and gate exit cleanup do not establish shipment acknowledgement, persisted partner exchange state or fair scheduling."
+        ],
+        "application": [
+          "Keep materials source -> existing prerequisite -> actual craft/trade debit -> accepted output -> intended player native acquisition receipt as distinct checks.",
+          "A thrown base ItemStack or sender UUID cannot prove four NBT variants, dedicated poison-smoke output, native item admission or intended player receipt. Existing IDs/rewards/progress remain unchanged and no duplicate rewards are introduced."
+        ],
+        "limits": [
+          "Bounded pinned sourcepolicy, not full Brain/declarative/lifecycle/pack/events/registry or actual gameplay audit.",
+          "No native material payment/send/admission/sameUUIDpickup/recipient reward, NBT exploit/rollback/reload/conservation experiment.",
+          "Generic sensor, pickup, gossip, inventory and scheduling helpers retain oldreading0; no complete fresh oldsource-chain claim.",
+          "Whole scope may already be covered by earlier relatedfamilies; distinct Main must judge full current comparison, not source/line novelty.",
+          "Applicable1000 unmet; no production fix/asset/taskreward or prompt deletion from this proposal.",
+          "Bounded pinned sourcepolicy, not full Brain/declarative/lifecycle/pack/events/registry or actual gameplay audit.",
+          "No native material payment/send/admission/sameUUIDpickup/recipient reward, NBT exploit/rollback/reload/conservation experiment.",
+          "Generic sensor, pickup, gossip, inventory and scheduling helpers retain oldreading0; no complete fresh oldsource-chain claim.",
+          "Whole scope may already be covered by earlier relatedfamilies; distinct Main must judge full current comparison, not source/line novelty.",
+          "Applicable1000 unmet; no production fix/asset/taskreward or prompt deletion from this proposal."
+        ]
+      },
+      "reading_scope": "EA26/40/45 complete four fields actually read this continuation; EA50 exact own actual author reading reused from preceding continuation, not new source reading.",
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Peer profession surplus handoff spends existing donor inventory against cached peer demand; Piglin consumes external currency then invokes generated barter loot, not a profession surplus transfer. Neither thrower UUID nor directed velocity proves intended recipient. Shared InventoryCarrier/SimpleContainer support0.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0050",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+        "sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+        "bytes": 1290701
+      },
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b",
+      "complete_selected_four_fields": {
+        "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+        "observation": [
+          "One related living-provider mode-dependent container-exchange whole policy at most. Qualifying adult Cow/Goat can request fresh default milk without mutating a finite provider stock; creative existence-sensitive inventory admission differs from survival bucket debit and hand-or-overflow output. Consumer cure/container return is traced as output use and qualification, not an independently novel cure mechanism.",
+          "Cow whole94 and Goat interaction192-207 are read. Both literal BUCKET&&!isBaby paths play sound before constructing default milk, call same createFilledResult and set actual hand, then sidedSuccess. Cow breed/AI and Goat fallback food sound do not become extra resource policies; no own milk stock/feeding/cooldown debit is shown.",
+          "No own authoritative-server guard in those interaction branches. Enclosing dispatch, permissions, prediction and callbacks are not expanded; the source branch alone proves neither exploitable client duplication nor unlimited current-survival acquisition.",
+          "Items registers milk as MilkBucketItem with bucket crafting remainder and maxstack1. Default-instance invokes ItemStack(this)->count1 constructor, delegate lookup/forgeInit and damage hooks. This is a source construction chain; loaded registry/capability/current-player acquisition are separate.",
+          "createFilledResult default enables creative duplicate check. Creative returns the exact input reference unchanged; contains across items/armor/offhand can skip adding output entirely. Its predicate compares item/tag/caps without count; add return ignored. Sound and success can therefore coexist with no positive output request or inventory delta.",
+          "Noncreative createFilledResult shrinks input first. If empty, returns output to the subsequent hand assignment; otherwise inventory-add may mutate output, and false invokes Toss with remaining output. Output request, actual hand replacement, positive inventory delta, world admission and intended-player later pickup are separate evidence.",
+          "Inventory merge capacity checks stackability/maxstack/maxcontainer and item/tag/caps. addResource copies original stack preserving caps into empty destination, count0 then grow. Main/offhand/general slot selection and fallback free slot are ordered, not player preference or lossless arbitrary-backend guarantee.",
+          "Inventory.add ordinary loop returns whether the last attempted iteration reduced remainder. Earlier partial progress can end with false and a remaining stack; creative no-progress may clear count and returntrue without storing. Damaged-stack branch separately uses a free main slot or creative discard. No universal positive-admission receipt from boolean alone.",
+          "Living setItemInHand selects main/offhand or throws; Player setItemSlot verifies then mutates inventory before onEquipItem. A returned filled result is not itself committed slot state; failures/hooks/reentrancy/authoritative sync are outside this bounded path.",
+          "Overflow two-argument Player.drop invokes onPlayerTossEvent. Temporary captureDrops list is installed then reset null without visible restoration of an earlier capture collector in this method. Three-arg drop constructs ItemEntity/pickupDelay40 and does not spawn it itself. Toss cancel returnsnull; otherwise only nonclient requests unchecked addFreshEntity. No native loss/reentrancy exploit is asserted.",
+          "createFilledResult calls drop(output,false), so Toss includeNamefalse leaves this constructor path without thrower assignment. It does not set an intended-player ownership target or establish actual UUID pickup; motion, delay and nonnull event entity are not positive admitted-world custody.",
+          "Milk.use only requests startUsingItem/consume result. DRINK/duration32 do not close the enclosing use interruption/tick/finish lifecycle or prove elapsed real time. Full MilkBucketItem read is not full native use engine audit.",
+          "Milk finish server cure occurs before ServerPlayer criterion/stat and before survival-player shrink. This retains the curative stack type during matching. All source-order statements assume previous callbacks complete normally; neither criterion nor stat proves paid resource or effect removal.",
+          "curePotionEffects server-only iteration requires item-type curative match and noncanceled per-effect Remove, then onEffectRemoved, iterator.remove and dirty. No harmful-only filter appears; matching beneficial effects can also be removed. Removal helper requests attributes/passenger packets; actual listeners/network/effect-attribute internals are not all audited.",
+          "Milk ignores cure bool; survival-player shrink follows even for zero matching effects or all vetoed removals. Nonplayer and instabuild branches do not shrink through this conditional; empty result returns fresh BUCKET, otherwise original stack. No atomic cost-benefit/refund or universal one-bucket delivery claim.",
+          "Effect curative null lazily asks effect defaults; Forge default returns fresh milk list. Instance setters can replace it including empty. isCurativeItem uses isSameItem only, unlike creative inventory.contains tags/caps. These are different authorization equivalence relations, not per-stack UUID or per-source effect ownership.",
+          "Full curative interface writes each stack save; bounded read helper accepts CurativeItems TAG_LIST then reads compound entries and replaces list. Wrong list element type can produce an empty compound-list view; exact getter implementation not re-expanded, so no malformed-save or unknown-item recovery promise. Absent list allows lazy default conditional on other callers, not a full save roundtrip.",
+          "Existing complete TConstruct StrongBones whole owner already includes milk Finish, helmet item-type curative rewrite and equipped-item replacement release with same native cure consumer. Main103 complete four-field judgment is reused0, including update-retains-old-curative-list caveat. Generic milk cure/itemtype/remove callbacks are already owned0; novel related scope here is only living-provider/container-mode material exchange whole, with the consumer boundary retained.",
+          "Current EA23 Platypus paid-site digging, EA42 reserved farmer inventory/converter readiness, EA43 cat-rest attempt, EA45 peer overflow, Seal treatment and newly accepted EA49 habitat/timed-reel whole differ in qualified provider/material custody. EA42 complete selected judgment newly read; other3 and Seal/Fishing Main own complete judgments reused0, not old source rereading or global uniqueness theorem.",
+          "Three whole migration decisions actually read: paid-flower deferred stew effect identity fallback, finite version-upgraded goat horns, harvested sheep wool/regrowth. Milk does not debit those provider resource flags or create new migration; species reuse, same class or no finite flag alone cannot earn another credit.",
+          "All25 listed ranges751 line-occurrences15entries5wholeclasses/interfaces were actually read in two bounded outputs without clipping. Raw source excerpt keepends and all archive entry hashes are exact. MobEffectEvent1-80 includes complete base/Remove inner class only; outer class further events not claimed read. Prior ItemEntity/ServerLevel supports remain exact own reuse0.",
+          "Future quest integration must keep material provider -> existing prerequisites -> actual bucket/container debit -> admitted intended-player output -> conditional curative benefit distinct; original IDs/NBT variants/rewards/progress are preserved. This review implements no task or recipe, grants no current native economy acceptance and assigns no formal ID."
+        ],
+        "application": [
+          "A source-dependent renewable input, container exchange, overflow drop, actual recipient acquisition, consumption and selective successful benefit must be separately acknowledged; default boolean or feedback is not a quest completion receipt.",
+          "Do not substitute plain milk/vanilla bucket for a specific Dynasty NBT variant or invent registered materials. Keep existing reward/prerequisite/progress and require current native validation after applicable1000."
+        ],
+        "limits": [
+          "Actual fixed local mapped Forge source only; no new network/Git revision/current loaded modpack authentication. No upstream code/game/Java/Gradle/UI/process/audio/brightness or world/production execution.",
+          "Five full classes/interfaces plus explicit partial native method groups. Cow full, Goat only interaction. Inventory, LivingEntity, Player, MobEffectInstance and other containing classes are not whole-read claims; metadata discovery/neighboring prefixes add0.",
+          "Inventory/static state changes inspected but no native positive player amount/UUID/world admission/durable payment/actual cured effect/food health/authoritative interaction or save-reload tested.",
+          "Milk use completion, packet sync, lower equipment/effect attribute/event listeners/entity-manager admission, current custom stack/curative/capability composition and FluidBucketWrapper not fully expanded. Source-order statements assume prior callbacks return normally.",
+          "No claim of unlimited current survival material, unconditional all-effect cure, no-cost creative acquisition success, atomic cost-benefit/refund or reproduced duplication/loss.",
+          "Current full ecological/global comparison judgments pending; no distinct whole reference yet proposed or accepted. All source ranges/helpers/species/containers/curative items/counters are support0.",
+          "1000 gate unmet; do not modify production probabilities/caps/categories/recipes/quests/assets/shared Jar/master or delete prompts. No runtime/material/acquisition/new migration/global novelty or active-hour completion credit.",
+          "Independent material-policy relatedness must be judged against exact selected complete owners; distinctness may be rejected/merged. No formal candidate ID/package/author acceptance/fixture/aggregate from this proposal.",
+          "Fixed local mapped Forge1.20.1/47.4.10 archive identity and exact source bytes only, no fresh remote authenticity/Git commit/tree/current loaded pack registration guarantee.",
+          "At most1related provider/container whole in principle, formal/applied0. Cow/Goat, slots, loops, effects, timing/ranges/classes/cure helpers and source checks add0. Existing TConstruct cure/replacement whole is retained0; not a new cure or immunity reference.",
+          "All25listed source ranges actually read, five complete files/interfaces only. Remaining containing classes, full interaction/use engine, hook listeners, capabilities/FluidBucketWrapper/attribute packet machinery and current mod overrides not all read or run.",
+          "No authoritative player inventory delta, paid prerequisite, admitted ItemEntity, actual intended-player UUID pickup, actual removed effect or persisted return container; no all-effect/unconditional/harmful-only cure promise.",
+          "No-cost sound/sidedSuccess/criterion/stat/add boolean do not establish output; survival shrink may precede rejected overflow and may follow zero curative benefit, source callbacks can throw or mutate. No live duplication/loss exploit or general rollback/refund proved.",
+          "Curative helper read/write is not full effect/hidden-chain/stack capability/registry save roundtrip. Existing same-effect update may retain old curative list per already-owned TConstruct judgment; no per-caster or per-stack state authority implied.",
+          "EA42 full selected judgment newly read; three other selected whole judgments/Seal/currentFishing and TConstruct Main103 complete judgment reused0 with full limitations. Old source chains not reread, all48 ecology identity integrity is not48whole semantic review.",
+          "Original candidate historical47/gap953 and limits saying comparison pending retained verbatim. Current48/gap952/fishing closure supersedes numeric baseline only; original20/7 plus23/15/8 all preserved, no rewriting sealed history.",
+          "Native/runtime material survival/current loot or model UV/performance acceptance0. Ecological24/30 births9/10sameUUIDpickup/run12onGroundfalse remain unchanged. No game/process/display query or runtime marker consumed.",
+          "No production/quest/cap/probability/art/sharedJar/originalsave/master task list edits, no completed game-task deletion, no commit/push/publish/newchat/automation. Applicable1000 ecology gatefalse.",
+          "No quantified active hours; interruption/wait/download/parallel/wallclock excluded and tenhour total remains unverified. Author must confirm full Main whole judgment and normalize current48 before a separate reviewable minimum research package; no blanket package/validator/aggregation grant here."
+        ]
+      },
+      "reading_scope": "EA26/40/45 complete four fields actually read this continuation; EA50 exact own actual author reading reused from preceding continuation, not new source reading.",
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Living-provider container-mode exchange remains its exact whole. Piglin has no adult renewable provider/container return or creative presence-sensitive filledResult policy. Conditional effect use/cure remains existing TConstruct0. No distinction from item names/species alone.",
+      "new_credit": 0
+    }
+  ],
+  "global_ledger_binding": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "bytes": 18357046
+  },
+  "global_metadata_screen_rows": 1329,
+  "global_screen_is_not_exhaustive_semantic_review": true,
+  "complete_selected_global_non_evidence_judgments_actually_read": [
+    {
+      "candidate_id": "44b94d797ea3f2ef2fbe",
+      "canonical_complete_row_sha256": "f21c17f8141ffd33f31563dd6131c78f87b0a883abedce537500800892424823",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "44b94d797ea3f2ef2fbe",
+        "status": "accepted",
+        "family": "native-piglin-owned-barter-currency-carried-inventory-and-expiring-admiration",
+        "trigger": "Piglin full pair/interaction/equipment pickup/death + InventoryCarrier whole + actual PiglinAi barter methods and StopHoldingItemIfNoLongerAdmiring",
+        "input": "8-slot inventory, native saved offhand paid currency, independent Brain admiration ttl and CannotHunt role flag",
+        "output": "restore actual owned cargo; after admiration expires, consume offhand and produce loot-table barter response; noncurrency goes equipment/inventory and rejected remainder thrown",
+        "preservation": "Read real payment, expiry-triggered consumption, remainder and death return. InventoryCarrier/SimpleContainer supports no extra credits. Distinct concrete barter owner from native generic Mob equipment reader and Brain format upgrade; no per-brain-key credits.",
+        "application_limit": "Inventory absent keeps constructor/reused contents; native fromTag clears but merges items and ignores rejected remainder for oversized input, does not preserve slot layout. Offhand cleared before unchecked drops; hurt with flagfalse intentionally discards adult currency. Loot-table/random helper internals not traced, not exactly-once crash transaction.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "EXACT same Piglin currency/carried inventory/expiring admiration whole already globally accepted. Preserve original1; global novelty0/new migration0. Any possible ecology applicability must explicitly reuse this whole rather than label it new mechanism globally.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "fea391d8f8b7ded073b2",
+      "canonical_complete_row_sha256": "5066a51770615b859bddcc702ecb7457b69c98411c94ad2ea918d08937e44076",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "fea391d8f8b7ded073b2",
+        "status": "accepted",
+        "family": "native-merchant-paid-use-counter-and-offer-payload-reader",
+        "trigger": "AbstractVillager Offers→MerchantOffers Recipes→MerchantOffer constructor",
+        "input": "buy/buyB/sell complete stacks, uses/maxUses, rewardExp/xp/priceMultiplier/specialPrice/demand",
+        "output": "restores cost/result and exhausted-use count, absent numeric maxUses defaults4, typed optional fields retain initialized defaults",
+        "preservation": "Full MerchantOffers constructor/createTag and MerchantOffer writer/consumer inspected: isOutOfStock uses uses>=maxUses, increaseUses increments on use. Restoring only offers without use count could renew exhausted stock. Outer wrappers/list entries extra0.",
+        "application_limit": "No per-recipe atomic validation; native ItemStack failure can give empty cost/result. Definition+per-offer spent count is one persisted offer, not player claimed reward.",
+        "supporting_candidates": [
+          "c4eeb33a2bc77a176d39"
+        ],
+        "credit": 1
+      },
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Native merchant owns offer payload/cost/exhausted-use counter; not physical offhand currency/admiration/response generation without an offer use stock. Full existing decision read, not native merchant menu payment source.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "6280c8bfd261f72241e9",
+      "canonical_complete_row_sha256": "fa07745af8df9d2d3a5f85aaa9edf1f8ffb915023ec8a195624c80203fe283c1",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "6280c8bfd261f72241e9",
+        "status": "accepted",
+        "family": "alexsmobs-seal-paid-fish-threshold-and-feeder-reward-identity",
+        "trigger": "EntitySeal pair/onGetItem plus complete SealAIDiveForItems",
+        "input": "FishFeedings partial count, FeederUUID earned by three offerings, stored equipment reward stack",
+        "output": "restores partial paid count and recipient UUID; AI requires recipient online and persisted UUID before undertaking reward delivery",
+        "preservation": "Full reader/writer/onGetItem and complete AI read. Third feeding resets counter0 while establishing feeder identity. AI generates reward into main hand and returns to feeder; payout clears feederUUID. Same threshold+recipient+delivery chain1, not separate per fish.",
+        "application_limit": "AI returnToPlayer/digTime not saved; reload with hand payload+feeder may initiate fresh dig instead of resumed return. Payout clears main hand before spawn and feeder even if spawn fails. Invalid/missing feeder UUID on reused load leaves stale identity. No claim lossless full skill coverage.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Exact Seal threshold/feeder reward owner preserved; full ecology EA26 superseding qualifications retained. Different paid-service organization compared as complete whole, not timer/number/species.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "efef374716c31e7e93de",
+      "canonical_complete_row_sha256": "f347a7cc4323911151401a7c8d4b9a297892ecb0d922bd62d7b53a756d3082c9",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "efef374716c31e7e93de",
+        "status": "accepted",
+        "family": "irons-wizard-merchant-used-offers-and-restock-lifetime-restoration",
+        "trigger": "Entire IMerchantWizard interface plus Cryomancer full getOffers/mobInteract/startTrading/notifyTrade/save/read/get/set restock",
+        "input": "registry-context MerchantOffers codec,LastRestock gameTime,RestocksToday; unsaved lastRestockCheckDayTime",
+        "output": "Decode optional offers resultOrPartial and retain default if absent/fail; actual trade increasesUses, restored used stock gates availability; restock updates demand/resetUses and saves gameTime. DayTime tracker is rebuilt and canreset daily counter",
+        "preservation": "Concrete paid/limited wizard trade stock, not generic codec utility. All wizard variants sharing interface count1, no per school merchant copies. GameTime persistence explicitly chosen over mutable dayTime; temp UI tradingPlayer not copied.",
+        "application_limit": "Native MerchantOffers codec internals not separately read, partial parse may substitute omitted offers; no native stock exploit proof. Deep trade payment menu belongs native merchant and not independently audited here. Client mirror not independent credit.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Wizard offers/restock lifetime interface owner remains one merchant family. No per wizard/stock/reader credit; its deep payment menu was not audited by that original judgment.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "98ece4798d34ff4b5558",
+      "canonical_complete_row_sha256": "8bee2e9941ff2a0c70c97583483f3a8e27fa76f12790d7a0bdd7a727413b9e42",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "98ece4798d34ff4b5558",
+        "status": "accepted",
+        "family": "bewitchment-contract-and-curse-typed-expiring-instance-restoration",
+        "trigger": "Whole ContractsComponent/CursesComponent/BWComponents plus DemonTradeOffer.apply, SlothContract.tick and brazier actual curse consumer",
+        "input": "typed registry identities, remaining duration and contract cost; curse list same architecture",
+        "output": "list reader adds or replaces matching duration; server tick invokes actual effects then decrements/removes expired; ALWAYS_COPY declared for both owners",
+        "preservation": "Grouped contract/curse template family ONE credit, not perkey/effect/list wrapper. Actual healing effect and paid brazier curse input inspected; these durable leases need selective ownership, not automatically treated all permanent in Dynasty.",
+        "application_limit": "Does not clear list before read: missing/empty retains old entries, duplicate ID overwrites duration but contract cost not refreshed. InvalidID/null registry unsafe on tick/write. Tick effects run once before removing loaded0 duration. Timers pause offline, no walltime. Demon contract cost reservation/merchant payment UI untraced, no claim actual currency debit.",
+        "supporting_candidates": [
+          "45d52dce26e915a4b693"
+        ],
+        "credit": 1
+      },
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Contracts/curse expiry family owns typed effect lease, not this currency custody/loot dispatch. Its merchant cost reservation remains explicitly untraced; do not invent a positive payment receipt.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "4203f8b5683a6d3beaf1",
+      "canonical_complete_row_sha256": "ed2e0c34627e0a0ad5480253b588fcb13a632379c0cf327153d95e990e42c329",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "4203f8b5683a6d3beaf1",
+        "status": "accepted",
+        "family": "native-nether-animal-conversion-checkpoint-and-selective-entity-transfer",
+        "trigger": "Full Hoglin/AbstractPiglin pairs/isConverting/customServerAiStep/finishConversion and full Mob.convertTo",
+        "input": "immunity, TimeInOverworld, Hoglin CannotBeHunted",
+        "output": "resume unsafe-dimension countdown, safe/immune/noAI resets. >300convertTo canonical zombifiedentity with keepEquipment=true, applies confusion and Forgeevent",
+        "preservation": "Group Hoglin/Piglin shared conversion template one. Mob.convertTo transfers baby/NoAI/name/persistence/invul/equipment+dropchance and riding, not allNBT; actual callsite ties restoredstate to actorreplacement.",
+        "application_limit": "Missing immunityfalse/time0; CannotBeHunted not forwarded to Zoglin. Mob clears oldequipment before unchecked addFreshEntity then discards old, no atomicrefund. Does not transfer arbitrary ForgeData/health/UUID; no oldplayer clone transplant.",
+        "supporting_candidates": [
+          "6a91db93ab4cafb02999"
+        ],
+        "credit": 1
+      },
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Shared unsafe-dimension animal conversion owns retained timer/selective entity handoff. Current complete AbstractPiglin read and Piglin cancellation-before-conversion are context0, no second conversion reference.",
+      "new_credit": 0
+    }
+  ],
+  "observed_chain": [
+    "One already globally owned Piglin physical-currency/lease-to-response service, potentially max1 ecology applicability only after distinct Main. Same global44b owner retained1previous, new global/migration0; no proposal credit from species, helpers, source files, fields, stock or timers.",
+    "Actual EntityType PIGLIN constructs Piglin, MONSTER .6x1.95 tracking8; AbstractPiglin constructor enables pickup. Own spawn predicate merely excludes nether-wart support and finalize has context branches. No actual biome/habitat/natural cap/current population or registry/game deployment proved.",
+    "Piglin.mobInteract calls parent first and returns any consumesAction. Only otherwise server calls PiglinAi.mobInteract. Client instead checks canAdmire plus arm pose and returns SUCCESS/PASS. Parent interaction/authority/permission graph not fully expanded; client success is not payment.",
+    "Direct canAdmire requires !ADMIRING_DISABLED,!ADMIRING_ITEM,adult and stack.isPiglinCurrency. It does not require empty offhand or explicit griefing/creative exemption. Split1 copies then shrinks up to1 from actual input before replacing prior offhand, setting120TTL and stopping walk. Call order assumes callbacks complete normally; no atomic debt/creative balance/current native payment experiment.",
+    "Forge IForgeItemStack delegates currency to actual item method; default compares item==BARTERING_ITEM (GOLD_INGOT), while loved item uses PIGLIN_LOVED tag. Currency and loved relation are separate. Unused private isBarterCurrency literal helper does not replace actual dispatch. Custom currency/tag contents/overrides not authenticated.",
+    "Ground pickup willingness first excludes baby ignored tag and repellents; disabled admiration rejects only if ATTACK_TARGET also present. Currency then checks not currently holding loved offhand. This differs from direct disabled/adult admission; no universal disabled-refusal or baby barter promise.",
+    "NearestItemSensor scans inflated32/16/32, sorts distance, filters wantsToPickup/strict32/LOS. Mob actual looting still separately enforces side/alive/grief/delay/reach, reused own previous source support0, not a sensor acquisition receipt. Sensor does not itself filter thrower or assign payer.",
+    "Piglin pickUpItem calls onItemPickup then AI stops walking. GOLD_NUGGET takes whole source stack and discards entity, other items split1 and discard only if remaining empty. Loved item goes offhand+TTL after erase reach timer; food without ATE_RECENTLY only sets200TTL; otherwise equip or inventory. No heal/nutrition promised from food TTL.",
+    "Ground custom currency not in loved tag can enter equipment/inventory branch rather than admire/response, unlike direct currency path. Default raw loved membership missing locally; do not assert every dropped currency produces barter or invent current tag closure.",
+    "Offhand replacement requests spawnAtLocation(oldoffhand) then holds new item. Currency slot uses setItemSlot and guaranteed death drop; other cargo uses setItemSlotAndDropWhenKilled. No actual old-item world admission, preserved payer UUID or lossless replacement acknowledgement.",
+    "StartAdmiringItemIfSeen needs wanted-item memory and absent admiration/disabled-walk/disabled-admiration then loved predicate; it can set120TTL before anything is held. ADMIRE activity includes wanted movement and stop conditions. Empty hand can have admiration; arm pose derives loved offhand independently and is not lease/payment proof.",
+    "TooFar helper only when offhand empty erases admiration for absent item or !closerThan9. Tired helper also needs wanted memory and empty offhand, initializes reachcounter0 then compares old value>200 before erase and disabled-walk200TTL. These are eligible delivered behavior updates, not a guaranteed200-worldtick deadline, refund or actor-independent timer.",
+    "CORE StopHoldingItemIfNoLongerAdmiring requires absent admiration and nonempty offhand lacking SHIELD_BLOCK action, then calls stopHoldingOffHandItem(true). No direct positive check of prior payment or source ID. Custom currency capable of shield action may skip this consumer; actual overrides/current equipment not tested.",
+    "stopHoldingOffHandItem captures offhand and immediately clears actual hand before branch/loot. Adult currency and flagtrue requests response list; adult currency flagfalse enters no fallback and is not returned by this body. Adult noncurrency equip then inventory remainder; baby equip else diverts old mainhand and replaces it. Baby is not a second trade policy.",
+    "Piglin.hurt calls parent first; server and acceptedtrue with causal LivingEntity calls wasHurtBy. That ignores Piglin actors; other hurt actor stops held offhand with flagfalse, erases admiration/celebration/dance and player damage sets ADMIRING_DISABLED400TTL. Generic attacks/zero loss/invulnerability/lower hooks/current hazard outcomes not fully traced.",
+    "Barter lookup names gameplay piglin_bartering and creates PIGLIN_BARTER with THIS_ENTITY. It does not pass payer/luck recipient/owned input as loot context or debit finite vendor inventory. Raw table/loved tag absent from pinned source archive only; full loot resolver/pools/modifiers/current loaded data not newly expanded, no specific reward/quantity/positive response guaranteed.",
+    "throwItems selects current NEAREST_VISIBLE_PLAYER optional, else random nearby position; it never reuses original human payer UUID. Full PlayerSensor nonspectator strict16 sorted targetable list stores first visible player, potentially stale until sensor update. No original-payer entitlement or recipient alive/current dimension guarantee from this branch.",
+    "ThrowItem sets ItemEntity THROWER to Piglin UUID, aims normalized velocity toward selected position+Y1, sets default delay, ignores addFreshEntity boolean. It sets no recipient target. Source nonempty list may include empty stacks and lower failures; not admitted-world, inventorydelta, sameUUID pickup or quest completion.",
+    "putInInventory reads SimpleContainer.addItem remainder then requests random throw even singleton empty remainder; throwItem does not locally guard item.isEmpty. addItem copies input, merges matching item/tags/caps through native helper, then copyAndClear to first empty slot; slot setter maxcontainer clamp can drop oversized excess after cleared working copy. No current ordinary bounded-stack loss or native exploit reproduced.",
+    "Full InventoryCarrier save writes nonempty stacks without slot indices; fromTag clears then ItemStack.of/addItem and ignores remainder. Missing Inventory tag leaves existing contents, fromTag does not preserve slot layout, oversized inputs may be clamped/rejected without retained remainder. Existing Piglin/global container owner already owns these facts0new credit.",
+    "Own IsBaby/CannotHunt/inventory and inherited hand/Brain persistence are separate. ADMIRING_ITEM/ADMIRING_DISABLED have BOOL codecs, reach/disabledwalk have no codec; existing Brain owner supplies generic expiry/envelope semantics, not a new per-key migration. No current save/reload/durable offhand-lease atomicity test.",
+    "Conversion first cancels admiration only if memorypresent+nonemptyoffhand (spawn then clear) and drains inventory before parent conversion. Death drains inventory after parent loot. Native capture/add/drop/equipment handoff and exact death guarantees are not freshly fully expanded; conversion/trophy/capture remain old owners0.",
+    "Complete ecology Seal21obs18limits/Hero14obs9limits/Peer11obs10limits read, latest Milk whole exact prior author read reused; full related global Piglin/merchant/Seal/wizard/contracts/conversion judgments retained. All49 semantic labels/canonical identities screened for related owners, not49 full upstream chains or all1329 global judgments semantically reread. Independent Main may merge0.",
+    "Future Dynasty paid trade must separate material source -> existing prerequisite -> actual debit/held custody -> response generation -> accepted intended-player output. Preserve IDs/NBT variants/rewards/progress; no production integration, inventory test, completed task, source execution or actual native receipt from this research."
+  ],
+  "mandatory_constraints": [
+    "Whole Piglin barter already globally accepted44b94d797ea3f2ef2fbe; preserve full original judgment and0newglobal/0newmigration. Only potential ecology applicability max1, pending distinct Main; no species/helper/item/table/TTL/parameter subcredits.",
+    "Currency override and loved tag are different predicates. Retain direct-vs-ground adult/disabled/hand/food/nugget differences and absent current raw tag/table. No unconditional gold-only/default loaded membership/custom currency delivery promise.",
+    "Parent-first interaction and server dispatch precede direct payment; client pose/result never payment. Split1 before hold/TTL has no creative exception locally, not proof atomic stable player debit under hooks or current permission.",
+    "Admiring memory before pickup, physical held cargo, arm pose, absence after expiry, successful loot generation and actual player acquisition stay separate. CORE release skips shield-capable offhand. Exact120/200/400TTL is source declaration not wallclock/noAI/world unload guarantee.",
+    "Adult currency flagfalse is intentionally not rerouted/refunded by that body; accepted-parent-hurt causal nonPiglin guards required. No guarantee every hurt attempt loses paid currency or every cancel returns it.",
+    "Recipient chooses current sensor memory, not original payer. Full PlayerSensor predicates and sort retained; stale memory and lower targetability/runtime not fully proved. Piglin THROWER UUID is not intended-player TARGET or positive pickup.",
+    "Offhand clear before lookup/throw and inventory remainder path retain failure boundaries. No exactly-once, refund, atomic cost-benefit, finite shop stock, positive loot list/items/inventory or sameUUID receipt.",
+    "SimpleContainer copy/merge/first-empty clamp/fromTag ignored remainder are bounded source behavior; no runtime oversized/custom cap loss/duplication asserted. Preserve raw tags/caps in copy; no plain base-item substitute for Dynasty NBT variants.",
+    "Existing migration contracts/merchant inventory/Brain/unsafe conversion/trophy owners remain complete0new; death/conversion context does not create an additional ecological or migration entry.",
+    "Fixed local mapped Forge archive+entry only, no fresh remote Git/current loaded pack/tag/config/overrides/event composition, API claim or source/game execution. Other containing classes partial exactly by ranges.",
+    "No production/art/sharedJar/userworld/quest/cap/probability/tasklist/master/session/pending/ownership edits, no receipt/ID/package/validator/fixture/aggregation/Git/network/display/process/Java/Gradle operations. Applicable1000 remains unmet.",
+    "Full prior selected judgments preserved with historical statements; label/hash inventory and keyword screen do not establish exhaustive semantic novelty. No active-hours/tenhour completion claim, no deletion of unaccepted tasks."
+  ],
+  "application": [
+    "Treat pending physical currency, expiry state, interruption, generated output, chosen present beneficiary and authoritative intended-player acquisition as separate stages.",
+    "Preserve actual Dynasty material variants, original IDs/prerequisites/rewards/progress, require existing native receipt proof after applicable1000; implement no substitute or duplicate rewards."
+  ],
+  "limits": [
+    "Eleven full files/classes/interfaces and eight explicit partial ranges, not full native interaction/permission/AI scheduler/loot engine/physics/Entity/ItemStack/Forge platform audit. Incidental displayed prefixes and extra scan lines not counted.",
+    "Pinned local mapped source provenance only. Actual2raw resources absent in this archive only; no claim absent upstream or live game. No table contents/reward probabilities, current loved/currency intersection or natural source material accessibility.",
+    "No accepted material debit/inventorydelta/native reward/current trade safety/player ownership/exactUUIDpickup/reload/transaction/rollback/exploit/game performance tested. Underlying event callbacks may alter/throw; source order assumes ordinary completion.",
+    "Exact already-owned Piglin global full decision reused0; no independent global invention. Current ecology complete relatedness still needs distinct Main review and may merge0. All49 identity index and1329global metadata search are not full source rereading.",
+    "Admire movement helpers read fully but GoToWantedItem/native navigation/targetability and scheduling internals not freshly fully expanded. Existing Axolotl/Brain support not copied as new source credit; countdown deliveries do not prove walltime.",
+    "Inherited equipment/Brain drop persistence and native death/conversion registration remain prior complete judgment context, not current positive native validation. Missing own field does not imply cargo reset or lost payer safely restored.",
+    "SimpleContainer oversized clamp/missing tag/remainder boundaries are static; native custom inventories/listeners/cap serialization and malformed stack constructors unexpanded. No general lossless save/current corruption recovery guarantee.",
+    "No formal ID/receipt/package/install/validator/fixtures/aggregation. accepted/applied0/prod0; applicable1000 not met; no completed game task or prompt deletion authorized by research.",
+    "No Java/Gradle/game/world/process/UI/focus/wake/sound/brightness/network/Git/commit/push/publish/new chat/automation actions; no active-hour total."
+  ],
+  "proposed_maximum_ecology_applicability_credit": 1,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "formal_candidate_id": null,
+  "package_built": false,
+  "shared_tools_changed": false,
+  "validator_fixture_aggregation_executed": false,
+  "production_changes": 0,
+  "art_changes": 0,
+  "shared_Jar_writes": 0,
+  "checklist_deletions": 0,
+  "shared_tracking_edits": 0,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "Git_operations": 0,
+  "upstream_code_executed": false,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "active_hours_claimed": null,
+  "next": "Distinct Main independently judges one ecology applicability whole or merge0; same global Piglin owner remains1old/0new. No automatic ID/package, source execution, production or checklist deletion."
+}

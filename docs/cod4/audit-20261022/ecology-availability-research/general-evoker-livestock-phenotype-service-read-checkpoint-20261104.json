@@ -1,0 +1,317 @@
+{
+  "recorded_at": "2026-11-03T21:35:11.467342+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_OFFLINE_SOURCE_CHECKPOINT_WHOLE_PRODUCER_CONSUMER_DEDUP_PENDING_FORMAL0",
+  "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Evoker.java",
+      "entry_sha256": "747557bcc37014fb4cbef3a88708ac4dcce1ad1da80105a456f58442591bf696",
+      "lines": [
+        1,
+        328
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "747557bcc37014fb4cbef3a88708ac4dcce1ad1da80105a456f58442591bf696",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.MobType;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.AvoidEntityGoal;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.animal.IronGolem;\nimport net.minecraft.world.entity.animal.Sheep;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.EvokerFangs;\nimport net.minecraft.world.entity.raid.Raider;\nimport net.minecraft.world.item.DyeColor;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\npublic class Evoker extends SpellcasterIllager {\n   @Nullable\n   private Sheep wololoTarget;\n\n   public Evoker(EntityType<? extends Evoker> p_32627_, Level p_32628_) {\n      super(p_32627_, p_32628_);\n      this.xpReward = 10;\n   }\n\n   protected void registerGoals() {\n      super.registerGoals();\n      this.goalSelector.addGoal(0, new FloatGoal(this));\n      this.goalSelector.addGoal(1, new Evoker.EvokerCastingSpellGoal());\n      this.goalSelector.addGoal(2, new AvoidEntityGoal<>(this, Player.class, 8.0F, 0.6D, 1.0D));\n      this.goalSelector.addGoal(4, new Evoker.EvokerSummonSpellGoal());\n      this.goalSelector.addGoal(5, new Evoker.EvokerAttackSpellGoal());\n      this.goalSelector.addGoal(6, new Evoker.EvokerWololoSpellGoal());\n      this.goalSelector.addGoal(8, new RandomStrollGoal(this, 0.6D));\n      this.goalSelector.addGoal(9, new LookAtPlayerGoal(this, Player.class, 3.0F, 1.0F));\n      this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Mob.class, 8.0F));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this, Raider.class)).setAlertOthers());\n      this.targetSelector.addGoal(2, (new NearestAttackableTargetGoal<>(this, Player.class, true)).setUnseenMemoryTicks(300));\n      this.targetSelector.addGoal(3, (new NearestAttackableTargetGoal<>(this, AbstractVillager.class, false)).setUnseenMemoryTicks(300));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, false));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.5D).add(Attributes.FOLLOW_RANGE, 12.0D).add(Attributes.MAX_HEALTH, 24.0D);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_32642_) {\n      super.readAdditionalSaveData(p_32642_);\n   }\n\n   public SoundEvent getCelebrateSound() {\n      return SoundEvents.EVOKER_CELEBRATE;\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_32646_) {\n      super.addAdditionalSaveData(p_32646_);\n   }\n\n   protected void customServerAiStep() {\n      super.customServerAiStep();\n   }\n\n   public boolean isAlliedTo(Entity p_32665_) {\n      if (p_32665_ == null) {\n         return false;\n      } else if (p_32665_ == this) {\n         return true;\n      } else if (super.isAlliedTo(p_32665_)) {\n         return true;\n      } else if (p_32665_ instanceof Vex) {\n         return this.isAlliedTo(((Vex)p_32665_).getOwner());\n      } else if (p_32665_ instanceof LivingEntity && ((LivingEntity)p_32665_).getMobType() == MobType.ILLAGER) {\n         return this.getTeam() == null && p_32665_.getTeam() == null;\n      } else {\n         return false;\n      }\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return SoundEvents.EVOKER_AMBIENT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.EVOKER_DEATH;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_32654_) {\n      return SoundEvents.EVOKER_HURT;\n   }\n\n   void setWololoTarget(@Nullable Sheep p_32635_) {\n      this.wololoTarget = p_32635_;\n   }\n\n   @Nullable\n   Sheep getWololoTarget() {\n      return this.wololoTarget;\n   }\n\n   protected SoundEvent getCastingSoundEvent() {\n      return SoundEvents.EVOKER_CAST_SPELL;\n   }\n\n   public void applyRaidBuffs(int p_32632_, boolean p_32633_) {\n   }\n\n   class EvokerAttackSpellGoal extends SpellcasterIllager.SpellcasterUseSpellGoal {\n      protected int getCastingTime() {\n         return 40;\n      }\n\n      protected int getCastingInterval() {\n         return 100;\n      }\n\n      protected void performSpellCasting() {\n         LivingEntity livingentity = Evoker.this.getTarget();\n         double d0 = Math.min(livingentity.getY(), Evoker.this.getY());\n         double d1 = Math.max(livingentity.getY(), Evoker.this.getY()) + 1.0D;\n         float f = (float)Mth.atan2(livingentity.getZ() - Evoker.this.getZ(), livingentity.getX() - Evoker.this.getX());\n         if (Evoker.this.distanceToSqr(livingentity) < 9.0D) {\n            for(int i = 0; i < 5; ++i) {\n               float f1 = f + (float)i * (float)Math.PI * 0.4F;\n               this.createSpellEntity(Evoker.this.getX() + (double)Mth.cos(f1) * 1.5D, Evoker.this.getZ() + (double)Mth.sin(f1) * 1.5D, d0, d1, f1, 0);\n            }\n\n            for(int k = 0; k < 8; ++k) {\n               float f2 = f + (float)k * (float)Math.PI * 2.0F / 8.0F + 1.2566371F;\n               this.createSpellEntity(Evoker.this.getX() + (double)Mth.cos(f2) * 2.5D, Evoker.this.getZ() + (double)Mth.sin(f2) * 2.5D, d0, d1, f2, 3);\n            }\n         } else {\n            for(int l = 0; l < 16; ++l) {\n               double d2 = 1.25D * (double)(l + 1);\n               int j = 1 * l;\n               this.createSpellEntity(Evoker.this.getX() + (double)Mth.cos(f) * d2, Evoker.this.getZ() + (double)Mth.sin(f) * d2, d0, d1, f, j);\n            }\n         }\n\n      }\n\n      private void createSpellEntity(double p_32673_, double p_32674_, double p_32675_, double p_32676_, float p_32677_, int p_32678_) {\n         BlockPos blockpos = BlockPos.containing(p_32673_, p_32676_, p_32674_);\n         boolean flag = false;\n         double d0 = 0.0D;\n\n         do {\n            BlockPos blockpos1 = blockpos.below();\n            BlockState blockstate = Evoker.this.level().getBlockState(blockpos1);\n            if (blockstate.isFaceSturdy(Evoker.this.level(), blockpos1, Direction.UP)) {\n               if (!Evoker.this.level().isEmptyBlock(blockpos)) {\n                  BlockState blockstate1 = Evoker.this.level().getBlockState(blockpos);\n                  VoxelShape voxelshape = blockstate1.getCollisionShape(Evoker.this.level(), blockpos);\n                  if (!voxelshape.isEmpty()) {\n                     d0 = voxelshape.max(Direction.Axis.Y);\n                  }\n               }\n\n               flag = true;\n               break;\n            }\n\n            blockpos = blockpos.below();\n         } while(blockpos.getY() >= Mth.floor(p_32675_) - 1);\n\n         if (flag) {\n            Evoker.this.level().addFreshEntity(new EvokerFangs(Evoker.this.level(), p_32673_, (double)blockpos.getY() + d0, p_32674_, p_32677_, p_32678_, Evoker.this));\n         }\n\n      }\n\n      protected SoundEvent getSpellPrepareSound() {\n         return SoundEvents.EVOKER_PREPARE_ATTACK;\n      }\n\n      protected SpellcasterIllager.IllagerSpell getSpell() {\n         return SpellcasterIllager.IllagerSpell.FANGS;\n      }\n   }\n\n   class EvokerCastingSpellGoal extends SpellcasterIllager.SpellcasterCastingSpellGoal {\n      public void tick() {\n         if (Evoker.this.getTarget() != null) {\n            Evoker.this.getLookControl().setLookAt(Evoker.this.getTarget(), (float)Evoker.this.getMaxHeadYRot(), (float)Evoker.this.getMaxHeadXRot());\n         } else if (Evoker.this.getWololoTarget() != null) {\n            Evoker.this.getLookControl().setLookAt(Evoker.this.getWololoTarget(), (float)Evoker.this.getMaxHeadYRot(), (float)Evoker.this.getMaxHeadXRot());\n         }\n\n      }\n   }\n\n   class EvokerSummonSpellGoal extends SpellcasterIllager.SpellcasterUseSpellGoal {\n      private final TargetingConditions vexCountTargeting = TargetingConditions.forNonCombat().range(16.0D).ignoreLineOfSight().ignoreInvisibilityTesting();\n\n      public boolean canUse() {\n         if (!super.canUse()) {\n            return false;\n         } else {\n            int i = Evoker.this.level().getNearbyEntities(Vex.class, this.vexCountTargeting, Evoker.this, Evoker.this.getBoundingBox().inflate(16.0D)).size();\n            return Evoker.this.random.nextInt(8) + 1 > i;\n         }\n      }\n\n      protected int getCastingTime() {\n         return 100;\n      }\n\n      protected int getCastingInterval() {\n         return 340;\n      }\n\n      protected void performSpellCasting() {\n         ServerLevel serverlevel = (ServerLevel)Evoker.this.level();\n\n         for(int i = 0; i < 3; ++i) {\n            BlockPos blockpos = Evoker.this.blockPosition().offset(-2 + Evoker.this.random.nextInt(5), 1, -2 + Evoker.this.random.nextInt(5));\n            Vex vex = EntityType.VEX.create(Evoker.this.level());\n            if (vex != null) {\n               vex.moveTo(blockpos, 0.0F, 0.0F);\n               vex.finalizeSpawn(serverlevel, Evoker.this.level().getCurrentDifficultyAt(blockpos), MobSpawnType.MOB_SUMMONED, (SpawnGroupData)null, (CompoundTag)null);\n               vex.setOwner(Evoker.this);\n               vex.setBoundOrigin(blockpos);\n               vex.setLimitedLife(20 * (30 + Evoker.this.random.nextInt(90)));\n               serverlevel.addFreshEntityWithPassengers(vex);\n            }\n         }\n\n      }\n\n      protected SoundEvent getSpellPrepareSound() {\n         return SoundEvents.EVOKER_PREPARE_SUMMON;\n      }\n\n      protected SpellcasterIllager.IllagerSpell getSpell() {\n         return SpellcasterIllager.IllagerSpell.SUMMON_VEX;\n      }\n   }\n\n   public class EvokerWololoSpellGoal extends SpellcasterIllager.SpellcasterUseSpellGoal {\n      private final TargetingConditions wololoTargeting = TargetingConditions.forNonCombat().range(16.0D).selector((p_32710_) -> {\n         return ((Sheep)p_32710_).getColor() == DyeColor.BLUE;\n      });\n\n      public boolean canUse() {\n         if (Evoker.this.getTarget() != null) {\n            return false;\n         } else if (Evoker.this.isCastingSpell()) {\n            return false;\n         } else if (Evoker.this.tickCount < this.nextAttackTickCount) {\n            return false;\n         } else if (!net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(Evoker.this.level(), Evoker.this)) {\n            return false;\n         } else {\n            List<Sheep> list = Evoker.this.level().getNearbyEntities(Sheep.class, this.wololoTargeting, Evoker.this, Evoker.this.getBoundingBox().inflate(16.0D, 4.0D, 16.0D));\n            if (list.isEmpty()) {\n               return false;\n            } else {\n               Evoker.this.setWololoTarget(list.get(Evoker.this.random.nextInt(list.size())));\n               return true;\n            }\n         }\n      }\n\n      public boolean canContinueToUse() {\n         return Evoker.this.getWololoTarget() != null && this.attackWarmupDelay > 0;\n      }\n\n      public void stop() {\n         super.stop();\n         Evoker.this.setWololoTarget((Sheep)null);\n      }\n\n      protected void performSpellCasting() {\n         Sheep sheep = Evoker.this.getWololoTarget();\n         if (sheep != null && sheep.isAlive()) {\n            sheep.setColor(DyeColor.RED);\n         }\n\n      }\n\n      protected int getCastWarmupTime() {\n         return 40;\n      }\n\n      protected int getCastingTime() {\n         return 60;\n      }\n\n      protected int getCastingInterval() {\n         return 140;\n      }\n\n      protected SoundEvent getSpellPrepareSound() {\n         return SoundEvents.EVOKER_PREPARE_WOLOLO;\n      }\n\n      protected SpellcasterIllager.IllagerSpell getSpell() {\n         return SpellcasterIllager.IllagerSpell.WOLOLO;\n      }\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/SpellcasterIllager.java",
+      "entry_sha256": "e9eebd1ee97b0700a002e7ae4968414fa7cd8b1b8844ec75a8ec5a7ac9d5353e",
+      "lines": [
+        1,
+        207
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "e9eebd1ee97b0700a002e7ae4968414fa7cd8b1b8844ec75a8ec5a7ac9d5353e",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.EnumSet;\nimport java.util.function.IntFunction;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.ByIdMap;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.level.Level;\n\npublic abstract class SpellcasterIllager extends AbstractIllager {\n   private static final EntityDataAccessor<Byte> DATA_SPELL_CASTING_ID = SynchedEntityData.defineId(SpellcasterIllager.class, EntityDataSerializers.BYTE);\n   protected int spellCastingTickCount;\n   private SpellcasterIllager.IllagerSpell currentSpell = SpellcasterIllager.IllagerSpell.NONE;\n\n   protected SpellcasterIllager(EntityType<? extends SpellcasterIllager> p_33724_, Level p_33725_) {\n      super(p_33724_, p_33725_);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_SPELL_CASTING_ID, (byte)0);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_33732_) {\n      super.readAdditionalSaveData(p_33732_);\n      this.spellCastingTickCount = p_33732_.getInt(\"SpellTicks\");\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_33734_) {\n      super.addAdditionalSaveData(p_33734_);\n      p_33734_.putInt(\"SpellTicks\", this.spellCastingTickCount);\n   }\n\n   public AbstractIllager.IllagerArmPose getArmPose() {\n      if (this.isCastingSpell()) {\n         return AbstractIllager.IllagerArmPose.SPELLCASTING;\n      } else {\n         return this.isCelebrating() ? AbstractIllager.IllagerArmPose.CELEBRATING : AbstractIllager.IllagerArmPose.CROSSED;\n      }\n   }\n\n   public boolean isCastingSpell() {\n      if (this.level().isClientSide) {\n         return this.entityData.get(DATA_SPELL_CASTING_ID) > 0;\n      } else {\n         return this.spellCastingTickCount > 0;\n      }\n   }\n\n   public void setIsCastingSpell(SpellcasterIllager.IllagerSpell p_33728_) {\n      this.currentSpell = p_33728_;\n      this.entityData.set(DATA_SPELL_CASTING_ID, (byte)p_33728_.id);\n   }\n\n   protected SpellcasterIllager.IllagerSpell getCurrentSpell() {\n      return !this.level().isClientSide ? this.currentSpell : SpellcasterIllager.IllagerSpell.byId(this.entityData.get(DATA_SPELL_CASTING_ID));\n   }\n\n   protected void customServerAiStep() {\n      super.customServerAiStep();\n      if (this.spellCastingTickCount > 0) {\n         --this.spellCastingTickCount;\n      }\n\n   }\n\n   public void tick() {\n      super.tick();\n      if (this.level().isClientSide && this.isCastingSpell()) {\n         SpellcasterIllager.IllagerSpell spellcasterillager$illagerspell = this.getCurrentSpell();\n         double d0 = spellcasterillager$illagerspell.spellColor[0];\n         double d1 = spellcasterillager$illagerspell.spellColor[1];\n         double d2 = spellcasterillager$illagerspell.spellColor[2];\n         float f = this.yBodyRot * ((float)Math.PI / 180F) + Mth.cos((float)this.tickCount * 0.6662F) * 0.25F;\n         float f1 = Mth.cos(f);\n         float f2 = Mth.sin(f);\n         this.level().addParticle(ParticleTypes.ENTITY_EFFECT, this.getX() + (double)f1 * 0.6D, this.getY() + 1.8D, this.getZ() + (double)f2 * 0.6D, d0, d1, d2);\n         this.level().addParticle(ParticleTypes.ENTITY_EFFECT, this.getX() - (double)f1 * 0.6D, this.getY() + 1.8D, this.getZ() - (double)f2 * 0.6D, d0, d1, d2);\n      }\n\n   }\n\n   protected int getSpellCastingTime() {\n      return this.spellCastingTickCount;\n   }\n\n   protected abstract SoundEvent getCastingSoundEvent();\n\n   protected static enum IllagerSpell {\n      NONE(0, 0.0D, 0.0D, 0.0D),\n      SUMMON_VEX(1, 0.7D, 0.7D, 0.8D),\n      FANGS(2, 0.4D, 0.3D, 0.35D),\n      WOLOLO(3, 0.7D, 0.5D, 0.2D),\n      DISAPPEAR(4, 0.3D, 0.3D, 0.8D),\n      BLINDNESS(5, 0.1D, 0.1D, 0.2D);\n\n      private static final IntFunction<SpellcasterIllager.IllagerSpell> BY_ID = ByIdMap.continuous((p_263091_) -> {\n         return p_263091_.id;\n      }, values(), ByIdMap.OutOfBoundsStrategy.ZERO);\n      final int id;\n      final double[] spellColor;\n\n      private IllagerSpell(int p_33754_, double p_33755_, double p_33756_, double p_33757_) {\n         this.id = p_33754_;\n         this.spellColor = new double[]{p_33755_, p_33756_, p_33757_};\n      }\n\n      public static SpellcasterIllager.IllagerSpell byId(int p_33759_) {\n         return BY_ID.apply(p_33759_);\n      }\n   }\n\n   protected class SpellcasterCastingSpellGoal extends Goal {\n      public SpellcasterCastingSpellGoal() {\n         this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));\n      }\n\n      public boolean canUse() {\n         return SpellcasterIllager.this.getSpellCastingTime() > 0;\n      }\n\n      public void start() {\n         super.start();\n         SpellcasterIllager.this.navigation.stop();\n      }\n\n      public void stop() {\n         super.stop();\n         SpellcasterIllager.this.setIsCastingSpell(SpellcasterIllager.IllagerSpell.NONE);\n      }\n\n      public void tick() {\n         if (SpellcasterIllager.this.getTarget() != null) {\n            SpellcasterIllager.this.getLookControl().setLookAt(SpellcasterIllager.this.getTarget(), (float)SpellcasterIllager.this.getMaxHeadYRot(), (float)SpellcasterIllager.this.getMaxHeadXRot());\n         }\n\n      }\n   }\n\n   protected abstract class SpellcasterUseSpellGoal extends Goal {\n      protected int attackWarmupDelay;\n      protected int nextAttackTickCount;\n\n      public boolean canUse() {\n         LivingEntity livingentity = SpellcasterIllager.this.getTarget();\n         if (livingentity != null && livingentity.isAlive()) {\n            if (SpellcasterIllager.this.isCastingSpell()) {\n               return false;\n            } else {\n               return SpellcasterIllager.this.tickCount >= this.nextAttackTickCount;\n            }\n         } else {\n            return false;\n         }\n      }\n\n      public boolean canContinueToUse() {\n         LivingEntity livingentity = SpellcasterIllager.this.getTarget();\n         return livingentity != null && livingentity.isAlive() && this.attackWarmupDelay > 0;\n      }\n\n      public void start() {\n         this.attackWarmupDelay = this.adjustedTickDelay(this.getCastWarmupTime());\n         SpellcasterIllager.this.spellCastingTickCount = this.getCastingTime();\n         this.nextAttackTickCount = SpellcasterIllager.this.tickCount + this.getCastingInterval();\n         SoundEvent soundevent = this.getSpellPrepareSound();\n         if (soundevent != null) {\n            SpellcasterIllager.this.playSound(soundevent, 1.0F, 1.0F);\n         }\n\n         SpellcasterIllager.this.setIsCastingSpell(this.getSpell());\n      }\n\n      public void tick() {\n         --this.attackWarmupDelay;\n         if (this.attackWarmupDelay == 0) {\n            this.performSpellCasting();\n            SpellcasterIllager.this.playSound(SpellcasterIllager.this.getCastingSoundEvent(), 1.0F, 1.0F);\n         }\n\n      }\n\n      protected abstract void performSpellCasting();\n\n      protected int getCastWarmupTime() {\n         return 20;\n      }\n\n      protected abstract int getCastingTime();\n\n      protected abstract int getCastingInterval();\n\n      @Nullable\n      protected abstract SoundEvent getSpellPrepareSound();\n\n      protected abstract SpellcasterIllager.IllagerSpell getSpell();\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/targeting/TargetingConditions.java",
+      "entry_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+      "lines": [
+        1,
+        97
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "6efe9ecd31bcda7f7e4d4d51c3ecd9b25fe41233330630a399a995f06ae2b167",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.targeting;\n\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\n\npublic class TargetingConditions {\n   public static final TargetingConditions DEFAULT = forCombat();\n   private static final double MIN_VISIBILITY_DISTANCE_FOR_INVISIBLE_TARGET = 2.0D;\n   private final boolean isCombat;\n   private double range = -1.0D;\n   private boolean checkLineOfSight = true;\n   private boolean testInvisible = true;\n   @Nullable\n   private Predicate<LivingEntity> selector;\n\n   private TargetingConditions(boolean p_148351_) {\n      this.isCombat = p_148351_;\n   }\n\n   public static TargetingConditions forCombat() {\n      return new TargetingConditions(true);\n   }\n\n   public static TargetingConditions forNonCombat() {\n      return new TargetingConditions(false);\n   }\n\n   public TargetingConditions copy() {\n      TargetingConditions targetingconditions = this.isCombat ? forCombat() : forNonCombat();\n      targetingconditions.range = this.range;\n      targetingconditions.checkLineOfSight = this.checkLineOfSight;\n      targetingconditions.testInvisible = this.testInvisible;\n      targetingconditions.selector = this.selector;\n      return targetingconditions;\n   }\n\n   public TargetingConditions range(double p_26884_) {\n      this.range = p_26884_;\n      return this;\n   }\n\n   public TargetingConditions ignoreLineOfSight() {\n      this.checkLineOfSight = false;\n      return this;\n   }\n\n   public TargetingConditions ignoreInvisibilityTesting() {\n      this.testInvisible = false;\n      return this;\n   }\n\n   public TargetingConditions selector(@Nullable Predicate<LivingEntity> p_26889_) {\n      this.selector = p_26889_;\n      return this;\n   }\n\n   public boolean test(@Nullable LivingEntity p_26886_, LivingEntity p_26887_) {\n      if (p_26886_ == p_26887_) {\n         return false;\n      } else if (!p_26887_.canBeSeenByAnyone()) {\n         return false;\n      } else if (this.selector != null && !this.selector.test(p_26887_)) {\n         return false;\n      } else {\n         if (p_26886_ == null) {\n            if (this.isCombat && (!p_26887_.canBeSeenAsEnemy() || p_26887_.level().getDifficulty() == Difficulty.PEACEFUL)) {\n               return false;\n            }\n         } else {\n            if (this.isCombat && (!p_26886_.canAttack(p_26887_) || !p_26886_.canAttackType(p_26887_.getType()) || p_26886_.isAlliedTo(p_26887_))) {\n               return false;\n            }\n\n            if (this.range > 0.0D) {\n               double d0 = this.testInvisible ? p_26887_.getVisibilityPercent(p_26886_) : 1.0D;\n               double d1 = Math.max(this.range * d0, 2.0D);\n               double d2 = p_26886_.distanceToSqr(p_26887_.getX(), p_26887_.getY(), p_26887_.getZ());\n               if (d2 > d1 * d1) {\n                  return false;\n               }\n            }\n\n            if (this.checkLineOfSight && p_26886_ instanceof Mob) {\n               Mob mob = (Mob)p_26886_;\n               if (!mob.getSensing().hasLineOfSight(p_26887_)) {\n                  return false;\n               }\n            }\n         }\n\n         return true;\n      }\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Sheep.java",
+      "entry_sha256": "232c6302ede6e2c59502e449f75f1ee4eba0242a0d18faae756e5e2e45250228",
+      "lines": [
+        67,
+        84
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6638ee3edd93cbd2c48e42bd6ca3e3bc6ffb3b0a1f26334156e0568b47ad15ef",
+      "raw_excerpt_utf8": "   private static final Map<DyeColor, ItemLike> ITEM_BY_DYE = Util.make(Maps.newEnumMap(DyeColor.class), (p_29841_) -> {\n      p_29841_.put(DyeColor.WHITE, Blocks.WHITE_WOOL);\n      p_29841_.put(DyeColor.ORANGE, Blocks.ORANGE_WOOL);\n      p_29841_.put(DyeColor.MAGENTA, Blocks.MAGENTA_WOOL);\n      p_29841_.put(DyeColor.LIGHT_BLUE, Blocks.LIGHT_BLUE_WOOL);\n      p_29841_.put(DyeColor.YELLOW, Blocks.YELLOW_WOOL);\n      p_29841_.put(DyeColor.LIME, Blocks.LIME_WOOL);\n      p_29841_.put(DyeColor.PINK, Blocks.PINK_WOOL);\n      p_29841_.put(DyeColor.GRAY, Blocks.GRAY_WOOL);\n      p_29841_.put(DyeColor.LIGHT_GRAY, Blocks.LIGHT_GRAY_WOOL);\n      p_29841_.put(DyeColor.CYAN, Blocks.CYAN_WOOL);\n      p_29841_.put(DyeColor.PURPLE, Blocks.PURPLE_WOOL);\n      p_29841_.put(DyeColor.BLUE, Blocks.BLUE_WOOL);\n      p_29841_.put(DyeColor.BROWN, Blocks.BROWN_WOOL);\n      p_29841_.put(DyeColor.GREEN, Blocks.GREEN_WOOL);\n      p_29841_.put(DyeColor.RED, Blocks.RED_WOOL);\n      p_29841_.put(DyeColor.BLACK, Blocks.BLACK_WOOL);\n   });\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Sheep.java",
+      "entry_sha256": "232c6302ede6e2c59502e449f75f1ee4eba0242a0d18faae756e5e2e45250228",
+      "lines": [
+        144,
+        204
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9987bd03be18c7d0447c2b1c09d06460e06a5177ab1ca3f5756d06dec6df7507",
+      "raw_excerpt_utf8": "   public ResourceLocation getDefaultLootTable() {\n      if (this.isSheared()) {\n         return this.getType().getDefaultLootTable();\n      } else {\n         ResourceLocation resourcelocation;\n         switch (this.getColor()) {\n            case WHITE:\n               resourcelocation = BuiltInLootTables.SHEEP_WHITE;\n               break;\n            case ORANGE:\n               resourcelocation = BuiltInLootTables.SHEEP_ORANGE;\n               break;\n            case MAGENTA:\n               resourcelocation = BuiltInLootTables.SHEEP_MAGENTA;\n               break;\n            case LIGHT_BLUE:\n               resourcelocation = BuiltInLootTables.SHEEP_LIGHT_BLUE;\n               break;\n            case YELLOW:\n               resourcelocation = BuiltInLootTables.SHEEP_YELLOW;\n               break;\n            case LIME:\n               resourcelocation = BuiltInLootTables.SHEEP_LIME;\n               break;\n            case PINK:\n               resourcelocation = BuiltInLootTables.SHEEP_PINK;\n               break;\n            case GRAY:\n               resourcelocation = BuiltInLootTables.SHEEP_GRAY;\n               break;\n            case LIGHT_GRAY:\n               resourcelocation = BuiltInLootTables.SHEEP_LIGHT_GRAY;\n               break;\n            case CYAN:\n               resourcelocation = BuiltInLootTables.SHEEP_CYAN;\n               break;\n            case PURPLE:\n               resourcelocation = BuiltInLootTables.SHEEP_PURPLE;\n               break;\n            case BLUE:\n               resourcelocation = BuiltInLootTables.SHEEP_BLUE;\n               break;\n            case BROWN:\n               resourcelocation = BuiltInLootTables.SHEEP_BROWN;\n               break;\n            case GREEN:\n               resourcelocation = BuiltInLootTables.SHEEP_GREEN;\n               break;\n            case RED:\n               resourcelocation = BuiltInLootTables.SHEEP_RED;\n               break;\n            case BLACK:\n               resourcelocation = BuiltInLootTables.SHEEP_BLACK;\n               break;\n            default:\n               throw new IncompatibleClassChangeError();\n         }\n\n         return resourcelocation;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Sheep.java",
+      "entry_sha256": "232c6302ede6e2c59502e449f75f1ee4eba0242a0d18faae756e5e2e45250228",
+      "lines": [
+        234,
+        250
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b02ccf066939749503155b2d3db217cd81cfbea3cc3a22719c83b23dd7a83d00",
+      "raw_excerpt_utf8": "   public InteractionResult mobInteract(Player p_29853_, InteractionHand p_29854_) {\n      ItemStack itemstack = p_29853_.getItemInHand(p_29854_);\n      if (false && itemstack.getItem() == Items.SHEARS) { //Forge: Moved to onSheared\n         if (!this.level().isClientSide && this.readyForShearing()) {\n            this.shear(SoundSource.PLAYERS);\n            this.gameEvent(GameEvent.SHEAR, p_29853_);\n            itemstack.hurtAndBreak(1, p_29853_, (p_29822_) -> {\n               p_29822_.broadcastBreakEvent(p_29854_);\n            });\n            return InteractionResult.SUCCESS;\n         } else {\n            return InteractionResult.CONSUME;\n         }\n      } else {\n         return super.mobInteract(p_29853_, p_29854_);\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Sheep.java",
+      "entry_sha256": "232c6302ede6e2c59502e449f75f1ee4eba0242a0d18faae756e5e2e45250228",
+      "lines": [
+        252,
+        281
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8413aff7d3e919e594321446d0fd9a9b68ca1dc559c6f01fbc4539b754fe6fdb",
+      "raw_excerpt_utf8": "   public void shear(SoundSource p_29819_) {\n      this.level().playSound((Player)null, this, SoundEvents.SHEEP_SHEAR, p_29819_, 1.0F, 1.0F);\n      this.setSheared(true);\n      int i = 1 + this.random.nextInt(3);\n\n      for(int j = 0; j < i; ++j) {\n         ItemEntity itementity = this.spawnAtLocation(ITEM_BY_DYE.get(this.getColor()), 1);\n         if (itementity != null) {\n            itementity.setDeltaMovement(itementity.getDeltaMovement().add((double)((this.random.nextFloat() - this.random.nextFloat()) * 0.1F), (double)(this.random.nextFloat() * 0.05F), (double)((this.random.nextFloat() - this.random.nextFloat()) * 0.1F)));\n         }\n      }\n\n   }\n\n   public boolean readyForShearing() {\n      return this.isAlive() && !this.isSheared() && !this.isBaby();\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_29864_) {\n      super.addAdditionalSaveData(p_29864_);\n      p_29864_.putBoolean(\"Sheared\", this.isSheared());\n      p_29864_.putByte(\"Color\", (byte)this.getColor().getId());\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_29845_) {\n      super.readAdditionalSaveData(p_29845_);\n      this.setSheared(p_29845_.getBoolean(\"Sheared\"));\n      this.setColor(DyeColor.byId(p_29845_.getByte(\"Color\")));\n   }\n\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Sheep.java",
+      "entry_sha256": "232c6302ede6e2c59502e449f75f1ee4eba0242a0d18faae756e5e2e45250228",
+      "lines": [
+        298,
+        319
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "4228cdc8ab1f5b124efc503f3e6bf6e7d29057bb99a95046acaa4a1a72d66db6",
+      "raw_excerpt_utf8": "   public DyeColor getColor() {\n      return DyeColor.byId(this.entityData.get(DATA_WOOL_ID) & 15);\n   }\n\n   public void setColor(DyeColor p_29856_) {\n      byte b0 = this.entityData.get(DATA_WOOL_ID);\n      this.entityData.set(DATA_WOOL_ID, (byte)(b0 & 240 | p_29856_.getId() & 15));\n   }\n\n   public boolean isSheared() {\n      return (this.entityData.get(DATA_WOOL_ID) & 16) != 0;\n   }\n\n   public void setSheared(boolean p_29879_) {\n      byte b0 = this.entityData.get(DATA_WOOL_ID);\n      if (p_29879_) {\n         this.entityData.set(DATA_WOOL_ID, (byte)(b0 | 16));\n      } else {\n         this.entityData.set(DATA_WOOL_ID, (byte)(b0 & -17));\n      }\n\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/Sheep.java",
+      "entry_sha256": "232c6302ede6e2c59502e449f75f1ee4eba0242a0d18faae756e5e2e45250228",
+      "lines": [
+        398,
+        411
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9918c233af615e03f7ccc4b53f86da3ae974d9d32d644366d4e0a78381a1fa87",
+      "raw_excerpt_utf8": "   public java.util.List<ItemStack> onSheared(@Nullable Player player, @org.jetbrains.annotations.NotNull ItemStack item, Level world, BlockPos pos, int fortune) {\n      world.playSound(null, this, SoundEvents.SHEEP_SHEAR, player == null ? SoundSource.BLOCKS : SoundSource.PLAYERS, 1.0F, 1.0F);\n      this.gameEvent(GameEvent.SHEAR, player);\n      if (!world.isClientSide) {\n         this.setSheared(true);\n         int i = 1 + this.random.nextInt(3);\n\n         java.util.List<ItemStack> items = new java.util.ArrayList<>();\n         for (int j = 0; j < i; ++j) {\n            items.add(new ItemStack(ITEM_BY_DYE.get(this.getColor())));\n         }\n         return items;\n      }\n      return java.util.Collections.emptyList();\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        748,
+        758
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8876fa63e8f1606fb6ead4a4bde40bd51d8e3ee5b53aba5ede30e858c615490a",
+      "raw_excerpt_utf8": "    public static boolean getMobGriefingEvent(Level level, @Nullable Entity entity)\n    {\n        if (entity == null)\n            return level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);\n\n        EntityMobGriefingEvent event = new EntityMobGriefingEvent(entity);\n        MinecraftForge.EVENT_BUS.post(event);\n\n        Result result = event.getResult();\n        return result == Result.DEFAULT ? level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) : result == Result.ALLOW;\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/EntityGetter.java",
+      "entry_sha256": "96d40415e5fbe59f9d4d902ed8dbabb66b3dee2e75577eb0b1e5ba1e141ad068",
+      "lines": [
+        167,
+        180
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c599179c86b63187f020c5324389934125aba9afd4a1ee7fe72297edf277cf17",
+      "raw_excerpt_utf8": "   default <T extends LivingEntity> List<T> getNearbyEntities(Class<T> p_45972_, TargetingConditions p_45973_, LivingEntity p_45974_, AABB p_45975_) {\n      List<T> list = this.getEntitiesOfClass(p_45972_, p_45975_, (p_186450_) -> {\n         return true;\n      });\n      List<T> list1 = Lists.newArrayList();\n\n      for(T t : list) {\n         if (p_45973_.test(p_45974_, t)) {\n            list1.add(t);\n         }\n      }\n\n      return list1;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "lines": [
+        866,
+        868
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a5879f80c0f90e47dba7f9c312deda791e41130fe14d36dd2816e5f995104be2",
+      "raw_excerpt_utf8": "   public boolean canBeSeenByAnyone() {\n      return !this.isSpectator() && this.isAlive();\n   }\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_read_range_count": 12,
+  "actual_read_entry_count": 7,
+  "actual_full_file_count": 3,
+  "actual_cited_lines": 822,
+  "existing_global_whole_decisions_for_pending_comparison": [
+    {
+      "candidate_id": "ad5fe13fbc5ae45fa8f8",
+      "canonical_complete_row_sha256": "c111822b563e599d121e6e2d0bcc51a0a081eed0d0821e5d364214f69c3b69d0",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "ad5fe13fbc5ae45fa8f8",
+        "status": "accepted",
+        "family": "native-evoker-fangs-persisted-attack-phase-and-owner-attribution",
+        "trigger": "Whole EvokerFangs pair/tick/dealDamage/owner methods",
+        "input": "Warmup signed phase counter, optional ownerUUID",
+        "output": "load Warmup, decrement; actual damage only at-8, excludes owner/allies whenresolved; lazyownerUUID survives writer even unresolved",
+        "preservation": "Distinct discrete phase event, not generic fuse: saved negative phase prevents replay once passed exact damagepoint; still only one wholefangchain. Useful checkpoint-before/after phase distinction.",
+        "application_limit": "lifeTicks and sentSpikeEvent NOT saved, so lifetime/eventpresentation restart; absentWarmup0 hits after8ticks, missingowner onreuse stale. Unresolved owner changes ally filtering and attribution. No atomicdamage receipt beyond phase field or runtime proof.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "complete_current_judgment_actually_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    },
+    {
+      "candidate_id": "f867ab5b91a74700f91c",
+      "canonical_complete_row_sha256": "03739e9162a57217bf5f2b3c0169fe2d4c995912c8c3c885bfa518e2cc399180",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "f867ab5b91a74700f91c",
+        "status": "accepted",
+        "family": "native-vex-summoned-lease-partial-owner-loss-and-bound-roaming",
+        "trigger": "Vex pair/tick/setLimitedLife/copyOwnerGoal/randomMove plus Evoker actual summon",
+        "input": "optional boundorigin, LifeTicks sets limitedflag; owner Mob only RAM",
+        "output": "summoner assigns600..2380tickslife and origin; readoptionalLifeTicks enablesdecrement; expires→1starvationdamage then20tickrepeat; roamingusesrestoredorigin",
+        "preservation": "One summon lifespan owner including specific negative ownership loss: writer has no ownerUUID, so target-copy owner reference lost afterreload while lifespan remains. Not wholeNBTcopy remedy.",
+        "application_limit": "MissingLifeTicks retains unlimited ctor; presence wrongtype→0 immediateexpiry. Negative/unbounded values allowed. No deadline aging while offline, owner relationship not recovered; no actualdeath guaranteed because damage may fail.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "complete_current_judgment_actually_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    },
+    {
+      "candidate_id": "37d01f2c5955fb8e026e",
+      "canonical_complete_row_sha256": "5b71e3a51888a79c9e5e0d4764cbff22e61b2457c3ee7d1a0b2205adf817ba48",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "37d01f2c5955fb8e026e",
+        "status": "accepted",
+        "family": "native-sheep-harvested-wool-receipt-and-regrowth-restoration",
+        "trigger": "Sheep full pair/readyForShearing/shear/ate + actual Forge isShearable/onSheared",
+        "input": "Sheared consumed resource flag plus bounded dye ID",
+        "output": "restore wool availability and dye; actual server Forge shear returns colored wool and sets receipt, eating explicitly regrows resource",
+        "preservation": "Not cosmetic-only color: actual harvested wool entitlement and physical item output read. Independent owner/consumer from goat horn irreversible version default; both not counted as multiple sides/colors. Native mobInteract shear branch disabled by Forge, actual callback checked.",
+        "application_limit": "Missing Shearedfalse replenishes if saved receipt omitted; raw dye uses byId fallback. Returned callback items require caller emission (caller not traced); no exactly-once item delivery claim. Resource intentionally renews on ate, not permanent player progress.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "complete_current_judgment_actually_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    },
+    {
+      "candidate_id": "50baaef9f4ca718c77da",
+      "canonical_complete_row_sha256": "d2d5e543b22e947290dfc2b64491ee1c9ef7821182b27c6777bd087ceccd2acc",
+      "actual_current_non_evidence_decision_fields": {
+        "candidate_id": "50baaef9f4ca718c77da",
+        "status": "accepted",
+        "family": "native-retained-adult-frog-phenotype-to-prey-death-material-conversion",
+        "trigger": "Adult biome phenotype survives ordinary save/load and actual frog-caused prey death supplies material loot",
+        "input": "Namespaced FrogVariant saved identity, actual attacker DamageSource, actual victim loot context",
+        "output": "Resolved variant restored without local biome reroll; actual magma-cube loot selects retained-phenotype-specific froglight through registered source_entity type_specific predicate",
+        "preservation": "Real biome-tag-selected adult FrogVariant namespacedidentity persists; ordinary load updates only when registryresolves and subsequentAI doesnotrecomputecurrentbiome phenotype. RealFrogcanEat admits size1 SlimeinclMagmaCube fromactualjarfoodtag. Sensor/AI activity choosesrealprey andShootTongue makesnormalMobAttack; actualDamageSource retains same frog direct/causingentity. NativeLivingEntitydeath sendsDAMAGE_SOURCE to actualvictimlootcontext. Exactminecraft1.20.1 client.jar magma_cube lootfulltext hasactualwarm/cold/temperate sourceentityvariantpredicates selectingpearlescent/verdant/ochre stacks. EntityPredicate.fromJson calls type_specific parser; actualEntitySubPredicate.Types map registers frog toFROGvariantpredicate andgetterFrog.getVariant; recordequals determinesmatching. The retained trait actually changes repeatable products fromanotherentitydeath afterreload, notcolor/UI or3independentbranches. Onewholeadultretainedphenotype as crossentitymaterialproduction selector, no extra registry/helper/loot/phenotypepervaluecredit. Dedup: Tadpolepaidgrowth createsadult handoff, but no lateradultpredator phenotype-dependentexternalvictimlootwas credited. Sheepresource depletion/regrowth consumesownboundedstock; thisFrogtrait persists withoutperkillcounterandclassifiesanotherentity actualdeathmaterial. Mooshroomspendschosenpendingstewonce; here no nextmealpayload toclear. Beanplant ownstatefood/clone selection differs from actualattacker-phenotype→victimcause-of-death attribution channel. Panda inheritedgene drivesownbehavior/attributes, notmaterial conversion by preydeath. Native8ad armedexplosive includesCreeperpowered and omittedskullcounter assupport; itscreditedinvariant is fuse/currentcharge timing, notFrogsbiome-acquired adultclass feedingregisteredvictimloot. ChargedCreepercanillustrate similar killer-state-to-head reward but wedonotproposenewCreepercredit/attributecredit; noledgerexistingfullpredator-phenotype-to-preymaterialownerfound. Mostimportantdifference is sourceentityphenotype selection onthevictimslootcontext; variant+prettytexturesalonewould0. Independentworldsourceimplementationmax1 ratherthanallanimalvariant wrappers.",
+        "application_limit": "Whole Frog355/FrogAi141/ShootTongue149/FrogVariant15/AttackablesSensor25/EntityVariantPredicate70/DamageSourcePredicate134/DamageSourceCondition51 actualread; onlyselectedothers. Firstwrong ShootTongue path missed thencorrectanimal/frog file read fully. ActualVanillaEntityLoot onlyline78, NOTentiremonsterloottables. Sourcehash/registry/candidatecountnotsemanticcredits. Twojarresourcesfullyread, outputnotgame. No actualgame/two-player/entitykill/lootdelivery/saveflush/survival/renderer tests orproductionchanges. Currentpack canoverride vanillaJSON/tag/damage/events; exactvanillaarchivemembers donotprove currentDynastyrecipe/dropbalance or ecologyavailability. Lootdrop bool/onLivingDrops cancancel, addFreshEntityreturnignored, no exactlyonce/perkill delivery guarantee. Persistedkey absent/wrongstring/invalid/unresolved lookupdoesnotcallsetVariant, freshobjectinitialTEMPERATE; reusedobjectkeepsoldvariant. ReaderdoesnotquarantineunknownID. Detailedregistryregistrationmapimplementation/codecunknownaliases notfullyunfolded, no arbitraryformatmigration guarantee. BuiltInregisterSimpledeclarationselected, lookupMappedRegistryselected. Variantrownamesstable, no versionaliasesexamined. FrogVariantrecord equalscomparestexture ResourceLocation, andEntityVariantPredicate comparesrecordequals, notexplicitregisteredkeyidentity. Customvariantwithsame texture maycompareequal; externaldynamicregistry/customregistrationnotreproduced. Savedconstructorname outputandpredicatecomparison distinct semantic surfaces, no universalcustomvariantguarantee. BiomevariantassignedonlywhenfinalizeSpawn called. Here wholeFrog offspringcreatesnewentityandinitMemories, no directparentvariantinheritance; priorTadpoleconversioncallsfinalizeSpawn inthatpriorreceipt butthisproposaldoesnotre-readitsentirechain orcountagain. Do not describegeneticparentphenotypeinheritance/paidbreedledger orplayerownershipUUID. Frog.canEat requires tagand ifSlimesize==1; vanillafoodtag isSlime+MagmaCube. Sensorhuntingcooldown/attackable/reach/10distance andactualtonguepathdistance<1.75 gate; completeenginepathfinder/Mob.hurt hooksnotread. No guaranteedpredation/proximity/nativeAIperformance. LootJSON froglightbranches onlycheck frogvariant, NOTexplicitvictimsize; unnaturalfrogcausedlargemagmakillcouldstillmatch table. NaturalAI sizegate isseparateauthority, no blanketloot-sizeenforcementclaim. ShootTongue attack attempts onlyifcurrentlyalive, ignoresbooleanhurtreturn thenchecksentityalive andremoveKILLED. ForgeLivingDeath veto, targethealth/armoreffects canpreventdeath; no killreceipt merelyfromcandidate/animation. Slime.remove onlysplitswhen size>1anddead; no splittingofordinaryAI-targetsize1. WholeMagmaCubeclassnotread, onlyextendsSlimeandselectedheader through100; additionaloverride absence searchnotwholebehaviorreview. ActualdamageSource constructor ties frogcausingentity. DamageSourceCondition consumesactualcontextDAMAGE_SOURCE, sourceEntitypredicate ultimatelyFrogVariant getter. LivingEntity.death usesactuallastcause, notarbitraryKillCredit; customsourceoverride orsameownerprojectile canmeet sourcepredicate withouttongueattack, noexclusiveactionproof. MobcustomLootTable overridesdefault and datapacks/hooks canreplace/dropdeny. No fullenginecrash-atomicproof. Persistentvariantpolicy NOTallFrogbrainfields! Frog inheritsnativeBrainserialization; pregnancy/AI memories notauditedforpersistencehere, no assertionallunsaved. TongueDATA targetnumericID andanimationstate notwritteninlocaladditionalpair; wholeparentreadmayownotherfields. No transfer of temporarytarget/flight/QAflags intoDynastyplayerClone. No newcredit percolor/frog/sensor/lootcondition/helper. This isonlyproposedwholematerialconversioninvariant beyondcosmetics, notautomaticacceptbecausefilesorlines. Sharedgenericregistry/damage/drop/codec allsupport0, no architecture/model/texture/ecology credit. Actualreifiedarchive isvanillabase, not proofcurrentDynastyalloverridedatapacks/materialproduction tested. NoJava/game/entityspawn/kill/sound/worldmutation. Readzipbytesonly. Packet/lootdispatch/Gsonregistrytop-level engine notfullaudit; supplementalEntityPredicateparser/type-mapclosesconcretebinding butallgenericcodec machinerysupport0. SourceclaimedfullFrog355 andFrogAi141 ranges omitfinalouterclosingbrace inactualsplitlines356/142; independentalreadyreadwhole356/142 priorreview. No executablelogic omitted; evidencecounts1245 refer listedexactranges, not bytecountingimprovedcredit. ShootTongue149similarlyincludesinnerenumclosebutouterbrace150exists; actualfullbehaviorsemanticsread, no completenessclaimforgenericparentclasses. Frog.canEat Slime size1 isAI targetselection, lootfroglightbranches doNOTsizecheck. Lootallowsanyfrog-causingDamageSource, notexclusiveTongueAbility or guaranteedlastplayerkillcredit. Genericdamage hooks/killveto/dropcancel/addentity failure remain. Selection doesnotestablish globallyoneitemperactualpredation acrossmods/crash. FrogVariantJava record equality comparesitssoletextureResourceLocation, notregisteredID. Customsame-texture registeredvariant couldequal vanilla predicate; no unseenmodalias compatibilityclaim. Mainreaderreturnsnochangeifresolvednull, defaultTEMPERATEfresh vsoldvalue reused; unknownIDsnotroundtripped/quarantined. No proposednewDyastyecology/variant/asset/recipe/Clonepolicy. Retainedphenotype iscreaturefact, notperplayerownedentitlement; innatebiomeassignmentnotearnedpaidprogress itself. Sourceillustrates semanticretention affectingactualmaterial, notpermissiontocopyarbitrarycooldown/brainstate.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "complete_current_judgment_actually_read_this_continuation": true,
+      "old_original_source_chains_reread": false,
+      "retained_new_credit": 0
+    }
+  ],
+  "observed_so_far": [
+    "Complete Evoker328 binds Wololo goalpriority6, casting1, summon4/attack5 and combat targets. Wololo overrides normal attack-target canUse instead of super; requires no current combat target, not casting, actor tickCount>=nextAttackTickCount and Forge mobGriefing gate.",
+    "Full Forge gate posts EntityMobGriefingEvent, DEFAULT uses gameRule, ALLOW true, other result false. Effective handlers/current gamerule not proved. Start-side permission is not repeated by shown perform callback.",
+    "Wololo query uses Sheep.class with AABBinflate(16,4,16), noncombat TargetingConditions range16 and selector colorBLUE, then uniform list random. Complete EntityGetter method queries class/AABB first then TargetingConditions.test. Native base canBeSeenByAnyone excludes spectator/nonalive; test further visibility-scaled3Ddistance max(range*visibility,2) and Mob LOS, selector. Backend class membership/self/loading/actualLOS internals bounded; no exact cylinder/all-sheep census.",
+    "No own adult/unsheared predicate in selection. stop clears cached sheep after superstop. Continue only cachedsheepnonnull && warmup>0; perform only cachednonnull/alive then setColorRED. No explicit recolor-time BLUE/distance/LOS/mobGriefing/no-combat recheck or age/unsheared test. Source-level stale eligibility is not a reproduced gameplay exploit.",
+    "Full SpellcasterUseSpellGoal.start sets warmup=adjustedTickDelay(40), actorSpellTicks60, nextAttack=actorTickCount+140 before mutation and asks sound/setspellWOLOLO. Delivered tick decrements warmup and performs at exact0 then cast sound even if targetdead. Not40guaranteed worldticks, success-coupled cooldown, retry or refund. Base Goal/complete scheduler remains unexpanded here.",
+    "Full SpellcasterCastingSpellGoal has MOVE/LOOK flags, stopsnavigation and clears spell enum onstop; Evoker override look prefers combat target else cachedsheep. UseSpell constructor has no flags set in shownclass. Complete GoalSelector interleavings/unloading/navigation not certified.",
+    "Spellcaster own NBT persists only SpellTicks among shown spell fields; currentSpell/goal warmup/nextAttack and Evoker cachedsheep not saved by these own pairs. Fresh vs reused object differs: reader restores counter but no explicit cached target/goal reset. No actual loaded pending recolor continuation or callback receipt.",
+    "Sheep color setter updates low4 bits preserving high shearedbit. Shown save/read stores Sheared and byteColor. Color affects unshorn death-loot table selection and ITEM_BY_DYE wool output, so recolor has a real source-level material consumer, not merely rendered tint. Raw loot tables/current data not read; sheared death branch uses generic defaulttable.",
+    "Legacy mobInteract shear branch explicitly false underForge. Actual onSheared server callback sets sheared before returning1..3 currentcolor wool stacks from concrete map; caller emission/inventory admission untraced. readiness separately alive/notSheared/notBaby; sourcecallback alone does not enforce everycaller. No actual wool/player acquisition, payment or success receipt.",
+    "Full surrounding Evoker fangs and Vex summon read to bound exclusions, not separately credit. Already acceptedfang phase/owner andVex life/origin/noRAMowner recovery whole owners retain priorcredit0new. Sheep harvestreceipt/regrowth and Frog adultphenotype-to-preyloot complete current judgments also retained0. Need distinct whole review before max1 ecological producer policy; helpers/species/colors/fields do not count separately."
+  ],
+  "pending": [
+    "Bound complete closest ecology service and whole global producer/consumer decisions before original-author proposal; separate mere phenotype parameterization/old spell support from potentially related complete ecology policy.",
+    "No final generic scheduler, complete virtual inheritance, effective Forge events, loaded raw loot, caller wool emission/playerpickup or actual reload/material/kill experiment.",
+    "Main-authorized Natural EA0039 true author receipt has been delivered; no other package unless Main authorizes."
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

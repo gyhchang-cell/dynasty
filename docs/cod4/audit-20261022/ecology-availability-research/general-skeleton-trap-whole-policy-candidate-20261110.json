@@ -1,0 +1,944 @@
+{
+  "recorded_at": "2026-11-09T18:38:17.263342+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ORIGINAL_SKELETON_TRAP_WHOLE_ECOLOGY_APPLICABILITY_PENDING_MAIN_GLOBAL_OWNER_REUSED0",
+  "semantic_key": "weather-seeded-finite-live-trap-reservoir-to-player-triggered-queued-role-consumption-and-partially-admitted-mounted-cohort",
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "actual_native_read_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/horse/SkeletonHorse.java",
+      "entry_sha256": "86c89d0ba0327b60506c21b1c8c6d20b54cd77c1bb1e2aeb5ecc724ef360388f",
+      "lines": [
+        1,
+        147
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "86c89d0ba0327b60506c21b1c8c6d20b54cd77c1bb1e2aeb5ecc724ef360388f",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.animal.horse;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.AgeableMob;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.MobType;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\n\npublic class SkeletonHorse extends AbstractHorse {\n   private final SkeletonTrapGoal skeletonTrapGoal = new SkeletonTrapGoal(this);\n   private static final int TRAP_MAX_LIFE = 18000;\n   private boolean isTrap;\n   private int trapTime;\n\n   public SkeletonHorse(EntityType<? extends SkeletonHorse> p_30894_, Level p_30895_) {\n      super(p_30894_, p_30895_);\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return createBaseHorseAttributes().add(Attributes.MAX_HEALTH, 15.0D).add(Attributes.MOVEMENT_SPEED, (double)0.2F);\n   }\n\n   protected void randomizeAttributes(RandomSource p_218821_) {\n      this.getAttribute(Attributes.JUMP_STRENGTH).setBaseValue(generateJumpStrength(p_218821_::nextDouble));\n   }\n\n   protected void addBehaviourGoals() {\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return this.isEyeInFluid(FluidTags.WATER) ? SoundEvents.SKELETON_HORSE_AMBIENT_WATER : SoundEvents.SKELETON_HORSE_AMBIENT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.SKELETON_HORSE_DEATH;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_30916_) {\n      return SoundEvents.SKELETON_HORSE_HURT;\n   }\n\n   protected SoundEvent getSwimSound() {\n      if (this.onGround()) {\n         if (!this.isVehicle()) {\n            return SoundEvents.SKELETON_HORSE_STEP_WATER;\n         }\n\n         ++this.gallopSoundCounter;\n         if (this.gallopSoundCounter > 5 && this.gallopSoundCounter % 3 == 0) {\n            return SoundEvents.SKELETON_HORSE_GALLOP_WATER;\n         }\n\n         if (this.gallopSoundCounter <= 5) {\n            return SoundEvents.SKELETON_HORSE_STEP_WATER;\n         }\n      }\n\n      return SoundEvents.SKELETON_HORSE_SWIM;\n   }\n\n   protected void playSwimSound(float p_30911_) {\n      if (this.onGround()) {\n         super.playSwimSound(0.3F);\n      } else {\n         super.playSwimSound(Math.min(0.1F, p_30911_ * 25.0F));\n      }\n\n   }\n\n   protected void playJumpSound() {\n      if (this.isInWater()) {\n         this.playSound(SoundEvents.SKELETON_HORSE_JUMP_WATER, 0.4F, 1.0F);\n      } else {\n         super.playJumpSound();\n      }\n\n   }\n\n   public MobType getMobType() {\n      return MobType.UNDEAD;\n   }\n\n   public double getPassengersRidingOffset() {\n      return super.getPassengersRidingOffset() - 0.1875D;\n   }\n\n   public void aiStep() {\n      super.aiStep();\n      if (this.isTrap() && this.trapTime++ >= 18000) {\n         this.discard();\n      }\n\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_30907_) {\n      super.addAdditionalSaveData(p_30907_);\n      p_30907_.putBoolean(\"SkeletonTrap\", this.isTrap());\n      p_30907_.putInt(\"SkeletonTrapTime\", this.trapTime);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_30901_) {\n      super.readAdditionalSaveData(p_30901_);\n      this.setTrap(p_30901_.getBoolean(\"SkeletonTrap\"));\n      this.trapTime = p_30901_.getInt(\"SkeletonTrapTime\");\n   }\n\n   protected float getWaterSlowDown() {\n      return 0.96F;\n   }\n\n   public boolean isTrap() {\n      return this.isTrap;\n   }\n\n   public void setTrap(boolean p_30924_) {\n      if (p_30924_ != this.isTrap) {\n         this.isTrap = p_30924_;\n         if (p_30924_) {\n            this.goalSelector.addGoal(1, this.skeletonTrapGoal);\n         } else {\n            this.goalSelector.removeGoal(this.skeletonTrapGoal);\n         }\n\n      }\n   }\n\n   @Nullable\n   public AgeableMob getBreedOffspring(ServerLevel p_149553_, AgeableMob p_149554_) {\n      return EntityType.SKELETON_HORSE.create(p_149553_);\n   }\n\n   public InteractionResult mobInteract(Player p_30904_, InteractionHand p_30905_) {\n      return !this.isTamed() ? InteractionResult.PASS : super.mobInteract(p_30904_, p_30905_);\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/horse/SkeletonTrapGoal.java",
+      "entry_sha256": "1c1f89fa3fb152f98b8e9ed746d13aadbbda5c46c8de57b0b40cbbd9222185c3",
+      "lines": [
+        1,
+        104
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "1c1f89fa3fb152f98b8e9ed746d13aadbbda5c46c8de57b0b40cbbd9222185c3",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.animal.horse;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LightningBolt;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.monster.Skeleton;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\n\npublic class SkeletonTrapGoal extends Goal {\n   private final SkeletonHorse horse;\n\n   public SkeletonTrapGoal(SkeletonHorse p_30927_) {\n      this.horse = p_30927_;\n   }\n\n   public boolean canUse() {\n      return this.horse.level().hasNearbyAlivePlayer(this.horse.getX(), this.horse.getY(), this.horse.getZ(), 10.0D);\n   }\n\n   public void tick() {\n      ServerLevel serverlevel = (ServerLevel)this.horse.level();\n      // Forge: Trigger the trap in a tick task to avoid crashes when mods add goals to skeleton horses\n      // (MC-206338/Forge PR #7509)\n      serverlevel.getServer().tell(new net.minecraft.server.TickTask(serverlevel.getServer().getTickCount(), () -> {\n      if (!this.horse.isAlive()) return;\n      DifficultyInstance difficultyinstance = serverlevel.getCurrentDifficultyAt(this.horse.blockPosition());\n      this.horse.setTrap(false);\n      this.horse.setTamed(true);\n      this.horse.setAge(0);\n      LightningBolt lightningbolt = EntityType.LIGHTNING_BOLT.create(serverlevel);\n      if (lightningbolt != null) {\n         lightningbolt.moveTo(this.horse.getX(), this.horse.getY(), this.horse.getZ());\n         lightningbolt.setVisualOnly(true);\n         serverlevel.addFreshEntity(lightningbolt);\n         Skeleton skeleton = this.createSkeleton(difficultyinstance, this.horse);\n         if (skeleton != null) {\n            skeleton.startRiding(this.horse);\n            serverlevel.addFreshEntityWithPassengers(skeleton);\n\n            for(int i = 0; i < 3; ++i) {\n               AbstractHorse abstracthorse = this.createHorse(difficultyinstance);\n               if (abstracthorse != null) {\n                  Skeleton skeleton1 = this.createSkeleton(difficultyinstance, abstracthorse);\n                  if (skeleton1 != null) {\n                     skeleton1.startRiding(abstracthorse);\n                     abstracthorse.push(this.horse.getRandom().triangle(0.0D, 1.1485D), 0.0D, this.horse.getRandom().triangle(0.0D, 1.1485D));\n                     serverlevel.addFreshEntityWithPassengers(abstracthorse);\n                  }\n               }\n            }\n\n         }\n      }\n      }));\n   }\n\n   @Nullable\n   private AbstractHorse createHorse(DifficultyInstance p_30930_) {\n      SkeletonHorse skeletonhorse = EntityType.SKELETON_HORSE.create(this.horse.level());\n      if (skeletonhorse != null) {\n         skeletonhorse.finalizeSpawn((ServerLevel)this.horse.level(), p_30930_, MobSpawnType.TRIGGERED, (SpawnGroupData)null, (CompoundTag)null);\n         skeletonhorse.setPos(this.horse.getX(), this.horse.getY(), this.horse.getZ());\n         skeletonhorse.invulnerableTime = 60;\n         skeletonhorse.setPersistenceRequired();\n         skeletonhorse.setTamed(true);\n         skeletonhorse.setAge(0);\n      }\n\n      return skeletonhorse;\n   }\n\n   @Nullable\n   private Skeleton createSkeleton(DifficultyInstance p_30932_, AbstractHorse p_30933_) {\n      Skeleton skeleton = EntityType.SKELETON.create(p_30933_.level());\n      if (skeleton != null) {\n         skeleton.finalizeSpawn((ServerLevel)p_30933_.level(), p_30932_, MobSpawnType.TRIGGERED, (SpawnGroupData)null, (CompoundTag)null);\n         skeleton.setPos(p_30933_.getX(), p_30933_.getY(), p_30933_.getZ());\n         skeleton.invulnerableTime = 60;\n         skeleton.setPersistenceRequired();\n         if (skeleton.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n            skeleton.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.IRON_HELMET));\n         }\n\n         skeleton.setItemSlot(EquipmentSlot.MAINHAND, EnchantmentHelper.enchantItem(skeleton.getRandom(), this.disenchant(skeleton.getMainHandItem()), (int)(5.0F + p_30932_.getSpecialMultiplier() * (float)skeleton.getRandom().nextInt(18)), false));\n         skeleton.setItemSlot(EquipmentSlot.HEAD, EnchantmentHelper.enchantItem(skeleton.getRandom(), this.disenchant(skeleton.getItemBySlot(EquipmentSlot.HEAD)), (int)(5.0F + p_30932_.getSpecialMultiplier() * (float)skeleton.getRandom().nextInt(18)), false));\n      }\n\n      return skeleton;\n   }\n\n   private ItemStack disenchant(ItemStack p_30935_) {\n      p_30935_.removeTagKey(\"Enchantments\");\n      return p_30935_;\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/util/thread/BlockableEventLoop.java",
+      "entry_sha256": "75dd82865050ae5ff35fb31b8461b6b1bb4020f5fcbc7972e43bc1308c675b99",
+      "lines": [
+        1,
+        153
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "75dd82865050ae5ff35fb31b8461b6b1bb4020f5fcbc7972e43bc1308c675b99",
+      "raw_excerpt_utf8": "package net.minecraft.util.thread;\n\nimport com.google.common.collect.ImmutableList;\nimport com.google.common.collect.Queues;\nimport com.mojang.logging.LogUtils;\nimport java.util.List;\nimport java.util.Queue;\nimport java.util.concurrent.CompletableFuture;\nimport java.util.concurrent.Executor;\nimport java.util.concurrent.locks.LockSupport;\nimport java.util.function.BooleanSupplier;\nimport java.util.function.Supplier;\nimport net.minecraft.util.profiling.metrics.MetricCategory;\nimport net.minecraft.util.profiling.metrics.MetricSampler;\nimport net.minecraft.util.profiling.metrics.MetricsRegistry;\nimport net.minecraft.util.profiling.metrics.ProfilerMeasured;\nimport org.slf4j.Logger;\n\npublic abstract class BlockableEventLoop<R extends Runnable> implements ProfilerMeasured, ProcessorHandle<R>, Executor {\n   private final String name;\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private final Queue<R> pendingRunnables = Queues.newConcurrentLinkedQueue();\n   private int blockingCount;\n\n   protected BlockableEventLoop(String p_18686_) {\n      this.name = p_18686_;\n      MetricsRegistry.INSTANCE.add(this);\n   }\n\n   protected abstract R wrapRunnable(Runnable p_18704_);\n\n   protected abstract boolean shouldRun(R p_18703_);\n\n   public boolean isSameThread() {\n      return Thread.currentThread() == this.getRunningThread();\n   }\n\n   protected abstract Thread getRunningThread();\n\n   protected boolean scheduleExecutables() {\n      return !this.isSameThread();\n   }\n\n   public int getPendingTasksCount() {\n      return this.pendingRunnables.size();\n   }\n\n   public String name() {\n      return this.name;\n   }\n\n   public <V> CompletableFuture<V> submit(Supplier<V> p_18692_) {\n      return this.scheduleExecutables() ? CompletableFuture.supplyAsync(p_18692_, this) : CompletableFuture.completedFuture(p_18692_.get());\n   }\n\n   public CompletableFuture<Void> submitAsync(Runnable p_18690_) {\n      return CompletableFuture.supplyAsync(() -> {\n         p_18690_.run();\n         return null;\n      }, this);\n   }\n\n   public CompletableFuture<Void> submit(Runnable p_18708_) {\n      if (this.scheduleExecutables()) {\n         return this.submitAsync(p_18708_);\n      } else {\n         p_18708_.run();\n         return CompletableFuture.completedFuture((Void)null);\n      }\n   }\n\n   public void executeBlocking(Runnable p_18710_) {\n      if (!this.isSameThread()) {\n         this.submitAsync(p_18710_).join();\n      } else {\n         p_18710_.run();\n      }\n\n   }\n\n   public void tell(R p_18712_) {\n      this.pendingRunnables.add(p_18712_);\n      LockSupport.unpark(this.getRunningThread());\n   }\n\n   public void execute(Runnable p_18706_) {\n      if (this.scheduleExecutables()) {\n         this.tell(this.wrapRunnable(p_18706_));\n      } else {\n         p_18706_.run();\n      }\n\n   }\n\n   public void executeIfPossible(Runnable p_201937_) {\n      this.execute(p_201937_);\n   }\n\n   protected void dropAllTasks() {\n      this.pendingRunnables.clear();\n   }\n\n   protected void runAllTasks() {\n      while(this.pollTask()) {\n      }\n\n   }\n\n   public boolean pollTask() {\n      R r = this.pendingRunnables.peek();\n      if (r == null) {\n         return false;\n      } else if (this.blockingCount == 0 && !this.shouldRun(r)) {\n         return false;\n      } else {\n         this.doRunTask(this.pendingRunnables.remove());\n         return true;\n      }\n   }\n\n   public void managedBlock(BooleanSupplier p_18702_) {\n      ++this.blockingCount;\n\n      try {\n         while(!p_18702_.getAsBoolean()) {\n            if (!this.pollTask()) {\n               this.waitForTasks();\n            }\n         }\n      } finally {\n         --this.blockingCount;\n      }\n\n   }\n\n   protected void waitForTasks() {\n      Thread.yield();\n      LockSupport.parkNanos(\"waiting for tasks\", 100000L);\n   }\n\n   protected void doRunTask(R p_18700_) {\n      try {\n         p_18700_.run();\n      } catch (Exception exception) {\n         LOGGER.error(LogUtils.FATAL_MARKER, \"Error executing task on {}\", this.name(), exception);\n      }\n\n   }\n\n   public List<MetricSampler> profiledMetrics() {\n      return ImmutableList.of(MetricSampler.create(this.name + \"-pending-tasks\", MetricCategory.EVENT_LOOPS, this::getPendingTasksCount));\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/TickTask.java",
+      "entry_sha256": "7c98183c008b2a81a4ffe71f1d1c0c31b5a5301195d496296d818dca5ba9f6d0",
+      "lines": [
+        1,
+        19
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "7c98183c008b2a81a4ffe71f1d1c0c31b5a5301195d496296d818dca5ba9f6d0",
+      "raw_excerpt_utf8": "package net.minecraft.server;\n\npublic class TickTask implements Runnable {\n   private final int tick;\n   private final Runnable runnable;\n\n   public TickTask(int p_136252_, Runnable p_136253_) {\n      this.tick = p_136252_;\n      this.runnable = p_136253_;\n   }\n\n   public int getTick() {\n      return this.tick;\n   }\n\n   public void run() {\n      this.runnable.run();\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/util/thread/ReentrantBlockableEventLoop.java",
+      "entry_sha256": "f39469831d5c8bfdbb5db53e3e2dfc92265caf8098860379933e84fb446cfb0c",
+      "lines": [
+        1,
+        28
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "f39469831d5c8bfdbb5db53e3e2dfc92265caf8098860379933e84fb446cfb0c",
+      "raw_excerpt_utf8": "package net.minecraft.util.thread;\n\npublic abstract class ReentrantBlockableEventLoop<R extends Runnable> extends BlockableEventLoop<R> {\n   private int reentrantCount;\n\n   public ReentrantBlockableEventLoop(String p_18765_) {\n      super(p_18765_);\n   }\n\n   public boolean scheduleExecutables() {\n      return this.runningTask() || super.scheduleExecutables();\n   }\n\n   protected boolean runningTask() {\n      return this.reentrantCount != 0;\n   }\n\n   public void doRunTask(R p_18769_) {\n      ++this.reentrantCount;\n\n      try {\n         super.doRunTask(p_18769_);\n      } finally {\n         --this.reentrantCount;\n      }\n\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/goal/Goal.java",
+      "entry_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+      "lines": [
+        1,
+        59
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport net.minecraft.util.Mth;\n\npublic abstract class Goal {\n   private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);\n\n   public abstract boolean canUse();\n\n   public boolean canContinueToUse() {\n      return this.canUse();\n   }\n\n   public boolean isInterruptable() {\n      return true;\n   }\n\n   public void start() {\n   }\n\n   public void stop() {\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return false;\n   }\n\n   public void tick() {\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_25328_) {\n      this.flags.clear();\n      this.flags.addAll(p_25328_);\n   }\n\n   public String toString() {\n      return this.getClass().getSimpleName();\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.flags;\n   }\n\n   protected int adjustedTickDelay(int p_186072_) {\n      return this.requiresUpdateEveryTick() ? p_186072_ : reducedTickDelay(p_186072_);\n   }\n\n   protected static int reducedTickDelay(int p_186074_) {\n      return Mth.positiveCeilDiv(p_186074_, 2);\n   }\n\n   public static enum Flag {\n      MOVE,\n      LOOK,\n      JUMP,\n      TARGET;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+      "entry_sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+      "lines": [
+        1,
+        89
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\n\npublic class WrappedGoal extends Goal {\n   private final Goal goal;\n   private final int priority;\n   private boolean isRunning;\n\n   public WrappedGoal(int p_25998_, Goal p_25999_) {\n      this.priority = p_25998_;\n      this.goal = p_25999_;\n   }\n\n   public boolean canBeReplacedBy(WrappedGoal p_26003_) {\n      return this.isInterruptable() && p_26003_.getPriority() < this.getPriority();\n   }\n\n   public boolean canUse() {\n      return this.goal.canUse();\n   }\n\n   public boolean canContinueToUse() {\n      return this.goal.canContinueToUse();\n   }\n\n   public boolean isInterruptable() {\n      return this.goal.isInterruptable();\n   }\n\n   public void start() {\n      if (!this.isRunning) {\n         this.isRunning = true;\n         this.goal.start();\n      }\n   }\n\n   public void stop() {\n      if (this.isRunning) {\n         this.isRunning = false;\n         this.goal.stop();\n      }\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return this.goal.requiresUpdateEveryTick();\n   }\n\n   protected int adjustedTickDelay(int p_186092_) {\n      return this.goal.adjustedTickDelay(p_186092_);\n   }\n\n   public void tick() {\n      this.goal.tick();\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_26005_) {\n      this.goal.setFlags(p_26005_);\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.goal.getFlags();\n   }\n\n   public boolean isRunning() {\n      return this.isRunning;\n   }\n\n   public int getPriority() {\n      return this.priority;\n   }\n\n   public Goal getGoal() {\n      return this.goal;\n   }\n\n   public boolean equals(@Nullable Object p_26011_) {\n      if (this == p_26011_) {\n         return true;\n      } else {\n         return p_26011_ != null && this.getClass() == p_26011_.getClass() ? this.goal.equals(((WrappedGoal)p_26011_).goal) : false;\n      }\n   }\n\n   public int hashCode() {\n      return this.goal.hashCode();\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/goal/GoalSelector.java",
+      "entry_sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+      "lines": [
+        1,
+        158
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.goal;\n\nimport com.google.common.annotations.VisibleForTesting;\nimport com.google.common.collect.Sets;\nimport com.mojang.logging.LogUtils;\nimport java.util.EnumMap;\nimport java.util.EnumSet;\nimport java.util.Iterator;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.function.Predicate;\nimport java.util.function.Supplier;\nimport java.util.stream.Stream;\nimport net.minecraft.util.profiling.ProfilerFiller;\nimport org.slf4j.Logger;\n\npublic class GoalSelector {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final WrappedGoal NO_GOAL = new WrappedGoal(Integer.MAX_VALUE, new Goal() {\n      public boolean canUse() {\n         return false;\n      }\n   }) {\n      public boolean isRunning() {\n         return false;\n      }\n   };\n   private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);\n   private final Set<WrappedGoal> availableGoals = Sets.newLinkedHashSet();\n   private final Supplier<ProfilerFiller> profiler;\n   private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);\n   private int tickCount;\n   private int newGoalRate = 3;\n\n   public GoalSelector(Supplier<ProfilerFiller> p_25351_) {\n      this.profiler = p_25351_;\n   }\n\n   public void addGoal(int p_25353_, Goal p_25354_) {\n      this.availableGoals.add(new WrappedGoal(p_25353_, p_25354_));\n   }\n\n   @VisibleForTesting\n   public void removeAllGoals(Predicate<Goal> p_262575_) {\n      this.availableGoals.removeIf((p_262564_) -> {\n         return p_262575_.test(p_262564_.getGoal());\n      });\n   }\n\n   public void removeGoal(Goal p_25364_) {\n      this.availableGoals.stream().filter((p_25378_) -> {\n         return p_25378_.getGoal() == p_25364_;\n      }).filter(WrappedGoal::isRunning).forEach(WrappedGoal::stop);\n      this.availableGoals.removeIf((p_25367_) -> {\n         return p_25367_.getGoal() == p_25364_;\n      });\n   }\n\n   private static boolean goalContainsAnyFlags(WrappedGoal p_186076_, EnumSet<Goal.Flag> p_186077_) {\n      for(Goal.Flag goal$flag : p_186076_.getFlags()) {\n         if (p_186077_.contains(goal$flag)) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n   private static boolean goalCanBeReplacedForAllFlags(WrappedGoal p_186079_, Map<Goal.Flag, WrappedGoal> p_186080_) {\n      for(Goal.Flag goal$flag : p_186079_.getFlags()) {\n         if (!p_186080_.getOrDefault(goal$flag, NO_GOAL).canBeReplacedBy(p_186079_)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public void tick() {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalCleanup\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.disabledFlags) || !wrappedgoal.canContinueToUse())) {\n            wrappedgoal.stop();\n         }\n      }\n\n      Iterator<Map.Entry<Goal.Flag, WrappedGoal>> iterator = this.lockedFlags.entrySet().iterator();\n\n      while(iterator.hasNext()) {\n         Map.Entry<Goal.Flag, WrappedGoal> entry = iterator.next();\n         if (!entry.getValue().isRunning()) {\n            iterator.remove();\n         }\n      }\n\n      profilerfiller.pop();\n      profilerfiller.push(\"goalUpdate\");\n\n      for(WrappedGoal wrappedgoal2 : this.availableGoals) {\n         if (!wrappedgoal2.isRunning() && !goalContainsAnyFlags(wrappedgoal2, this.disabledFlags) && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags) && wrappedgoal2.canUse()) {\n            for(Goal.Flag goal$flag : wrappedgoal2.getFlags()) {\n               WrappedGoal wrappedgoal1 = this.lockedFlags.getOrDefault(goal$flag, NO_GOAL);\n               wrappedgoal1.stop();\n               this.lockedFlags.put(goal$flag, wrappedgoal2);\n            }\n\n            wrappedgoal2.start();\n         }\n      }\n\n      profilerfiller.pop();\n      this.tickRunningGoals(true);\n   }\n\n   public void tickRunningGoals(boolean p_186082_) {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalTick\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (p_186082_ || wrappedgoal.requiresUpdateEveryTick())) {\n            wrappedgoal.tick();\n         }\n      }\n\n      profilerfiller.pop();\n   }\n\n   public Set<WrappedGoal> getAvailableGoals() {\n      return this.availableGoals;\n   }\n\n   public Stream<WrappedGoal> getRunningGoals() {\n      return this.availableGoals.stream().filter(WrappedGoal::isRunning);\n   }\n\n   public void setNewGoalRate(int p_148098_) {\n      this.newGoalRate = p_148098_;\n   }\n\n   public void disableControlFlag(Goal.Flag p_25356_) {\n      this.disabledFlags.add(p_25356_);\n   }\n\n   public void enableControlFlag(Goal.Flag p_25375_) {\n      this.disabledFlags.remove(p_25375_);\n   }\n\n   public void setControlFlag(Goal.Flag p_25361_, boolean p_25362_) {\n      if (p_25362_) {\n         this.enableControlFlag(p_25361_);\n      } else {\n         this.disableControlFlag(p_25361_);\n      }\n\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/LightningBolt.java",
+      "entry_sha256": "b5a170bf908b3f5f620e35eed7fd8e93246fc39cb2db80874b3812031fe86c25",
+      "lines": [
+        1,
+        247
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "b5a170bf908b3f5f620e35eed7fd8e93246fc39cb2db80874b3812031fe86c25",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity;\n\nimport com.google.common.collect.Sets;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.Set;\nimport java.util.stream.Stream;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.BaseFireBlock;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.LightningRodBlock;\nimport net.minecraft.world.level.block.WeatheringCopper;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\n\npublic class LightningBolt extends Entity {\n   private static final int START_LIFE = 2;\n   private static final double DAMAGE_RADIUS = 3.0D;\n   private static final double DETECTION_RADIUS = 15.0D;\n   private int life;\n   public long seed;\n   private int flashes;\n   private boolean visualOnly;\n   @Nullable\n   private ServerPlayer cause;\n   private final Set<Entity> hitEntities = Sets.newHashSet();\n   private int blocksSetOnFire;\n   private float damage = 5.0F;\n\n   public LightningBolt(EntityType<? extends LightningBolt> p_20865_, Level p_20866_) {\n      super(p_20865_, p_20866_);\n      this.noCulling = true;\n      this.life = 2;\n      this.seed = this.random.nextLong();\n      this.flashes = this.random.nextInt(3) + 1;\n   }\n\n   public void setVisualOnly(boolean p_20875_) {\n      this.visualOnly = p_20875_;\n   }\n\n   public SoundSource getSoundSource() {\n      return SoundSource.WEATHER;\n   }\n\n   @Nullable\n   public ServerPlayer getCause() {\n      return this.cause;\n   }\n\n   public void setCause(@Nullable ServerPlayer p_20880_) {\n      this.cause = p_20880_;\n   }\n\n   private void powerLightningRod() {\n      BlockPos blockpos = this.getStrikePosition();\n      BlockState blockstate = this.level().getBlockState(blockpos);\n      if (blockstate.is(Blocks.LIGHTNING_ROD)) {\n         ((LightningRodBlock)blockstate.getBlock()).onLightningStrike(blockstate, this.level(), blockpos);\n      }\n\n   }\n\n   public void setDamage(float damage) {\n      this.damage = damage;\n   }\n\n   public float getDamage() {\n      return this.damage;\n   }\n\n   public void tick() {\n      super.tick();\n      if (this.life == 2) {\n         if (this.level().isClientSide()) {\n            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.WEATHER, 10000.0F, 0.8F + this.random.nextFloat() * 0.2F, false);\n            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.LIGHTNING_BOLT_IMPACT, SoundSource.WEATHER, 2.0F, 0.5F + this.random.nextFloat() * 0.2F, false);\n         } else {\n            Difficulty difficulty = this.level().getDifficulty();\n            if (difficulty == Difficulty.NORMAL || difficulty == Difficulty.HARD) {\n               this.spawnFire(4);\n            }\n\n            this.powerLightningRod();\n            clearCopperOnLightningStrike(this.level(), this.getStrikePosition());\n            this.gameEvent(GameEvent.LIGHTNING_STRIKE);\n         }\n      }\n\n      --this.life;\n      if (this.life < 0) {\n         if (this.flashes == 0) {\n            if (this.level() instanceof ServerLevel) {\n               List<Entity> list = this.level().getEntities(this, new AABB(this.getX() - 15.0D, this.getY() - 15.0D, this.getZ() - 15.0D, this.getX() + 15.0D, this.getY() + 6.0D + 15.0D, this.getZ() + 15.0D), (p_147140_) -> {\n                  return p_147140_.isAlive() && !this.hitEntities.contains(p_147140_);\n               });\n\n               for(ServerPlayer serverplayer : ((ServerLevel)this.level()).getPlayers((p_147157_) -> {\n                  return p_147157_.distanceTo(this) < 256.0F;\n               })) {\n                  CriteriaTriggers.LIGHTNING_STRIKE.trigger(serverplayer, this, list);\n               }\n            }\n\n            this.discard();\n         } else if (this.life < -this.random.nextInt(10)) {\n            --this.flashes;\n            this.life = 1;\n            this.seed = this.random.nextLong();\n            this.spawnFire(0);\n         }\n      }\n\n      if (this.life >= 0) {\n         if (!(this.level() instanceof ServerLevel)) {\n            this.level().setSkyFlashTime(2);\n         } else if (!this.visualOnly) {\n            List<Entity> list1 = this.level().getEntities(this, new AABB(this.getX() - 3.0D, this.getY() - 3.0D, this.getZ() - 3.0D, this.getX() + 3.0D, this.getY() + 6.0D + 3.0D, this.getZ() + 3.0D), Entity::isAlive);\n\n            for(Entity entity : list1) {\n               if (!net.minecraftforge.event.ForgeEventFactory.onEntityStruckByLightning(entity, this))\n               entity.thunderHit((ServerLevel)this.level(), this);\n            }\n\n            this.hitEntities.addAll(list1);\n            if (this.cause != null) {\n               CriteriaTriggers.CHANNELED_LIGHTNING.trigger(this.cause, list1);\n            }\n         }\n      }\n\n   }\n\n   private BlockPos getStrikePosition() {\n      Vec3 vec3 = this.position();\n      return BlockPos.containing(vec3.x, vec3.y - 1.0E-6D, vec3.z);\n   }\n\n   private void spawnFire(int p_20871_) {\n      if (!this.visualOnly && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {\n         BlockPos blockpos = this.blockPosition();\n         BlockState blockstate = BaseFireBlock.getState(this.level(), blockpos);\n         if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {\n            this.level().setBlockAndUpdate(blockpos, blockstate);\n            ++this.blocksSetOnFire;\n         }\n\n         for(int i = 0; i < p_20871_; ++i) {\n            BlockPos blockpos1 = blockpos.offset(this.random.nextInt(3) - 1, this.random.nextInt(3) - 1, this.random.nextInt(3) - 1);\n            blockstate = BaseFireBlock.getState(this.level(), blockpos1);\n            if (this.level().getBlockState(blockpos1).isAir() && blockstate.canSurvive(this.level(), blockpos1)) {\n               this.level().setBlockAndUpdate(blockpos1, blockstate);\n               ++this.blocksSetOnFire;\n            }\n         }\n\n      }\n   }\n\n   private static void clearCopperOnLightningStrike(Level p_147151_, BlockPos p_147152_) {\n      BlockState blockstate = p_147151_.getBlockState(p_147152_);\n      BlockPos blockpos;\n      BlockState blockstate1;\n      if (blockstate.is(Blocks.LIGHTNING_ROD)) {\n         blockpos = p_147152_.relative(blockstate.getValue(LightningRodBlock.FACING).getOpposite());\n         blockstate1 = p_147151_.getBlockState(blockpos);\n      } else {\n         blockpos = p_147152_;\n         blockstate1 = blockstate;\n      }\n\n      if (blockstate1.getBlock() instanceof WeatheringCopper) {\n         p_147151_.setBlockAndUpdate(blockpos, WeatheringCopper.getFirst(p_147151_.getBlockState(blockpos)));\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = p_147152_.mutable();\n         int i = p_147151_.random.nextInt(3) + 3;\n\n         for(int j = 0; j < i; ++j) {\n            int k = p_147151_.random.nextInt(8) + 1;\n            randomWalkCleaningCopper(p_147151_, blockpos, blockpos$mutableblockpos, k);\n         }\n\n      }\n   }\n\n   private static void randomWalkCleaningCopper(Level p_147146_, BlockPos p_147147_, BlockPos.MutableBlockPos p_147148_, int p_147149_) {\n      p_147148_.set(p_147147_);\n\n      for(int i = 0; i < p_147149_; ++i) {\n         Optional<BlockPos> optional = randomStepCleaningCopper(p_147146_, p_147148_);\n         if (!optional.isPresent()) {\n            break;\n         }\n\n         p_147148_.set(optional.get());\n      }\n\n   }\n\n   private static Optional<BlockPos> randomStepCleaningCopper(Level p_147154_, BlockPos p_147155_) {\n      for(BlockPos blockpos : BlockPos.randomInCube(p_147154_.random, 10, p_147155_, 1)) {\n         BlockState blockstate = p_147154_.getBlockState(blockpos);\n         if (blockstate.getBlock() instanceof WeatheringCopper) {\n            WeatheringCopper.getPrevious(blockstate).ifPresent((p_147144_) -> {\n               p_147154_.setBlockAndUpdate(blockpos, p_147144_);\n            });\n            p_147154_.levelEvent(3002, blockpos, -1);\n            return Optional.of(blockpos);\n         }\n      }\n\n      return Optional.empty();\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_20869_) {\n      double d0 = 64.0D * getViewScale();\n      return p_20869_ < d0 * d0;\n   }\n\n   protected void defineSynchedData() {\n   }\n\n   protected void readAdditionalSaveData(CompoundTag p_20873_) {\n   }\n\n   protected void addAdditionalSaveData(CompoundTag p_20877_) {\n   }\n\n   public int getBlocksSetOnFire() {\n      return this.blocksSetOnFire;\n   }\n\n   public Stream<Entity> getHitEntities() {\n      return this.hitEntities.stream().filter(Entity::isAlive);\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/ServerLevelAccessor.java",
+      "entry_sha256": "a9ee244c0bd76d9db422cf7fb5edcf5e4073df98ec4ba14952cab6076deec2fc",
+      "lines": [
+        1,
+        12
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "a9ee244c0bd76d9db422cf7fb5edcf5e4073df98ec4ba14952cab6076deec2fc",
+      "raw_excerpt_utf8": "package net.minecraft.world.level;\n\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.Entity;\n\npublic interface ServerLevelAccessor extends LevelAccessor {\n   ServerLevel getLevel();\n\n   default void addFreshEntityWithPassengers(Entity p_47206_) {\n      p_47206_.getSelfAndPassengers().forEach(this::addFreshEntity);\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        401,
+        430
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c77ff8532569bb0454709467d472d9766f072317e9fbcdc49910bfce68d0c65a",
+      "raw_excerpt_utf8": "   public void tickChunk(LevelChunk p_8715_, int p_8716_) {\n      ChunkPos chunkpos = p_8715_.getPos();\n      boolean flag = this.isRaining();\n      int i = chunkpos.getMinBlockX();\n      int j = chunkpos.getMinBlockZ();\n      ProfilerFiller profilerfiller = this.getProfiler();\n      profilerfiller.push(\"thunder\");\n      if (flag && this.isThundering() && this.random.nextInt(100000) == 0) {\n         BlockPos blockpos = this.findLightningTargetAround(this.getBlockRandomPos(i, 0, j, 15));\n         if (this.isRainingAt(blockpos)) {\n            DifficultyInstance difficultyinstance = this.getCurrentDifficultyAt(blockpos);\n            boolean flag1 = this.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && this.random.nextDouble() < (double)difficultyinstance.getEffectiveDifficulty() * 0.01D && !this.getBlockState(blockpos.below()).is(Blocks.LIGHTNING_ROD);\n            if (flag1) {\n               SkeletonHorse skeletonhorse = EntityType.SKELETON_HORSE.create(this);\n               if (skeletonhorse != null) {\n                  skeletonhorse.setTrap(true);\n                  skeletonhorse.setAge(0);\n                  skeletonhorse.setPos((double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ());\n                  this.addFreshEntity(skeletonhorse);\n               }\n            }\n\n            LightningBolt lightningbolt = EntityType.LIGHTNING_BOLT.create(this);\n            if (lightningbolt != null) {\n               lightningbolt.moveTo(Vec3.atBottomCenterOf(blockpos));\n               lightningbolt.setVisualOnly(flag1);\n               this.addFreshEntity(lightningbolt);\n            }\n         }\n      }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        509,
+        529
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "34ff50ef002291d7d74f5d66a4bd00407fc08fa21dc0f58f8e911eda5a334acc",
+      "raw_excerpt_utf8": "   protected BlockPos findLightningTargetAround(BlockPos p_143289_) {\n      BlockPos blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_143289_);\n      Optional<BlockPos> optional = this.findLightningRod(blockpos);\n      if (optional.isPresent()) {\n         return optional.get();\n      } else {\n         AABB aabb = (new AABB(blockpos, new BlockPos(blockpos.getX(), this.getMaxBuildHeight(), blockpos.getZ()))).inflate(3.0D);\n         List<LivingEntity> list = this.getEntitiesOfClass(LivingEntity.class, aabb, (p_289308_) -> {\n            return p_289308_ != null && p_289308_.isAlive() && this.canSeeSky(p_289308_.blockPosition());\n         });\n         if (!list.isEmpty()) {\n            return list.get(this.random.nextInt(list.size())).blockPosition();\n         } else {\n            if (blockpos.getY() == this.getMinBuildHeight() - 1) {\n               blockpos = blockpos.above(2);\n            }\n\n            return blockpos;\n         }\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/MinecraftServer.java",
+      "entry_sha256": "2eda23dd693039b22af48e5a793a551530b8e5cfcfa6cb6c9f1f371e2f55d4fe",
+      "lines": [
+        727,
+        771
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f99ce35fb4746e7f7be107a713365bb285288b7dfd9490415df26809a9c78afb",
+      "raw_excerpt_utf8": "   private boolean haveTime() {\n      return this.runningTask() || Util.getMillis() < (this.mayHaveDelayedTasks ? this.delayedTasksMaxNextTickTime : this.nextTickTime);\n   }\n\n   protected void waitUntilNextTick() {\n      this.runAllTasks();\n      this.managedBlock(() -> {\n         return !this.haveTime();\n      });\n   }\n\n   protected TickTask wrapRunnable(Runnable p_129852_) {\n      return new TickTask(this.tickCount, p_129852_);\n   }\n\n   protected boolean shouldRun(TickTask p_129883_) {\n      return p_129883_.getTick() + 3 < this.tickCount || this.haveTime();\n   }\n\n   public boolean pollTask() {\n      boolean flag = this.pollTaskInternal();\n      this.mayHaveDelayedTasks = flag;\n      return flag;\n   }\n\n   private boolean pollTaskInternal() {\n      if (super.pollTask()) {\n         return true;\n      } else {\n         if (this.haveTime()) {\n            for(ServerLevel serverlevel : this.getAllLevels()) {\n               if (serverlevel.getChunkSource().pollTask()) {\n                  return true;\n               }\n            }\n         }\n\n         return false;\n      }\n   }\n\n   public void doRunTask(TickTask p_129957_) {\n      this.getProfiler().incrementCounter(\"runTask\");\n      super.doRunTask(p_129957_);\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/MinecraftServer.java",
+      "entry_sha256": "2eda23dd693039b22af48e5a793a551530b8e5cfcfa6cb6c9f1f371e2f55d4fe",
+      "lines": [
+        161,
+        161
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "94d6062f6cc4596e8408b9a09bf93f4a3b3824e79fc8045dcf8b2cfee9946dc9",
+      "raw_excerpt_utf8": "public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTask> implements CommandSource, AutoCloseable {\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/EntityGetter.java",
+      "entry_sha256": "96d40415e5fbe59f9d4d902ed8dbabb66b3dee2e75577eb0b1e5ba1e141ad068",
+      "lines": [
+        102,
+        113
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e908f6a5c3b7125487f7864d3a049534919d82bd587299c57493afeccc1c3437",
+      "raw_excerpt_utf8": "   default boolean hasNearbyAlivePlayer(double p_45915_, double p_45916_, double p_45917_, double p_45918_) {\n      for(Player player : this.players()) {\n         if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {\n            double d0 = player.distanceToSqr(p_45915_, p_45916_, p_45917_);\n            if (p_45918_ < 0.0D || d0 < p_45918_ * p_45918_) {\n               return true;\n            }\n         }\n      }\n\n      return false;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        255,
+        255
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "7315ba9f50045056babf225208e70a61b66566afcc512352bbd419afe5d033b0",
+      "raw_excerpt_utf8": "   public static final EntityType<SkeletonHorse> SKELETON_HORSE = register(\"skeleton_horse\", EntityType.Builder.of(SkeletonHorse::new, MobCategory.CREATURE).sized(1.3964844F, 1.6F).clientTrackingRange(10));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        2905,
+        2911
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "02755171094fec7c59b76e0593bda1e441522a65dff43f0a4894f341dabc03a9",
+      "raw_excerpt_utf8": "   private Stream<Entity> getIndirectPassengersStream() {\n      return this.passengers.stream().flatMap(Entity::getSelfAndPassengers);\n   }\n\n   public Stream<Entity> getSelfAndPassengers() {\n      return Stream.concat(Stream.of(this), this.getIndirectPassengersStream());\n   }\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_range_count": 17,
+  "actual_entry_count": 15,
+  "actual_full_file_count": 10,
+  "actual_line_occurrences": 1133,
+  "actual_distinct_cited_lines": 1133,
+  "actual_source_provenance": "Fixed local mapped Forge source archive/entry, not Git/fresh remote/current loaded pack",
+  "previous_actual_add_admission_support_reused0": [
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+        "sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+        "bytes": 824243
+      },
+      "actual_own_verification": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-zombie-reinforcement-EA0047-real-author-verification-20261110.json",
+        "sha256": "518c0498a0207b2121bde3380363d942520f5f8700e1cf35d048c4df85b3e98a",
+        "bytes": 76854
+      },
+      "descriptor": {
+        "kind": "artifact_native",
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/server/level/ServerLevel.java",
+        "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "lines": [
+          805,
+          825
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "f202ff385e7beb0a58ea39e2e62950f2d7f73faa0bb9e2ad561da5270f564c3b",
+        "raw_excerpt_utf8": "      return list;\n   }\n\n   @Nullable\n   public ServerPlayer getRandomPlayer() {\n      List<ServerPlayer> list = this.getPlayers(LivingEntity::isAlive);\n      return list.isEmpty() ? null : list.get(this.random.nextInt(list.size()));\n   }\n\n   public boolean addFreshEntity(Entity p_8837_) {\n      return this.addEntity(p_8837_);\n   }\n\n   public boolean addWithUUID(Entity p_8848_) {\n      return this.addEntity(p_8848_);\n   }\n\n   public void addDuringTeleport(Entity p_143335_) {\n      this.addEntity(p_143335_);\n   }\n\n",
+        "actual_read_scope": "Complete addFreshEntity/addWithUUID/addDuringTeleport and random player helper; class partial.",
+        "range_or_helper_credit": 0
+      },
+      "old_actual_read_reused": true,
+      "new_credit": 0
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+        "sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+        "bytes": 824243
+      },
+      "actual_own_verification": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-zombie-reinforcement-EA0047-real-author-verification-20261110.json",
+        "sha256": "518c0498a0207b2121bde3380363d942520f5f8700e1cf35d048c4df85b3e98a",
+        "bytes": 76854
+      },
+      "descriptor": {
+        "kind": "artifact_native",
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/server/level/ServerLevel.java",
+        "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "lines": [
+          850,
+          875
+        ],
+        "full_file": false,
+        "raw_excerpt_sha256": "49fc979175d7a6308e57c70f93dfeecdf269ad180503b759cf639764d402c252",
+        "raw_excerpt_utf8": "\n      this.entityManager.addNewEntityWithoutEvent(p_8854_);\n      p_8854_.onAddedToWorld();\n   }\n\n   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n\n   public boolean tryAddFreshEntityWithPassengers(Entity p_8861_) {\n      if (p_8861_.getSelfAndPassengers().map(Entity::getUUID).anyMatch(this.entityManager::isLoaded)) {\n         return false;\n      } else {\n         this.addFreshEntityWithPassengers(p_8861_);\n         return true;\n      }\n",
+        "actual_read_scope": "Complete private addEntity855..867; adjacent tail and tryAddFreshEntityWithPassengers beginning only.",
+        "range_or_helper_credit": 0
+      },
+      "old_actual_read_reused": true,
+      "new_credit": 0
+    }
+  ],
+  "current_master_binding": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "70f6e4fc629947aa59f7d54badef38a6fb9e712ad632e42fcb246609580a982a",
+    "bytes": 1503806
+  },
+  "current_formal_accepted": 49,
+  "current_formal_gap": 951,
+  "current_complete_record_identity_index_integrity0": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    },
+    {
+      "id": "EA-0047",
+      "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+      "batch_sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+      "canonical_record_sha256": "51bb8cdea916d3fc39c13b37ff58fe0f2f786ff661cfbe2cf11f8c2a6f07f0cf"
+    },
+    {
+      "id": "EA-0048",
+      "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-039.json",
+      "batch_sha256": "5368642e47c777bedd8c8298665b73175345b81b75150d1ecfea8593c4fec9e4",
+      "canonical_record_sha256": "d958c35f6ee66c780e579d3bf8230ffb0a84ebb6869bcca13643c8f2a014cced"
+    },
+    {
+      "id": "EA-0049",
+      "semantic_key": "owner-bound-habitat-weather-phased-fishing-window-to-event-vetoable-reel-loot-and-rod-damage-request-without-acquisition-ack",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-040.json",
+      "batch_sha256": "a2bf20337a0f06dc687a690e08f1afb7f593a246a8ca17686b37d9a1b56692bb",
+      "canonical_record_sha256": "dde78c2150e406f98d1579fee1476ecbfcfb5dc2a02b918d0a76b9d0e34c87a8"
+    },
+    {
+      "id": "EA-0050",
+      "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+      "batch_sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b"
+    }
+  ],
+  "current_complete_related_ecology_judgments_actually_read": [
+    {
+      "id": "EA-0016",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+        "sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+        "bytes": 106673
+      },
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759",
+      "complete_four_fields_actually_read": {
+        "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+        "observation": [
+          "Actual registry constructor and entry instantiate Skreecher as CREATURE despite Monster superclass. Own static placement checks nonpeaceful/darkness/SCULK and instance roll uses config with SPAWNER bypass; class/max cluster1 does not prove deployed natural biome pool/cap. These support a real called mechanism, not NATURAL spawn success.",
+          "Registered HurtByTargetGoal and player NearestTarget3D consumer can feed FollowTargetGoal. Anonymous target search uses bounding box inflated16 inX/Z and fixedY[-64,320], overriding helper cube. Follow canUse needs own live target and clingCooldown<=0; tick moves/looks and sets clapping within horizontal2.5 when cooldown==0. Target may come from retaliation, not necessarily a player. Base Goal/TargetGoal/GoalSelector scheduling/continuation and AI reachability remain unexpanded.",
+          "Qualified own tick needs clapping+ownalive+cooldown<=0. Counter starts0; modulo8 branch requests clap sound, ENTITY_ROAR, anger-nearby and particle; else-if15 gives other call. Multiples of both take8 branch. These are alarm requests, not add success, and100 is local qualifying-counter threshold rather than a guaranteed100 world-tick duration.",
+          "At clapTick>=100, configtrue and !hasAttempted immediately write attemptedtrue BEFORE downward support search, biome lookup, server guard, local existing-Warden and allowed-tag checks. False config leaves flag unspent while counter may continue; later enabling can enter without a fresh100-count period. Config default/assignment do not prove loaded value.",
+          "Search begins own block below, descends whileY>-64 and not sturdyUP, and can end at/below-64 with no supported floor. Holder biome is read at search ground position before server guard, not proof the actual child bounding box orY+1 position is safe/eligible. Hardcoded lower bound is not world min-height. No obstruction, full-body free-space or natural cap admission check shown.",
+          "Only when server, local Warden query empty and holder tag matches does create occur. No null guard. It moves to own exactX/Z and searchY+1, calls finalizeSpawn(TRIGGERED) using difficulty at original Skreecher block, sets attack target to THIS Skreecher, requests79 anger then calls unchecked addFreshEntity. The originally followed living target is not the target assigned to new Warden. Rejection/null/failed add do not refund flag.",
+          "After possible spawn it increments clapTick then server revalidates target alive/LOS/notinvisible/selfnotblind and horizontal<=20; failure calls setClapping(false), which resets counter. This order permits no source-level guarantee target was still eligible before spawn; it is not a reproduced stale-target gameplay event. Target reset and clap interruption do not reset attempted flag.",
+          "Nearby Warden AABB is X/Z±35 withY endpoints ownY+(cling?5:25) and-64. Native constructor normalizes all endpoints, so reverse-writtenY does not make it empty. Query is current local returned list, not radius35 sphere, whole-world count, alive/available encounter guarantee, durable lock or atomic reservation. Every8 qualifying iteration requests anger100 for returned Wardens with LOS. No cross-actor exclusivity/duplicate race or actual anger outcome is established.",
+          "NBT SummonedWarden serializes hasAttempted, not child UUID/add-result. Clinging/CeilDist/ClingCooldown also saved; clapTick/CLAPPING/jump progress not in own additional data. Complete class has no normal reset of attempted besides reading saved value; setClapping(false) resets counter only. Persistence/reload is conditional on actual engine save/load, not verified. Existing-Warden/biome rejection consumes opportunity; absence of sturdy support has no post-search rejection gate; repeated ordinary clapping will not retry for an already flagged instance.",
+          "Own hurt first clears cling/clap and sets200..399 cooldown before delegating super.hurt, without checking its result. Therefore a rejected hurt may still request interruption; neither actual HP decrease nor authoritative successful damage is required by these local mutations. No universal control immunity or native sound/particle rendering guarantee is inferred.",
+          "Native Warden.finalizeSpawn sets DIG_COOLDOWN1200, TRIGGERED EMERGING pose and temporary IS_EMERGING plus sound request before parent. setAttackTarget writes Brain attack target and resets roar/reach/sonic cooldown. increaseAngerAt requires !noAI and native canTargetEntity, then changes anger and optional listening feedback. Requests occur before actual add; not successful population/attack receipts. Warden hurt separately can request anger/target after super call independent of its returnedflag; contextual0 credit.",
+          "Native ServerLevel addFreshEntity returns addEntity boolean; removed entities rejected, failed entityManager add returnsfalse, success then onAddedToWorld. Caller ignores boolean. EntityManager/Forge join, UUID and chunk/saving internals unexpanded. Warden removeWhenFarAway=false only rejects that ordinary removal policy; complete emerging/digging/Brain lifetime/peaceful/external removal and postspawn survival are not proved.",
+          "Actual fixed tag67 bytes declares replacefalse and minecraft:deep_dark. Fixed Git blob/source checks bind resource content, not installed merged tag, dimension rules, config or loaded biome deployment. All registry/native/tag/sound/threshold/attempt/serialization support belongs to at most one AI-alarm/local-suppression/attempt-latch encounter family.",
+          "There is NO explicit post-search sturdy-floor rejection gate. The loop may stop atY<=-64 without a sturdyUP face, then still performs biome/server/local-Warden tests and can proceed to create/move/finalize/add if those pass. Unsupported ground is not a demonstrated independent rejection path.",
+          "The attempt flag is consumed before search. Biome/local-existing-Warden rejection or a subsequent failed create/add cannot restore it; lack of sturdy support itself does not block the shown spawn path. Do not infer a safe-floor guarantee or a ground-failure no-spawn guard."
+        ],
+        "application": [
+          "Separate alarm activity, consumed attempt, environmental/local suppression, initialization requests and actual add result. A persisted variable named Summoned is not sufficient population evidence.",
+          "1000 before any Dynasty ecology implementation; no cap/category/probability workaround or random repeated runtime."
+        ],
+        "limits": [
+          "At most one whole AI-alarm/local-suppression/persisted-attempt encounter family proposed; helper, roar, native methods, registration, tag, spawnroll, counter constants and species each support0. No accepted EA identifier/ledger credit created by this file. Existing build_tenth EA16 is a draft association only.",
+          "Unlike EA1 world/weather/chance recurring encounter, this is an individual active-target alarm and durable consumed attempt before environment/local suppression. Unlike EA9 structure postProcess cohorts, no structure start/pieces. EA11 is rider-associated expiry, EA14 host effect brood, EA17 paired pregnancy/world egg. These actual old decision fields were compared, not their full source chains reread.",
+          "No loaded tags/config, engine AI/GoalSelector scheduling, target-predicate consumers, EntityType.create internals, Warden complete Brain/anger management/emerging/digging behavior, parent finalizeSpawn, entityManager/Forge entity-join event path, chunk reload or post-reload replay was executed or fully expanded.",
+          "One single fixed-commit verified-HTTPS request fetched only67byte tag with exact pinned Git blob match; no API retry/TLS bypass, acquisition/file/range count earns0. All other inputs local, actual new source read recorded; constructor binding explicitly reused at same hash.",
+          "No Java/Gradle/game/GUI/server, no native spawn/birth/kill/material/performance/cap success, no production/asset/sharedJar/world/TODO change, no hours claimed. Master remains15/1000; independent semantic review and proper formal receipt required.",
+          "Draft packaging only. Full review and immutable floor clarification both required; no successful Warden or native/cap credit.",
+          "No ground rejection gate exists after the search. Initial Warden target/anger recipient is this Skreecher.",
+          "Author is original proposal coordinator; packaging draft author is separate existing reviewer thread. No new semantic reading credit."
+        ]
+      },
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Closest whole owner: active-target alarm consumes durable attempt before environment/local-Warden suppression. This trap instead has an independently weather-created live reservoir, saved role/time expiry, nearby-player trigger and queued task role change followed by mounted cohort. No novelty from one bool or threshold; Main may conservatively merge these pending-encounter state consumers0.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0011",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+        "sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+        "bytes": 57617
+      },
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2",
+      "complete_four_fields_actually_read": {
+        "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+        "observation": [
+          "真实注册ServerEvents的@SubscribeEvent FinalizeSpawn入口，只认WanderingTrader、正配置概率、随机条件与可选温度>=1；只在getChunkNow非空时创建象，再核查isLoaded/checkSpawnObstruction/上4格空气，设置trader/chested并addFreshEntity、强制骑乘、填loot。未核查event spawn reason，不是仅NATURAL事件。",
+          "此入口没有create null保护、addFreshEntity/startRiding结果判定或原trader UUID/已附象幂等标志；后续trader是否真的加入/未被取消未核验，故event/finalize回调不等于一对有效活体已出生。loot填充也不能代替加入成功。",
+          "完整tick中server且非tame trader才调用tryDespawn；有实际WanderingTrader乘客且其delay>0时先同步delay再减1，否则自身delay递减。到零卸leash、clear inventory、DISCARDED当前AbstractVillager乘客及象，不走die战利品逻辑；不能当玩家击杀或drop。",
+          "与商人绑定依靠当前passengers而非保存的原trader UUID；异常换乘的其他AbstractVillager也会在expiry被discard。不宣称严格identity绑定。tame会停止该自定义清理，完整tick驯服分支还主动卸乘客。",
+          "存档写回Trader/Tamed/DespawnDelay及Items，read恢复这些字段；实际交易物loot资源内容未审。read else分支逐项重复初始化，但initElephantInventory会复制旧容器内容；不据此宣称物品丢失，也不从字段存在推断每次状态变更必落盘。"
+        ],
+        "application": [
+          "后续生态分析区分原生分类抽取与其他游戏事件附带遭遇；记录来源事件、实际加入和乘客绑定结果，再跟踪临时种群退出；当前生产不新增商人附属spawn或绕cap。",
+          "可借鉴附属实体跟随主遭遇剩余寿命、驯服退出临时回收的状态划分；需使用明确identity、成功提交、正确清理原因和库存证据，不照搬原实现的缺陷。"
+        ],
+        "limits": [
+          "只研究真实模组event consumer与附属种群生命周期；vanilla WanderingTraderSpawner→Forge FinalizeSpawn触发内部未全文审，不能承诺固定周期、来源仅自然或本世界可达。",
+          "概率不是出生成功率；chunk与obstruction只是调用前条件，无入世/存活运行证据。未读当前版本NaturalSpawner实体计数内部，不声称真正解除CREATURE cap。",
+          "未执行/编译；未验证库存loot资源、taming全部外部导航/物品来源或其他模组cancel优先级；当前完整handler里其他物种AI分支均0额外信用。",
+          "expiry同步取决于实际riderDelay与tick执行，不把默认47999直接说成统一的实际世界期限或严格有界次数。"
+        ]
+      },
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Trader-finalize attached elephant has rider-coupled lifetime/adoption exit. Trap is a finite pre-encounter actor with a queued adult/tamed role transition and rider/three extra pair requests, no trader delay synchronization. Mount helper/species/group size alone earn0.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0001",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+        "sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+        "bytes": 94231
+      },
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a",
+      "complete_four_fields_actually_read": {
+        "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+        "observation": [
+          "每到 timer 门且雷暴才消耗1200 delay，doMobSpawning 再筛机会；失败概率累加而不是只改普通 biome 权重。",
+          "随机玩家、1/5 门、最多10处地表搜索、距离平方>225及无流体/支撑形状后，create/finalizeSpawn(SPAWNER)/addFreshEntity；不能称 vanilla NATURAL 出生。",
+          "这是源码中真实玩法入口，不走本方法内的 vanilla global/local cap 检查。"
+        ],
+        "application": [
+          "将稀有遭遇的机会时钟、天气等待、位置失败与实体实际加入分别记录，可解释等待窗口是否产生机会。",
+          "生态可达性研究应区别普通出生与独立遭遇来源，不能把后者回填前者的 NATURAL 验收。"
+        ],
+        "limits": [
+          "不建议现在引入独立 spawner 或绕开 cap；1000门槛未满。",
+          "attemptSpawnWhale 在没有玩家时返回true；addFreshEntity 返回值被忽略，所以方法true不严格等价出生成功。",
+          "load 使用 BeachedCachalot...，save 使用 beachedCachalot...，键大小写不一致；不能称可靠跨重启持久化。",
+          "onServerTick 未筛 Phase.END/Overworld，timer 在非雷暴也会减且可负；不能照抄1200为真实唯一服务端tick周期。",
+          "UUID写入不构成该方法的在世唯一性检查；未证明适用 Dynasty 或当前整合包。Citadel匹配器不在本项新增信用中。"
+        ]
+      },
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Whale is recurring world timer/weather/chance and bounded ground search; this source has vanilla lightning opportunity then independently retained trap actor that awaits player/expiry and transforms role. Weather/random/helper parameters alone are shared support0, no second world climate owner.",
+      "new_credit": 0
+    }
+  ],
+  "global_ledger_binding": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "bytes": 18357046
+  },
+  "complete_related_global_non_evidence_judgments_actually_read": [
+    {
+      "candidate_id": "f90b91ebda2a2efee472",
+      "canonical_complete_row_sha256": "8265a12e252aeed12386034602fede39525f5af5873861d2bdfba841df26b928",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "f90b91ebda2a2efee472",
+        "status": "accepted",
+        "family": "native-skeleton-horse-trap-lifetime-and-one-shot-role-transition",
+        "trigger": "Full SkeletonHorse/SkeletonTrapGoal",
+        "input": "SkeletonTrap bool and raw SkeletonTrapTime",
+        "output": "load invokes setTrap to restore/remove actual goal, timer resumes loaded ticks toward18000; nearby player triggers queued task, disablestrap and tames before spawning encounter",
+        "preservation": "Whole durable encounter state and actual consumers read; one pending encounter receipt rather than arbitrary bool accessor. Tamed role parent storage already counted0.",
+        "application_limit": "Missing timer0 extends lifetime, negative extends, no offlineelapsed. Trap disabled before lightning/skeleton creation succeeds; queued tasks only check alive, not trapstilltrue, so not atomic one-shot guarantee. Spawnresult ignored; no runtime reproduction.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_chains_replayed": false,
+      "whole_comparison": "EXACT same retained trap/lifetime/one-shot-role whole already globally accepted. Keep existing1; no global novelty/new migration. Potential ecology applicability only at most1 after Main whole decision, not a new trap timer or NBT mechanism.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "421b539238ca78a3b9c3",
+      "canonical_complete_row_sha256": "4b8b6eb874a971d39fdebb0336271cca8f2e17542e793dd836a920e5155af29c",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "421b539238ca78a3b9c3",
+        "status": "accepted",
+        "family": "native-world-active-climate-phase-and-clear-override-checkpoint",
+        "trigger": "World level.dat read/write restores active rain/thunder/clear phases; real weather-cycle tick and biome-gated world effects consume them",
+        "input": "One global authored climate episode state: clearWeatherTime,rainTime,raining,thunderTime,thundering, with derived effective intensities",
+        "output": "PrimaryLevelData.getClearWeatherTime is actual preexistingcandidate entryanchor only, notgettercredit. Whole five-fieldclimateowner: clearWeatherTime, rainTime,raining, thunderTime,thundering loadedfromlevel.dat Data through actualLevelStorageSource getLevelData->LEVEL DFU->Primary.parse->constructor, savedactualMinecraftServer.saveAllChunks->LevelStorageAccess.saveDataTag->worldData.createTag->Primary.setTagData->compressedtemporaryfileandUtil.safeReplaceFile. Realoperatorweathercommandspermission2 setClear/rain/thunder callServerLevel.setWeatherParameters; omittedduration samplescurrentdurationdistribution, explicitTimeArgumentminimum1. ActualServerLevel.tick invokesadvanceWeatherCycle: sky-litdimension anddoWeatherCycle true decrementremainingtickcounts, clearoverride forcesbothstatesfalseandresetsphasecounters0or1, otherwiserain/thunderindependentlytoggleonlypositivecountreaches0 andsamplefuturedurationonnonpositivecounter. Remainingcountsandphaseflagsarerealworldcheckpointnotresetonreload; pausedoffline/freezedpolicyhasnoglobalUTCexpiry. ActualprepareWeather reconstructsdisplayeffectivelevelsfromsavedflags, whiletickadjustslevels0.01clamped. Level.isRaining >0.2, isThundering hasSkyLight&&!hasCeiling &&effectivecombinedthunder>0.9; isRainingAt also checks sky/heightmap/biomeRAIN. RealServerLevel.tickChunk gateslightning/skeletonhorsespawnandrainprecipitation/snowupdate ontheseeffects, notUIonly. Currentclientlogin/respawn getsrainsnapshot, updatesbroadcastonlysame-dimensionandactualclientpacketlistenerappliessaved-derivedrain/thunder. Normalotherdimensions DerivedLevelDatareadsoverworldsharedflags/countswhileallweathersettersNOOP, notseparateindependentowner. Wholechainmax1.",
+        "preservation": "EvilCraft3bc ownsconsumableitemweatherenum/custodyandinstantactivate, notdurableworldcurrentphase+remainingcycleobligations. Goetyf888 ownsinstallednight-beacondaytimecontroller/beamrebuild, notnativeclimatecountdown; Paper634db worldruledeclarationstring->typedpolicyupgrade iscurrentweathercycleon/offpolicy, notactualweatherepisodecheckpoint. SpellEngine17daf perplayerrecastcooldownrestrictionrelativeclock notworldtwooscillator+clearoverridephaseandbiome-effectstate. Nativeb4c ownsqueuedblock/fluidmutationtypedsubject/scheduler notglobalclimatestate. GameRules8925 exploratory is deliberately excluded0 asalreadyPaper634db relatedpolicy. Mainmustmergeifexistingwholeclimateownerelsewhere; actual0 pendingreview. No individualflag/timer/commandvalue/helper/dimensioncredits.",
+        "application_limit": "Onlyfixedlocalcachedmappedsource read, no downloads/game/Java/climatechanges. No mainledger/checklist/productionchanges, commit/push. Mappedrevision64hexartifactidentitynotGitcommit; exactmetadataoriginalcandidatepin. No model/texture/buildingresearchcredit. Primary.parse defaults eachmissing/wrongtypecounter0 andflagfalse, no numericclamporcorruptpayloadescrow. Negativecounter entersresamplebranchwithouttogglingstate. Thus no guaranteedpreservationofmalformedweatherintent oroldmoddedkey. Thisisread/writecontinuitynotnewold-keyformatconverter. CRITICAL transitionintensities rainLevel,oRainLevel,thunderLevel,oThunderLevel are NOT persisted. prepareWeather initializesrainLevel1fromrainingtrueandthunder1onlyifalsothundering; previouslevels remainfielddefault0. Reloadmidfadejumpscurrentintensity/gate ratherthancontinuousexactvisualphase. thunderingtruewithrainingfalse doesnotinitialize thunder1; nextrunningticksrampthunderwithrainstill0. Notallfiveflagcombinationsguaranteeactualrain/thunder. Onlyremainingpositivecountdecrementwhileworldrunning,sky-litanddoWeatherCycle enabled. doWeatherCycle false freezesflags/countsbutlevelintensitySTILL ramps tocurrentflags. Daylightcyclerule independent. Pausedserver/offline-time doesnotconsumeclock, serverlag stretcheswalltime; noUTC/real-daypromise. Defaultdurationssamplelevel.random notnewpersistentRandomSequencesowner, noidenticalfutureepisoderollsacrossrestartclaim. Clearoverridewithprioractiveflag setsphasecounter0,otherwise1, forcesflagsfalse; onexpirybecausetickenteredclearbranchcount0stillclear. Nexttickpositive1canflipstate, whereas0resamplesdelay. Cannottreatclearoverrideasoneunifiedrain/thunder timer orpromiseidenticalweatherimmediatelyafterprotectionends. Rainandthunderindependentexceptcommandsetsamecounterandclearforcesboth. Normalnon-overworld DerivedLevelData setters are empty, gettersdelegateoverworld, so /weather commandexecutedwithnon-overworldsource canreport successyetnotchangeowner. Skylitcustomdimensionseffectivelevelsreadsharedoverworldstate, localcountercalculationwritediscarded; nonskylitdoesnotramp. Notperdimensionindependentclimatesave. No native/moddedcustomdimensionruntimeverification. ActualsleepcompletionafteradvanceWeatherCycle resetsbothrain/thundertimers0andflagsfalse onlyifdoWeatherCycleandLevel.isRainingcurrenteffectivelevel. clearWeatherTime notreset. /weather bypassespauseflagdirectset butintensitychangestillnexttick. ForgeonSleepFinished canmodifydaytime; fullsleepstatuspermissionhooknotdeepaudited. Rainisnotuniversalprecipitation: effectivelevels, skyobstruction,heightmap, biomeanddimensionrulesgateeffects. Snowbranchrequiresrainflagplusbiome.shouldSnowandsnowAccumulationheight; FREEZEshouldFreeze branch shownisoutsideifrainsoDO NOTclaimicerain-gated. Lightningrandomchanceplusmobrule/difficulty/rodgates; entitycreate/add mayfailreturnunverified. No outputconservation/securityclaim. Currentwritercreateswholeleveltag, compressiontemp andsafeReplaceFile callseen; deeperUtil.safeReplaceFileandfilesystemfsyncnotnewlyaudited. ExceptionloggedandnotpropagatedasdurabilityACK; block/entity/chunkstateandweathercheckpointnotoneatomiccommit. Crashmayreplaylastsavedphase andweatherinducedworldmutationsareindependentlysaved. No guaranteedallfilesconsistentbackup. Currentweatherbroadcastperdimensionforeachplayer referencekeymatchandactualclientlistenerobserved; notdurableACK. Login/respawnsendLevelInfo sendsweatheronlywhenisRaining true. ClientthunderupdatesinitialsnapshotusesgetThunderLevel whichalready multipliesrain; clientmaymultiplyagainbyitsrainlevelinqueries, noexactrenderparityclaim. Packetcodec/renderengine/connectionflushanddimensiontravelallpathsnotdeepaudited. Proposedwholeowner1 maximum onlysubjecttoindependentmainsemanticdedup. All25evidencerangescredit0. Nativegamerules exploratoryduplicate634dbexcluded ratherthanmanufacturingoneperbool. No automaticcompletion/checklistdeletion. Coordinator independently read all25 listed source ranges901lines and verified every source/range hash. WeatherCommand60 and DerivedLevelData177 full; all other bounded ranges not claimed complete classes. Actual ServerLevel401-464 is tickChunk effect consumer,569-663 advanceWeatherCycle/reset; preserve these precise ranges despite proposal introductory list inversion. Search all accepted ledger owner fields for weather/climate/raining/thunder found no existing whole world episode checkpoint owner; other matches own crab growth, panda genotype, harvested sand, compressor damage, illager training, tome crafting, clemency grant, player survival stats, citizen skills, paid ThunderStep recast; none owns global clear override and two phase countdowns. Five proposal comparators retained with source-derived limits. Candidate getter anchor itself gets0; whole world phase checkpoint one. This does not preserve exact faded intensity or future random episode sequence. No weather commands, climate changes, user saves, native game or production runtime executed. No fresh archive/tree fetch.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_chains_replayed": false,
+      "whole_comparison": "Whole climate phases and biome/weather effects including lightning opportunity already owned. Current ServerLevel lightning branch is contextual source reread0 in global space; candidate is only complete weather-seeded actor reservoir -> player-triggered queued cohort lifecycle applicability, not new climate or copper material service.",
+      "new_credit": 0
+    }
+  ],
+  "global_screen_is_not_exhaustive_semantic_review": true,
+  "observed_chain": [
+    "One exact already-globally-owned SkeletonHorse trap-role/lifetime encounter whole may supply ecology applicability max1 only after distinct Main. Existing f90 trap and421 climate whole retain original credit; no new global/migration or per horse/rider/queue/helper/lightning/timer credit.",
+    "Actual SkeletonHorse registry is CREATURE factory, sized1.3964844x1.6 tracking10; superclass undead species/gear are context. This registry category is not ordinary NATURAL origin, cap relief, actual availability or measured successful birth.",
+    "ServerLevel tickChunk lightning branch first effective rain+thunder and random1/100000, selected target isRainingAt. Trap flag needs doMobSpawning, randomDouble<effectiveDifficulty*.01 and support not LIGHTNING_ROD. These are per delivered chunk branch predicates, not a world clock/guaranteed hazard rate; caller/tick density/climate/cap ecosystem not fully reaudited.",
+    "Lightning target helper uses MOTION_BLOCKING height, prefers optional lightning rod, otherwise random alive sky-visible LivingEntity in tall inflated3 box; empty fallback uses height position and minY-1 correction. findLightningRod POI/radius implementation and lower world query not expanded; no guaranteed ground/safe horse placement.",
+    "If trap flag passes, null-guarded SkeletonHorse create then traptrue,age0,pos and unchecked add. No finalizeSpawn call in this branch. Normal lightning is separately created after horse attempt and visualOnly equals flag, even when horse create/add failed. Visual bolt is not evidence live trap horse was admitted.",
+    "Full SkeletonHorse owns same goal object and bool/count. setTrap adds priority1 only onfalse->true, removes only ontrue->false. No own timer reset in setTrap; saving writes SkeletonTrap and raw SkeletonTrapTime, readcalls setTrap before raw counter restore. Fresh/in-place load/other parent state remain separate.",
+    "aiStep calls parent then iftrap and old trapTime++>=18000 discards. Counter advances only delivered qualifying actor steps, not UTC/offline lifetime; source threshold with postfix is not exactly18000 elapsed worldticks. Negative/raw malformed counters not clamped; no native save roundtrip or actual expiry receipt.",
+    "Trap goal canUse only hasNearbyAlivePlayer10: loops levelplayers, named NO_SPECTATORS and LIVING_ENTITY_STILL_ALIVE predicates, strict squared distance<100. No LOS, ownership, original lightning player, trap-bool, age or player attack check in this canUse. Predicate bodies/current native players not fully expanded.",
+    "Full base Goal has no flags by default, continuation calls canUse, default requiresUpdateEveryTickfalse. WrappedGoal delegates and GoalSelector starts/cleans/ticks running wrappers; setTrapfalse removeGoal stops/removes the wrapper. Priority1 alone supplies no MOVE/LOOK/JUMP exclusion. No exact tick delivery/AI scheduling/fairness guarantee.",
+    "Each delivered trap goal tick calls server.tell(newTickTask(currentTick,closure)), not execute. Full BlockableEventLoop.tell enqueues and unparks; no inline execution shortcut even same-thread. TickTask holds tick+runnable; native server is ReentrantBlockableEventLoop. These are actual source dispatch links, no real task/queue invoked.",
+    "Queue poll takes head, respects shouldRun unless blockingCount>0, removes then runs. MinecraftServer shouldRun oldtick+3<current OR haveTime; haveTime accounts running task/budget. Reentrant wrapper increments/decrements count; base catches Exception/logs. No fixed next-tick/three-tick latency, guaranteed scheduled completion, queue persistence or world state transaction.",
+    "Callback only rechecks horse.isAlive. It does not recheck trap flag/current player distance/continued canUse/age/world rule/biome after scheduling. It obtains current difficulty then setTrapfalse, setTamedtrue, age0 BEFORE lightning create. This is consumed opportunity/role change before admission, not successful encounter receipt.",
+    "Already queued callbacks lack traptrue guard; removing goal does not remove arbitrary pending TickTask bodies in inspected source. No actual duplicate queue/interleaving or exploit reproduced, and no claim how many callbacks can accumulate in native schedule. Do not equate intended one-shot flag with atomic exactly-once.",
+    "Callback creates visualOnly lightning, adds unchecked. Only nonnull bolt enters first Skeleton creation; only nonnull firstSkeleton enters own startRiding(originalhorse), addFreshEntityWithPassengers(skeleton) and loop3. Original horse remains tamed/nontrap even if create returnsnull; null first actor suppresses all extra horse attempts.",
+    "For each3 attempts createHorse finalizes TRIGGERED, sameposition, invulnerableTime60,persistent,tamed,age0. Only nonnull horse then nonnull skeleton leads startRiding,push triangular horizontal motion, addFreshEntityWithPassengers(horse). Failed horse/skeleton produces fewer requests; no retry/rollback or guaranteed four pairs.",
+    "createSkeleton null-guard then finalizeTRIGGERED at chosen horse difficulty, samepos, invulnerableTime60,persistent, fallback ironhelmet only ifheadempty. Mainhand/head existing Enchantments tag removed before new enchant level(int)(5+specialMultiplier*nextInt18). Parent finalize, feature/item availability, enchant internals not fully audited; not guaranteed specific enchant/drop or actual invincibility duration.",
+    "Both startRiding booleans ignored. Full ServerLevelAccessor iterates getSelfAndPassengers ignoring each add bool; actual Entity stream includes root and descendants, not vehicle. Thus first path rootSkeleton relies originalhorse already present, extra path rootHorse includes skeleton only if mounted; failed ride can admit unmounted horse or leave rider unregistered. No native reproduction.",
+    "Prior own ServerLevel addEntity support reused: removed entity false, entityManager add false, success calls onAddedToWorld. Creation/reference/stream enumeration requests do not prove admission, same cohort count, riders loaded, stable population, player kill or material receipt; deep entityManager/Forge/chunk machinery unexpanded.",
+    "Full LightningBolt visualOnly suppresses its spawnFire branch and live thunderHit branch, but initial server tick still powers rod, calls copper cleaning and emits LIGHTNING_STRIKE outside that guard. Client sounds/sky flash still have code paths. Do not call visualOnly no-world-effects or all-cosmetic. This study invokes none of them and does not change sound/brightness.",
+    "Lightning own save/read overrides empty; life/flashes/visualOnly/cause/hitEntities not serialized there. No general inherited Entity saveability or restore theorem. Traprole/counter/worldclimate/boltlifecycle are separate records; actual cross-file queue/cohort durability/restore not tested and no second migration credit.",
+    "setTamedtrue does not itself bind original triggering player UUID. Own interaction returnsPASS untiltamed then parent; saddle/equipment/owner/ride permissions and native player acquisition are not expanded. Encounter transition is not a free owned-mount reward receipt or task completion.",
+    "Complete EA16 alarm attempt/local suppression, EA11 trader-rider lifetime, EA1 recurring weather beached encounter four fields actually read; global exact trap and full climate decisions read. Full49 canonical identity/label index is integrity+selection, not49 source chains or exhaustive1329 global semantic rereading. Main may merge candidate0.",
+    "Fox Main zero disposition is now bound and retained as conservative0, no pending max1 or duplicate source review. Piglin/Axolotl remain distinct Main pending; this source study supplies no temporary formal ID/package/acceptance or aggregation.",
+    "Dynasty future encounter integration must keep seed opportunity, admitted reservoir actor, saved remaining eligibility, player trigger, queued consumed state, requested cohort and admitted survivor/player receipt separate. Preserve IDs/rewards/progress and original native ecology gaps; no production/cap/probability/category/recipe/task/art change before applicable1000."
+  ],
+  "mandatory_constraints": [
+    "At most one ecology applicability whole or merge0, already-global trapf90 andclimate421 retained0new. No species/mounts/group3/tenwholefiles/queue/visual effect/timer/NBT/gear reference splitting.",
+    "Initial weather branch samples no guaranteed population; flagvisualOnly true can coexist failed horse create/add. Trap queued role transition must not be misreported as native birth or natural-cap fix.",
+    "Keep raw trap counter/postincrement, retained timer on rearm and finite delivered-step lifetime distinct from UTC, exact18000 ticks, currently running noAI/load state and safe reload guarantee.",
+    "canUse strict10 currentplayer predicates, no LOS or actor-player ownership; callback onlyalive and omits trap/player revalidation. Preserve complete static boundary but no duplicate/exploit/runtime assertion.",
+    "tell always queues, never same-thread inline execute. Server poll budget/old tick/reentrant behavior do not establish fixed latency or transaction. Task queue not included in horse saved counter.",
+    "Trapfalse/tamed/age0 precede bolt/firstSkeleton/threeattempts. Null branches and ignored add/riding bools keep losses/partialgroup possible; no exactly-once/admitted four-pair/refund/rollback promise.",
+    "Self+passengers excludes vehicle; first rootSkeleton and extra rootHorse are asymmetric. Persistence/invulnerableTime/gear enchant are requests/state fields, not current survival or drops.",
+    "VisualOnly gates fire/entity strike only in shown bodies; rod/copper/gameevent/client feedback not all suppressed. Do not derive no side effects or run visual/audio effects.",
+    "Whole old decisions bound verbatim, including historical limits. Existing same global trap owner already covers lifetime/queued transition; no new migration/global originality. Complete current metadata screen is not full global semantic/source audit.",
+    "Fixed mapped local artifact+entry, no Git/fresh remote/current modpack/tag/config/source platform proof. No source/game task/queue/RNG method invoked.",
+    "No production/art/sharedJar/userworld/master/session/pending/ownership/TODO/validator/fixture/aggregation/Git/network/process/display/Java/Gradle operations; applicable1000 unmet and ecology running gaps unchanged.",
+    "Only Main independent whole review may accept applicability; author0applied, no formalID/package/receipt. Do not delete unaccepted tasks, claim player payment/loot/ownedmount or completed active-hour requirement."
+  ],
+  "application": [
+    "Distinguish environmental seeding opportunity, admitted trap actor, saved eligibility, current player trigger, queued role consumption and admitted mounted group; no population receipt from source calls.",
+    "Preserve Dynasty existing IDs/materials/rewards/progress, use native intended-player receipt only after applicable1000/current execution acceptance; no gameplay implementation here."
+  ],
+  "limits": [
+    "Ten complete source files/classes/interfaces plus seven bounded ranges; MinecraftServer/ServerLevel/EntityGetter/EntityType/Entity containing classes partial. Lower entity creation/finalize/navigation/physics/equipment/enchant/callback/entitymanager not all read.",
+    "Current native weather/biome/config/runtime opportunity and source cap/scheduler composition not measured; actual applicable1000 is unmet. No random ecology run or cap workaround.",
+    "No admitted horse/bolt/cohort/rider, successful trigger/queue latency/actualdamage/coppermutation/materialloot/ownedmount/playerUUIDpickup/taskreceipt or save/reload/exploit test.",
+    "Previous addEntity source checks reused0, old ecology upstream source chains not reread. Original full global trap/climate judgment are exact context, not fresh reproduction of every original old source chain.",
+    "Intended one-shot is not actual atomic guarantee: alive-only callback and bool consumed before add remain warnings, not demonstrated duplicate-generation bug. No native task queue serialization or cancellation recovery theorem.",
+    "Full visual bolt still rod/copper/gameevent path, inheritedbase/feature/hooks unexpanded; empty own serializer not proof it is normally saveable or loses all parent state. No new visual/art/weather/material service credit.",
+    "No all-current-owner uniqueness assertion: full49 identity labels select related complete judgments; global1329 metadata index is not1329 manually complete mechanisms reread. Main may reject/merge0.",
+    "No production/quest/reward/probability/cap/assets/sharedJar/originalworld/sharedcoordination/master edits, no prompts deleted. Fox Main0 preserved; Piglin/Axolotl not accepted by this candidate.",
+    "No formalID/researchpackage/receipt/validator/fixtures/aggregation/sourceexecution/game/Java/Gradle/network/Git/UI/process/audio/brightness/wake/automation; no quantified active-hour claim."
+  ],
+  "Fox_Main_conservative_zero_disposition": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-fox-crow-saved-whole-zero-disposition-20261110.json",
+    "sha256": "209f91e8ff245e54c159f286e25c2cb3e8c283065f0fec098ad89975b88663eb",
+    "bytes": 33401
+  },
+  "Fox_status": "MAIN_CONSERVATIVE_ZERO_CLOSED_SUPPORT_ONLY_ORIGINAL_RESEARCH_RETAINED",
+  "Fox_new_credit": 0,
+  "proposed_maximum_ecology_applicability_credit": 1,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "formal_candidate_id": null,
+  "package_built": false,
+  "validator_fixture_aggregation_executed": false,
+  "shared_tools_changed": false,
+  "production_changes": 0,
+  "art_changes": 0,
+  "shared_Jar_writes": 0,
+  "checklist_deletions": 0,
+  "shared_tracking_edits": 0,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "Git_operations": 0,
+  "upstream_code_executed": false,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "active_hours_claimed": null,
+  "next": "Main independently judges ecology applicability max1 or merge0; existing global whole trap/climate retained0new. No temporary ID/package/receipt/validator or production. Fox closed0, Axolotl/Piglin separately pending."
+}

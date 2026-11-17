@@ -1,0 +1,1038 @@
+{
+  "recorded_at": "2026-11-09T18:47:42.205565+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ORIGINAL_ENDERMAN_WHOLE_ECOLOGY_APPLICABILITY_PENDING_MAIN_EXACT_GLOBAL_OWNER_REUSED0",
+  "semantic_key": "griefing-qualified-worldblock-removal-to-normalized-single-actor-cargo-and-support-event-qualified-placement-or-death-loot-without-commit-receipts",
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "actual_native_read_ranges": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/EnderMan.java",
+      "entry_sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "lines": [
+        1,
+        583
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.EnumSet;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.UUID;\nimport java.util.function.Predicate;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.NbtUtils;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.tags.DamageTypeTags;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.util.TimeUtil;\nimport net.minecraft.util.valueproviders.UniformInt;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.NeutralMob;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.ai.attributes.AttributeInstance;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.FloatGoal;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.MeleeAttackGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;\nimport net.minecraft.world.entity.ai.targeting.TargetingConditions;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.ThrownPotion;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.alchemy.Potion;\nimport net.minecraft.world.item.alchemy.PotionUtils;\nimport net.minecraft.world.item.alchemy.Potions;\nimport net.minecraft.world.item.enchantment.Enchantments;\nimport net.minecraft.world.level.ClipContext;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic class EnderMan extends Monster implements NeutralMob {\n   private static final UUID SPEED_MODIFIER_ATTACKING_UUID = UUID.fromString(\"020E0DFB-87AE-4653-9556-831010E291A0\");\n   private static final AttributeModifier SPEED_MODIFIER_ATTACKING = new AttributeModifier(SPEED_MODIFIER_ATTACKING_UUID, \"Attacking speed boost\", (double)0.15F, AttributeModifier.Operation.ADDITION);\n   private static final int DELAY_BETWEEN_CREEPY_STARE_SOUND = 400;\n   private static final int MIN_DEAGGRESSION_TIME = 600;\n   private static final EntityDataAccessor<Optional<BlockState>> DATA_CARRY_STATE = SynchedEntityData.defineId(EnderMan.class, EntityDataSerializers.OPTIONAL_BLOCK_STATE);\n   private static final EntityDataAccessor<Boolean> DATA_CREEPY = SynchedEntityData.defineId(EnderMan.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_STARED_AT = SynchedEntityData.defineId(EnderMan.class, EntityDataSerializers.BOOLEAN);\n   private int lastStareSound = Integer.MIN_VALUE;\n   private int targetChangeTime;\n   private static final UniformInt PERSISTENT_ANGER_TIME = TimeUtil.rangeOfSeconds(20, 39);\n   private int remainingPersistentAngerTime;\n   @Nullable\n   private UUID persistentAngerTarget;\n\n   public EnderMan(EntityType<? extends EnderMan> p_32485_, Level p_32486_) {\n      super(p_32485_, p_32486_);\n      this.setMaxUpStep(1.0F);\n      this.setPathfindingMalus(BlockPathTypes.WATER, -1.0F);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(0, new FloatGoal(this));\n      this.goalSelector.addGoal(1, new EnderMan.EndermanFreezeWhenLookedAt(this));\n      this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0D, 0.0F));\n      this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.goalSelector.addGoal(10, new EnderMan.EndermanLeaveBlockGoal(this));\n      this.goalSelector.addGoal(11, new EnderMan.EndermanTakeBlockGoal(this));\n      this.targetSelector.addGoal(1, new EnderMan.EndermanLookForPlayerGoal(this, this::isAngryAt));\n      this.targetSelector.addGoal(2, new HurtByTargetGoal(this));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));\n      this.targetSelector.addGoal(4, new ResetUniversalAngerTargetGoal<>(this, false));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 40.0D).add(Attributes.MOVEMENT_SPEED, (double)0.3F).add(Attributes.ATTACK_DAMAGE, 7.0D).add(Attributes.FOLLOW_RANGE, 64.0D);\n   }\n\n   public void setTarget(@Nullable LivingEntity p_32537_) {\n      AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);\n      if (p_32537_ == null) {\n         this.targetChangeTime = 0;\n         this.entityData.set(DATA_CREEPY, false);\n         this.entityData.set(DATA_STARED_AT, false);\n         attributeinstance.removeModifier(SPEED_MODIFIER_ATTACKING);\n      } else {\n         this.targetChangeTime = this.tickCount;\n         this.entityData.set(DATA_CREEPY, true);\n         if (!attributeinstance.hasModifier(SPEED_MODIFIER_ATTACKING)) {\n            attributeinstance.addTransientModifier(SPEED_MODIFIER_ATTACKING);\n         }\n      }\n\n      super.setTarget(p_32537_); //Forge: Moved down to allow event handlers to write data manager values.\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_CARRY_STATE, Optional.empty());\n      this.entityData.define(DATA_CREEPY, false);\n      this.entityData.define(DATA_STARED_AT, false);\n   }\n\n   public void startPersistentAngerTimer() {\n      this.setRemainingPersistentAngerTime(PERSISTENT_ANGER_TIME.sample(this.random));\n   }\n\n   public void setRemainingPersistentAngerTime(int p_32515_) {\n      this.remainingPersistentAngerTime = p_32515_;\n   }\n\n   public int getRemainingPersistentAngerTime() {\n      return this.remainingPersistentAngerTime;\n   }\n\n   public void setPersistentAngerTarget(@Nullable UUID p_32509_) {\n      this.persistentAngerTarget = p_32509_;\n   }\n\n   @Nullable\n   public UUID getPersistentAngerTarget() {\n      return this.persistentAngerTarget;\n   }\n\n   public void playStareSound() {\n      if (this.tickCount >= this.lastStareSound + 400) {\n         this.lastStareSound = this.tickCount;\n         if (!this.isSilent()) {\n            this.level().playLocalSound(this.getX(), this.getEyeY(), this.getZ(), SoundEvents.ENDERMAN_STARE, this.getSoundSource(), 2.5F, 1.0F, false);\n         }\n      }\n\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_32513_) {\n      if (DATA_CREEPY.equals(p_32513_) && this.hasBeenStaredAt() && this.level().isClientSide) {\n         this.playStareSound();\n      }\n\n      super.onSyncedDataUpdated(p_32513_);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_32520_) {\n      super.addAdditionalSaveData(p_32520_);\n      BlockState blockstate = this.getCarriedBlock();\n      if (blockstate != null) {\n         p_32520_.put(\"carriedBlockState\", NbtUtils.writeBlockState(blockstate));\n      }\n\n      this.addPersistentAngerSaveData(p_32520_);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_32511_) {\n      super.readAdditionalSaveData(p_32511_);\n      BlockState blockstate = null;\n      if (p_32511_.contains(\"carriedBlockState\", 10)) {\n         blockstate = NbtUtils.readBlockState(this.level().holderLookup(Registries.BLOCK), p_32511_.getCompound(\"carriedBlockState\"));\n         if (blockstate.isAir()) {\n            blockstate = null;\n         }\n      }\n\n      this.setCarriedBlock(blockstate);\n      this.readPersistentAngerSaveData(this.level(), p_32511_);\n   }\n\n   boolean isLookingAtMe(Player p_32535_) {\n      ItemStack itemstack = p_32535_.getInventory().armor.get(3);\n      if (net.minecraftforge.common.ForgeHooks.shouldSuppressEnderManAnger(this, p_32535_, itemstack)) {\n         return false;\n      } else {\n         Vec3 vec3 = p_32535_.getViewVector(1.0F).normalize();\n         Vec3 vec31 = new Vec3(this.getX() - p_32535_.getX(), this.getEyeY() - p_32535_.getEyeY(), this.getZ() - p_32535_.getZ());\n         double d0 = vec31.length();\n         vec31 = vec31.normalize();\n         double d1 = vec3.dot(vec31);\n         return d1 > 1.0D - 0.025D / d0 ? p_32535_.hasLineOfSight(this) : false;\n      }\n   }\n\n   protected float getStandingEyeHeight(Pose p_32517_, EntityDimensions p_32518_) {\n      return 2.55F;\n   }\n\n   public void aiStep() {\n      if (this.level().isClientSide) {\n         for(int i = 0; i < 2; ++i) {\n            this.level().addParticle(ParticleTypes.PORTAL, this.getRandomX(0.5D), this.getRandomY() - 0.25D, this.getRandomZ(0.5D), (this.random.nextDouble() - 0.5D) * 2.0D, -this.random.nextDouble(), (this.random.nextDouble() - 0.5D) * 2.0D);\n         }\n      }\n\n      this.jumping = false;\n      if (!this.level().isClientSide) {\n         this.updatePersistentAnger((ServerLevel)this.level(), true);\n      }\n\n      super.aiStep();\n   }\n\n   public boolean isSensitiveToWater() {\n      return true;\n   }\n\n   protected void customServerAiStep() {\n      if (this.level().isDay() && this.tickCount >= this.targetChangeTime + 600) {\n         float f = this.getLightLevelDependentMagicValue();\n         if (f > 0.5F && this.level().canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F) {\n            this.setTarget((LivingEntity)null);\n            this.teleport();\n         }\n      }\n\n      super.customServerAiStep();\n   }\n\n   protected boolean teleport() {\n      if (!this.level().isClientSide() && this.isAlive()) {\n         double d0 = this.getX() + (this.random.nextDouble() - 0.5D) * 64.0D;\n         double d1 = this.getY() + (double)(this.random.nextInt(64) - 32);\n         double d2 = this.getZ() + (this.random.nextDouble() - 0.5D) * 64.0D;\n         return this.teleport(d0, d1, d2);\n      } else {\n         return false;\n      }\n   }\n\n   boolean teleportTowards(Entity p_32501_) {\n      Vec3 vec3 = new Vec3(this.getX() - p_32501_.getX(), this.getY(0.5D) - p_32501_.getEyeY(), this.getZ() - p_32501_.getZ());\n      vec3 = vec3.normalize();\n      double d0 = 16.0D;\n      double d1 = this.getX() + (this.random.nextDouble() - 0.5D) * 8.0D - vec3.x * 16.0D;\n      double d2 = this.getY() + (double)(this.random.nextInt(16) - 8) - vec3.y * 16.0D;\n      double d3 = this.getZ() + (this.random.nextDouble() - 0.5D) * 8.0D - vec3.z * 16.0D;\n      return this.teleport(d1, d2, d3);\n   }\n\n   private boolean teleport(double p_32544_, double p_32545_, double p_32546_) {\n      BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos(p_32544_, p_32545_, p_32546_);\n\n      while(blockpos$mutableblockpos.getY() > this.level().getMinBuildHeight() && !this.level().getBlockState(blockpos$mutableblockpos).blocksMotion()) {\n         blockpos$mutableblockpos.move(Direction.DOWN);\n      }\n\n      BlockState blockstate = this.level().getBlockState(blockpos$mutableblockpos);\n      boolean flag = blockstate.blocksMotion();\n      boolean flag1 = blockstate.getFluidState().is(FluidTags.WATER);\n      if (flag && !flag1) {\n         net.minecraftforge.event.entity.EntityTeleportEvent.EnderEntity event = net.minecraftforge.event.ForgeEventFactory.onEnderTeleport(this, p_32544_, p_32545_, p_32546_);\n         if (event.isCanceled()) return false;\n         Vec3 vec3 = this.position();\n         boolean flag2 = this.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true);\n         if (flag2) {\n            this.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(this));\n            if (!this.isSilent()) {\n               this.level().playSound((Player)null, this.xo, this.yo, this.zo, SoundEvents.ENDERMAN_TELEPORT, this.getSoundSource(), 1.0F, 1.0F);\n               this.playSound(SoundEvents.ENDERMAN_TELEPORT, 1.0F, 1.0F);\n            }\n         }\n\n         return flag2;\n      } else {\n         return false;\n      }\n   }\n\n   protected SoundEvent getAmbientSound() {\n      return this.isCreepy() ? SoundEvents.ENDERMAN_SCREAM : SoundEvents.ENDERMAN_AMBIENT;\n   }\n\n   protected SoundEvent getHurtSound(DamageSource p_32527_) {\n      return SoundEvents.ENDERMAN_HURT;\n   }\n\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.ENDERMAN_DEATH;\n   }\n\n   protected void dropCustomDeathLoot(DamageSource p_32497_, int p_32498_, boolean p_32499_) {\n      super.dropCustomDeathLoot(p_32497_, p_32498_, p_32499_);\n      BlockState blockstate = this.getCarriedBlock();\n      if (blockstate != null) {\n         ItemStack itemstack = new ItemStack(Items.DIAMOND_AXE);\n         itemstack.enchant(Enchantments.SILK_TOUCH, 1);\n         LootParams.Builder lootparams$builder = (new LootParams.Builder((ServerLevel)this.level())).withParameter(LootContextParams.ORIGIN, this.position()).withParameter(LootContextParams.TOOL, itemstack).withOptionalParameter(LootContextParams.THIS_ENTITY, this);\n\n         for(ItemStack itemstack1 : blockstate.getDrops(lootparams$builder)) {\n            this.spawnAtLocation(itemstack1);\n         }\n      }\n\n   }\n\n   public void setCarriedBlock(@Nullable BlockState p_32522_) {\n      this.entityData.set(DATA_CARRY_STATE, Optional.ofNullable(p_32522_));\n   }\n\n   @Nullable\n   public BlockState getCarriedBlock() {\n      return this.entityData.get(DATA_CARRY_STATE).orElse((BlockState)null);\n   }\n\n   public boolean hurt(DamageSource p_32494_, float p_32495_) {\n      if (this.isInvulnerableTo(p_32494_)) {\n         return false;\n      } else {\n         boolean flag = p_32494_.getDirectEntity() instanceof ThrownPotion;\n         if (!p_32494_.is(DamageTypeTags.IS_PROJECTILE) && !flag) {\n            boolean flag2 = super.hurt(p_32494_, p_32495_);\n            if (!this.level().isClientSide() && !(p_32494_.getEntity() instanceof LivingEntity) && this.random.nextInt(10) != 0) {\n               this.teleport();\n            }\n\n            return flag2;\n         } else {\n            boolean flag1 = flag && this.hurtWithCleanWater(p_32494_, (ThrownPotion)p_32494_.getDirectEntity(), p_32495_);\n\n            for(int i = 0; i < 64; ++i) {\n               if (this.teleport()) {\n                  return true;\n               }\n            }\n\n            return flag1;\n         }\n      }\n   }\n\n   private boolean hurtWithCleanWater(DamageSource p_186273_, ThrownPotion p_186274_, float p_186275_) {\n      ItemStack itemstack = p_186274_.getItem();\n      Potion potion = PotionUtils.getPotion(itemstack);\n      List<MobEffectInstance> list = PotionUtils.getMobEffects(itemstack);\n      boolean flag = potion == Potions.WATER && list.isEmpty();\n      return flag ? super.hurt(p_186273_, p_186275_) : false;\n   }\n\n   public boolean isCreepy() {\n      return this.entityData.get(DATA_CREEPY);\n   }\n\n   public boolean hasBeenStaredAt() {\n      return this.entityData.get(DATA_STARED_AT);\n   }\n\n   public void setBeingStaredAt() {\n      this.entityData.set(DATA_STARED_AT, true);\n   }\n\n   public boolean requiresCustomPersistence() {\n      return super.requiresCustomPersistence() || this.getCarriedBlock() != null;\n   }\n\n   static class EndermanFreezeWhenLookedAt extends Goal {\n      private final EnderMan enderman;\n      @Nullable\n      private LivingEntity target;\n\n      public EndermanFreezeWhenLookedAt(EnderMan p_32550_) {\n         this.enderman = p_32550_;\n         this.setFlags(EnumSet.of(Goal.Flag.JUMP, Goal.Flag.MOVE));\n      }\n\n      public boolean canUse() {\n         this.target = this.enderman.getTarget();\n         if (!(this.target instanceof Player)) {\n            return false;\n         } else {\n            double d0 = this.target.distanceToSqr(this.enderman);\n            return d0 > 256.0D ? false : this.enderman.isLookingAtMe((Player)this.target);\n         }\n      }\n\n      public void start() {\n         this.enderman.getNavigation().stop();\n      }\n\n      public void tick() {\n         this.enderman.getLookControl().setLookAt(this.target.getX(), this.target.getEyeY(), this.target.getZ());\n      }\n   }\n\n   static class EndermanLeaveBlockGoal extends Goal {\n      private final EnderMan enderman;\n\n      public EndermanLeaveBlockGoal(EnderMan p_32556_) {\n         this.enderman = p_32556_;\n      }\n\n      public boolean canUse() {\n         if (this.enderman.getCarriedBlock() == null) {\n            return false;\n         } else if (!net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.enderman.level(), this.enderman)) {\n            return false;\n         } else {\n            return this.enderman.getRandom().nextInt(reducedTickDelay(2000)) == 0;\n         }\n      }\n\n      public void tick() {\n         RandomSource randomsource = this.enderman.getRandom();\n         Level level = this.enderman.level();\n         int i = Mth.floor(this.enderman.getX() - 1.0D + randomsource.nextDouble() * 2.0D);\n         int j = Mth.floor(this.enderman.getY() + randomsource.nextDouble() * 2.0D);\n         int k = Mth.floor(this.enderman.getZ() - 1.0D + randomsource.nextDouble() * 2.0D);\n         BlockPos blockpos = new BlockPos(i, j, k);\n         BlockState blockstate = level.getBlockState(blockpos);\n         BlockPos blockpos1 = blockpos.below();\n         BlockState blockstate1 = level.getBlockState(blockpos1);\n         BlockState blockstate2 = this.enderman.getCarriedBlock();\n         if (blockstate2 != null) {\n            blockstate2 = Block.updateFromNeighbourShapes(blockstate2, this.enderman.level(), blockpos);\n            if (this.canPlaceBlock(level, blockpos, blockstate2, blockstate, blockstate1, blockpos1) && !net.minecraftforge.event.ForgeEventFactory.onBlockPlace(enderman, net.minecraftforge.common.util.BlockSnapshot.create(level.dimension(), level, blockpos1), net.minecraft.core.Direction.UP)) {\n               level.setBlock(blockpos, blockstate2, 3);\n               level.gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(this.enderman, blockstate2));\n               this.enderman.setCarriedBlock((BlockState)null);\n            }\n\n         }\n      }\n\n      private boolean canPlaceBlock(Level p_32559_, BlockPos p_32560_, BlockState p_32561_, BlockState p_32562_, BlockState p_32563_, BlockPos p_32564_) {\n         return p_32562_.isAir() && !p_32563_.isAir() && !p_32563_.is(Blocks.BEDROCK) && !p_32563_.is(net.minecraftforge.common.Tags.Blocks.ENDERMAN_PLACE_ON_BLACKLIST) && p_32563_.isCollisionShapeFullBlock(p_32559_, p_32564_) && p_32561_.canSurvive(p_32559_, p_32560_) && p_32559_.getEntities(this.enderman, AABB.unitCubeFromLowerCorner(Vec3.atLowerCornerOf(p_32560_))).isEmpty();\n      }\n   }\n\n   static class EndermanLookForPlayerGoal extends NearestAttackableTargetGoal<Player> {\n      private final EnderMan enderman;\n      @Nullable\n      private Player pendingTarget;\n      private int aggroTime;\n      private int teleportTime;\n      private final TargetingConditions startAggroTargetConditions;\n      private final TargetingConditions continueAggroTargetConditions = TargetingConditions.forCombat().ignoreLineOfSight();\n      private final Predicate<LivingEntity> isAngerInducing;\n\n      public EndermanLookForPlayerGoal(EnderMan p_32573_, @Nullable Predicate<LivingEntity> p_32574_) {\n         super(p_32573_, Player.class, 10, false, false, p_32574_);\n         this.enderman = p_32573_;\n         this.isAngerInducing = (p_269940_) -> {\n            return (p_32573_.isLookingAtMe((Player)p_269940_) || p_32573_.isAngryAt(p_269940_)) && !p_32573_.hasIndirectPassenger(p_269940_);\n         };\n         this.startAggroTargetConditions = TargetingConditions.forCombat().range(this.getFollowDistance()).selector(this.isAngerInducing);\n      }\n\n      public boolean canUse() {\n         this.pendingTarget = this.enderman.level().getNearestPlayer(this.startAggroTargetConditions, this.enderman);\n         return this.pendingTarget != null;\n      }\n\n      public void start() {\n         this.aggroTime = this.adjustedTickDelay(5);\n         this.teleportTime = 0;\n         this.enderman.setBeingStaredAt();\n      }\n\n      public void stop() {\n         this.pendingTarget = null;\n         super.stop();\n      }\n\n      public boolean canContinueToUse() {\n         if (this.pendingTarget != null) {\n            if (!this.isAngerInducing.test(this.pendingTarget)) {\n               return false;\n            } else {\n               this.enderman.lookAt(this.pendingTarget, 10.0F, 10.0F);\n               return true;\n            }\n         } else {\n            if (this.target != null) {\n               if (this.enderman.hasIndirectPassenger(this.target)) {\n                  return false;\n               }\n\n               if (this.continueAggroTargetConditions.test(this.enderman, this.target)) {\n                  return true;\n               }\n            }\n\n            return super.canContinueToUse();\n         }\n      }\n\n      public void tick() {\n         if (this.enderman.getTarget() == null) {\n            super.setTarget((LivingEntity)null);\n         }\n\n         if (this.pendingTarget != null) {\n            if (--this.aggroTime <= 0) {\n               this.target = this.pendingTarget;\n               this.pendingTarget = null;\n               super.start();\n            }\n         } else {\n            if (this.target != null && !this.enderman.isPassenger()) {\n               if (this.enderman.isLookingAtMe((Player)this.target)) {\n                  if (this.target.distanceToSqr(this.enderman) < 16.0D) {\n                     this.enderman.teleport();\n                  }\n\n                  this.teleportTime = 0;\n               } else if (this.target.distanceToSqr(this.enderman) > 256.0D && this.teleportTime++ >= this.adjustedTickDelay(30) && this.enderman.teleportTowards(this.target)) {\n                  this.teleportTime = 0;\n               }\n            }\n\n            super.tick();\n         }\n\n      }\n   }\n\n   static class EndermanTakeBlockGoal extends Goal {\n      private final EnderMan enderman;\n\n      public EndermanTakeBlockGoal(EnderMan p_32585_) {\n         this.enderman = p_32585_;\n      }\n\n      public boolean canUse() {\n         if (this.enderman.getCarriedBlock() != null) {\n            return false;\n         } else if (!net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.enderman.level(), this.enderman)) {\n            return false;\n         } else {\n            return this.enderman.getRandom().nextInt(reducedTickDelay(20)) == 0;\n         }\n      }\n\n      public void tick() {\n         RandomSource randomsource = this.enderman.getRandom();\n         Level level = this.enderman.level();\n         int i = Mth.floor(this.enderman.getX() - 2.0D + randomsource.nextDouble() * 4.0D);\n         int j = Mth.floor(this.enderman.getY() + randomsource.nextDouble() * 3.0D);\n         int k = Mth.floor(this.enderman.getZ() - 2.0D + randomsource.nextDouble() * 4.0D);\n         BlockPos blockpos = new BlockPos(i, j, k);\n         BlockState blockstate = level.getBlockState(blockpos);\n         Vec3 vec3 = new Vec3((double)this.enderman.getBlockX() + 0.5D, (double)j + 0.5D, (double)this.enderman.getBlockZ() + 0.5D);\n         Vec3 vec31 = new Vec3((double)i + 0.5D, (double)j + 0.5D, (double)k + 0.5D);\n         BlockHitResult blockhitresult = level.clip(new ClipContext(vec3, vec31, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, this.enderman));\n         boolean flag = blockhitresult.getBlockPos().equals(blockpos);\n         if (blockstate.is(BlockTags.ENDERMAN_HOLDABLE) && flag) {\n            level.removeBlock(blockpos, false);\n            level.gameEvent(GameEvent.BLOCK_DESTROY, blockpos, GameEvent.Context.of(this.enderman, blockstate));\n            this.enderman.setCarriedBlock(blockstate.getBlock().defaultBlockState());\n         }\n\n      }\n   }\n}\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/phys/BlockHitResult.java",
+      "entry_sha256": "2aeeab5d333f588d0a015612306bca86d30ebf1ace80c449f5b2ebe5987cdde5",
+      "lines": [
+        1,
+        51
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "2aeeab5d333f588d0a015612306bca86d30ebf1ace80c449f5b2ebe5987cdde5",
+      "raw_excerpt_utf8": "package net.minecraft.world.phys;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\n\npublic class BlockHitResult extends HitResult {\n   private final Direction direction;\n   private final BlockPos blockPos;\n   private final boolean miss;\n   private final boolean inside;\n\n   public static BlockHitResult miss(Vec3 p_82427_, Direction p_82428_, BlockPos p_82429_) {\n      return new BlockHitResult(true, p_82427_, p_82428_, p_82429_, false);\n   }\n\n   public BlockHitResult(Vec3 p_82415_, Direction p_82416_, BlockPos p_82417_, boolean p_82418_) {\n      this(false, p_82415_, p_82416_, p_82417_, p_82418_);\n   }\n\n   private BlockHitResult(boolean p_82420_, Vec3 p_82421_, Direction p_82422_, BlockPos p_82423_, boolean p_82424_) {\n      super(p_82421_);\n      this.miss = p_82420_;\n      this.direction = p_82422_;\n      this.blockPos = p_82423_;\n      this.inside = p_82424_;\n   }\n\n   public BlockHitResult withDirection(Direction p_82433_) {\n      return new BlockHitResult(this.miss, this.location, p_82433_, this.blockPos, this.inside);\n   }\n\n   public BlockHitResult withPosition(BlockPos p_82431_) {\n      return new BlockHitResult(this.miss, this.location, this.direction, p_82431_, this.inside);\n   }\n\n   public BlockPos getBlockPos() {\n      return this.blockPos;\n   }\n\n   public Direction getDirection() {\n      return this.direction;\n   }\n\n   public HitResult.Type getType() {\n      return this.miss ? HitResult.Type.MISS : HitResult.Type.BLOCK;\n   }\n\n   public boolean isInside() {\n      return this.inside;\n   }\n}",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/Level.java",
+      "entry_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+      "lines": [
+        195,
+        278
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "313085ce5ff5dcb024b1569f0391fc2805f30c1222d5e8fa0adcc7740446c6f7",
+      "raw_excerpt_utf8": "   public boolean setBlock(BlockPos p_46601_, BlockState p_46602_, int p_46603_) {\n      return this.setBlock(p_46601_, p_46602_, p_46603_, 512);\n   }\n\n   public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {\n      if (this.isOutsideBuildHeight(p_46605_)) {\n         return false;\n      } else if (!this.isClientSide && this.isDebug()) {\n         return false;\n      } else {\n         LevelChunk levelchunk = this.getChunkAt(p_46605_);\n         Block block = p_46606_.getBlock();\n\n         p_46605_ = p_46605_.immutable(); // Forge - prevent mutable BlockPos leaks\n         net.minecraftforge.common.util.BlockSnapshot blockSnapshot = null;\n         if (this.captureBlockSnapshots && !this.isClientSide) {\n             blockSnapshot = net.minecraftforge.common.util.BlockSnapshot.create(this.dimension, this, p_46605_, p_46607_);\n             this.capturedBlockSnapshots.add(blockSnapshot);\n         }\n\n         BlockState old = getBlockState(p_46605_);\n         int oldLight = old.getLightEmission(this, p_46605_);\n         int oldOpacity = old.getLightBlock(this, p_46605_);\n\n         BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);\n         if (blockstate == null) {\n            if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);\n            return false;\n         } else {\n            BlockState blockstate1 = this.getBlockState(p_46605_);\n\n            if (blockSnapshot == null) { // Don't notify clients or update physics while capturing blockstates\n               this.markAndNotifyBlock(p_46605_, levelchunk, blockstate, p_46606_, p_46607_, p_46608_);\n            }\n\n            return true;\n         }\n      }\n   }\n\n   // Split off from original setBlockState(BlockPos, BlockState, int, int) method in order to directly send client and physic updates\n   public void markAndNotifyBlock(BlockPos p_46605_, @Nullable LevelChunk levelchunk, BlockState blockstate, BlockState p_46606_, int p_46607_, int p_46608_) {\n      Block block = p_46606_.getBlock();\n      BlockState blockstate1 = getBlockState(p_46605_);\n      {\n         {\n            if (blockstate1 == p_46606_) {\n               if (blockstate != blockstate1) {\n                  this.setBlocksDirty(p_46605_, blockstate, blockstate1);\n               }\n\n               if ((p_46607_ & 2) != 0 && (!this.isClientSide || (p_46607_ & 4) == 0) && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {\n                  this.sendBlockUpdated(p_46605_, blockstate, p_46606_, p_46607_);\n               }\n\n               if ((p_46607_ & 1) != 0) {\n                  this.blockUpdated(p_46605_, blockstate.getBlock());\n                  if (!this.isClientSide && p_46606_.hasAnalogOutputSignal()) {\n                     this.updateNeighbourForOutputSignal(p_46605_, block);\n                  }\n               }\n\n               if ((p_46607_ & 16) == 0 && p_46608_ > 0) {\n                  int i = p_46607_ & -34;\n                  blockstate.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n                  p_46606_.updateNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n                  p_46606_.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n               }\n\n               this.onBlockStateChange(p_46605_, blockstate, blockstate1);\n               p_46606_.onBlockStateChange(this, p_46605_, blockstate);\n            }\n         }\n      }\n   }\n\n   public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {\n   }\n\n   public boolean removeBlock(BlockPos p_46623_, boolean p_46624_) {\n      FluidState fluidstate = this.getFluidState(p_46623_);\n      return this.setBlock(p_46623_, fluidstate.createLegacyBlock(), 3 | (p_46624_ ? 64 : 0));\n   }\n\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        165,
+        170
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "4aabedf7370bbd5d1be4dce51ce9c56a07d8b7d0a5e14c05a8385b41cb7b449f",
+      "raw_excerpt_utf8": "    public static boolean onBlockPlace(@Nullable Entity entity, @NotNull BlockSnapshot blockSnapshot, @NotNull Direction direction)\n    {\n        BlockState placedAgainst = blockSnapshot.getLevel().getBlockState(blockSnapshot.getPos().relative(direction.getOpposite()));\n        EntityPlaceEvent event = new BlockEvent.EntityPlaceEvent(blockSnapshot, placedAgainst, entity);\n        return MinecraftForge.EVENT_BUS.post(event);\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        748,
+        758
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8876fa63e8f1606fb6ead4a4bde40bd51d8e3ee5b53aba5ede30e858c615490a",
+      "raw_excerpt_utf8": "    public static boolean getMobGriefingEvent(Level level, @Nullable Entity entity)\n    {\n        if (entity == null)\n            return level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);\n\n        EntityMobGriefingEvent event = new EntityMobGriefingEvent(entity);\n        MinecraftForge.EVENT_BUS.post(event);\n\n        Result result = event.getResult();\n        return result == Result.DEFAULT ? level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) : result == Result.ALLOW;\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/common/util/BlockSnapshot.java",
+      "entry_sha256": "35fc824f3f9bde68cba875f4bc650cf7ecc629621d45303ea3da507fc1628c7d",
+      "lines": [
+        30,
+        96
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5e69e7e60ee485a44321d3e48c3b7015279b98939072c89e0c4151a7c5658b0e",
+      "raw_excerpt_utf8": "public class BlockSnapshot\n{\n    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty(\"forge.debugBlockSnapshot\", \"false\"));\n\n    private final ResourceKey<Level> dim;\n    private final BlockPos pos;\n    private final int flags;\n    private final BlockState block;\n    @Nullable\n    private final CompoundTag nbt;\n\n    @Nullable\n    private WeakReference<LevelAccessor> level;\n    private String toString = null;\n\n    private BlockSnapshot(ResourceKey<Level> dim, LevelAccessor level, BlockPos pos, BlockState state, @Nullable CompoundTag nbt, int flags)\n    {\n        this.dim = dim;\n        this.pos = pos.immutable();\n        this.block = state;\n        this.flags = flags;\n        this.nbt = nbt;\n\n        this.level = new WeakReference<>(level);\n\n        if (DEBUG)\n            System.out.println(\"Created \" + this.toString());\n    }\n\n    public static BlockSnapshot create(ResourceKey<Level> dim, LevelAccessor world, BlockPos pos)\n    {\n        return create(dim, world, pos, 3);\n    }\n\n    public static BlockSnapshot create(ResourceKey<Level> dim, LevelAccessor world, BlockPos pos, int flag)\n    {\n        return new BlockSnapshot(dim, world, pos, world.getBlockState(pos), getBlockEntityTag(world.getBlockEntity(pos)), flag);\n    }\n\n    @Nullable\n    private static CompoundTag getBlockEntityTag(@Nullable BlockEntity te)\n    {\n        return te == null ? null : te.saveWithFullMetadata();\n    }\n\n    public BlockState getCurrentBlock()\n    {\n        LevelAccessor world = getLevel();\n        return world == null ? Blocks.AIR.defaultBlockState() : world.getBlockState(this.pos);\n    }\n\n    @Nullable\n    public LevelAccessor getLevel()\n    {\n        LevelAccessor world = this.level != null ? this.level.get() : null;\n        if (world == null)\n        {\n            world = ServerLifecycleHooks.getCurrentServer().getLevel(this.dim);\n            this.level = new WeakReference<LevelAccessor>(world);\n        }\n        return world;\n    }\n\n    public BlockState getReplacedBlock()\n    {\n        return this.block;\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "entry_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "lines": [
+        139,
+        149
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "42e0dcd879d42f4fe303510b4800faf94f19a9bb1580b4b7e0fa0144cd750e90",
+      "raw_excerpt_utf8": "   public static BlockState updateFromNeighbourShapes(BlockState p_49932_, LevelAccessor p_49933_, BlockPos p_49934_) {\n      BlockState blockstate = p_49932_;\n      BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();\n\n      for(Direction direction : UPDATE_SHAPE_ORDER) {\n         blockpos$mutableblockpos.setWithOffset(p_49934_, direction);\n         blockstate = blockstate.updateShape(direction, p_49933_.getBlockState(blockpos$mutableblockpos), p_49933_, p_49934_, blockpos$mutableblockpos);\n      }\n\n      return blockstate;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/nbt/NbtUtils.java",
+      "entry_sha256": "eb27ecb4a7aff672b9430a2f2f95c196d294d9725032e24dea6904aafd538606",
+      "lines": [
+        224,
+        278
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "0a4224ac6d36622b7e670a889252fcf98d88ba1c2eb82331df30dcf237b21633",
+      "raw_excerpt_utf8": "   public static BlockState readBlockState(HolderGetter<Block> p_256363_, CompoundTag p_250775_) {\n      if (!p_250775_.contains(\"Name\", 8)) {\n         return Blocks.AIR.defaultBlockState();\n      } else {\n         ResourceLocation resourcelocation = new ResourceLocation(p_250775_.getString(\"Name\"));\n         Optional<? extends Holder<Block>> optional = p_256363_.get(ResourceKey.create(Registries.BLOCK, resourcelocation));\n         if (optional.isEmpty()) {\n            return Blocks.AIR.defaultBlockState();\n         } else {\n            Block block = optional.get().value();\n            BlockState blockstate = block.defaultBlockState();\n            if (p_250775_.contains(\"Properties\", 10)) {\n               CompoundTag compoundtag = p_250775_.getCompound(\"Properties\");\n               StateDefinition<Block, BlockState> statedefinition = block.getStateDefinition();\n\n               for(String s : compoundtag.getAllKeys()) {\n                  Property<?> property = statedefinition.getProperty(s);\n                  if (property != null) {\n                     blockstate = setValueHelper(blockstate, property, s, compoundtag, p_250775_);\n                  }\n               }\n            }\n\n            return blockstate;\n         }\n      }\n   }\n\n   private static <S extends StateHolder<?, S>, T extends Comparable<T>> S setValueHelper(S p_129205_, Property<T> p_129206_, String p_129207_, CompoundTag p_129208_, CompoundTag p_129209_) {\n      Optional<T> optional = p_129206_.getValue(p_129208_.getString(p_129207_));\n      if (optional.isPresent()) {\n         return p_129205_.setValue(p_129206_, optional.get());\n      } else {\n         LOGGER.warn(\"Unable to read property: {} with value: {} for blockstate: {}\", p_129207_, p_129208_.getString(p_129207_), p_129209_.toString());\n         return p_129205_;\n      }\n   }\n\n   public static CompoundTag writeBlockState(BlockState p_129203_) {\n      CompoundTag compoundtag = new CompoundTag();\n      compoundtag.putString(\"Name\", BuiltInRegistries.BLOCK.getKey(p_129203_.getBlock()).toString());\n      ImmutableMap<Property<?>, Comparable<?>> immutablemap = p_129203_.getValues();\n      if (!immutablemap.isEmpty()) {\n         CompoundTag compoundtag1 = new CompoundTag();\n\n         for(Map.Entry<Property<?>, Comparable<?>> entry : immutablemap.entrySet()) {\n            Property<?> property = entry.getKey();\n            compoundtag1.putString(property.getName(), getName(property, entry.getValue()));\n         }\n\n         compoundtag.put(\"Properties\", compoundtag1);\n      }\n\n      return compoundtag;\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        197,
+        197
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f8607a27cfb7606c80516d68e41b08a876b663ad62c163bc6bef325ee89847d4",
+      "raw_excerpt_utf8": "   public static final EntityType<EnderMan> ENDERMAN = register(\"enderman\", EntityType.Builder.of(EnderMan::new, MobCategory.MONSTER).sized(0.6F, 2.9F).clientTrackingRange(8));\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/level/BlockEvent.java",
+      "entry_sha256": "a245184bf60fcaccdc5050df4bd2ad7427a3aefe081b6386c15f640a5224fc64",
+      "lines": [
+        38,
+        65
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3cc04d9478adfd40e44db2e0180ef84d0172590e37ad9664d58af7ef60eb6df1",
+      "raw_excerpt_utf8": "public class BlockEvent extends Event\n{\n    private static final boolean DEBUG = Boolean.parseBoolean(System.getProperty(\"forge.debugBlockEvent\", \"false\"));\n\n    private final LevelAccessor level;\n    private final BlockPos pos;\n    private final BlockState state;\n    public BlockEvent(LevelAccessor level, BlockPos pos, BlockState state)\n    {\n        this.pos = pos;\n        this.level = level;\n        this.state = state;\n    }\n\n    public LevelAccessor getLevel()\n    {\n        return level;\n    }\n\n    public BlockPos getPos()\n    {\n        return pos;\n    }\n\n    public BlockState getState()\n    {\n        return state;\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/level/BlockEvent.java",
+      "entry_sha256": "a245184bf60fcaccdc5050df4bd2ad7427a3aefe081b6386c15f640a5224fc64",
+      "lines": [
+        121,
+        153
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5347b407b2580803ecbd7817d00cc642195b2836b8e3447ff7c2d75f841e85f9",
+      "raw_excerpt_utf8": "    /**\n     * Called when a block is placed.\n     *\n     * If a Block Place event is cancelled, the block will not be placed.\n     */\n    @Cancelable\n    public static class EntityPlaceEvent extends BlockEvent\n    {\n        private final Entity entity;\n        private final BlockSnapshot blockSnapshot;\n        private final BlockState placedBlock;\n        private final BlockState placedAgainst;\n\n        public EntityPlaceEvent(@NotNull BlockSnapshot blockSnapshot, @NotNull BlockState placedAgainst, @Nullable Entity entity)\n        {\n            super(blockSnapshot.getLevel(), blockSnapshot.getPos(), !(entity instanceof Player) ? blockSnapshot.getReplacedBlock() : blockSnapshot.getCurrentBlock());\n            this.entity = entity;\n            this.blockSnapshot = blockSnapshot;\n            this.placedBlock = !(entity instanceof Player) ? blockSnapshot.getReplacedBlock() : blockSnapshot.getCurrentBlock();\n            this.placedAgainst = placedAgainst;\n\n            if (DEBUG)\n            {\n                System.out.printf(\"Created EntityPlaceEvent - [PlacedBlock: %s ][PlacedAgainst: %s ][Entity: %s ]\\n\", getPlacedBlock(), placedAgainst, entity);\n            }\n        }\n\n        @Nullable\n        public Entity getEntity() { return entity; }\n        public BlockSnapshot getBlockSnapshot() { return blockSnapshot; }\n        public BlockState getPlacedBlock() { return placedBlock; }\n        public BlockState getPlacedAgainst() { return placedAgainst; }\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/BlockGetter.java",
+      "entry_sha256": "b20849c37ed4b92ac8f3ef616281f64cd2742ee98df2479dfa4ff84d3036c93b",
+      "lines": [
+        57,
+        74
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "46b38882489cedd40a3221d0544d9b0a8a0c078674f97efdb180ef786b5fd3bc",
+      "raw_excerpt_utf8": "   default BlockHitResult clip(ClipContext p_45548_) {\n      return traverseBlocks(p_45548_.getFrom(), p_45548_.getTo(), p_45548_, (p_151359_, p_151360_) -> {\n         BlockState blockstate = this.getBlockState(p_151360_);\n         FluidState fluidstate = this.getFluidState(p_151360_);\n         Vec3 vec3 = p_151359_.getFrom();\n         Vec3 vec31 = p_151359_.getTo();\n         VoxelShape voxelshape = p_151359_.getBlockShape(blockstate, this, p_151360_);\n         BlockHitResult blockhitresult = this.clipWithInteractionOverride(vec3, vec31, p_151360_, voxelshape, blockstate);\n         VoxelShape voxelshape1 = p_151359_.getFluidShape(fluidstate, this, p_151360_);\n         BlockHitResult blockhitresult1 = voxelshape1.clip(vec3, vec31, p_151360_);\n         double d0 = blockhitresult == null ? Double.MAX_VALUE : p_151359_.getFrom().distanceToSqr(blockhitresult.getLocation());\n         double d1 = blockhitresult1 == null ? Double.MAX_VALUE : p_151359_.getFrom().distanceToSqr(blockhitresult1.getLocation());\n         return d0 <= d1 ? blockhitresult : blockhitresult1;\n      }, (p_275153_) -> {\n         Vec3 vec3 = p_275153_.getFrom().subtract(p_275153_.getTo());\n         return BlockHitResult.miss(p_275153_.getTo(), Direction.getNearest(vec3.x, vec3.y, vec3.z), BlockPos.containing(p_275153_.getTo()));\n      });\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        250,
+        260
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "102f870330755fc9bf1e7dded27e90f221d198ed151c80b234ac143d528cb2b8",
+      "raw_excerpt_utf8": "   public List<ItemStack> getDrops(BlockState p_287732_, LootParams.Builder p_287596_) {\n      ResourceLocation resourcelocation = this.getLootTable();\n      if (resourcelocation == BuiltInLootTables.EMPTY) {\n         return Collections.emptyList();\n      } else {\n         LootParams lootparams = p_287596_.withParameter(LootContextParams.BLOCK_STATE, p_287732_).create(LootContextParamSets.BLOCK);\n         ServerLevel serverlevel = lootparams.getLevel();\n         LootTable loottable = serverlevel.getServer().getLootData().getLootTable(resourcelocation);\n         return loottable.getRandomItems(lootparams);\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        773,
+        775
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6dfccadba78c8e19fdf7087d5aff162d8451268c34de87dd03568c70f8b52d9e",
+      "raw_excerpt_utf8": "      public List<ItemStack> getDrops(LootParams.Builder p_287688_) {\n         return this.getBlock().getDrops(this.asState(), p_287688_);\n      }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Entity.java",
+      "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "lines": [
+        1815,
+        1833
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "66978eb53044eb8ccfc3aec1ff881bb52427867b338d22b71b4e24d84d222061",
+      "raw_excerpt_utf8": "   public ItemEntity spawnAtLocation(ItemStack p_19984_) {\n      return this.spawnAtLocation(p_19984_, 0.0F);\n   }\n\n   @Nullable\n   public ItemEntity spawnAtLocation(ItemStack p_19985_, float p_19986_) {\n      if (p_19985_.isEmpty()) {\n         return null;\n      } else if (this.level().isClientSide) {\n         return null;\n      } else {\n         ItemEntity itementity = new ItemEntity(this.level(), this.getX(), this.getY() + (double)p_19986_, this.getZ(), p_19985_);\n         itementity.setDefaultPickUpDelay();\n         if (captureDrops() != null) captureDrops().add(itementity);\n         else\n         this.level().addFreshEntity(itementity);\n         return itementity;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        699,
+        740
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ed8720c93d43dfab72030de201b9827a6599ba6e229df961417bdf437ca153e7",
+      "raw_excerpt_utf8": "   public boolean requiresCustomPersistence() {\n      return this.isPassenger();\n   }\n\n   protected boolean shouldDespawnInPeaceful() {\n      return false;\n   }\n\n   public void checkDespawn() {\n      if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) {\n         this.discard();\n      } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {\n         Entity entity = this.level().getNearestPlayer(this, -1.0D);\n         net.minecraftforge.eventbus.api.Event.Result result = net.minecraftforge.event.ForgeEventFactory.canEntityDespawn(this, (ServerLevel) this.level());\n         if (result == net.minecraftforge.eventbus.api.Event.Result.DENY) {\n            noActionTime = 0;\n            entity = null;\n         } else if (result == net.minecraftforge.eventbus.api.Event.Result.ALLOW) {\n            this.discard();\n            entity = null;\n         }\n         if (entity != null) {\n            double d0 = entity.distanceToSqr(this);\n            int i = this.getType().getCategory().getDespawnDistance();\n            int j = i * i;\n            if (d0 > (double)j && this.removeWhenFarAway(d0)) {\n               this.discard();\n            }\n\n            int k = this.getType().getCategory().getNoDespawnDistance();\n            int l = k * k;\n            if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && d0 > (double)l && this.removeWhenFarAway(d0)) {\n               this.discard();\n            } else if (d0 < (double)l) {\n               this.noActionTime = 0;\n            }\n         }\n\n      } else {\n         this.noActionTime = 0;\n      }\n   }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Monster.java",
+      "entry_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+      "lines": [
+        53,
+        55
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e394bfd371bca6ea66be0e3c7233e645dc59bdcf716da4a17906b95da8cd895a",
+      "raw_excerpt_utf8": "   protected boolean shouldDespawnInPeaceful() {\n      return true;\n   }\n",
+      "range_or_helper_credit": 0
+    }
+  ],
+  "actual_range_count": 17,
+  "actual_entry_count": 14,
+  "actual_full_file_count": 2,
+  "actual_line_occurrences": 1026,
+  "actual_distinct_cited_lines": 1026,
+  "actual_source_provenance": "Fixed local mapped source archive/entry not Git/fresh remote/current deployment",
+  "actual_archive_local_resource_absences": [
+    "data/minecraft/tags/blocks/enderman_holdable.json",
+    "data/forge/tags/blocks/enderman_place_on_blacklist.json"
+  ],
+  "current_master_binding": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "70f6e4fc629947aa59f7d54badef38a6fb9e712ad632e42fcb246609580a982a",
+    "bytes": 1503806
+  },
+  "current_formal_accepted": 49,
+  "current_formal_gap": 951,
+  "current_complete_record_identity_index_integrity0": [
+    {
+      "id": "EA-0001",
+      "semantic_key": "weather-clocked-beached-encounter-with-bounded-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "100d6843a8353f7f3b245260b7a5170baac0e3b5391720d5e0cae6214e9e9f5a"
+    },
+    {
+      "id": "EA-0002",
+      "semantic_key": "seeded-single-habitat-chunk-search-with-persisted-give-up",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "2a1afebb3d5259080b31ecf142c777c7a92c371588ee8d04c46ef8b4f5f1ee0b"
+    },
+    {
+      "id": "EA-0003",
+      "semantic_key": "structure-start-piece-index-and-conquest-spawn-table-selection",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-001.json",
+      "batch_sha256": "7fe81ef5ed65679a33fd89f4c7b03105b2ee949c4313eff8a815d4abc9db6bc3",
+      "canonical_record_sha256": "408d9a05f0b1e66953b4e198e5a560ab983ecc863e7de8405986718e4af80368"
+    },
+    {
+      "id": "EA-0004",
+      "semantic_key": "natural-hydra-habitat-feature-with-shared-dangerous-site-spacing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "35c1f8a80075c884e97fb5ae0940b2ff4a3af809fcf716d6932f05396d1ba958"
+    },
+    {
+      "id": "EA-0005",
+      "semantic_key": "natural-island-support-column-and-clear-space-cohort-seeding",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "5114d9dba43ad58bc864fea92f8873a13f428c6a614d0d00fd348c23bda1cf80"
+    },
+    {
+      "id": "EA-0006",
+      "semantic_key": "ocean-floor-offset-feature-entity-add-with-false-feature-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "712bcfe2d871830b3ad0df7e368fcbc84ebb32938cc3ce60ed7280b1d498bb7e"
+    },
+    {
+      "id": "EA-0007",
+      "semantic_key": "shared-natural-spawn-intersection-of-biome-dimension-sky-substrate-and-structure-set",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-002.json",
+      "batch_sha256": "ff3ca8d0c35347100798db2298c3f2d960333c7309438d76962024dec0edf219",
+      "canonical_record_sha256": "21dfaa492de328db81ce366d457e4977613d2ed4f896f83632a3d4378b6c70ec"
+    },
+    {
+      "id": "EA-0008",
+      "semantic_key": "functional-native-spawner-data-preserves-native-failure-and-checks-offset-habitat",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-003.json",
+      "batch_sha256": "22775bd5003ce0d9a512c3f800ef2ab2c1dd0ddc27a7ea80670b5136898663aa",
+      "canonical_record_sha256": "9472a495a95eccb5a8a71a8fd9026e6bbd484b34013c288618fe390485476f05"
+    },
+    {
+      "id": "EA-0009",
+      "semantic_key": "natural-structure-firepit-bounded-cohort-with-persistent-home-lifecycle",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-004.json",
+      "batch_sha256": "bceeb75bbab50049799eaf53a24e94649654501e20643d27a7f99f303f4b43f9",
+      "canonical_record_sha256": "43377df3d24163595697d19ebed247afb26c4207ab045f8e2abade87f71a50e9"
+    },
+    {
+      "id": "EA-0010",
+      "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-005.json",
+      "batch_sha256": "713c89f76b220013d31fa7ac58744fbddbb87bdd266e1f5eb4b49588e99e3e42",
+      "canonical_record_sha256": "4680411dc95d982eaad4fa21051ca5f674200e07185bd4cf5dfee3a3750ab841"
+    },
+    {
+      "id": "EA-0011",
+      "semantic_key": "trader-finalization-attached-encounter-with-rider-synchronized-expiry",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-006.json",
+      "batch_sha256": "81e719ce05173ee7ae223b74d771b83800dd664c01addb2eab1d1b5a95a5e0da",
+      "canonical_record_sha256": "cf74380af9f3b4933f0d79249dc957a17a3af990d7aa970fd425015ed865ccd2"
+    },
+    {
+      "id": "EA-0012",
+      "semantic_key": "natural-underground-chamber-bounded-noise-column-floor-wall-orientation-search",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-007.json",
+      "batch_sha256": "681173797610d898023768783c69834de47d1f9cc5eb8097946453d5573f8bc5",
+      "canonical_record_sha256": "cce02993f7110f2930949cd6fb25251c494a9aa5140053d408b95fd92988493d"
+    },
+    {
+      "id": "EA-0013",
+      "semantic_key": "planted-population-hunger-plateau-growth-and-persistent-adult-replacement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-008.json",
+      "batch_sha256": "cc4cf0dcd0cf875f80fe5a6e010e3627e24094e496d44ca6cc24092452d18f82",
+      "canonical_record_sha256": "faa952c8be0b1f4099af3f13af2902f61c5f3d358f23c254d72f1c9a6f6018ef"
+    },
+    {
+      "id": "EA-0014",
+      "semantic_key": "parasitic-brood-effect-expiry-with-host-despawn-denial-and-delayed-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-009.json",
+      "batch_sha256": "be535598c6bc0b7171e95deac1cfe8ddf93aea97ca69b4d1fe6407027947ba4a",
+      "canonical_record_sha256": "ac153cf7a354a32b6b2051d9094b76b87ccf7f42c26137a07166d668b4ec2d0a"
+    },
+    {
+      "id": "EA-0016",
+      "semantic_key": "ai-alarm-triggered-local-encounter-with-persisted-single-attempt-latch",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-012.json",
+      "batch_sha256": "3a6cb619a359086a8793dc4cfc16581b83f3066a52bde48337de9ed39aba57a4",
+      "canonical_record_sha256": "119df095c647f82c32cf263195f1df3e07db440a63802f746dd5f4327df8b759"
+    },
+    {
+      "id": "EA-0017",
+      "semantic_key": "asymmetric-fed-pair-pregnancy-to-water-surface-egg-scheduled-persistent-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-011.json",
+      "batch_sha256": "e3f7c63ea0fbedffcc6a013fbdecce9d45076c722ac2912e27f1d11c5433da3d",
+      "canonical_record_sha256": "ad2749838fec9266f16e322126cb50a3dab9e46fff9477b80e365c91cebf6494"
+    },
+    {
+      "id": "EA-0018",
+      "semantic_key": "phenotypic-parent-payload-across-pregnancy-egg-block-stack-silk-and-bucket-boundaries",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-013.json",
+      "batch_sha256": "676649cd5711861ce2c3533073111531ef9ceab82a3fb341c28c2930d34d2f07",
+      "canonical_record_sha256": "eb6c3f50fab145c6d087e38216a0ffb55ab6462b333eb1bcf4259a97897aaed9"
+    },
+    {
+      "id": "EA-0019",
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-014.json",
+      "batch_sha256": "c86cbabd55c33f48c8a7d5bdf9d1752168c3ebc180c6522c232b10d522c2da14",
+      "canonical_record_sha256": "cd4d6f65e1bd8c560158b2a6e3281264db8d99d8009468ebc6ddeeece7ea1928"
+    },
+    {
+      "id": "EA-0020",
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-015.json",
+      "batch_sha256": "a137e58ab20401a25100014afd21f7a22718a4e906db29c366df8d34ccb8f2ab",
+      "canonical_record_sha256": "6f4136fa4336415615115708e2bcad1b45387fb047e45e613c3c4d7bbe3ad99a"
+    },
+    {
+      "id": "EA-0021",
+      "semantic_key": "shoreline-mediated-held-food-processing-with-delayed-thrower-conditioned-taming",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-016.json",
+      "batch_sha256": "6d91d47fba8f74e8fce8d1241e2fc3456299a981167bedf6d477c3adc2cfba50",
+      "canonical_record_sha256": "639df48c55b2147f537e97180527036439badddb1866994f7debeefbc5930c09"
+    },
+    {
+      "id": "EA-0022",
+      "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-017.json",
+      "batch_sha256": "1ce5c2250ed4da2cb0eb39355509414ff123ba598362b2d89a46ec2ec7f48e70",
+      "canonical_record_sha256": "b8b714d872dcaaed13f526615aaa0142ed7c8f98cc01a8be421f2954b35ce9d3"
+    },
+    {
+      "id": "EA-0023",
+      "semantic_key": "charge-tiered-substrate-excavation-service-with-cumulative-roll-progress-and-partial-reconstruction-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "ec3aa4080ccd5636882f9ac0f18d818cd3b2b7dcf20f0c2335e80d15f9f4fc5d"
+    },
+    {
+      "id": "EA-0024",
+      "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+      "batch_sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c"
+    },
+    {
+      "id": "EA-0025",
+      "semantic_key": "wild-crop-disturbance-and-thrower-delayed-taming-transition-to-commanded-frame-inventory-routing",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "0d6b1ed13c4b949e0ce9cf723daa4b17ce0f565a7293e1d2651efd9a60ba997f"
+    },
+    {
+      "id": "EA-0026",
+      "semantic_key": "third-offering-assigned-feeder-entitlement-to-retriable-underwater-loot-and-uncommitted-hand-return",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "e7f8bf44a8a8e867e347de14fca6b62ea47f449a4ee33914b8cb515f52fb0ac2"
+    },
+    {
+      "id": "EA-0027",
+      "semantic_key": "durable-earned-productivity-upgrades-drive-habitat-fishing-with-cooldown-before-unchecked-output-and-asymmetric-feed-paths",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "2e58f614e4c311969da3fe6e73a2771d741e57e66e2114fe6ba9f944b43fa157"
+    },
+    {
+      "id": "EA-0028",
+      "semantic_key": "fish-funded-structure-guidance-latch-with-air-suspension-and-arrival-or-stuck-consumption-without-player-acquisition-receipt",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-019.json",
+      "batch_sha256": "5e396f79a50e3351aebc6a3f3c8207b683b3bb703e3acd832020578be17fc074",
+      "canonical_record_sha256": "f4609739a3cc72b6c532e8271f030193ba8c279f17b86b682e007c653bdb8f1d"
+    },
+    {
+      "id": "EA-0029",
+      "semantic_key": "fed-actor-howling-window-local-target-clear-retreat-with-asymmetric-dropped-food-conversion",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-020.json",
+      "batch_sha256": "872b69bf5edd361ffcffdfd1c284ba0c18059e33f146779c4d1592d02f192ee6",
+      "canonical_record_sha256": "5ef3af6e5a8ee43e48659266c6bf38078317f8d16f6e91053cffc954c4368be3"
+    },
+    {
+      "id": "EA-0030",
+      "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-021.json",
+      "batch_sha256": "c7099e546b1684dad4244376fe98fdef3e0ffbfb6bd27b448e4257ac84153272",
+      "canonical_record_sha256": "57a1691488458ba27311508cf481978856dc0d161f0bd0f0a9424916c0d1e85e"
+    },
+    {
+      "id": "EA-0031",
+      "semantic_key": "occupied-village-home-or-structure-habitat-local-density-replenishment-with-preconsumed-object-clock-and-uncommitted-native-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-022.json",
+      "batch_sha256": "96d884a14987b410d91c65a596c1005c672cd91ab851c907b68c2e5f12ca8b4f",
+      "canonical_record_sha256": "d5fc603ec62d49c246a961a6931210fbafed73af97096a32f8bb1c64c7011e99"
+    },
+    {
+      "id": "EA-0032",
+      "semantic_key": "exact-time-village-threat-setup-veto-to-finite-attempt-debited-hostile-wave-with-transient-object-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-023.json",
+      "batch_sha256": "61865ef3fbc28efc6b7976c6a94bd22649abf0504df10b4b139c22dbf770ee58",
+      "canonical_record_sha256": "f1e6a75405c0584d7ff6d3e3a96a005a2e041d90f7aeef4de127d32b86684a11"
+    },
+    {
+      "id": "EA-0033",
+      "semantic_key": "player-rest-debt-and-exposure-conditioned-aerial-group-with-result-override-retaining-global-and-local-gates-before-unchecked-add",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-024.json",
+      "batch_sha256": "35858267191f60269155c3a9e6d5c4ab9c8ac4ce5e9df707fd37282aba7a4b63",
+      "canonical_record_sha256": "bd95dcf5e72c6e3cef2a1a97baf2d41eed643fcf49a35e693ca75e37b53275c4"
+    },
+    {
+      "id": "EA-0034",
+      "semantic_key": "world-day-non-village-player-conditioned-captain-first-drifting-patrol-group-with-attempt-count-before-unchecked-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-025.json",
+      "batch_sha256": "767e495d2c087a22c9b54e1e55aa2c7961f86dd2d5979b18fedf892488c30d8d",
+      "canonical_record_sha256": "2cc3f68c484b0840485863d6266da8d75973e08a5cb65481b24b82c1ae6239c6"
+    },
+    {
+      "id": "EA-0035",
+      "semantic_key": "consumable-travel-projectile-uncanceled-landing-to-temporary-origin-encounter-before-unchecked-relocation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-026.json",
+      "batch_sha256": "51f727ee6b4c5a785c702bd0c01c8b3b03bc93ebee0e0d24dedc2c144adbabd3",
+      "canonical_record_sha256": "5ebee478d4dc5f6a516afc90dde04410a27fd732011b865fe2df18eb66fa6196"
+    },
+    {
+      "id": "EA-0036",
+      "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+      "batch_sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78"
+    },
+    {
+      "id": "EA-0037",
+      "semantic_key": "anchored-role-tail-first-live-cohort-linking-with-bounded-root-validation-and-transient-catchup-unlink-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-028.json",
+      "batch_sha256": "1d65303c22e887c53cb861dffbe46ee8bbfb0d3bd01f680131c9ff56cd535371",
+      "canonical_record_sha256": "4d9216f95bf288adcf296bb8c6560e777b9eeddf13aeec658d8781b94b30dfff"
+    },
+    {
+      "id": "EA-0038",
+      "semantic_key": "recent-sleep-eligibility-filtered-villager-query-quorum-to-bounded-golem-search-with-nearby-memory-suppression",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-029.json",
+      "batch_sha256": "ee28122c5a776cccffc6e237cba98e03567a21d61dddc34f6387bfea71ee1764",
+      "canonical_record_sha256": "a0712e64a2a89ee2f0835ca87eb73e689d9184cfc157f571f8afb7bc8b0ebf86"
+    },
+    {
+      "id": "EA-0039",
+      "semantic_key": "rebuilt-global-and-any-nearby-player-category-budget-with-biome-charge-potential-and-unchecked-add-accounting",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-030.json",
+      "batch_sha256": "d6e1d02ed86c612df0600f9e725418b4e0fb9bf496a57cc2e02cb889ea07045f",
+      "canonical_record_sha256": "9ef814c0437b5d10b65e3dadc763991ac703b270638af7ef2d3347fe17938807"
+    },
+    {
+      "id": "EA-0040",
+      "semantic_key": "nearest-visible-player-hero-effect-to-eligible-attempt-clocked-delayed-profession-gift-with-abort-cooldown-and-uncommitted-throw",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-031.json",
+      "batch_sha256": "6a0b51a09f0b8c258c8106c0aee05c9c526ebff054ace492b73adcda98349ceb",
+      "canonical_record_sha256": "407e6421591f2041d4798eab6352d24db764658d1408b4bb3aba96de5deb6519"
+    },
+    {
+      "id": "EA-0041",
+      "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-032.json",
+      "batch_sha256": "6022349591ce3ba6b793b046053f7c1ff02f825815feef3711cb09e72516fe0c",
+      "canonical_record_sha256": "c97723e119ca82fa7a8781494e435ef5c703a9ea50603ef8cfb1bd041e08ce33"
+    },
+    {
+      "id": "EA-0042",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-033.json",
+      "batch_sha256": "20a661796a4b35341b875a17c2ebce2bf2853d3c04b5dfdbe18b65984012fe85",
+      "canonical_record_sha256": "12642fc9c7eb5badd249f9207e27fd0087c88e5e3e20cef00a7eff0c34549781"
+    },
+    {
+      "id": "EA-0043",
+      "semantic_key": "owner-sleep-bed-occupancy-service-to-stop-time-morning-gift-with-unbound-world-drop-and-transient-rest-state",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-034.json",
+      "batch_sha256": "0b1cf32e9d42ef79c54a013d2cb6dda32e1f563e210e327e1f059dfa33159b2b",
+      "canonical_record_sha256": "cef907e1ab08834b55e4ba9fbd0c847561a38b6ab957a7d255401a51ff94948f"
+    },
+    {
+      "id": "EA-0044",
+      "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+      "batch_sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386"
+    },
+    {
+      "id": "EA-0045",
+      "semantic_key": "cached-peer-profession-demand-and-surplus-inventory-to-intended-recipient-unbound-world-handoff-with-independent-pickup",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-036.json",
+      "batch_sha256": "ba0b9c1ea313ce95304fb4ac79066c6be739c85b0c3e1c929f9d44227ac4895b",
+      "canonical_record_sha256": "997233285240516e1a00fc6368ae3406fbe30529305b33a61147c6f6d82e2b21"
+    },
+    {
+      "id": "EA-0046",
+      "semantic_key": "griefing-gated-cached-livestock-selection-to-delayed-phenotype-rewrite-with-material-consumers",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-037.json",
+      "batch_sha256": "a530a0c908b2d1ee062600444539cb7ff91848cc2953c8e36d525c478ae2a0d8",
+      "canonical_record_sha256": "aad264ad7439cd76144b509d7b942205bb30aad21c5660d500c3ca54a3ca4ca2"
+    },
+    {
+      "id": "EA-0047",
+      "semantic_key": "accepted-hurt-event-overridden-local-reinforcement-with-postrequest-caller-callee-attribute-chance-debit",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-038.json",
+      "batch_sha256": "a4dbe89e03c54a57e0a0c1e9c18776df5a7c8f6e3d754434966b7d7164cf8e33",
+      "canonical_record_sha256": "51bb8cdea916d3fc39c13b37ff58fe0f2f786ff661cfbe2cf11f8c2a6f07f0cf"
+    },
+    {
+      "id": "EA-0048",
+      "semantic_key": "charged-causing-actor-shared-transient-trophy-attempt-quota-debited-before-captured-drop-admission",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-039.json",
+      "batch_sha256": "5368642e47c777bedd8c8298665b73175345b81b75150d1ecfea8593c4fec9e4",
+      "canonical_record_sha256": "d958c35f6ee66c780e579d3bf8230ffb0a84ebb6869bcca13643c8f2a014cced"
+    },
+    {
+      "id": "EA-0049",
+      "semantic_key": "owner-bound-habitat-weather-phased-fishing-window-to-event-vetoable-reel-loot-and-rod-damage-request-without-acquisition-ack",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-040.json",
+      "batch_sha256": "a2bf20337a0f06dc687a690e08f1afb7f593a246a8ca17686b37d9a1b56692bb",
+      "canonical_record_sha256": "dde78c2150e406f98d1579fee1476ecbfcfb5dc2a02b918d0a76b9d0e34c87a8"
+    },
+    {
+      "id": "EA-0050",
+      "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+      "batch": "docs/cod4/audit-20261022/ecology-availability-research/batch-041.json",
+      "batch_sha256": "4a80f1d99a5231de7df12b707f3ae74eeb157205fed9b64c44c8c7a405cdbeb0",
+      "canonical_record_sha256": "c7f61c849d61ce8924020e6c4888051ff79f26f5965815029d66727654caac5b"
+    }
+  ],
+  "current_complete_related_ecology_judgments_actually_read": [
+    {
+      "id": "EA-0024",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-018.json",
+        "sha256": "3212cc1bd1e3784d2f100ad668159411b74e8034832fb72d151309b80fd5a4c6",
+        "bytes": 379541
+      },
+      "canonical_record_sha256": "15fdb73adce88af2b4f38dadb46eb9495a40eadf388919d2566fb8bdb709410c",
+      "complete_four_fields_actually_read": {
+        "semantic_key": "configured-food-to-retained-block-state-dispersal-with-tiered-intent-consumption-and-uncommitted-placement",
+        "observation": [
+          "Concrete registered EntityToucan constructor/registerGoals calls static initFeedingData. Config default declaration maps apple/golden apple/enchanted golden apple to oak sapling and banana to jungle sapling. Parser accepts>=2 pipe-separated fields, first item key→second block key, does not trim/validate SaplingBlock; duplicate keys overwrite map while stack-list appends. Initialization is static and skipped when init=true/nonempty. Only default declaration and local parser read, not a deployed config/reload hook proof; raw tag tier memberships absent.",
+          "mobInteract captures player stack then calls Animal.mobInteract first and ignores whether its result already consumed action. Native parent food branch on server age0/love admission shrinks1 unless creative and sets love; baby branch shrinks/ageUp; then subclass rechecks current stack mapping, SaplingTime<=0 and empty main hand, copies one into hand before another usePlayerItem shrink. Therefore when current item also breeding-tag eligible and enough count remains, two debits are conditional possible in one route; a consumed last item can prevent subclass branch. No exact tag intersection, actual reproduced double-debit or atomic fee/output receipt is claimed. Subclass itself has no adult/server gate.",
+          "Dropped route: actual FlyingAITargetDroppedItems registered target priority1 delegates previously source-read CreatureAITargetItems. Parent onFind/onGet callback occurs before caller one-shrink; sight/nearby checks are false in constructor. Toucan callback copies one, server requests old hand drop if nonempty, pecks/requests flying and overwrites hand, retaining no thrower UUID. Flying wrapper sets item flag and changes navigation, does not certify actual path/arrival. canTargetItem tests only SaplingTime<=0 and mapping, not already having pending sapling state.",
+          "Entity tick after superclass: while nonempty hand heldItemTime++; >10 and current canTargetItem then heal4/EAT/sound/remainder request, golden-tag first sets12000 else enchanted-tag setsGoldenTime(-1)/Enchanted true, converts current mapped stack into SAPLING_STATE and shrinks1. This full block lacks a side guard; GoldenTime positive decrements only server. Existing pending block intent can be overwritten by another qualifying food; enchant flag is not cleared by ordinary fruit. SaplingTime accessors exist but no assignment/decrement in this full class beyond default0; do not infer arbitrary external setter users absent. No original player payment correlation or heal/drop success receipt.",
+          "AIPlantTrees priority2 MOVE+LOOK; Goal/Selector/Wrapper source support reused. canUse only with pending state, postdecrement runCooldown<=0 then samples15 positions, X nextInt(10)-8[-8,1],Y[-4,3],Z[-8,7]. Initial gate requires pending state canSurvive(candidate), empty candidate.above and hasLineOfSightSapling, not candidate replaceable yet. Predicate compares clip result blockPos to destination only. Same-version BlockGetter.clip miss fallback uses endpoint BlockPos, BlockHitResult.miss keeps this pos; thus unobstructed MISS at endpoint qualifies. It is not a requirement to strike an existing solid sapling.",
+          "Selected candidate resets cooldown to50..89 only golden&&!enchanted, otherwise200..399; samples circle20..119 when golden else100..199. These are canUse/goal update counters, not native world ticks. tick near squared distance<3 immediately pecks/plantTime++ regardless encircleTime; away branch does not reset accumulated plantTime. Circle time controls approach height/path but is not an obligatory minimum waiting period. No overall timeout or ongoing candidate-validity check in canContinue beyond pos/pending state.",
+          "At plantTime>60, tests current state canSurvive and current candidate block replaceable, requests setBlockAndUpdate, clears pending state iff !Enchanted without checking returned bool, then directly stop resets position/time/itemFlag even on failed validation. Native Level setter can returnfalse for outside height/debug/null chunk mutation, uses flags3 and snapshot-aware notifications; lower chunk/event result not expanded. Nonenchanted intent can be lost after refused write; enchanted intent retained after valid request and after failure, supporting repeated future placement attempts with same seed-state. No explicit mobGriefing/permission guard in this local route; no runtime griefing outcome asserted.",
+          "Native default SaplingBlock startsSTAGE0; Bush.canSurvive delegates Forge canSustainPlant for this state, whose full lower implementation is not expanded. Sapling randomTick needs loaded neighborhood,brightness>=9 and1/7; next stage or treeGrower request occurs later. Toucan only requests configured default block placement, does not bonemeal or create a mature tree. Tree-grower/features/actual sapling type resolution/current loaded config not proof-expanded. A named planting success is not native mature-tree or harvest receipt.",
+          "Own NBT writes pending SaplingState if nonnull,Variant,GoldenTime,Enchanted; read missing/air sapling clears intent. Main actually read native Mob hand-items writer/reader so hand stacks have superclass serialization requests too; ItemStack.of/save payload internals not newly expanded. Own heldItemTime,goal candidate/circle/plantTime/cooldown,FLYING/PECK/SaplingTime not explicitly stored here. Fresh reconstruction resets transient state while kept intent/enchantment can continue; read into an existing instance is not a general reset proof. Existing default sapling intent, positive golden server clock and enchant persistence are one service policy, not extra migration/variant credit.",
+          "Whole794-line EntityToucan and60-line Flying target wrapper actually read, plus config/registry/tag bounds. RegistrationCREATURE0.45x0.45 establishes type/factory, not natural admission. Constructor/registerGoals initialize static item→block map from strings split on pipe; >=2 accepted, firsttwo used, no trim/SaplingBlock validation. Duplicate item keys overwrite map while list appends. Nonempty initialized map skips refresh; defaults are declarations, not loaded current config or proven valid registry entries. Standard spawn/breed/variants/movement helpers0.",
+          "getSaplingFor requires nonempty stack with registry key mapped, resolves BLOCKS and returns its defaultBlockState whennonnull. Config can map to arbitrary blocks, not necessarily a tree. Declared four defaults are identifiable source strings only. Three breed/golden/enchant item tags are tree metadata without raw contents. No default tag memberships, material availability, loaded map success or golden-apple economic path is proved.",
+          "mobInteract captures mutable player stack, calls Animal parent FIRST, then ignores whether action was consumed. Native adult server age0 and canFallInLove consumes1 unlessinstabuild and setsLove600, baby route consumes/grows. Only after that subclass tests current mapping, SaplingTime<=0 and emptyhand, copies1 tohand, then usePlayerItem consumesagain. For an item also in actually loaded breed tag and with enough remaining count, two source debit calls can occur; last-item parent consumption can suppress mapped subclass. Branch lacks own server/adult guard. Neither universal double-debit nor real replicated loss/atomic payment is established.",
+          "Flying dropped goal age>15/radius16 inherits empty mainhand/nearest target and callback-before-shrink from actual prior whole helper read. executionChance1 removes that RNG failure but idle/world-time/path gates remain. Parent canUse first then attacktarget guard; current mapping/SaplingTime predicate runs on selection, not every debit. Toucan onGetItem copies1 with NBT/caps, conditionally requests old hand drop on server, pecks/setsFlying and overwrites hand; parent then shrinks original1. No thrower ownership token/pickup-delay receipt. Flight requests/hasLineOfSight branches not certified arrival.",
+          "In tick, heldItemTime increments while nonempty; >10 and current canTargetItem heals4 request/EAT/audio/remainder drop, then golden membership FIRST setsGoldenTime12000, else enchant membership sets-1/Enchantedtrue. A stack matching both takes golden branch. Ordinary fruit does not clear Enchanted. Maps current held stack into SaplingState before shrinking1. This block lacks own side guard; positiveGoldenTime only decrements server. Health/remainders/packet/actual client-server composition and item retain/consume success not proved.",
+          "SaplingTime has default0/get/set but no own call that sets or decrements it elsewhere in the full class; no global external-setter absence claim. Pending SaplingState is NOT a canTargetItem or hand-feed exclusion, so later qualifying food can replace pending intent after held-time check. It is one retained block-state service, not an immutable per-food queue. Variant/name/Fedora-like cosmetics and each tier/support helper0.",
+          "AIPlantTrees priority2 MOVE/LOOK uses canUse pending state plus postdecrement runCooldown<=0. Samples15 candidates with biased X[-8,1],Y[-4,3],Z[-8,7], accepting first with state.canSurvive, empty ABOVE and destination-blockpos line-of-sight, not current candidate replaceability. Native clip MISS fallback stores endpoint containing blockpos; BlockHitResult keeps this pos, so an unobstructed MISS endpoint can qualify. It need not hit a solid existing sapling; collider/fluidNONE/terrain and navigator internals are not a reachability guarantee.",
+          "Cooldown50..89 onlyGolden&&!Enchanted, else200..399; chosen encircle duration20..119 ifGolden else100..199. These count eligible canUse/goal updates, not unconditional worldticks. Native separate target/goal selectors have their own locks, so item pursuit and goal movement can affect shared controls. Existing read of flags/scheduler is reused, not extra mechanism. No finite wallclock completion guarantee.",
+          "Tick setsaiItemFlag, decrementsencircleTime, but near squared distance<3 immediately stopsflying/pecks/plantTime++ without waiting for encircleTime0. Away does not reset plantTime. Thus61 near qualifying updates may accumulate across separation and during encircling; no requirement to finish circle then stand61consecutive ticks. It may land/setflyingfalse before encircle ends. Outside near, circle/LOS decides directflight versus navigation requests; returned boolean/path success uninspected.",
+          "AtplantTime>60 reads CURRENT intent, retestscanSurvive and currentcandidatecanBeReplaced, requests setBlockAndUpdate flags3; iff notEnchanted clearsintent WITHOUT examining return. Then directstop clearspos/plantTime/encircle/itemflag even if validation failed. Failed validation leaves intent, refusedwrite with validguards can clear ordinary intent; enchanted retains state across either condition. Stop does not reset runCooldown or explicitlystopnavigation. Laterwrappercleanup differs from direct underlying stop. No refund or source material/output provenance commit.",
+          "canContinue checks onlyposnonnull andSaplingStatenonnull, no age/currentterrain/timeout/LOS/arrival. Native Level setter can returnfalse outsideheight/debug/null chunkmutation; captureSnapshots gates notifications. Even true return does not prove later stability, no externalreentrancy/listener/permission/chunk lifecycle exhaustive proof. This route does not explicitly call mobGriefing/protection checks; no demonstrated griefing/bypass claim.",
+          "Native Bush/Sapling fulltext shows per-block survival and ForgecanSustainPlant delegation, defaultstage0. Sapling growth later requires arealoaded,brightness>=9,random1/7, then cycle stage or treegrower invocation. Placement service never calls bonemeal or mature-tree generation. Configured non-saplings differ. No accepted tree growth, harvested logs/items, natural material supply or questreceipt.",
+          "OwnNBT writes optional SaplingState,Variant,GoldenTime,Enchanted aftersuper. NativeMob saves/readsHandItems too. Additional actualNbtUtils224..278 writesName/propertystrings, readsAIR on missingName or unresolvedregistry, ignores unknownproperties and retains default/current property when valueinvalid; invalid ResourceLocation construction canthrow. Ownread explicitly sets null when missing orAIR intent, including same-object read, distinct from merely omitting a setter. Own heldtime/AIcandidate/planttime/encircle/runCooldown/flying/peck/SaplingTime omitted; fresh defaults differ from retained omitted fields on existing instance. Full ItemStack.save/of, capabilities, chunk reopening and generic serializations remain unexpanded; no general durable or reset/exploit proof.",
+          "Closest actualEA13 whole plantmob maturation policy is distinct from existing animal retaining mapped block-state intent and dispersing it. WholeHummingbird facility/flower shared crop service, Raccoon held-food wash/thrower tame and Platypus charged substrate loot service do not cover this mapping→custody→intent→sampled placement lifecycle. Shared feeding/AI/NBT/write failure/tier branches are each0. At most one parameterized source policy, no global migration novelty or source-range counting.",
+          "No Java/Gradle/game/upstream source/network/display/process/audio/brightness/wake action. No production/ecology cap/category/probability/world/assets/sharedJar/checklist/master/Git changes. Existing native birth/kill/material/UUID pickup failures unchanged. Runtime proof and applicable1000 gate remain unmet."
+        ],
+        "application": [
+          "Keep acquisition cost, retained service intent, candidate habitat checks, actual world-write acknowledgment and subsequent natural growth as separate facts.",
+          "Quest success should depend on native admitted result; interruptions/reload/tier policy must not silently lose or duplicate paid service intent. No implementation before applicable1000 gate."
+        ],
+        "limits": [
+          "No raw3tier/breeding tags or deployed configuration proof; defaults are code declarations only, no exact current food-tier membership.",
+          "No actual natural spawn/material supply, write commit, complete permissions or tree maturation/harvest receipt.",
+          "No exact engine scheduling, path arrival or native packet/render acceptance; mod predicate/helper requests only.",
+          "No new game/upstream code/Java/native scenario, no Dynasty cap/category/probability/production changes.",
+          "No migration credit for shared NBT, no professional art/checklist edits.",
+          "No raw3tier/breeding tags or deployed configuration proof; defaults are code declarations only, no exact current food-tier membership.",
+          "No actual natural spawn/material supply, write commit, complete permissions or tree maturation/harvest receipt.",
+          "No exact engine scheduling, path arrival or native packet/render acceptance; mod predicate/helper requests only.",
+          "No new game/upstream code/Java/native scenario, no Dynasty cap/category/probability/production changes.",
+          "No migration credit for shared NBT, no professional art/checklist edits.",
+          "All7mod/16native raw keepends/blob/tree/archive identities replayed, actual fresh5mod/11native source text plus55NBTlines read; reused2mod/5native exact prior actualreading, not machine scan as semantic credit.",
+          "No complete registry/configload/reload, lower path/collision/treegrower/world/chunk/permission/ItemStackcap/save lifecycle or runtime/crossmod proof. No formal ID assigned or actual aggregation performed.",
+          "Bind originalcbd7 proposal, actual independent reviewer and unchanged09755tree/archive; exactly one whole mapped-food custody→retained-blockintent→habitat placement policy max, all species/tier/helper/default entries/samples/NBT/defects0.",
+          "Parameterized_source_policy_only:3rawtagresources absent and loadedconfig unproved. Default4 mappings are only source declarations, not installed values/tag memberships; no concrete economic setup or player acquisition proof.",
+          "ParentAnimal executes before subclass recheck/debit; conditional two debits/lastitem behavior depend on actual loaded breed intersection/count/age/side/creative. No universal doublecharge or reproduced exploit.",
+          "Dropped callback before shrink and own tick setintent before debit, no owner/inputreceipt; pending state may be overwritten and Enchanted persists through ordinary food. Goldenbranch priority andSaplingTime own-default/no-own-writer limit retained.",
+          "15biasedcandidates/missendpointLOS ≠15distinct refs or solidtarget hit/path success. Aboveempty andcanSurvive initial gate differs from replacement check at sink; no terrain/access/permission guarantee.",
+          "Nearplanttime may accumulate duringencircle and acrossseparation;61near deliveredgoalupdates not fixedseconds/consecutiveworldticks. Continue has no deadline/currentvalidity; controls/interruption/stop versuswrapper remain conditional.",
+          "UncheckedsetBlockAndUpdate andnonenchantedclear onrequest differ from committedwrite; enchantedretention supportsrepeatedattempts, no maturetree/harvest/quest/actualoutputreceipt. Lowerworld callbacks may fail/reenter.",
+          "Ownread clears missing/AIRintent even existingobject; omittedtimers reset onlyfreshconstruction, handItemssave inherited. AddedNBTnative55lines support0; property/readregistry/cap/chunk limits preserved.",
+          "Compare EA13 and completeHummingbird/Raccoon/Platypus policies; not new credit for sharedgenerichelper. No production/native/material/taskdeletion or measuredactivehours from this review; mainalone finalformalacceptance."
+        ]
+      },
+      "reading_scope": "EA24 all24observations/21limits+semantic/application actually read this continuation, prior original checkpoint also exact; EA36 and44 complete current fields read. Old upstream chains not reread.",
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Whole mapped-food -> held food -> retained planting intent, tiered repeat/consumption and sampled habitat placement. Enderman instead attempts to remove an existing world block into one body-state cargo and later redistributes/produces death loot, with no food funding, mapped service tier or repeat planting entitlement. Shared retained BlockState/helper/unacknowledged sink alone is0. Main may merge related material-redistribution applicability0.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0036",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-027.json",
+        "sha256": "337d0727e26d7241d59560065306fb417c89558675671aa07467f89796b2911d",
+        "bytes": 364632
+      },
+      "canonical_record_sha256": "37c59b53bc034d757c1b5cd41c4b9b40282b395a3c0f7f23e9e9a952ac475b78",
+      "complete_four_fields_actually_read": {
+        "semantic_key": "live-host-substrate-hiding-to-damage-delayed-local-dormant-reservoir-release-or-deinfestation",
+        "observation": [
+          "单项完整潜伏栖地危险机制：活体可把普通兼容host状态变成infested状态并去除自身；受伤延迟扫描当前周边潜伏块，按每次griefing判定选择破坏尝试释放或还原host去虫。转换与空间招援/去虫必须整项合并；不按物种/6变体/半径/反例/组件数拆。最多1相关完整策略建议，正式0。",
+          "完整Silverfish注册wake priority3、melee4、merge5和player/retaliation目标，原生MONSTER0.4x0.3。Goal/RandomStroll完整本体与注册可核实际方法关系，不证明GoalSelector公平调度、寻路、环境自然来源/容量机会或完整父类执行。",
+          "merge.canUse先target!=null或navigation未done拒绝；随后Forge per-entity griefing允许且nextInt(reducedTickDelay(10))==0才挑一个随机方向，按当前X/Y+0.5/Z相邻host身份图判断。Goal默认false和Mth正向向上除2使bound5，不能说每10世界tick一次。失败清doMerge走RandomStroll，fallback又有vehicle/noAction和非force随机、nullable位置及navigation请求，不保证移动到合适石块。",
+          "merge.start若doMerge再以当前actor位置+记住方向重读host，不复验target/nav/griefing/random；兼容则setBlock(infestedState,3)忽略bool，随后spawnAnim并discard旧actor。Level实际可因buildheight/debug/chunk setState null返回false；不是原子pop保存或失败保留。没有把原UUID/health/name/物品/NBT写进宿主。只据源码顺序，不报复现丢失/漏洞。",
+          "完整InfestedBlock构造把host到infested登记identity map；转换缓存按BlockState，只有同一Property对象在目标状态存在才复制属性。6个Blocks注册是stone/cobble/stonebrick变体支撑0；不是每actor槽位、colony容量或原对象快照，未审worldgen潜伏库和完整world/chunk持久化。",
+          "hurt先isInvulnerableTo则false；否则source entity非null或ALWAYS_TRIGGERS_SILVERFISH tag且friendsGoal存在即notify，然后才super.hurt。通知不依赖后续真实掉血结果。原base魔法tag实际只有minecraft:magic，不能推当前合并tag或外部伤害事件顺序。",
+          "notify仅计数0时写adjustedTickDelay20。该Goal未覆写requiresUpdateEveryTick，实际结果10，需抵达10次own goal.tick而非20固定世界tick；正值再次通知不延长。每tick先--再<=0扫描，结束计数0可再次受伤启动；完整类无own该alarm save/read，瞬时状态不等持久单次attempt latch。",
+          "扫描中心是届时currentblockPosition而非受伤坐标；Y0,+1,-1至±5，内X同序至±10，再Z至±10。无提前return上限11*21*21=4851块，不是球、路径、视线、无加载或性能承诺。每遇InfestedBlock重新问同actorForge griefing。",
+          "griefing ALLOW/DEFAULTtrue走destroyBlock(pos,true,actor)，DENY/DEFAULTfalse转hostStateByInfested并setBlock3；每个实际遇块操作后nextBoolean可能立刻return，与write/add成功无关。DENY去虫不是放出虫或等待下次release的可靠队列；无确切一次出生/全域清理/持续机会保证。",
+          "LevelWriter三参destroy委托四参512；Level.destroy非air先levelEvent并读取fluid，然后dropResources，最后setBlock(fluidlegacy,3,recursion)，仅flagtrue发BLOCK_DESTROY。Block.dropResources在ServerLevel先请求loot/pop，再spawnAfterBreak。故调用释放callback可以先于旧块真正去除；完整callback重入/掉落/事务/保存未审，不以失败bool当额外机制或已复现复制。",
+          "BlockStateBase.spawnAfterBreak动态到InfestedBlock，override先superXP hook，再要求doTileDrops和实际silklevel==0才spawnInfestation；EnchantmentHelper委托ItemStack extension未展开，空工具不推出所有mod必返回0。griefing之外还有此独立gate。仅审该正常drop路径，不能泛化到所有爆炸/玩家/creative/活塞/外部remove。",
+          "spawnInfestation nullable create新Silverfish，中心X/Z+0.5与blockY定位，uncheckedadd后spawnAnim。该helper没有显式finalize/obstruction/checkSilverfishSpawnRules/cap/doMobSpawning判断；单独static自然规则AnyLightMonster且5内无eligibleplayer不在此直接调用。无跨mod/Peaceful/存活/cap豁免保证。",
+          "复用Main先前Allay亲读3原生admission范围，拒绝removed、join取消、已知UUID仍可能使调用不接纳。构造、动画、破坏反馈、丢弃旧actor皆不证明新出生或人口守恒，不算死亡KILLED/同UUID继承/材料掉落拾取通过。",
+          "最近EA10整链已覆盖活体进巢存NBT、占巢条件与add成功才消费/失败保留队列；单独隐藏或存储/重建不能另计。本完整项的独特玩法组织是普通空间host无个体payload的潜伏库，由受伤的当前actor在盒区域招援或按griefing去虫，且破坏callback在实际块替换前。此额外入口/分支/空间状态不在EA10巢队列timer出口重试内，故全机制合并最多1，而非仅因丢bool/缺NBT加数。EA16永久父latch一次招新不是现存潜伏块招援/去虫；EA18跨孕/卵/桶双亲payload保存反而是不同目标。旧全判断实际读取或本轮Pearl读过EA16复用0，不称重读这些旧原源。"
+        ],
+        "application": [
+          "未来将潜伏栖地招援/去虫与个体持久存储分开设计；必须真实回读block replacement/newactor UUID和归属，不能alarm/动画/旧实体移除即算获得材料或生态出生。",
+          "当前仍未达到生态1000相关机制，不据此改cap/category/概率或生产。"
+        ],
+        "limits": [
+          "Bounded fixed local native sources only; no fresh upstream authenticity/complete Forge ecosystem/inheritance/GoalSelector/navigation/physics/targeting/damage authority/actual loaded rule/tag composition or runtime validation.",
+          "No reliable stored individual, NBT lineage, original UUID/health/name/inventory restoration, exact population conservation or unlimited/sustainable spawning guarantee. Infested block records host-state category/properties; world/chunk save and natural reservoir generation unexpanded.",
+          "The two caller booleans ignored: rejected setBlock can precede old actor discard, and drop/spawnAfterBreak calls can precede failed destroy write. These are source order conditions, not reproduced gameplay loss/duplication or permission exploits. No main code fix authorized by source evidence.",
+          "Griefing DENY route restores host instead of wake release; doTileDrops and current silk-level exactly0 independently gate InfestedBlock callback. Forge ALLOW/DENY override vanilla griefing result, handlers not executed. Raw magic tag is base resource only, not current runtime membership.",
+          "Alarm delay10 means own goal-tick deliveries; scheduler/noAI/load interruption not studied. Offset upper bound4851 not actual performance/cap/generation acceptance. Ordered scan and random stop give no fair/complete cleanup or exact output.",
+          "Only normal dropResources/spawnAfterBreak call path studied. Full player harvesting/correct tool/creative/event/loot/XPhook/explosion/piston/external-mod routes and item-extension silk calculation not expanded. No general statement on explosions or all block removals.",
+          "Existing accepted-row broad keyword screen found Sniffer whole-owner3fb8a71067bc8689fcce; it is not a new foraging reference and no Sniffer source studied here. No verified complete Silverfish/Infested family found in bounded semantic metadata screen; not exhaustive global novelty. Global/migration credit0.",
+          "16source ranges/14entries/6whole declarations/one raw resource/three prior admission ranges/allregistrations/properties are support0. At most1 whole policy pending distinct Main; same lifecycle coverage must merge0 if existing owner suffices.1000 gate remains unmet, no checklist deletion.",
+          "No Java/Gradle/game/server/network/download/UI/process/focus/wake/display/audio/brightness/world/sharedJar/asset/Git/shared tools/master/session/checklist action. This new immutable proposal only; no active hours claimed.",
+          "本独立完整源码策略收据只有max1建议，正式仍0。原来所有适用研究保留，不把本范围6whole/16ranges/14files当16实现，未执行上游或Java。未来需要隔离研究最小增量、Main审安装、真实作者确认、Main单次严格聚合。",
+          "Private association is not formal acceptance. Bounded no-matching-owner metadata screen is not global novelty. No production/game/Git/checklist/master changes."
+        ]
+      },
+      "reading_scope": "EA24 all24observations/21limits+semantic/application actually read this continuation, prior original checkpoint also exact; EA36 and44 complete current fields read. Old upstream chains not reread.",
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "Silverfish transforms live actor into unindividualized host infestation and later current-victim alarm releases/deinfests a spatial reservoir. Enderman keeps actor alive while trying to remove world material and retain defaultstate before placement/death conversion. No new population/brood/host-storage reference; griefing gates/shared world mutation0.",
+      "new_credit": 0
+    },
+    {
+      "id": "EA-0044",
+      "batch": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/batch-035.json",
+        "sha256": "5b1bc0179cd00682f3603112efeb5070e0341814c9c57a618079381c94073f92",
+        "bytes": 822203
+      },
+      "canonical_record_sha256": "4d75fc6d7d0a5c9978bf2241c8efb46918ff9554cbe28089a41facd603dd4386",
+      "complete_four_fields_actually_read": {
+        "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+        "observation": [
+          "One whole related material-deposit policy max1: living actor body samples legal supporting terrain and requests renewable world snow; decay and real actor/tool-conditioned harvest are distinct stages. Four positions, layers/tags/helpers/raw files and old golem receipt are0 separately.",
+          "Full SnowGolem210 is super-first. Own logicalserver aiStep requests biome-tag onFire damage1 before effective Forge mobGriefing; false returns before snow samples. No own posthurt alive recheck is shown, without proving deadmob production, NoAI scheduling or sustainable lifetime. No own inventory debit/cooldown does not prove current infinite yield.",
+          "Four loop samples floor(X±.25),floorY,floor(Z±.25) can collapse to one cell. Previously accepted writes change following air checks; repeated failures can retry same cell within loop. No fourunique blocks/worldtick rate/path/movement prerequisite established.",
+          "Each cell must be isAir and default SNOW canSurvive; default is LAYERS1. Existing snow is not air, so this own footprint does not stack layers. SnowLayer negative supporttag wins positive; fallback fullUPcollisionface or sameSnow8. No local biome-temperature condition in this support predicate.",
+          "Actual default support and melt tags read: cannot ice/packed_ice/barrier, can honey/soul_sand/mud; actor-melt twelve fixed biomes. Named declarations/raw members are source parameters0, not current merged tags or deployment proof.",
+          "setBlockAndUpdate usesflags3/default512; full bounded setBlock returnsfalse for height/debug/nullchunkresult and handles Forge captured snapshots with notification suppression. Caller ignoresboolean then requests BLOCK_PLACE. Event/request/returntrue is not durable material commit; snapshot/neighbor/IO effects remain unproven.",
+          "Full SnowLayer122 returnsAIR for failed support, randomTick onlyBLOCKlight>11 asks dropResources before ignoredremove. This differs from actor biome damage, temperature or sky light. Registered randomTicks/correcttool requirement is not actual scheduler/material/payment evidence.",
+          "Bounded block loot supplier uses explicitcached/customsupplier/default registry namespace blocks/path; getLootTable caches. SNOW registration and raw snowtable are fixedbase link hints, not proof current runtime table/registry/item feature availability.",
+          "Survival break chain has Forge veto, privilege/itemstart/restriction checks; copied tool before mineBlock, canHarvest computed beforetoolmutation, remove result and canHarvest jointly gate playerDestroy. Creative own path removes without playerDestroy; destroyBlock returntrue does not prove loot. Complete canHarvest/onDestroyedByPlayer/packet reach/hooks outside.",
+          "playerDestroy requestsstat/exhaustion then player THIS_ENTITY pluscopiedtool; noactor decay dropResources sets emptyTOOL and noTHIS_ENTITY. Blockstate addsSTATE and createsBLOCK params(requiredSTATE/ORIGIN/TOOL, optionalTHIS/BE/explosion). Seven actual prior MainHero resolver/params/table contexts reused0 retain EMPTY-before-Forge modifier/feature/function/pool limitations and unreadTable47/52-53.",
+          "Full LootItemEntityPropertyCondition66 obtainsoptional entity/origin. Raw pool condition this,predicate{} parses via newBuilder/newEntityPredicate rather than ANY; bounded matchesprefix rejectsnull. EntityTargetTHIS mapsTHIS_ENTITY; paramsgetnull and direct singleconditioncombiner feed poolcondition beforefunctions/rolls. Thus ordinary fixedbase noactor decay path fails this basepool; no guarantee current modifiers/currentpack finalempty.",
+          "All4derived rawresources fullyread including snow.json356lines. First rawalternative declares NOTsilktouch>=1 and1..8 snowball-count branches; second1..7 snowitem-count branches ends UNCONDITIONALsnow_block. Explicit additional nativeLAYERSrange1..8 supports ordinaryvalid8 inference only; rawfinalchild does not encode an8predicate. Rawmapping alone is not complete codec/alternative/function execution or realitems.",
+          "popResource independently requires logicalserver/nonempty/doTileDrops/notrestoringSnapshots, defaultpickupdelay and ignoresentityadd result. It sets no owner/thrower/inventory target here. Committed placement/removal/basepool/drop request/admission/intendedplayer receipt remain separate; no refund/once-only/UUID proof.",
+          "Current36d wholeconstructedgolem paidconstruction/provenance/pumpkinshear-consumedreceipt canonical/currentnon-evidence judgment fullyread and retained0new. Full IronGolem/CarvedPumpkin original chains not reread; Snow own fullbody reading does not grant another species/shear-property reference.",
+          "EA22 whole34observations21limits/resource-normalization/identity judgment exact Mainprior reuse0; Farmer complete19findings9limits17constraints/corrections comparison exact preserved. Paid facility/crop-counter and reservedinventory/compost differ from unfunded body-coordinate supportedterrain deposition plus decay/actorharvest. Shared mutations/droprequest/uncheckedhelpers give0; max1 bounded relatedpolicy, no global uniqueness/current economic closure.",
+          "29actualranges763lines18entries3whole plus1separateLAYERSdeclaration1line;8prior Main exact source contexts reused0 and4complete rawresources. Author fallback clarification is mandatory paired binding, original observation remains immutable historical text. No new game/quest/production/nativebirth-kill-pickup credit.",
+          "AlternativesEntry handles zero children as false, one directly, two through short-circuit OR, and larger arrays by sequential expand calls ending at first true. Subsequent empty item output does not reopen this choice.",
+          "Its validate reports a conditionless non-final unreachable child. Reporting is neither a runtime guard nor proof validation ran for current resources.",
+          "CompositeEntryBase retains/composes the passed children array and gates expansion with own canRun. The composition follows this array sequence; the shown GsonHelper children-array call does not by itself audit full Gson/type registration or resource-loading ordering.",
+          "Base entry supplies an empty conditions array when absent and delegates canRun to LootItemConditions.andConditions. That helper is not newly read in these six files; the earlier bounded helper reading remains old evidence, not a new whole helper audit.",
+          "ComposableEntryContainer or/and use Java short-circuit operators. ALWAYS_TRUE can return true without invoking the consumer, illustrating boolean expansion is not item-output proof; this constant is not asserted as the selected Snow item child.",
+          "Singleton expand calls consumer.accept(LootPoolEntry) then returns true only on normal callback return. It emits an entry, not an ItemStack; exceptions can abort and do not establish fallback or transaction recovery.",
+          "Its entry creates items later through a decorated function-chain consumer. Weight clamps floor(weight+quality*luck) at zero, defaults1/0. Expansion success does not guarantee positive selectable weight, later selection, nonempty final output, or entity admission.",
+          "LootItem requests new ItemStack(resolved item) into its consumer; raw name resolution alone does not prove current item feature enablement, world entity creation, inventory ownership, actual payment, pickup or quest receipt.",
+          "The last raw snow_block child has no explicit layers8 guard. Valid-state8 is an inference requiring the separate LAYERS1..8 declaration and preceding branch conditions. This support does not create six ecological references or another whole Snow mechanism."
+        ],
+        "application": "Use source as body-to-terrain material policy with explicit placement/decay/harvest/ownership distinctions. No added Dynasty material node before researchgate and real economic acceptance.",
+        "limits": [
+          "Fixed local mappedForge source/derivedbase archives only, no current pack/game/fresh upstream guarantee.",
+          "Only SnowGolem210/SnowLayer122/LootEntityCondition66whole; other29selected ranges bounded plus one declaration. EntityPredicate prefix/enum/andConditions constructor tails are not whole generic classes.",
+          "No full parentAI/NoAI/physics/scheduling/pathfinding/registry/tags/currentevent/neighbor/chunk/IO/snapshotcommit/canHarvest or network audit. Source order conditional on normal prior returns.",
+          "Raw lootcondition/schema/branch declarations not full entry/codec/function/alternative implementation audit; no current merged resources/global modifiers, itemfeature enablement or output guarantees.",
+          "No live golem construction/material cost/continuousyield/placement/removal/shovelpayment/dropadmission/pickup/playerreward/quest result, runtime exploit or crashatomic proof.",
+          "Noactor fixedbasepool rejection is not finalcurrentemptyloot proof; Forge modifiers and externalcontexts may alter outputs. Biome damage/light melting/support tags are separate authority.",
+          "Oldconstructed36d and EA22/Farmer wholecomparisons and8prior Main source contexts retained0; no oldtests/sourcechain rerun. No layer/position/tag/species/helper credit.",
+          "Author originalobserved13 fallback wording is superseded only by separate immutable clarification; finalraw child unconditional and8 valid-state inference require additional native declaration, no literal8guard claim.",
+          "Max1 independent sourcepolicy recommendation pendingformal; no ID/package/appliedcredit/production authority, ecology1000 unmet. Future completeequivalent mustmerge0.",
+          "No model/texture/building/Jar/Java/world/usergame/process/display/UI/network/Git/audio/brightness/wake/focus/master/pending/ownership changes or taskdeletion; no activehourclaim.",
+          "No current merged loot/tag/registry/function/global modifier/native placement or harvest proof. No intended-player material receipt.",
+          "Only the six full source files are newly semantically read here; original ranges, raw resources and prior whole comparisons retain their prior bounded provenance.",
+          "Historical40/41 review snapshots stay historical. Cat closure42 is the sole current package baseline; refuse stale-baseline installation if current inputs change."
+        ]
+      },
+      "reading_scope": "EA24 all24observations/21limits+semantic/application actually read this continuation, prior original checkpoint also exact; EA36 and44 complete current fields read. Old upstream chains not reread.",
+      "old_upstream_source_replayed": false,
+      "whole_comparison": "SnowGolem deposits renewable snow from body footprint without existing material removal/cargo. Enderman has a single source worldblock state and candidate take/place custody, no new renewable resource or four-site snow/layer policy. Source removal/cargo distinguishes organization, not species, BlockState or false-return warning.",
+      "new_credit": 0
+    }
+  ],
+  "prior_Toucan_actual_judgment_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-fox-berry-self-maintenance-read-checkpoint-20261110.json",
+    "sha256": "28ebd253077994ff59cbe58c460e594d0bcd03157a2fda5648713551c1ee446b",
+    "bytes": 123498
+  },
+  "global_ledger_binding": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "bytes": 18357046
+  },
+  "complete_related_global_non_evidence_judgments_actually_read": [
+    {
+      "candidate_id": "ae67e17d2c0729af3601",
+      "canonical_complete_row_sha256": "af817a7ebcc2997be4ed7599c24619f77bf030a6a3a3664b104e1ac27f5c1d69",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "ae67e17d2c0729af3601",
+        "status": "accepted",
+        "family": "native-enderman-removed-worldblock-cargo-restoration-and-place-consumer",
+        "trigger": "EnderMan pair/carried setter/take and leave goal full tick/canUse",
+        "input": "optional carriedBlockState registry properties",
+        "output": "typed compound→blockstate via levellookup, air normalized null; absent clears cargo. Take removes original worldblock and stores defaultstate; place updates neighbour shape then clears cargo",
+        "preservation": "Actual removed-world-block ownership checkpoint, not prior 06f5ea87dd408f659683 legacy blockformat transform. Consumer proves state required for eventual return; anger helper0.",
+        "application_limit": "Take intentionally drops original block properties via defaultBlockState, no BEpayload; place setBlock result unchecked then clearscargo. Unknown blockdecoder fallback not deeply read here; no atomic world/entity save, no guaranteed exactly-once worldreturn.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "EXACT same removed-worldblock cargo restoration/place consumer already globally accepted. Preserve previous1, zero global novelty/new migration. Potential ecology applicability only, not new cargo checkpoint/field/block variant.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "06f5ea87dd408f659683",
+      "canonical_complete_row_sha256": "4e0d8512c03ad2096dffd81da50f7117ffc29efb00cc31647f40bbf17eda6e72",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "06f5ea87dd408f659683",
+        "status": "accepted",
+        "family": "native-entity-carried-block-payload-multiform-state-upgrade",
+        "trigger": "EntityBlockStateFix whole + DataFixers1451.3 + EnderMan current full pair",
+        "input": "old named/numeric Block/TileID/unsigned Tile and4bit metadata; other carried/display block fields",
+        "output": "falling block prioritizes Block then TileID then Tile; converts actual carried state, drops legacy metadata; current enderman typed state reader rejects air into null",
+        "preservation": "Read full functional migration and entity dispatch. One conversion family across falling/enderman/minecart carried/display variants, not ID table entries. Specific physical carried block owner content, static registry map0extra. Current consumer clears absent state rather than leaving stale carried item.",
+        "application_limit": "Unknown string maps air0 and metadata masked15, so opaque unsupported content lost. Projectile inTile fields intentionally discarded. Supporting BlockStateData bootstrap table not deeply reviewed and not counted; actual falling world placement already prior native owner, no extra count for its reader. No runtime migration execution.",
+        "supporting_candidates": [],
+        "credit": 1
+      },
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Legacy multiform entity carried-block schema upgrade already owns named/numeric state conversion. Current NbtUtils decode and Enderman null/air normalization are support0, not new legacy migration.",
+      "new_credit": 0
+    },
+    {
+      "candidate_id": "c40f5a6b9a6971f6071f",
+      "canonical_complete_row_sha256": "eaa346ab30e29e17c06f9aebda1896526912a993bde2083c00b8344959008b86",
+      "complete_non_evidence_judgment_actually_read": {
+        "candidate_id": "c40f5a6b9a6971f6071f",
+        "status": "accepted",
+        "family": "twilight-troll-removed-world-block-held-to-projectile-custody-and-derived-combat-rebuild",
+        "trigger": "完整Troll/ThrownBlock/TFThrowable三类；真实移除世界石块→持有乘客→投掷→命中销毁的载荷接续",
+        "input": "Troll HasRock bool/RockCooldown int/RockState BlockState.CODEC，ThrownBlock独立BlockState.CODEC；生物基本生命周期交native super",
+        "output": "恢复先setHasRock重建唯一FOLLOW_RANGE暂态modifier与近战/远程goal，再恢复cooldown与BlockState；投掷用恢复state新建实体，清持有旗、丢弃持有乘客并清rock/cooldown；ThrownBlock恢复失败用stone，命中Living非Troll伤6或撞block销毁",
+        "preservation": "一个真实移出世界的物质在持有→弹体转换链，不按两个readers或阶段加数。拿石扫描部分标VanillaCopy Enderman但新增双实体持有/投掷提交与两个真值状态重建并非Enderman单载荷放回旧算法；共同扫描copy和BlockState codec0额外。临时战斗goal属性由持久旗派生而非整包复制，业务状态与派生缓存应分开。",
+        "application_limit": "HasRock与RockState独立恢复未核一致性：true但state缺失则投掷constructor fallback普通stone；false且state存在可能再扫描复用。setHasRock在state恢复之前，未依据现存ThrownBlock乘客核对/重建持有展示；按原生乘客保存边界未全文追当前上游。移除block、startRiding、addFreshEntity回值未确认，投掷spawn失败仍清持有物；不是成功返还实物保障。无原位置/原BlockEntity载荷或自定义方块NBT保留，石头命中即销毁属玩法，不能标为无损物品迁移实现。LoyalZombie另读完整但只有IsBaby暂态派生，未把原生药效计成独立保留。仅固定官方源码静态，无游戏/实体模拟。",
+        "supporting_candidates": [
+          "c40f5a6b9a6971f6071f",
+          "30143db71459947a4b57",
+          "c423af8bcb139af94750",
+          "cdbaef38076a69f35ec2",
+          "37d2e4b3ef7a68132b75",
+          "70fce331593a1b888881",
+          "739226f5bc22d76ec8ed",
+          "91a0a3492081018b4716",
+          "48ae84bd2f594801cab8",
+          "eb4d9d91b9567e95ef2b",
+          "5e0d1eea351d53c43af3",
+          "20525936f2b331794535"
+        ],
+        "credit": 1
+      },
+      "old_upstream_source_chains_reread": false,
+      "whole_comparison": "Twilight Troll whole owns worldblock removal -> held passenger -> projectile conversion and combat rebuild, with explicit copy-from-Enderman scan support. Its two-body projectile custody differs from Enderman single-state world-placement chain but remains existing global1. No new transfer/serialization invention or duplicated thrown-block mechanism.",
+      "new_credit": 0
+    }
+  ],
+  "global_screen_is_not_exhaustive_semantic_review": true,
+  "previous_actual_goal_scheduling_support": {
+    "binding": {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-skeleton-trap-whole-policy-candidate-20261110.json",
+      "sha256": "93671ed058db5b6cd2039421808376cec0e6485c1bb94609fc3cc6826c663b0c",
+      "bytes": 121823
+    },
+    "ranges": [
+      {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/goal/Goal.java",
+        "entry_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+        "lines": [
+          1,
+          59
+        ],
+        "full_file": true,
+        "raw_excerpt_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+        "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport net.minecraft.util.Mth;\n\npublic abstract class Goal {\n   private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);\n\n   public abstract boolean canUse();\n\n   public boolean canContinueToUse() {\n      return this.canUse();\n   }\n\n   public boolean isInterruptable() {\n      return true;\n   }\n\n   public void start() {\n   }\n\n   public void stop() {\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return false;\n   }\n\n   public void tick() {\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_25328_) {\n      this.flags.clear();\n      this.flags.addAll(p_25328_);\n   }\n\n   public String toString() {\n      return this.getClass().getSimpleName();\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.flags;\n   }\n\n   protected int adjustedTickDelay(int p_186072_) {\n      return this.requiresUpdateEveryTick() ? p_186072_ : reducedTickDelay(p_186072_);\n   }\n\n   protected static int reducedTickDelay(int p_186074_) {\n      return Mth.positiveCeilDiv(p_186074_, 2);\n   }\n\n   public static enum Flag {\n      MOVE,\n      LOOK,\n      JUMP,\n      TARGET;\n   }\n}",
+        "range_or_helper_credit": 0
+      },
+      {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+        "entry_sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+        "lines": [
+          1,
+          89
+        ],
+        "full_file": true,
+        "raw_excerpt_sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+        "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.goal;\n\nimport java.util.EnumSet;\nimport javax.annotation.Nullable;\n\npublic class WrappedGoal extends Goal {\n   private final Goal goal;\n   private final int priority;\n   private boolean isRunning;\n\n   public WrappedGoal(int p_25998_, Goal p_25999_) {\n      this.priority = p_25998_;\n      this.goal = p_25999_;\n   }\n\n   public boolean canBeReplacedBy(WrappedGoal p_26003_) {\n      return this.isInterruptable() && p_26003_.getPriority() < this.getPriority();\n   }\n\n   public boolean canUse() {\n      return this.goal.canUse();\n   }\n\n   public boolean canContinueToUse() {\n      return this.goal.canContinueToUse();\n   }\n\n   public boolean isInterruptable() {\n      return this.goal.isInterruptable();\n   }\n\n   public void start() {\n      if (!this.isRunning) {\n         this.isRunning = true;\n         this.goal.start();\n      }\n   }\n\n   public void stop() {\n      if (this.isRunning) {\n         this.isRunning = false;\n         this.goal.stop();\n      }\n   }\n\n   public boolean requiresUpdateEveryTick() {\n      return this.goal.requiresUpdateEveryTick();\n   }\n\n   protected int adjustedTickDelay(int p_186092_) {\n      return this.goal.adjustedTickDelay(p_186092_);\n   }\n\n   public void tick() {\n      this.goal.tick();\n   }\n\n   public void setFlags(EnumSet<Goal.Flag> p_26005_) {\n      this.goal.setFlags(p_26005_);\n   }\n\n   public EnumSet<Goal.Flag> getFlags() {\n      return this.goal.getFlags();\n   }\n\n   public boolean isRunning() {\n      return this.isRunning;\n   }\n\n   public int getPriority() {\n      return this.priority;\n   }\n\n   public Goal getGoal() {\n      return this.goal;\n   }\n\n   public boolean equals(@Nullable Object p_26011_) {\n      if (this == p_26011_) {\n         return true;\n      } else {\n         return p_26011_ != null && this.getClass() == p_26011_.getClass() ? this.goal.equals(((WrappedGoal)p_26011_).goal) : false;\n      }\n   }\n\n   public int hashCode() {\n      return this.goal.hashCode();\n   }\n}",
+        "range_or_helper_credit": 0
+      },
+      {
+        "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+        "entry": "net/minecraft/world/entity/ai/goal/GoalSelector.java",
+        "entry_sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+        "lines": [
+          1,
+          158
+        ],
+        "full_file": true,
+        "raw_excerpt_sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+        "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.goal;\n\nimport com.google.common.annotations.VisibleForTesting;\nimport com.google.common.collect.Sets;\nimport com.mojang.logging.LogUtils;\nimport java.util.EnumMap;\nimport java.util.EnumSet;\nimport java.util.Iterator;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.function.Predicate;\nimport java.util.function.Supplier;\nimport java.util.stream.Stream;\nimport net.minecraft.util.profiling.ProfilerFiller;\nimport org.slf4j.Logger;\n\npublic class GoalSelector {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   private static final WrappedGoal NO_GOAL = new WrappedGoal(Integer.MAX_VALUE, new Goal() {\n      public boolean canUse() {\n         return false;\n      }\n   }) {\n      public boolean isRunning() {\n         return false;\n      }\n   };\n   private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);\n   private final Set<WrappedGoal> availableGoals = Sets.newLinkedHashSet();\n   private final Supplier<ProfilerFiller> profiler;\n   private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);\n   private int tickCount;\n   private int newGoalRate = 3;\n\n   public GoalSelector(Supplier<ProfilerFiller> p_25351_) {\n      this.profiler = p_25351_;\n   }\n\n   public void addGoal(int p_25353_, Goal p_25354_) {\n      this.availableGoals.add(new WrappedGoal(p_25353_, p_25354_));\n   }\n\n   @VisibleForTesting\n   public void removeAllGoals(Predicate<Goal> p_262575_) {\n      this.availableGoals.removeIf((p_262564_) -> {\n         return p_262575_.test(p_262564_.getGoal());\n      });\n   }\n\n   public void removeGoal(Goal p_25364_) {\n      this.availableGoals.stream().filter((p_25378_) -> {\n         return p_25378_.getGoal() == p_25364_;\n      }).filter(WrappedGoal::isRunning).forEach(WrappedGoal::stop);\n      this.availableGoals.removeIf((p_25367_) -> {\n         return p_25367_.getGoal() == p_25364_;\n      });\n   }\n\n   private static boolean goalContainsAnyFlags(WrappedGoal p_186076_, EnumSet<Goal.Flag> p_186077_) {\n      for(Goal.Flag goal$flag : p_186076_.getFlags()) {\n         if (p_186077_.contains(goal$flag)) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n   private static boolean goalCanBeReplacedForAllFlags(WrappedGoal p_186079_, Map<Goal.Flag, WrappedGoal> p_186080_) {\n      for(Goal.Flag goal$flag : p_186079_.getFlags()) {\n         if (!p_186080_.getOrDefault(goal$flag, NO_GOAL).canBeReplacedBy(p_186079_)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public void tick() {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalCleanup\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (goalContainsAnyFlags(wrappedgoal, this.disabledFlags) || !wrappedgoal.canContinueToUse())) {\n            wrappedgoal.stop();\n         }\n      }\n\n      Iterator<Map.Entry<Goal.Flag, WrappedGoal>> iterator = this.lockedFlags.entrySet().iterator();\n\n      while(iterator.hasNext()) {\n         Map.Entry<Goal.Flag, WrappedGoal> entry = iterator.next();\n         if (!entry.getValue().isRunning()) {\n            iterator.remove();\n         }\n      }\n\n      profilerfiller.pop();\n      profilerfiller.push(\"goalUpdate\");\n\n      for(WrappedGoal wrappedgoal2 : this.availableGoals) {\n         if (!wrappedgoal2.isRunning() && !goalContainsAnyFlags(wrappedgoal2, this.disabledFlags) && goalCanBeReplacedForAllFlags(wrappedgoal2, this.lockedFlags) && wrappedgoal2.canUse()) {\n            for(Goal.Flag goal$flag : wrappedgoal2.getFlags()) {\n               WrappedGoal wrappedgoal1 = this.lockedFlags.getOrDefault(goal$flag, NO_GOAL);\n               wrappedgoal1.stop();\n               this.lockedFlags.put(goal$flag, wrappedgoal2);\n            }\n\n            wrappedgoal2.start();\n         }\n      }\n\n      profilerfiller.pop();\n      this.tickRunningGoals(true);\n   }\n\n   public void tickRunningGoals(boolean p_186082_) {\n      ProfilerFiller profilerfiller = this.profiler.get();\n      profilerfiller.push(\"goalTick\");\n\n      for(WrappedGoal wrappedgoal : this.availableGoals) {\n         if (wrappedgoal.isRunning() && (p_186082_ || wrappedgoal.requiresUpdateEveryTick())) {\n            wrappedgoal.tick();\n         }\n      }\n\n      profilerfiller.pop();\n   }\n\n   public Set<WrappedGoal> getAvailableGoals() {\n      return this.availableGoals;\n   }\n\n   public Stream<WrappedGoal> getRunningGoals() {\n      return this.availableGoals.stream().filter(WrappedGoal::isRunning);\n   }\n\n   public void setNewGoalRate(int p_148098_) {\n      this.newGoalRate = p_148098_;\n   }\n\n   public void disableControlFlag(Goal.Flag p_25356_) {\n      this.disabledFlags.add(p_25356_);\n   }\n\n   public void enableControlFlag(Goal.Flag p_25375_) {\n      this.disabledFlags.remove(p_25375_);\n   }\n\n   public void setControlFlag(Goal.Flag p_25361_, boolean p_25362_) {\n      if (p_25362_) {\n         this.enableControlFlag(p_25361_);\n      } else {\n         this.disableControlFlag(p_25361_);\n      }\n\n   }\n}",
+        "range_or_helper_credit": 0
+      }
+    ],
+    "new_credit": 0,
+    "fresh_source_read": false
+  },
+  "observed_chain": [
+    "One exact already-globally-owned removed-worldblock -> single actor carriedstate -> sampled world placement/death loot whole, ecology applicability max1 pending distinct Main. Global ae67 original1 and legacy06f/Troll c40 owners retained; no new global/migration or per branch/block/property/reference credit.",
+    "Actual ENDERMAN registry constructs EnderMan MONSTER .6x2.9 tracking8; constructor/registerGoals binds actual leavepriority10/take11. No current biome/world spawning/material supply/cap/deployment or ordinary NATURAL success proved by registration.",
+    "Take canUse only cargo null, effective Forge mobGriefing then nextInt(reducedTickDelay20)==0; leave only cargo nonnull, same event then reducedTickDelay2000 random. Prior actual full Goal helper gives ceil-div2, not20/2000-worldtick cadence; eligible scheduling/continue may re-evaluate RNG, not guaranteed waiting period.",
+    "Take/leave constructors do not reserve MOVE/LOOK/JUMP flags; default continuation invokes canUse and selectors arbitrate independently from target selection. Cached permission/start eligibility is not a transaction token; tick bodies do not repeat the initial griefing/RNG/cargo gating in full. No native scheduling/exploit outcome asserted.",
+    "Take samples one cell around current position with X/Z floor(pos-2+random*4), Yfloor(pos+random*3). This is not fixed symmetric integer radius, path nearest block, separate search array or guarantee distinct/reachable candidate. Source reads current candidate BlockState before raycast.",
+    "Ray source is own integerblockX/Z+.5 at candidate j+.5, endpoint candidate center; OUTLINE/FluidNONE and current Enderman context. Predicate compares returned BlockPos to candidate only, not HitResult.Type. Full BlockGetter.clip fallback MISS stores endpoint containing position and full BlockHitResult preserves that pos; no asserted current holdable tag member actually returns MISS or bypasses wall.",
+    "Only ENDERMAN_HOLDABLE membership plus endpoint-position predicate gate shown take commit. It calls removeBlock(false), emits BLOCK_DESTROY and stores original block.defaultBlockState without testing removebool. Griefing gate is upstream canUse, not a BreakEvent or atomic claim. Loaded holdable tag/current event policy unavailable.",
+    "Full bounded Level.removeBlock replaces current target with fluid.createLegacyBlock flags3 instead of unconditionalAIR. Underlying setBlock can reject out-ofheight/debug/nullchunkstate; Enderman still requests event/cargo in shown ordinary return path. No reproduced duplicate material, actual removal, snapshot commit or original BE preservation.",
+    "Cargo setter stores Optional<BlockState> in synced data, not ItemStack, origin coordinate, original player, source UUID/dimension or BlockEntity contents. Take normalizes all original properties to defaultstate before custody, so pending cargo is not exact world snapshot. No original input tile inventory/resource conservation guaranteed.",
+    "Leave samples one current nearby X/Zfloor(pos-1+random*2),Yfloor(pos+random*2), reads target and below, then rereads cargo localstate. updateFromNeighbourShapes loops UPDATE_SHAPE_ORDER applying updateShape around target and may alter localstate. Updated candidate not directly written back to cargo before acceptance; full block-specific update implementations not audited.",
+    "canPlace requires targetisAir, belownonAir/notBEDROCK/notForgeplaceblacklist/full collision, adjustedstate.canSurvive, and getEntities(excludingEnderman, unitCubeAtTarget).isEmpty. Query shape is one unit cell, not actual future block shape/all entity physics or globally safe occupation. No own post-update nonAir or original-identity test is shown.",
+    "Place gate calls onBlockPlace with snapshot CREATED AT BELOW-SUPPORT position and directionUP. Snapshot captures supportstate, optional supportBE fullmetadata and weak level. Actual Forge helper reads placedAgainst at snapshotpos.relative(DOWN), hence one below support; it posts EntityPlaceEvent. Keep exact coordinates, not silently reinterpret as target-cell snapshot.",
+    "EntityPlaceEvent base position/state use snapshotpos and, for nonPlayer Enderman, snapshot.getReplacedBlock; placedBlock likewise supportstate here. Eventlisteners thus receive shown support snapshot/context, not carried adjustedstate at target. Cancelled event retains cargo/no write in this branch. No tested protection bypass, listener composition or actual permission bug alleged.",
+    "When guards/event permit, Level.setBlock(target,adjustedstate,3) ignored, then BLOCK_PLACE event and cargo null. Buildheight/debug/nullchunk result and capture-notification paths source-read. False write can still consume cargo; truewrite not durable final world state. No rollback/refund/exactly-once/guaranteed return to source location.",
+    "Level setter captures optional snapshots, calls chunk.setBlockState, then markAndNotifyBlock when notcapturing. Flag1 neighbor,flag2 clients, shape recursion and hook calls can mutate state or throw. Full chunk/event/listener/IO/restore internals not expanded; source-order claims assume prior calls return normally.",
+    "Own additional writer saves nonnull carriedBlockState via NbtUtils; read initializes localnull and onlytypedcompound decodes, convertsAIR to null, always sets cargo. Missing typed payload clears same-object old state. This is current-reader policy and already globally-owned legacy/cargo context, not new upgrade.",
+    "NbtUtils writes registryName/propertystrings. Read missingName or unknown registry ->AIR; valid registry starts default, ignores unknownproperties and bad propertyvalues keep prior/default withwarn. ResourceLocation construction canthrow, no opaque unknown preservation or general malformed-state recovery. Normal actor state does not preserve original BE/tags/caps.",
+    "requiresCustomPersistence adds cargo!=null to parent. Actual Mob.checkDespawn first Peaceful+shouldDespawnInPeaceful discard; Monster override true. Only later ordinary event/distance/noaction branch is bypassed when custom persistence. Cargo does not confer immunity to peaceful/removal/death/commands/all unload policies; no entity conservation guarantee.",
+    "On death own callback aftersuper reads cargo, constructs fresh DIAMOND_AXE and enchants SilkTouch1 for loot context with ORIGIN/TOOL/THIS_ENTITY. This tool is synthetic request context, not actual player gear or payment, and no BlockEntity context is provided. No actual silk-specific output or direct guaranteed blockitem.",
+    "BlockState getDrops dispatches block; base BlockBehaviour returns empty for literal EMPTY table, otherwise adds BLOCK_STATE and createsBLOCK lootparams then table getRandomItems. Specific block overrides/full pool/feature/global-modifier graph/current loaded loot not expanded, so no current item/quantity guarantee from fake Silk tool.",
+    "Each returned deathstack goes spawnAtLocation: empty/client returnsnull, otherwise ItemEntity/defaultdelay, captureDrops list or unchecked add, returns object. No target/thrower/recipient binding set by shown helper; no positive entity admission/UUID pickup/inventorydelta/questreceipt. Own callback does not clear cargo, but no repeated death invocation/revival exploit inferred.",
+    "Entire EnderMan includes anger, lookfreeze, projectile reaction, water sensitivity/teleport/persistence consumer bodies as context0. Their lower graph is not this whole scope, no separate combat/control/sound reference or productionfix. Source draw/particles/sounds merely read, never invoked.",
+    "Complete Toucan24obs21limits+semantic/application, Silverfish13obs11limits and Snow25obs13limits four fields actually read, same-global Enderman/legacy/Troll whole judgments complete retained. All49 semantic/canonical index selects related owners; no claim all49 source chains/all1329 global judgments semantically reread. Distinct Main may reject/merge0.",
+    "Dynasty future world-material movement must separate source block request/ack, captured semantic payload, retained actor, destination constraints/event context, actual world write/deathloot admission and intended-player receipt. Preserve original IDs/NBT variants/rewards/progress and current ecology gaps; no implementation before applicable1000."
+  ],
+  "mandatory_constraints": [
+    "Whole already globally ae67 with legacy06f andTroll c40 retained0new; at most1 ecology applicability only pending independent Main, no perstate/property/block/goal/loss-warning/source/helper/art credit.",
+    "Keep initial conditional griefing/RNG/optional cargo, default noflags/continuation and delivered updates distinct from exact cadence/current permission/path. Actual current tag contents absent in pinnedsource only.",
+    "Take is defaultBlockState material intent, not original property/BE/inventory/origin/player escrow. remove replaces with fluidlegacy; ignoredbool cannot prove successful custody or exploit. No clone of original wholeworldpayload.",
+    "Ray predicate onlyBlockPos, MISSfallback endpoint applies generically; no current holdable-block loophole proof. Actual candidate selection/shape/neighbor/collision/LOS/context graph bounded.",
+    "Leave adjusted localstate/targetair/support/blacklist/survival/unitquery constraints and snapshot BELOW support coordinates retained. Post creates support-context event, not target snapshot; cancellation/handlers/current protection unrun.",
+    "setBlock result ignored before cargo clear and BLOCK_PLACE; no actual write/durability/same-original return/atomic/refund/exactly-once claim. Native flags/snapshot notifications not world/entity jointcommit.",
+    "Current read missing/AIRclears while bad propertydefaults/unknownblockAIR/invalid ResourceLocation mayfail. No lost unknown source recovery/new legacy converter or complete disk/capability roundtrip.",
+    "Cargo persistence only bypasses ordinary Mob despawn branch; Monsterpeaceful precedes it. Do not promise immortal/neverdespawn/guaranteed returned custody/current population.",
+    "Synthetic silk axe does not prove actual payer/tool/material/loot outcome; own deathhelper capture/add/object/feedback separate from admitted entity/intended-player positive pickup. No current item/table/feature declarations inferred.",
+    "Whole previous comparisons preserved including all historical limitations; old upstream chains not reread, same hashes/metadata index not semantic novelty. Main maymerge0; global/migration0mandatory.",
+    "Fixed native local mapped1.20.1/47.4.10 archive/entry only, no fresh remote Git/current runtime/crossmod API proof or source execution. Applicable1000 unmet.",
+    "No production/asset/sharedJar/world/game/Java/Gradle/process/UI/audio/brightness/wake/focus/network/Git/master/session/pending/ownership/prompt edits, no formal ID/package/receipt/validator/fixture/aggregation/active-hour claim."
+  ],
+  "application": [
+    "Distinguish world input debit, retained semantic material payload, live carrier, destination event/physical checks, actual mutation and intended-player material receipt.",
+    "Preserve original Dynasty IDs/NBT variants/rewards/progress; no implementation or native award before applicable1000/current acceptance."
+  ],
+  "limits": [
+    "Only EnderMan583 and BlockHitResult51 complete files. Fifteen other explicitly bounded ranges, no full containing Level/ForgeEventFactory/BlockSnapshot/Block/NbtUtils/EntityType/BlockEvent/BlockGetter/BlockBehaviour/Entity/Mob/Monster audit.",
+    "Two tag resources absent in this archive only. No current merged holdable/blacklist/config/biome/material spawn/loot registration or economy availability guarantee; no source/network/art production.",
+    "No actual successful removal, carried defaultstate, committed placement/support/collision/eventdeny, native material/payment/playerUUID/drop/pickup/death/reload/performance test or reproduced loss/duplication.",
+    "Snapshot/current weakref fallback/hooks/eventlisteners and blockshape/EntityManager/chunk notifications/IO/full loot engine unexpanded. Source order assumes callbacks return normally; support-coordinate observation not tested permission bypass.",
+    "Own whole class contains extra anger/teleport/damage/look/ambient logic; not complete downstream audit or separate reference. Generic Goal/Wrapper/Selector reused actual earlier reading0, not newly read support counts.",
+    "Complete related global current non-evidence judgments and ecology four fields retained. Label/canonical screen is not all1329 semantic rereading or all49 upstream sources; no exhaustive novelty theorem.",
+    "State normalization is intentionally partial defaultstate, no BE/slot/tags/caps/sourceUUID/origin. Current-reader missing clears, unknown AIR, parserexceptions not a general lossless migration or world/entity atomicity.",
+    "No automatic formal ID/minimumpackage/receipt/install/validator/fixtures/aggregate or native task completion;0accepted/applied, applicable1000 unmet. Fox closed0; Axolotl/Piglin/Trap remain separate Main pending.",
+    "No production/resources/quests/material variants/sharedJar/userworld/sharedtracking/TODO/Git/UI/audio/brightness/wake/process/Java/Gradle/network changes, no quantified active-hour total."
+  ],
+  "proposed_maximum_ecology_applicability_credit": 1,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "formal_candidate_id": null,
+  "package_built": false,
+  "validator_fixture_aggregation_executed": false,
+  "shared_tools_changed": false,
+  "production_changes": 0,
+  "art_changes": 0,
+  "shared_Jar_writes": 0,
+  "checklist_deletions": 0,
+  "shared_tracking_edits": 0,
+  "game_starts": 0,
+  "process_or_display_queries": 0,
+  "network_calls": 0,
+  "Git_operations": 0,
+  "upstream_code_executed": false,
+  "protected_files_unchanged": {
+    "/Users/a15356015027/Desktop/dynasty/modpack/mods/dynasty-1.4.0.jar": "0e4fb4f244381ffe5589573e228c3bdf91ab6c2e55e29a6fcf7bfb95e760d9ba",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/pending-tasks.json": "3b447a711682b3056095f1877cefe64f85db72fa0d816492b53a12826c3dd6f8",
+    "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/task-ownership-20261026.json": "83eba4392b1b7e3e9485b6164dae3047e7f48f886094844bfc01212bf6400ba7",
+    "/Users/a15356015027/Desktop/code x提示词/cod1.txt": "61e1235ef807769fba287fd9e36a52e816bf358515b2a3c63e1aadb74e2278f7",
+    "/Users/a15356015027/Desktop/code x提示词/cod2.txt": "e1035e69c06d4e20a81e9fa43932b16ba5ef3bff79a63a697d30de8754286b02",
+    "/Users/a15356015027/Desktop/code x提示词/cod3.txt": "39207505086ccde098c53e48f9bccb75ed0cada96d8b60d04f54fec0fa390a5d",
+    "/Users/a15356015027/Desktop/code x提示词/cod4.txt": "e8c72ef2b0a70fdea0dfa94879bff0892bae41ffc23a4407be1ec442d17f9c28",
+    "/Users/a15356015027/Desktop/code x提示词/cod6.txt": "7f1682a3c57de3f12f008554aee4c36d26d64ab5d46d655ef85b9fdffcf39749"
+  },
+  "active_hours_claimed": null,
+  "next": "Distinct Main independently judges at most1 ecology applicability or merge0. Exact global Enderman cargo and legacy/Troll owners0new; do not generate ID/package/receipt/aggregate/production or task deletion. Fox Main0 retained; other proposals separately pending."
+}

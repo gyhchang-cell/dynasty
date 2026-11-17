@@ -1,0 +1,44 @@
+{
+  "recorded_at": "2026-11-09T10:34:17.412200+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_FIRST_COMPLETE_CLASS_READ_INCOMPLETE_WHOLE_CHAIN_NO_CREDIT",
+  "actual_source": {
+    "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+    "entry": "net/minecraft/world/entity/ai/behavior/TradeWithVillager.java",
+    "entry_sha256": "f45a9527f962d7cd02142f6c22788201768f7dddd195534d1c05864a7d929141",
+    "lines": [
+      1,
+      114
+    ],
+    "full_file": true,
+    "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.ImmutableSet;\nimport java.util.Set;\nimport java.util.stream.Collectors;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.npc.VillagerProfession;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\n\npublic class TradeWithVillager extends Behavior<Villager> {\n   private static final int INTERACT_DIST_SQR = 5;\n   private static final float SPEED_MODIFIER = 0.5F;\n   private Set<Item> trades = ImmutableSet.of();\n\n   public TradeWithVillager() {\n      super(ImmutableMap.of(MemoryModuleType.INTERACTION_TARGET, MemoryStatus.VALUE_PRESENT, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryStatus.VALUE_PRESENT));\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_24416_, Villager p_24417_) {\n      return BehaviorUtils.targetIsValid(p_24417_.getBrain(), MemoryModuleType.INTERACTION_TARGET, EntityType.VILLAGER);\n   }\n\n   protected boolean canStillUse(ServerLevel p_24419_, Villager p_24420_, long p_24421_) {\n      return this.checkExtraStartConditions(p_24419_, p_24420_);\n   }\n\n   protected void start(ServerLevel p_24437_, Villager p_24438_, long p_24439_) {\n      Villager villager = (Villager)p_24438_.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();\n      BehaviorUtils.lockGazeAndWalkToEachOther(p_24438_, villager, 0.5F);\n      this.trades = figureOutWhatIAmWillingToTrade(p_24438_, villager);\n   }\n\n   protected void tick(ServerLevel p_24445_, Villager p_24446_, long p_24447_) {\n      Villager villager = (Villager)p_24446_.getBrain().getMemory(MemoryModuleType.INTERACTION_TARGET).get();\n      if (!(p_24446_.distanceToSqr(villager) > 5.0D)) {\n         BehaviorUtils.lockGazeAndWalkToEachOther(p_24446_, villager, 0.5F);\n         p_24446_.gossip(p_24445_, villager, p_24447_);\n         if (p_24446_.hasExcessFood() && (p_24446_.getVillagerData().getProfession() == VillagerProfession.FARMER || villager.wantsMoreFood())) {\n            throwHalfStack(p_24446_, Villager.FOOD_POINTS.keySet(), villager);\n         }\n\n         if (villager.getVillagerData().getProfession() == VillagerProfession.FARMER && p_24446_.getInventory().countItem(Items.WHEAT) > Items.WHEAT.getMaxStackSize() / 2) {\n            throwHalfStack(p_24446_, ImmutableSet.of(Items.WHEAT), villager);\n         }\n\n         if (!this.trades.isEmpty() && p_24446_.getInventory().hasAnyOf(this.trades)) {\n            throwHalfStack(p_24446_, this.trades, villager);\n         }\n\n      }\n   }\n\n   protected void stop(ServerLevel p_24453_, Villager p_24454_, long p_24455_) {\n      p_24454_.getBrain().eraseMemory(MemoryModuleType.INTERACTION_TARGET);\n   }\n\n   private static Set<Item> figureOutWhatIAmWillingToTrade(Villager p_24423_, Villager p_24424_) {\n      ImmutableSet<Item> immutableset = p_24424_.getVillagerData().getProfession().requestedItems();\n      ImmutableSet<Item> immutableset1 = p_24423_.getVillagerData().getProfession().requestedItems();\n      return immutableset.stream().filter((p_24431_) -> {\n         return !immutableset1.contains(p_24431_);\n      }).collect(Collectors.toSet());\n   }\n\n   private static void throwHalfStack(Villager p_24426_, Set<Item> p_24427_, LivingEntity p_24428_) {\n      SimpleContainer simplecontainer = p_24426_.getInventory();\n      ItemStack itemstack = ItemStack.EMPTY;\n      int i = 0;\n\n      while(i < simplecontainer.getContainerSize()) {\n         ItemStack itemstack1;\n         Item item;\n         int j;\n         label28: {\n            itemstack1 = simplecontainer.getItem(i);\n            if (!itemstack1.isEmpty()) {\n               item = itemstack1.getItem();\n               if (p_24427_.contains(item)) {\n                  if (itemstack1.getCount() > itemstack1.getMaxStackSize() / 2) {\n                     j = itemstack1.getCount() / 2;\n                     break label28;\n                  }\n\n                  if (itemstack1.getCount() > 24) {\n                     j = itemstack1.getCount() - 24;\n                     break label28;\n                  }\n               }\n            }\n\n            ++i;\n            continue;\n         }\n\n         itemstack1.shrink(j);\n         itemstack = new ItemStack(item, j);\n         break;\n      }\n\n      if (!itemstack.isEmpty()) {\n         BehaviorUtils.throwItem(p_24426_, itemstack, p_24428_.position());\n      }\n\n   }\n}",
+    "support_credit": 0
+  },
+  "actual_observations": [
+    "This is villager-to-villager inventory sharing, not player MerchantOffer trade. Required interaction and nearest-visible memories, start/continue delegate target validity; complete native target predicate/goal-package eligibility remains unexpanded.",
+    "Start caches receiver profession requested-items minus sender requested-items. Tick reacquires current interaction target but does not recompute cached trades or explicitly require same receiver/profession. This is bounded stale-set exposure, no runtime exploit claim.",
+    "Within distanceSquared<=5 (not5 blocks), requests mutual look/walk, gossip, then three independently eligible food/wheat/profession sharing branches. Multiple branches may transfer per delivered tick; no once-only quota in this class.",
+    "Each throw scans first qualifying slot. More than half maxstack chooses floor(count/2); otherwise count>24 chooses count-24. Native item maxstack/count semantics bound, not globally half inventory or a guaranteed24 reserve across slots.",
+    "Actual source shrinks original slot first then constructs new ItemStack(item,j), copying no existing tags/capabilities here. No broad NBT equivalence/lossless custody, refund or item-admission guarantee.",
+    "stop erases INTERACTION_TARGET without ownership check and does not clear cached trades. Parent timeout/scheduling/persistence, gossip and recipient pickup remain unexpanded.",
+    "Reserved inventory/compost conversion from Farmer and existing saved-villager earned reputation/trade owners may overlap. Need complete current whole decision comparisons before a new whole proposal; current class/file/helper is0 reference credit."
+  ],
+  "remaining_whole_chain": [
+    "Reuse exact prior BehaviorUtils throw/ordinary pickup only if applicable real old read exists; otherwise actual bounded read with archive/raw proof.",
+    "Read required target validity/mutual memory requests and source hasExcessFood/wantsMoreFood/food points/profession requested inputs, plus current goal-package scheduling bounds.",
+    "Compare complete current Farmer EA0042, community-golem/gossip and existing villager inventory/reputation/trade whole owners; do not count names/helpers/number thresholds.",
+    "Only after whole semantic closure seek distinct Main review; do not create private package/ID/author receipt while Snow v27 alone is in review."
+  ],
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "production_changes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "active_hours_claimed": null,
+  "next": "Continue named missing actual source boundaries and complete whole comparisons; no claim this incomplete class read is one completed ecological mechanism."
+}

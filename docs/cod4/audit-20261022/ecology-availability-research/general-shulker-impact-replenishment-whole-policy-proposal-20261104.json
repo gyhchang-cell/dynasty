@@ -1,0 +1,525 @@
+{
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "semantic_key": "survived-specific-projectile-open-state-to-attached-parent-relocation-and-old-site-density-gated-variant-offspring",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        1,
+        104
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f5b4ee7b9762afb1aa108ec6e53645976a633e1fc7330fb995a1ecbe72ad8aca",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster;\n\nimport java.util.EnumSet;\nimport java.util.Optional;\nimport java.util.UUID;\nimport javax.annotation.Nullable;\nimport net.minecraft.Util;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.Vec3i;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.protocol.game.ClientboundAddEntityPacket;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.DamageTypeTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.Difficulty;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntitySelector;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.MobSpawnType;\nimport net.minecraft.world.entity.MoverType;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.SpawnGroupData;\nimport net.minecraft.world.entity.VariantHolder;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.BodyRotationControl;\nimport net.minecraft.world.entity.ai.control.LookControl;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.animal.AbstractGolem;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.AbstractArrow;\nimport net.minecraft.world.entity.projectile.ShulkerBullet;\nimport net.minecraft.world.entity.vehicle.Boat;\nimport net.minecraft.world.item.DyeColor;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.Vec3;\nimport org.joml.Vector3f;\nimport org.joml.Vector3fc;\n\npublic class Shulker extends AbstractGolem implements VariantHolder<Optional<DyeColor>>, Enemy {\n   private static final UUID COVERED_ARMOR_MODIFIER_UUID = UUID.fromString(\"7E0292F2-9434-48D5-A29F-9583AF7DF27F\");\n   private static final AttributeModifier COVERED_ARMOR_MODIFIER = new AttributeModifier(COVERED_ARMOR_MODIFIER_UUID, \"Covered armor bonus\", 20.0D, AttributeModifier.Operation.ADDITION);\n   protected static final EntityDataAccessor<Direction> DATA_ATTACH_FACE_ID = SynchedEntityData.defineId(Shulker.class, EntityDataSerializers.DIRECTION);\n   protected static final EntityDataAccessor<Byte> DATA_PEEK_ID = SynchedEntityData.defineId(Shulker.class, EntityDataSerializers.BYTE);\n   protected static final EntityDataAccessor<Byte> DATA_COLOR_ID = SynchedEntityData.defineId(Shulker.class, EntityDataSerializers.BYTE);\n   private static final int TELEPORT_STEPS = 6;\n   private static final byte NO_COLOR = 16;\n   private static final byte DEFAULT_COLOR = 16;\n   private static final int MAX_TELEPORT_DISTANCE = 8;\n   private static final int OTHER_SHULKER_SCAN_RADIUS = 8;\n   private static final int OTHER_SHULKER_LIMIT = 5;\n   private static final float PEEK_PER_TICK = 0.05F;\n   static final Vector3f FORWARD = Util.make(() -> {\n      Vec3i vec3i = Direction.SOUTH.getNormal();\n      return new Vector3f((float)vec3i.getX(), (float)vec3i.getY(), (float)vec3i.getZ());\n   });\n   private float currentPeekAmountO;\n   private float currentPeekAmount;\n   @Nullable\n   private BlockPos clientOldAttachPosition;\n   private int clientSideTeleportInterpolation;\n   private static final float MAX_LID_OPEN = 1.0F;\n\n   public Shulker(EntityType<? extends Shulker> p_33404_, Level p_33405_) {\n      super(p_33404_, p_33405_);\n      this.xpReward = 5;\n      this.lookControl = new Shulker.ShulkerLookControl(this);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 8.0F, 0.02F, true));\n      this.goalSelector.addGoal(4, new Shulker.ShulkerAttackGoal());\n      this.goalSelector.addGoal(7, new Shulker.ShulkerPeekGoal());\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, (new HurtByTargetGoal(this, this.getClass())).setAlertOthers());\n      this.targetSelector.addGoal(2, new Shulker.ShulkerNearestAttackGoal(this));\n      this.targetSelector.addGoal(3, new Shulker.ShulkerDefenseAttackGoal(this));\n   }\n\n   protected Entity.MovementEmission getMovementEmission() {\n      return Entity.MovementEmission.NONE;\n   }\n\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        128,
+        135
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b28c3159a51fec2422d9f2d0d740155738b4cacbdfe14a08df2c83604500b47d",
+      "raw_excerpt_utf8": "   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_ATTACH_FACE_ID, Direction.DOWN);\n      this.entityData.define(DATA_PEEK_ID, (byte)0);\n      this.entityData.define(DATA_COLOR_ID, (byte)16);\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        235,
+        253
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "1aaace90b016b1aac677d4ffaeb8c362a98590e2a30f22562b538cb22cf0187e",
+      "raw_excerpt_utf8": "   public static AABB getProgressAabb(Direction p_149791_, float p_149792_) {\n      return getProgressDeltaAabb(p_149791_, -1.0F, p_149792_);\n   }\n\n   public static AABB getProgressDeltaAabb(Direction p_149794_, float p_149795_, float p_149796_) {\n      double d0 = (double)Math.max(p_149795_, p_149796_);\n      double d1 = (double)Math.min(p_149795_, p_149796_);\n      return (new AABB(BlockPos.ZERO)).expandTowards((double)p_149794_.getStepX() * d0, (double)p_149794_.getStepY() * d0, (double)p_149794_.getStepZ() * d0).contract((double)(-p_149794_.getStepX()) * (1.0D + d1), (double)(-p_149794_.getStepY()) * (1.0D + d1), (double)(-p_149794_.getStepZ()) * (1.0D + d1));\n   }\n\n   public double getMyRidingOffset() {\n      EntityType<?> entitytype = this.getVehicle().getType();\n      return !(this.getVehicle() instanceof Boat) && entitytype != EntityType.MINECART ? super.getMyRidingOffset() : 0.1875D - this.getVehicle().getPassengersRidingOffset();\n   }\n\n   public boolean startRiding(Entity p_149773_, boolean p_149774_) {\n      if (this.level().isClientSide()) {\n         this.clientOldAttachPosition = null;\n         this.clientSideTeleportInterpolation = 0;\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        294,
+        445
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "953a412a84ae7b42cb011e8ed8a90c74b6015df117d7daf13a88eabeeed8755b",
+      "raw_excerpt_utf8": "   public void setPos(double p_33449_, double p_33450_, double p_33451_) {\n      BlockPos blockpos = this.blockPosition();\n      if (this.isPassenger()) {\n         super.setPos(p_33449_, p_33450_, p_33451_);\n      } else {\n         super.setPos((double)Mth.floor(p_33449_) + 0.5D, (double)Mth.floor(p_33450_ + 0.5D), (double)Mth.floor(p_33451_) + 0.5D);\n      }\n\n      if (this.tickCount != 0) {\n         BlockPos blockpos1 = this.blockPosition();\n         if (!blockpos1.equals(blockpos)) {\n            this.entityData.set(DATA_PEEK_ID, (byte)0);\n            this.hasImpulse = true;\n            if (this.level().isClientSide && !this.isPassenger() && !blockpos1.equals(this.clientOldAttachPosition)) {\n               this.clientOldAttachPosition = blockpos;\n               this.clientSideTeleportInterpolation = 6;\n               this.xOld = this.getX();\n               this.yOld = this.getY();\n               this.zOld = this.getZ();\n            }\n         }\n\n      }\n   }\n\n   @Nullable\n   protected Direction findAttachableSurface(BlockPos p_149811_) {\n      for(Direction direction : Direction.values()) {\n         if (this.canStayAt(p_149811_, direction)) {\n            return direction;\n         }\n      }\n\n      return null;\n   }\n\n   boolean canStayAt(BlockPos p_149786_, Direction p_149787_) {\n      if (this.isPositionBlocked(p_149786_)) {\n         return false;\n      } else {\n         Direction direction = p_149787_.getOpposite();\n         if (!this.level().loadedAndEntityCanStandOnFace(p_149786_.relative(p_149787_), this, direction)) {\n            return false;\n         } else {\n            AABB aabb = getProgressAabb(direction, 1.0F).move(p_149786_).deflate(1.0E-6D);\n            return this.level().noCollision(this, aabb);\n         }\n      }\n   }\n\n   private boolean isPositionBlocked(BlockPos p_149813_) {\n      BlockState blockstate = this.level().getBlockState(p_149813_);\n      if (blockstate.isAir()) {\n         return false;\n      } else {\n         boolean flag = blockstate.is(Blocks.MOVING_PISTON) && p_149813_.equals(this.blockPosition());\n         return !flag;\n      }\n   }\n\n   protected boolean teleportSomewhere() {\n      if (!this.isNoAi() && this.isAlive()) {\n         BlockPos blockpos = this.blockPosition();\n\n         for(int i = 0; i < 5; ++i) {\n            BlockPos blockpos1 = blockpos.offset(Mth.randomBetweenInclusive(this.random, -8, 8), Mth.randomBetweenInclusive(this.random, -8, 8), Mth.randomBetweenInclusive(this.random, -8, 8));\n            if (blockpos1.getY() > this.level().getMinBuildHeight() && this.level().isEmptyBlock(blockpos1) && this.level().getWorldBorder().isWithinBounds(blockpos1) && this.level().noCollision(this, (new AABB(blockpos1)).deflate(1.0E-6D))) {\n               Direction direction = this.findAttachableSurface(blockpos1);\n               if (direction != null) {\n                  net.minecraftforge.event.entity.EntityTeleportEvent.EnderEntity event = net.minecraftforge.event.ForgeEventFactory.onEnderTeleport(this, blockpos1.getX(), blockpos1.getY(), blockpos1.getZ());\n                  if (event.isCanceled()) direction = null;\n                  blockpos1 = BlockPos.containing(event.getTargetX(), event.getTargetY(), event.getTargetZ());\n               }\n\n               if (direction != null) {\n                  this.unRide();\n                  this.setAttachFace(direction);\n                  this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);\n                  this.setPos((double)blockpos1.getX() + 0.5D, (double)blockpos1.getY(), (double)blockpos1.getZ() + 0.5D);\n                  this.level().gameEvent(GameEvent.TELEPORT, blockpos, GameEvent.Context.of(this));\n                  this.entityData.set(DATA_PEEK_ID, (byte)0);\n                  this.setTarget((LivingEntity)null);\n                  return true;\n               }\n            }\n         }\n\n         return false;\n      } else {\n         return false;\n      }\n   }\n\n   public void lerpTo(double p_33411_, double p_33412_, double p_33413_, float p_33414_, float p_33415_, int p_33416_, boolean p_33417_) {\n      this.lerpSteps = 0;\n      this.setPos(p_33411_, p_33412_, p_33413_);\n      this.setRot(p_33414_, p_33415_);\n   }\n\n   public boolean hurt(DamageSource p_33421_, float p_33422_) {\n      if (this.isClosed()) {\n         Entity entity = p_33421_.getDirectEntity();\n         if (entity instanceof AbstractArrow) {\n            return false;\n         }\n      }\n\n      if (!super.hurt(p_33421_, p_33422_)) {\n         return false;\n      } else {\n         if ((double)this.getHealth() < (double)this.getMaxHealth() * 0.5D && this.random.nextInt(4) == 0) {\n            this.teleportSomewhere();\n         } else if (p_33421_.is(DamageTypeTags.IS_PROJECTILE)) {\n            Entity entity1 = p_33421_.getDirectEntity();\n            if (entity1 != null && entity1.getType() == EntityType.SHULKER_BULLET) {\n               this.hitByShulkerBullet();\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private boolean isClosed() {\n      return this.getRawPeekAmount() == 0;\n   }\n\n   private void hitByShulkerBullet() {\n      Vec3 vec3 = this.position();\n      AABB aabb = this.getBoundingBox();\n      if (!this.isClosed() && this.teleportSomewhere()) {\n         int i = this.level().getEntities(EntityType.SHULKER, aabb.inflate(8.0D), Entity::isAlive).size();\n         float f = (float)(i - 1) / 5.0F;\n         if (!(this.level().random.nextFloat() < f)) {\n            Shulker shulker = EntityType.SHULKER.create(this.level());\n            if (shulker != null) {\n               shulker.setVariant(this.getVariant());\n               shulker.moveTo(vec3);\n               this.level().addFreshEntity(shulker);\n            }\n\n         }\n      }\n   }\n\n   public boolean canBeCollidedWith() {\n      return this.isAlive();\n   }\n\n   public Direction getAttachFace() {\n      return this.entityData.get(DATA_ATTACH_FACE_ID);\n   }\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        459,
+        485
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "051a9759418c8c8e884daf51aaaa2987fc5ba5caf299c27a7db419e8217c416d",
+      "raw_excerpt_utf8": "   private int getRawPeekAmount() {\n      return this.entityData.get(DATA_PEEK_ID);\n   }\n\n   void setRawPeekAmount(int p_33419_) {\n      if (!this.level().isClientSide) {\n         this.getAttribute(Attributes.ARMOR).removeModifier(COVERED_ARMOR_MODIFIER);\n         if (p_33419_ == 0) {\n            this.getAttribute(Attributes.ARMOR).addPermanentModifier(COVERED_ARMOR_MODIFIER);\n            this.playSound(SoundEvents.SHULKER_CLOSE, 1.0F, 1.0F);\n            this.gameEvent(GameEvent.CONTAINER_CLOSE);\n         } else {\n            this.playSound(SoundEvents.SHULKER_OPEN, 1.0F, 1.0F);\n            this.gameEvent(GameEvent.CONTAINER_OPEN);\n         }\n      }\n\n      this.entityData.set(DATA_PEEK_ID, (byte)p_33419_);\n   }\n\n   public float getClientPeekAmount(float p_33481_) {\n      return Mth.lerp(p_33481_, this.currentPeekAmountO, this.currentPeekAmount);\n   }\n\n   protected float getStandingEyeHeight(Pose p_33438_, EntityDimensions p_33439_) {\n      return 0.5F;\n   }\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        522,
+        536
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "cc527a6fd271b8aca8f2f00fc97b1ecc5899c30d37a5c798c6a688c2fb68b67e",
+      "raw_excerpt_utf8": "   public void setVariant(Optional<DyeColor> p_262609_) {\n      this.entityData.set(DATA_COLOR_ID, p_262609_.map((p_262566_) -> {\n         return (byte)p_262566_.getId();\n      }).orElse((byte)16));\n   }\n\n   public Optional<DyeColor> getVariant() {\n      return Optional.ofNullable(this.getColor());\n   }\n\n   @Nullable\n   public DyeColor getColor() {\n      byte b0 = this.entityData.get(DATA_COLOR_ID);\n      return b0 != 16 && b0 <= 15 ? DyeColor.byId(b0) : null;\n   }\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "entry_sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "lines": [
+        538,
+        594
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "496428d1354ec4953f3294cfe9ee40cf9772a5b93d342e7e297a549c3ce02fa7",
+      "raw_excerpt_utf8": "   class ShulkerAttackGoal extends Goal {\n      private int attackTime;\n\n      public ShulkerAttackGoal() {\n         this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));\n      }\n\n      public boolean canUse() {\n         LivingEntity livingentity = Shulker.this.getTarget();\n         if (livingentity != null && livingentity.isAlive()) {\n            return Shulker.this.level().getDifficulty() != Difficulty.PEACEFUL;\n         } else {\n            return false;\n         }\n      }\n\n      public void start() {\n         this.attackTime = 20;\n         Shulker.this.setRawPeekAmount(100);\n      }\n\n      public void stop() {\n         Shulker.this.setRawPeekAmount(0);\n      }\n\n      public boolean requiresUpdateEveryTick() {\n         return true;\n      }\n\n      public void tick() {\n         if (Shulker.this.level().getDifficulty() != Difficulty.PEACEFUL) {\n            --this.attackTime;\n            LivingEntity livingentity = Shulker.this.getTarget();\n            if (livingentity != null) {\n               Shulker.this.getLookControl().setLookAt(livingentity, 180.0F, 180.0F);\n               double d0 = Shulker.this.distanceToSqr(livingentity);\n               if (d0 < 400.0D) {\n                  if (this.attackTime <= 0) {\n                     this.attackTime = 20 + Shulker.this.random.nextInt(10) * 20 / 2;\n                     Shulker.this.level().addFreshEntity(new ShulkerBullet(Shulker.this.level(), Shulker.this, livingentity, Shulker.this.getAttachFace().getAxis()));\n                     Shulker.this.playSound(SoundEvents.SHULKER_SHOOT, 2.0F, (Shulker.this.random.nextFloat() - Shulker.this.random.nextFloat()) * 0.2F + 1.0F);\n                  }\n               } else {\n                  Shulker.this.setTarget((LivingEntity)null);\n               }\n\n               super.tick();\n            }\n         }\n      }\n   }\n\n   static class ShulkerBodyRotationControl extends BodyRotationControl {\n      public ShulkerBodyRotationControl(Mob p_149816_) {\n         super(p_149816_);\n      }\n\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "entry_sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+      "lines": [
+        39,
+        61
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3ef043653f48163f42c61f6e9baa11a921ac7edd64d7e3cf96908b5dd467c217",
+      "raw_excerpt_utf8": "   private double targetDeltaX;\n   private double targetDeltaY;\n   private double targetDeltaZ;\n   @Nullable\n   private UUID targetId;\n\n   public ShulkerBullet(EntityType<? extends ShulkerBullet> p_37319_, Level p_37320_) {\n      super(p_37319_, p_37320_);\n      this.noPhysics = true;\n   }\n\n   public ShulkerBullet(Level p_37330_, LivingEntity p_37331_, Entity p_37332_, Direction.Axis p_37333_) {\n      this(EntityType.SHULKER_BULLET, p_37330_);\n      this.setOwner(p_37331_);\n      BlockPos blockpos = p_37331_.blockPosition();\n      double d0 = (double)blockpos.getX() + 0.5D;\n      double d1 = (double)blockpos.getY() + 0.5D;\n      double d2 = (double)blockpos.getZ() + 0.5D;\n      this.moveTo(d0, d1, d2, this.getYRot(), this.getXRot());\n      this.finalTarget = p_37332_;\n      this.currentMoveDirection = Direction.UP;\n      this.selectNextMoveDirection(p_37333_);\n   }\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "entry_sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+      "lines": [
+        174,
+        222
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "849019394fb5cb38a783ff552dfbcd27a80563fd3242e7e8a56564a667ea861d",
+      "raw_excerpt_utf8": "         this.targetDeltaZ = 0.0D;\n      } else {\n         this.targetDeltaX = d6 / d5 * 0.15D;\n         this.targetDeltaY = d7 / d5 * 0.15D;\n         this.targetDeltaZ = d4 / d5 * 0.15D;\n      }\n\n      this.hasImpulse = true;\n      this.flightSteps = 10 + this.random.nextInt(5) * 10;\n   }\n\n   public void checkDespawn() {\n      if (this.level().getDifficulty() == Difficulty.PEACEFUL) {\n         this.discard();\n      }\n\n   }\n\n   public void tick() {\n      super.tick();\n      if (!this.level().isClientSide) {\n         if (this.finalTarget == null && this.targetId != null) {\n            this.finalTarget = ((ServerLevel)this.level()).getEntity(this.targetId);\n            if (this.finalTarget == null) {\n               this.targetId = null;\n            }\n         }\n\n         if (this.finalTarget == null || !this.finalTarget.isAlive() || this.finalTarget instanceof Player && this.finalTarget.isSpectator()) {\n            if (!this.isNoGravity()) {\n               this.setDeltaMovement(this.getDeltaMovement().add(0.0D, -0.04D, 0.0D));\n            }\n         } else {\n            this.targetDeltaX = Mth.clamp(this.targetDeltaX * 1.025D, -1.0D, 1.0D);\n            this.targetDeltaY = Mth.clamp(this.targetDeltaY * 1.025D, -1.0D, 1.0D);\n            this.targetDeltaZ = Mth.clamp(this.targetDeltaZ * 1.025D, -1.0D, 1.0D);\n            Vec3 vec3 = this.getDeltaMovement();\n            this.setDeltaMovement(vec3.add((this.targetDeltaX - vec3.x) * 0.2D, (this.targetDeltaY - vec3.y) * 0.2D, (this.targetDeltaZ - vec3.z) * 0.2D));\n         }\n\n         HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);\n         if (hitresult.getType() != HitResult.Type.MISS && !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) {\n            this.onHit(hitresult);\n         }\n      }\n\n      this.checkInsideBlocks();\n      Vec3 vec31 = this.getDeltaMovement();\n      this.setPos(this.getX() + vec31.x, this.getY() + vec31.y, this.getZ() + vec31.z);\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "entry_sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+      "lines": [
+        266,
+        301
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9fd34f73a0df474da158155fb13262bc2916fc18bcf725ece4719a174a7cccc3",
+      "raw_excerpt_utf8": "   protected void onHitEntity(EntityHitResult p_37345_) {\n      super.onHitEntity(p_37345_);\n      Entity entity = p_37345_.getEntity();\n      Entity entity1 = this.getOwner();\n      LivingEntity livingentity = entity1 instanceof LivingEntity ? (LivingEntity)entity1 : null;\n      boolean flag = entity.hurt(this.damageSources().mobProjectile(this, livingentity), 4.0F);\n      if (flag) {\n         this.doEnchantDamageEffects(livingentity, entity);\n         if (entity instanceof LivingEntity) {\n            LivingEntity livingentity1 = (LivingEntity)entity;\n            livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this));\n         }\n      }\n\n   }\n\n   protected void onHitBlock(BlockHitResult p_37343_) {\n      super.onHitBlock(p_37343_);\n      ((ServerLevel)this.level()).sendParticles(ParticleTypes.EXPLOSION, this.getX(), this.getY(), this.getZ(), 2, 0.2D, 0.2D, 0.2D, 0.0D);\n      this.playSound(SoundEvents.SHULKER_BULLET_HIT, 1.0F, 1.0F);\n   }\n\n   private void destroy() {\n      this.discard();\n      this.level().gameEvent(GameEvent.ENTITY_DAMAGE, this.position(), GameEvent.Context.of(this));\n   }\n\n   protected void onHit(HitResult p_37347_) {\n      super.onHit(p_37347_);\n      this.destroy();\n   }\n\n   public boolean isPickable() {\n      return true;\n   }\n\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/damagesource/DamageSources.java",
+      "entry_sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+      "lines": [
+        203,
+        205
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6952124de6ab97a857f006adc521022dbf2a143900a2540398068470acb360b9",
+      "raw_excerpt_utf8": "   public DamageSource mobProjectile(Entity p_270210_, @Nullable LivingEntity p_270757_) {\n      return this.source(DamageTypes.MOB_PROJECTILE, p_270210_, p_270757_);\n   }\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        860,
+        865
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "2900792ea6ae918761b65458379987e26d7a254890793ac6dd2c5aad95b5db5c",
+      "raw_excerpt_utf8": "    public static EntityTeleportEvent.EnderEntity onEnderTeleport(LivingEntity entity, double targetX, double targetY, double targetZ)\n    {\n        EntityTeleportEvent.EnderEntity event = new EntityTeleportEvent.EnderEntity(entity, targetX, targetY, targetZ);\n        MinecraftForge.EVENT_BUS.post(event);\n        return event;\n    }\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "entry_sha256": "d3d36cdad413fddee4739d379ee0baceb6cb1b98c9ec16be97dc3ea735512f32",
+      "lines": [
+        110,
+        137
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "4fab93fdfd7d908142b27a4e3d28e0d114e1ff4d2e7d2f3161b1d688d9534303",
+      "raw_excerpt_utf8": "     * <br>\n     * This event does not have a result. {@link HasResult}<br>\n     * <br>\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n     * <br>\n     * This event is only fired on the {@link LogicalSide#SERVER} side.<br>\n     * <br>\n     * If this event is canceled, the entity will not be teleported.\n     */\n    @Cancelable\n    public static class EnderEntity extends EntityTeleportEvent\n    {\n        private final LivingEntity entityLiving;\n\n        public EnderEntity(LivingEntity entity, double targetX, double targetY, double targetZ)\n        {\n            super(entity, targetX, targetY, targetZ);\n            this.entityLiving = entity;\n        }\n\n        public LivingEntity getEntityLiving()\n        {\n            return entityLiving;\n        }\n    }\n\n    /**\n     * EntityTeleportEvent.EnderPearl is fired before an Entity is teleported from an EnderPearlEntity.\n",
+      "reading_basis": "Actual visible line-numbered source read in this chat; adjacent1–72/73–104 and538–585/586–594 slices joined only because every line was actually read; no whole file claim.",
+      "range_credit": 0
+    }
+  ],
+  "actual_read_range_count": 13,
+  "actual_read_entry_count": 5,
+  "actual_full_file_count": 0,
+  "actual_cited_lines": 527,
+  "complete_nested_attack_goal_read": true,
+  "actual_raw_base_resources": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/tags/damage_type/is_projectile.json",
+      "entry_sha256": "1ada1b6ba308a7889a798cd6e61a102def76135febee8541019720b861400d93",
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:arrow\",\n    \"minecraft:trident\",\n    \"minecraft:mob_projectile\",\n    \"minecraft:unattributed_fireball\",\n    \"minecraft:fireball\",\n    \"minecraft:wither_skull\",\n    \"minecraft:thrown\"\n  ]\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    }
+  ],
+  "prior_actual_own_native_support_reused_zero": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        672,
+        711
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "450f4206cc762d97443aec06702b4afbd1efe50feeb08429a3147402d608f90f",
+      "raw_excerpt_utf8": "    public static ProjectileImpactEvent.ImpactResult onProjectileImpactResult(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return ProjectileImpactEvent.ImpactResult.SKIP_ENTITY;\n\n        return event.getImpactResult();\n    }\n\n    /**\n     * This sister method exists due to an oversight in the original introduction of adding\n     * {@link ProjectileImpactEvent.ImpactResult ImpactResult} to {@link ProjectileImpactEvent}. Prior to its addition,\n     * the cancelling of this event would call <i>all</i> behavior within the if-clause of the while loop to stop and\n     * then break out of the loop early. When the result was added, the default cancellation was changed to\n     * {@link ProjectileImpactEvent.ImpactResult#SKIP_ENTITY}, breaking the ability to use\n     * {@link Event#setCanceled(boolean)} to actually cancel the event logic.\n     * <p>\n     * While not entirely ideal, this preserves compatibility with older 1.20.1 mods that rely on the cancellation of\n     * the projectile impact event.\n     *\n     * @return The result of the event, or {@code null} if it was cancelled.\n     * @see <a href=\"https://github.com/MinecraftForge/MinecraftForge/pull/10481\">PR #10481</a>\n     */\n    public static @Nullable ProjectileImpactEvent.ImpactResult onProjectileImpactResultNullable(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return null;\n\n        return event.getImpactResult();\n    }\n\n    public static boolean onProjectileImpact(Projectile projectile, HitResult ray)\n    {\n        return onProjectileImpactResult(projectile, ray) != ProjectileImpactEvent.ImpactResult.DEFAULT;\n    }\n",
+      "reading_basis": "actual bounded native original text read; earlier checkpoint readings retained, bridge full64 newly read",
+      "range_or_file_credit": 0,
+      "current_prior_binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-enderpearl-origin-temporary-encounter-proposal-20261104.json",
+        "sha256": "081e87208abff6a1998e7fbdec3ef339308879752e4176c02dba81f830bde8ad"
+      },
+      "new_semantic_credit": 0,
+      "fresh_source_reread_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "entry_sha256": "d3d36cdad413fddee4739d379ee0baceb6cb1b98c9ec16be97dc3ea735512f32",
+      "lines": [
+        1,
+        55
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "780c7265935ae63729107267ad00f17a0a4b24e817e615c8803738209c741f66",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.projectile.ThrownEnderpearl;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport net.minecraftforge.eventbus.api.Event;\nimport net.minecraftforge.fml.LogicalSide;\nimport org.jetbrains.annotations.ApiStatus;\nimport org.jetbrains.annotations.Nullable;\n\n/**\n * EntityTeleportEvent is fired when an event involving any teleportation of an Entity occurs.<br>\n * If a method utilizes this {@link Event} as its parameter, the method will\n * receive every child event of this class.<br>\n * <br>\n * {@link #getTarget()} contains the target destination.<br>\n * {@link #getPrev()} contains the entity's current position.<br>\n * <br>\n * All children of this event are fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n **/\n@Cancelable\npublic class EntityTeleportEvent extends EntityEvent\n{\n    protected double targetX;\n    protected double targetY;\n    protected double targetZ;\n\n    public EntityTeleportEvent(Entity entity, double targetX, double targetY, double targetZ) {\n        super(entity);\n        this.targetX = targetX;\n        this.targetY = targetY;\n        this.targetZ = targetZ;\n    }\n\n    public double getTargetX() { return targetX; }\n    public void setTargetX(double targetX) { this.targetX = targetX; }\n    public double getTargetY() { return targetY; }\n    public void setTargetY(double targetY) { this.targetY = targetY; }\n    public double getTargetZ() { return targetZ; }\n    public void setTargetZ(double targetZ) { this.targetZ = targetZ; }\n    public Vec3 getTarget() { return new Vec3(this.targetX, this.targetY, this.targetZ); }\n    public double getPrevX() { return getEntity().getX(); }\n    public double getPrevY() { return getEntity().getY(); }\n    public double getPrevZ() { return getEntity().getZ(); }\n    public Vec3 getPrev() { return getEntity().position(); }\n",
+      "reading_basis": "actual bounded native original text read; earlier checkpoint readings retained, bridge full64 newly read",
+      "range_or_file_credit": 0,
+      "current_prior_binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-enderpearl-origin-temporary-encounter-proposal-20261104.json",
+        "sha256": "081e87208abff6a1998e7fbdec3ef339308879752e4176c02dba81f830bde8ad"
+      },
+      "new_semantic_credit": 0,
+      "fresh_source_reread_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "lines": [
+        855,
+        867
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+      "raw_excerpt_utf8": "   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n",
+      "reading_basis": "previous actual own Allay native admission source read, exact byte reuse only; not a new complete chain read",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-allay-music-duplication-proposal-20261104.json",
+        "sha256": "c35628c04c30ff4e33eb2de8f6f37250249516328dc5b1ab1baf3cf9c20e6574"
+      },
+      "reuse_credit": 0,
+      "new_complete_prior_chain_read_claimed": false,
+      "current_prior_binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-enderpearl-origin-temporary-encounter-proposal-20261104.json",
+        "sha256": "081e87208abff6a1998e7fbdec3ef339308879752e4176c02dba81f830bde8ad"
+      },
+      "new_semantic_credit": 0,
+      "fresh_source_reread_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "entry_sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "lines": [
+        61,
+        106
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "668d70ebb01431ef18c8ffa890db136fa2027c4d16bf062f1546f56c73904068",
+      "raw_excerpt_utf8": "   private boolean addEntityUuid(T p_157558_) {\n      if (!this.knownUuids.add(p_157558_.getUUID())) {\n         LOGGER.warn(\"UUID of added entity already exists: {}\", (Object)p_157558_);\n         return false;\n      } else {\n         return true;\n      }\n   }\n\n   public boolean addNewEntity(T p_157534_) {\n      return this.addEntity(p_157534_, false);\n   }\n\n   public boolean addNewEntityWithoutEvent(T entity) {\n      return this.addEntityWithoutEvent(entity, false);\n   }\n\n   private boolean addEntity(T p_157539_, boolean p_157540_) {\n      if (p_157539_ instanceof Entity entity && net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.EntityJoinLevelEvent(entity, entity.level(), p_157540_))) return false;\n      return addEntityWithoutEvent(p_157539_, p_157540_);\n   }\n\n   private boolean addEntityWithoutEvent(T p_157539_, boolean p_157540_) {\n      if (!this.addEntityUuid(p_157539_)) {\n         return false;\n      } else {\n         long i = SectionPos.asLong(p_157539_.blockPosition());\n         EntitySection<T> entitysection = this.sectionStorage.getOrCreateSection(i);\n         entitysection.add(p_157539_);\n         p_157539_.setLevelCallback(new PersistentEntitySectionManager.Callback(p_157539_, i, entitysection));\n         if (!p_157540_) {\n            this.callbacks.onCreated(p_157539_);\n         }\n\n         Visibility visibility = getEffectiveStatus(p_157539_, entitysection.getStatus());\n         if (visibility.isAccessible()) {\n            this.startTracking(p_157539_);\n         }\n\n         if (visibility.isTicking()) {\n            this.startTicking(p_157539_);\n         }\n\n         return true;\n      }\n   }\n",
+      "reading_basis": "previous actual own Allay native admission source read, exact byte reuse only; not a new complete chain read",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-allay-music-duplication-proposal-20261104.json",
+        "sha256": "c35628c04c30ff4e33eb2de8f6f37250249516328dc5b1ab1baf3cf9c20e6574"
+      },
+      "reuse_credit": 0,
+      "new_complete_prior_chain_read_claimed": false,
+      "current_prior_binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-enderpearl-origin-temporary-encounter-proposal-20261104.json",
+        "sha256": "081e87208abff6a1998e7fbdec3ef339308879752e4176c02dba81f830bde8ad"
+      },
+      "new_semantic_credit": 0,
+      "fresh_source_reread_claimed": false
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+      "entry_sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+      "lines": [
+        134,
+        142
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d02adce02f7ff38affe094588d90d6ba246490a062679e9dac8e2ddb4b696465",
+      "raw_excerpt_utf8": "   void startTracking(T p_157576_) {\n      this.visibleEntityStorage.add(p_157576_);\n      this.callbacks.onTrackingStart(p_157576_);\n   }\n\n   void stopTracking(T p_157581_) {\n      this.callbacks.onTrackingEnd(p_157581_);\n      this.visibleEntityStorage.remove(p_157581_);\n   }\n",
+      "reading_basis": "previous actual own Allay native admission source read, exact byte reuse only; not a new complete chain read",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-allay-music-duplication-proposal-20261104.json",
+        "sha256": "c35628c04c30ff4e33eb2de8f6f37250249516328dc5b1ab1baf3cf9c20e6574"
+      },
+      "reuse_credit": 0,
+      "new_complete_prior_chain_read_claimed": false,
+      "current_prior_binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-enderpearl-origin-temporary-encounter-proposal-20261104.json",
+        "sha256": "081e87208abff6a1998e7fbdec3ef339308879752e4176c02dba81f830bde8ad"
+      },
+      "new_semantic_credit": 0,
+      "fresh_source_reread_claimed": false
+    }
+  ],
+  "existing_global_whole_owner": {
+    "candidate_id": "b87b4952c60e17092c19",
+    "canonical_complete_row_sha256": "bec8bf54ad5922ed0f34f13843c75ecb38c66a7a9c0c7f2f5b949de4d69c866b",
+    "actual_current_non_evidence_decision_fields": {
+      "candidate_id": "b87b4952c60e17092c19",
+      "status": "accepted",
+      "family": "native-shulker-homing-projectile-route-checkpoint-and-target-resolution-loss",
+      "trigger": "Full ShulkerBullet pair/tick/selectNextMoveDirection/onHit/onHitEntity",
+      "input": "Target UUID from livefinaltarget; direction/steps/targetdelta checkpoint",
+      "output": "restore routevector andstepbudget, nextservertick resolves target once; active target resumes movementsteering; hit appliesdamage andlevitation then destroys",
+      "preservation": "Concrete moving projectile state owner, distinct from static conduit target (route checkpoint + traversal consumers). Parent projectileowner chain support0.",
+      "application_limit": "Failedtargetlookup clears savedidentity without retry; resave before resolve omits pendingtargetUUID. Missing target/direction can retain stale on reused object. Deltasraw, nofiniteguard; impact hook mayveto. No guarantee homingresumes across unloadedtarget/dimensions.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    "retained_credit": 0,
+    "embedded_old_source_whole_reread": false
+  },
+  "proposed_maximum_credit": 1,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0,
+  "recorded_at": "2026-11-03T20:08:48.062832+00:00",
+  "status": "ORIGINAL_BOUNDED_WHOLE_SOURCE_PROPOSAL_PENDING_DISTINCT_MAIN_RELEVANCE_AND_DEDUP",
+  "formal_candidate_id": null,
+  "continuation_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-shulker-impact-replenishment-read-checkpoint-20261104.json",
+    "sha256": "e716cb34a0e76db7aa2700d366e7e593b918b64f8efd96aebaed33a5b07bed37"
+  },
+  "prior_complete_semantic_decisions": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0030.json",
+      "sha256": "d3cdd40d71a4a5f6732717ccb6d874cadf8ece4053b05830c01a1c1b8f4441f0",
+      "actual_complete_decision_fields": {
+        "id": "EA-0030",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION_GENERAL_WITH_EXPLICIT_LIMITS",
+        "accepted_credit": 1,
+        "semantic_key": "jukebox-event-selected-dancing-gate-to-paid-asexual-duplication-with-parent-child-cooldowns-before-unchecked-admission",
+        "evidence_scope": "bounded_conditional_music_facility_to_paid_asexual_duplication_with_precommitted_two_actor_throttles_source_policy_only",
+        "receipt_perspective": "original-source-author confirmation; independent semantic acceptance is the distinct Main review, not self-review",
+        "upstream_code_executed": false,
+        "observed_chain": [
+          "One complete family is conditional facility-event opportunity leading to direct paid asexual duplication and two actor-owned throttles; five primary classes and native helpers are not separate mechanisms. Allay factory is concrete CREATURE registration; no natural population or cap acceptance.",
+          "RecordItem.useOn checks jukebox/HAS_RECORD false; server setFirstItem(copy) calls setItem, whose MUSIC_DISCS tag and level guard control storage/start. Caller then shrinks1 even when no suitable BE/storage; PLAY_RECORD stat request only if player nonnull. Starting record changes clocks/flag, neighbor/event1010/dirty; first JUKEBOX_PLAY is delivered through later eligible tick branch, not startPlaying itself. Loaded disc tag membership not established.",
+          "Jukebox block exposes ticker only with HAS_RECORD via createTickerHelper call; helper body is unexpanded. Tick increments ticksSinceLastEvent before testing playing/nonempty/RecordItem, stops at tickCount>=start+length+20 before pulse branch, otherwise at accumulated>=20 resets counter and emits JUKEBOX_PLAY. tickCount advances after branch. Counter accrued while not-playing if ticked, never reset on start; no fixed initial20-tick delay or walltime guarantee. Vanilla constructor converts seconds*20; Forge supplier overload already takes ticks.",
+          "Stop changes isPlaying=false before STOP event; removeItem clears slot before stop for old nonempty item. PopOutRecord requests removed stack copy ItemEntity and unchecked add on server, not new offspring/player pickup. Jukebox paired long-clock save/read is an already credited migration owner.",
+          "Blockpos events become block center; Forge can suppress event before dispatcher. Dispatcher scans currently available chunks/section registries; Euclidean registration filters by eye-position distance<=100. No LOS predicate here. Dynamic listener only touches existing FULL chunks, and lastSection is updated even if new chunk registry unavailable; no unconditional eventual registration/delivery claim. Tracking add/end/section change request listener updates, not guaranteed music activation.",
+          "Jukebox listener uses eye-offset EntityPositionSource from vibration user but is a separate immediate game-event route with radius10; it is not the16-radius note-block vibration service. PLAY stores new position only when not already dancing; STOP clears only matching remembered position or null. Handler returns true independently of setter success. setDancing both directions requires server effectiveAI and !NoAi; starting additionally requires !panicking.",
+          "CORRECTION TO PROPOSAL observation6: aiStep condition evaluates isDancing && shouldStopDancing() BEFORE tickCount%20==0. Therefore shouldStopDancing is evaluated on every dancing aiStep reaching this condition, and only false-set/null-clear application is gated by tickCount multiple20. It does not only inspect the environment every20ticks. Predicate uses base position strict distance<100 and JUKEBOX block identity, not BE playing state; eye inclusive listener radius differs. False setter can be refused by NoAi while jukeboxPos still clears when branch runs; no proven stuck-dance gameplay.",
+          "DUPLICATION_ITEM directly constructs Ingredient.of(AMETHYST_SHARD), item identity test rather than missing duplication tag. Own mobInteract requires dancing/item/canDuplicate boolean, not mate/liked-player/baby/direct cooldownlong gate. Actual ordinary server C2S branch validates target/worldborder/reach/item enabled, then Player spectator/Forge cancellation and Mob alive/leash/important interactions precede subclass. Generic PLAYER_INTERACTED_WITH_ENTITY criterion and SUCCESS do not prove birth. Complete packet threading/replay/prediction/external hooks unexpanded.",
+          "Source order duplicateAllay()->event18/chime request->noncreative shrink1->SUCCESS. Helper returns void with nullable create. On nonnull create it moves to parent, persistenceRequired, child reset6000/false, parent reset6000/false, then ignores addFreshEntity return. Normal create-null returns without either reset yet caller feedback/payment/SUCCESS still happen; add rejection happens after both cooldown resets. No exception rollback or refund guarantee; no direct own side guard inside helper/mobInteract, actual server path studied only.",
+          "ServerLevel add rejects removed entity; manager posts cancelable EntityJoinLevelEvent then rejects known UUID, otherwise admits and starts tracking/ticking as visibility permits. SetPersistenceRequired only sets field; no immunity or successful offspring. No explicit placement/obstruction/finalize/mating/NaturalSpawner cap checks in the studied duplication path; this is not universal cross-mod/cap bypass.",
+          "Fresh synced flagtrue and zero long; own cooldown update decrements only positive. On logical server, exact cooldown0 and current false canDuplicate flag cause DATA_CAN_DUPLICATE to be set true (false->true rearm). resetDuplicationCooldown separately writes6000 then flagfalse. Own aiStep call is outside initial server heal guard; positive long+true flag is not normalized, negative long is not decremented here. This counts actual delivered updates, not guaranteed6000 world/wall ticks; native superclass/NoAi dispatch remains unaudited.",
+          "Own save writes inventory/optional listener resultOrPartial/putLong cooldown/boolean; own read parses optional listener into existing field, getsInt then casts long and reads boolean.6000 fits; arbitrarylong narrowing not lossless. Dance/rememberedjukebox/visualphase not explicit own save, absent optional data does not generally clear existing objects. Child does not explicitly copy parent hand/inventory/likedplayer/listener/owner. Existing migrationAllay/Jukebox whole rows remain sole owners of their persistence observations, global and migration novelty0."
+        ],
+        "limits": [
+          "Fixed sources Jar has no data/minecraft/tags/items/music_discs.json entry; native runtime tag membership/deployment not read or executed. Do not invent a missing Allay duplication-item tag: that input is a direct amethyst constant.",
+          "Bounded actual native event/registration/interaction/create/admission paths read, not whole world/chunk/Forge-handler composition, inheritance/save/reopen/client prediction/network or NaturalSpawner/cap pipeline. No actual population or sustainable material loop acceptance.",
+          "No complete AnimalPanic internals or all Brain scheduling/contention, no actual IS_PANICKING transition delivery, no note-block item routing acceptance; AllayAi sidebranch context0.",
+          "Entry/archive hashes bind actual local artifact only. No downloaded code execution, fresh upstream revision authentication or version compatibility/build success assertion.",
+          "Fixed sources Jar has no data/minecraft/tags/items/music_discs.json entry; native runtime tag membership/deployment not read or executed. Do not invent a missing Allay duplication-item tag: that input is a direct amethyst constant.",
+          "Bounded actual native event/registration/interaction/create/admission paths read, not whole world/chunk/Forge-handler composition, inheritance/save/reopen/client prediction/network or NaturalSpawner/cap pipeline. No actual population or sustainable material loop acceptance.",
+          "No complete AnimalPanic internals or all Brain scheduling/contention, no actual IS_PANICKING transition delivery, no note-block item routing acceptance; AllayAi sidebranch context0.",
+          "Entry/archive hashes bind actual local artifact only. No downloaded code execution, fresh upstream revision authentication or version compatibility/build success assertion.",
+          "No current fullpack/runtime/client/native birth/kill/pickup/material-payment credit, no source recipe/material survival availability or independent package aggregation yet.",
+          "Earlier large exploratory decision dumps clipped; only bounded recovered fields and explicit prior own source judgments support comparisons. Source38ranges independently actually read in bounded nontruncated calls.",
+          "No production/art/model/building/sharedJar/userworld/game/launchmarker/process/display/network/Java/Gradle/Git/automation/checklist action by this review.",
+          "Source evidence only. Original proposal and Main review are frozen historical documents. Main-required evaluation-order correction and the separate literal true/false correction govern the current observation.",
+          "Main authorized only a private minimum delta after independent semantic review. Formal acceptance requires reviewed installation, a real original-author receipt and Main single aggregation; this private draft and byte checks confer0.",
+          "No production/assets/Java/Gradle/game/world/sharedJar/display/network/Git/checklist/master/session changes. Applicable1000 references remain unmet."
+        ],
+        "mandatory_corrections": [
+          {
+            "proposal_observation": 6,
+            "source": "Allay.java213..215",
+            "required": "Predicate shouldStopDancing is evaluated before mod20. Distinguish every dancing aiStep inspection from every20th eligible stop application. Carry literal order into batch/receipts; preserve original proposal unchanged.",
+            "blocks_maximum_one_semantic_recommendation": false
+          }
+        ]
+      },
+      "old_complete_source_chains_reread": false,
+      "support_credit": 0,
+      "difference": "EA30 whole is a playing record event selected dance facility plus paid amethyst interaction arming parent/child durable duplication throttles. Shulker whole is accepted specific projectile damage plus open mother, vetoable validated attachment migration and density at old occupied habitat determining a fresh actor there. No fee, facility dance, mate/egg/carrier or shown duplication cooldown. Distinction is relocation-coupled spatial replenishment after combat, not species/color/chance/unchecked add. Main may merge or reject; this comparison grants0."
+    }
+  ],
+  "observed_chain": [
+    "Shulker is AbstractGolem implements Enemy and Optional<DyeColor> VariantHolder; no new entity registration/asset. registerGoals installs nested attack/peek/defense graph. Read nested attack goal whole538–588: live target and notPeaceful start20+peek100; tick distance²<400 and cooldown<=0 resets20+nextInt10*10 before unchecked bullet add+sound request. No accepted projectile receipt or actual audiovisual execution.",
+    "Bullet constructor uses attacker owner and position at block center, stores target and initial direction, then requests route setup; full route search not newly read. Bounded server tick collision nonMISS passes Forge onProjectileImpact false to own onHit. Existing whole route/checkpoint global owner b87b remains sole owner0; its old embedded full source is not newly reread.",
+    "Bullet onHitEntity delegates parent then entity.hurt(mobProjectile(this, LivingEntityowner-or-null),4). If hurt returns true it requests enchant effects and levitation200. Parent onHit dispatch is prior Pearl support; own onHit finally destroys/discards after callback on normal return. No current loaded damage modifiers, actual hit or survival proof.",
+    "Shulker.hurt rejects AbstractArrow when closed, then requires super.hurt acceptance. If resulting health<half and randomnextInt4==0 it only attempts teleport; this if branch suppresses the projectile reproduction else-if even when its teleport fails. Otherwise damage must have IS_PROJECTILE tag and nonnull direct entity with exact SHULKER_BULLET type. No owner-self/other attacker relationship test in this shown branch.",
+    "mobProjectile factory chooses DamageTypes.MOB_PROJECTILE; exact raw base is_projectile tag contains mob_projectile and six other entries. This is bounded local raw membership, not current loaded registry/tag or actual parent damage acceptance.",
+    "hitByShulkerBullet captures mother position and current bounding box BEFORE testing open rawpeek!=0 and attempting mother teleport. No child if closed or teleport returns false. Reproduction condition observes pre-teleport peek, while successful teleport resets it0 after movement.",
+    "Mother teleport requires !NoAi and alive and loops atmost5 offsets with X/Y/Z inclusive-8..8 around current block. Candidate >minbuildheight, empty block, border and deflated block AABB collision; findAttachableSurface iterates directions and requires position allowed, loaded support face and expanded open-shell collision. Moving piston exception is restricted to current block. Exact helper math read, full world collision/backend not expanded.",
+    "EnderEntity event posts after native candidate validity and attach direction found. Cancellation clears direction and continues attempts. Event target is BlockPos.containing modified XYZ; local code does not re-run buildheight/border/empty/attach/collision checks for modified destination. Saved attach direction from original candidate is retained. No actual unsafe teleport or exploit reproduced.",
+    "Successful teleport unrides, sets attachface, requests sound, setPos, emits TELEPORT at old block, resets rawpeek0 and clears target, then returns true without child/admission. setPos snaps nonpassenger to floor centers and may raw-resetpeek on block change; interpolation/client state is bounded support only.",
+    "Only after successful mother relocation does it query getEntities(EntityType.SHULKER, OLD boundingbox.inflate8, Entity::isAlive). This is old-box AABB query, not radius sphere/current mother location, all-world count or proven always-excludes/includes mother. Scoref=(i-1)/5 is not clamped; child only when !(randomFloat<f). For i0 score negative so this random gate passes; i>=6 score>=1 blocks normal[0,1) float. Not independent hard global cap or fixed17percent.",
+    "On allowed density gate nullable create(level)→setVariant(current mother Optionalcolor)→moveTo(CAPTURED mother position)→ignored addFreshEntity boolean. Child placement is old live position, not current mother destination. No explicit finalizeSpawn/placement/spawn-rule/collision/cap check, material debit, cooldown, genetic payload copy or persistence-required call in this branch; factory/parent defaults and actual live admission remain external.",
+    "Variant getter reads byte color to Optional; setter maps ID or16. Only that shown value is copied; source branch does not clone mother NBT/health/equipment/target/UUID. Default synced attachmentDOWN/peek0/color16 are construction-context support, not complete inherited-state proof. Nullable create/rejected add does not roll mother relocation back.",
+    "Mother relocation committed before density and child request. No child can still leave a moved and closed mother; normally unchecked child add cannot establish population growth. Prior actual3 admission ranges show cancellation/UUID-removal rejection; no actual birth/kill/drop/pickup/shell farm or stable-world cap proof.",
+    "EA30 whole is a playing record event selected dance facility plus paid amethyst interaction arming parent/child durable duplication throttles. Shulker whole is accepted specific projectile damage plus open mother, vetoable validated attachment migration and density at old occupied habitat determining a fresh actor there. No fee, facility dance, mate/egg/carrier or shown duplication cooldown. Distinction is relocation-coupled spatial replenishment after combat, not species/color/chance/unchecked add. Main may merge or reject; this comparison grants0.",
+    "Bounded previous meta screen found a complete ShulkerBullet movement/checkpoint owner, now actually read in all non-evidence judgment fields and canonical full row. That exact owner remains0 and is not reintroduced through projectile support. Shulker box inventory/ID custody records are different objects, not mob reproduction proof. No exhaustive global novelty claim."
+  ],
+  "mandatory_constraints": [
+    "At most1 whole bounded combat-relocation spatial replenishment policy, pending distinct independent Main review.13ranges527lines/5entries/0whole files/one complete nested attack class are support counts only; helper/event/color/item/type variants and one raw tag0.",
+    "Source hit pipeline is bounded: attack goal→unchecked bullet request; bullet server nonMISS+Forge false→onHit→mobProjectile4 request→mother super.hurt result→specific gate→normal discard. Full target acquisition/homing/collision/enchantment/damage modifier graph outside; no actual hit/survival or successful projectile creation.",
+    "Closed arrow rejection, accepted parent hurt and lowhealth-quarter-random first branch must retain literal order. That first branch suppresses reproduction else-if even if its teleport fails. Later branch needs PROJECTILE damage tag and direct entity exact SHULKER_BULLET type, not a particular bullet owner.",
+    "Mother position and AABB snapshot precede isClosed check and attempted migration. Child eligibility requires pre-teleport open state and returned teleport success; successful migration resets peek0/target null before later density. Do not reverse order or pretend child success causes migration.",
+    "Native atmost5 offsets within inclusive±8XYZ require live nonNoAI mother, candidate minheight/empty/border/block collision and attached floor/face/open-shell helper tests. Full loaded-world/shape/face/backend guarantees unexpanded.",
+    "Forge mutable EnderEntity target is applied after candidate surface checks. Cancellation allows further attempts; modified target is not revalidated in local branch and uses originally found attach direction. Source-only boundary, not an actual unsafe teleport/exploit.",
+    "Density uses OLD boundingbox.inflate8 AABB query with SHULKER type and alive predicate after mother movement. No sphere/current-location/global count assumption or guaranteed inclusion/exclusion of mother. f=(i-1)/5 unclamped; i0 negative random threshold, i>=6 normal float gate blocks; no independently enforced cap or fixedchance.",
+    "Nullable create after density can return no child; current parent color Optional copied, then captured old position, then ignored add. No explicit additional placement/finalize/rules/natural-cap/fee/cooldown/persistence guarantee or whole parent NBT clone. Default synced fields/variant helpers support0.",
+    "Mother stays moved/closed on child failure under normal source order. Add request/new object is not admitted child/live population growth, sustainable farm or quest acquisition. Retained3 admission snippets show rejection may occur but do not audit complete lifecycle.",
+    "Existing whole Bullet route/checkpoint owner b87b4952c60e17092c19 retains sole credit and current full canonical/non-evidence decision. Current bounded bullet reads support this different policy at0, not a second route persistence case; no embedded whole source reread.",
+    "EA30 complete actual author decision/observed_chain/limits/current corrections read, old native sources not reread; compare whole paid music/dual cooldown family with spatial reproduction family. Shared create/move/event/unchecked add or altered counts/variants do not supply new credit.",
+    "Raw is_projectile contains MOB_PROJECTILE only in exact derived archive bytes, not loaded current tags/modifications or a Git source. DamageSources chooses symbolictype, actual dynamic registry/effects left external.",
+    "No source/runtime acceptance of shell drop, material source/payment, birth/kill/pickup, NativeClone persistence, current game launch, new production logic/art or completed task. Main relevance/dedup may merge; packaging/actual author confirmation/strict aggregation are separate future steps."
+  ],
+  "mandatory_corrections": [],
+  "limits": [
+    "Fixed local mapped Forge1.20.1/47.4.10 archive only, no upstream freshness/Git commit claim, runtime build or compatibility/behavior validation.",
+    "Shulker.java not read whole; exactly cited bounded groups plus a complete nested attack class. Full parent hurt/NoAi/world collision/query implementation, current event handlers, target selection, homing internals, entity constructor/persistence and lifecycle remain outside.",
+    "No game/server, hit/teleport request, sound emission, birth/death/drop/pickup/payment or shell farm executed. All source behaviors are static ordered requests.",
+    "Old AABB query after parent migration may include/exclude parent according to actual overlap; source does not require one. This is bounded local density probability, not conserved population or global cap enforcement.",
+    "Initial candidate shape/border/attachment safety is not rechecked after mutable event target; source boundary not live bug/exploit. Teleport returntrue is own completed branch, not world/collision/inventory/player ACK.",
+    "Source has no explicit child-success rollback, cooldown or source payment here, but that does not prove universal cap/gamerule/Peaceful/NoAi bypass or infinite reproduction under whole inherited runtime.",
+    "Full accepted old Bullet decision and Allay current whole decision read, old complete original source chains not reread. Any support/current raw resource/method/variant counts0. Semantic policy maximum1 only if distinct Main accepts;1000 gate unmet.",
+    "Raw projectile tag is a local derived archive entry, not current loaded tag/registry or published Git reference. Source symbol and byte evidence do not prove exact live damage or membership.",
+    "No production/art/model/texture/building/sharedJar/world/process/UI/display/brightness/sound/network/Java/Gradle/Git/master/session/checklist edits. Only this immutable research proposal;0active-hour claim."
+  ],
+  "application": [
+    "Future ecology tasks should distinguish a moved parent, spatial density opportunity, nullable child construction and actually accepted child UUID/survival; no progression from a projectile hit or migration request alone.",
+    "Preserve material source→existing prerequisites→actual production/payment where applicable→native acquisition receipts; no shell/drop route or invented Dynasty IDs is provided by this bounded source policy."
+  ]
+}

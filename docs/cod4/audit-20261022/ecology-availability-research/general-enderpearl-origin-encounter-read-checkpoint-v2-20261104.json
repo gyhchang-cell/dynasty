@@ -1,0 +1,189 @@
+{
+  "recorded_at": "2026-11-03T18:33:54.315602+00:00",
+  "status": "actual_read_continuation_checkpoint_v2_before_real_Cat_author_confirmation",
+  "prior_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-enderpearl-origin-encounter-read-checkpoint-20261104.json",
+    "sha256": "f8fcc975360a66ca7ae9f3676eb4d066c614b397ca0ea1ac84b97595c6e2f455"
+  },
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "additional_actual_ranges": [
+    {
+      "entry": "net/minecraft/world/entity/projectile/ThrowableProjectile.java",
+      "entry_sha256": "f1982b097109a0ae8299c36bc5b7769f6a8fb9587e214ebb610e8366fb3d2ea4",
+      "lines": [
+        1,
+        95
+      ],
+      "full_entry_read": true,
+      "raw_excerpt_sha256": "f1982b097109a0ae8299c36bc5b7769f6a8fb9587e214ebb610e8366fb3d2ea4",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.projectile;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\n\npublic abstract class ThrowableProjectile extends Projectile {\n   protected ThrowableProjectile(EntityType<? extends ThrowableProjectile> p_37466_, Level p_37467_) {\n      super(p_37466_, p_37467_);\n   }\n\n   protected ThrowableProjectile(EntityType<? extends ThrowableProjectile> p_37456_, double p_37457_, double p_37458_, double p_37459_, Level p_37460_) {\n      this(p_37456_, p_37460_);\n      this.setPos(p_37457_, p_37458_, p_37459_);\n   }\n\n   protected ThrowableProjectile(EntityType<? extends ThrowableProjectile> p_37462_, LivingEntity p_37463_, Level p_37464_) {\n      this(p_37462_, p_37463_.getX(), p_37463_.getEyeY() - (double)0.1F, p_37463_.getZ(), p_37464_);\n      this.setOwner(p_37463_);\n   }\n\n   public boolean shouldRenderAtSqrDistance(double p_37470_) {\n      double d0 = this.getBoundingBox().getSize() * 4.0D;\n      if (Double.isNaN(d0)) {\n         d0 = 4.0D;\n      }\n\n      d0 *= 64.0D;\n      return p_37470_ < d0 * d0;\n   }\n\n   public void tick() {\n      super.tick();\n      HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);\n      boolean flag = false;\n      if (hitresult.getType() == HitResult.Type.BLOCK) {\n         BlockPos blockpos = ((BlockHitResult)hitresult).getBlockPos();\n         BlockState blockstate = this.level().getBlockState(blockpos);\n         if (blockstate.is(Blocks.NETHER_PORTAL)) {\n            this.handleInsidePortal(blockpos);\n            flag = true;\n         } else if (blockstate.is(Blocks.END_GATEWAY)) {\n            BlockEntity blockentity = this.level().getBlockEntity(blockpos);\n            if (blockentity instanceof TheEndGatewayBlockEntity && TheEndGatewayBlockEntity.canEntityTeleport(this)) {\n               TheEndGatewayBlockEntity.teleportEntity(this.level(), blockpos, blockstate, this, (TheEndGatewayBlockEntity)blockentity);\n            }\n\n            flag = true;\n         }\n      }\n\n      if (hitresult.getType() != HitResult.Type.MISS && !flag && !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, hitresult)) {\n         this.onHit(hitresult);\n      }\n\n      this.checkInsideBlocks();\n      Vec3 vec3 = this.getDeltaMovement();\n      double d2 = this.getX() + vec3.x;\n      double d0 = this.getY() + vec3.y;\n      double d1 = this.getZ() + vec3.z;\n      this.updateRotation();\n      float f;\n      if (this.isInWater()) {\n         for(int i = 0; i < 4; ++i) {\n            float f1 = 0.25F;\n            this.level().addParticle(ParticleTypes.BUBBLE, d2 - vec3.x * 0.25D, d0 - vec3.y * 0.25D, d1 - vec3.z * 0.25D, vec3.x, vec3.y, vec3.z);\n         }\n\n         f = 0.8F;\n      } else {\n         f = 0.99F;\n      }\n\n      this.setDeltaMovement(vec3.scale((double)f));\n      if (!this.isNoGravity()) {\n         Vec3 vec31 = this.getDeltaMovement();\n         this.setDeltaMovement(vec31.x, vec31.y - (double)this.getGravity(), vec31.z);\n      }\n\n      this.setPos(d2, d0, d1);\n   }\n\n   protected float getGravity() {\n      return 0.03F;\n   }\n}\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/entity/projectile/Projectile.java",
+      "entry_sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "lines": [
+        30,
+        61
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "a0695ce58891911edecae77254ed17b54039604b3d432e31dd74de7efc05aeeb",
+      "raw_excerpt_utf8": "   private Entity cachedOwner;\n   private boolean leftOwner;\n   private boolean hasBeenShot;\n\n   protected Projectile(EntityType<? extends Projectile> p_37248_, Level p_37249_) {\n      super(p_37248_, p_37249_);\n   }\n\n   public void setOwner(@Nullable Entity p_37263_) {\n      if (p_37263_ != null) {\n         this.ownerUUID = p_37263_.getUUID();\n         this.cachedOwner = p_37263_;\n      }\n\n   }\n\n   @Nullable\n   public Entity getOwner() {\n      if (this.cachedOwner != null && !this.cachedOwner.isRemoved()) {\n         return this.cachedOwner;\n      } else if (this.ownerUUID != null && this.level() instanceof ServerLevel) {\n         this.cachedOwner = ((ServerLevel)this.level()).getEntity(this.ownerUUID);\n         return this.cachedOwner;\n      } else {\n         return null;\n      }\n   }\n\n   public Entity getEffectSource() {\n      return MoreObjects.firstNonNull(this.getOwner(), this);\n   }\n\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/entity/projectile/Projectile.java",
+      "entry_sha256": "e6e2a35876df84dca50d6ffa48701301d70967662dbcc694c84f802d681a2ad9",
+      "lines": [
+        135,
+        155
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "94d7d077ca461c04ed9856096ac272460385c74a6d5972d617d716671336f812",
+      "raw_excerpt_utf8": "   protected void onHit(HitResult p_37260_) {\n      HitResult.Type hitresult$type = p_37260_.getType();\n      if (hitresult$type == HitResult.Type.ENTITY) {\n         this.onHitEntity((EntityHitResult)p_37260_);\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, p_37260_.getLocation(), GameEvent.Context.of(this, (BlockState)null));\n      } else if (hitresult$type == HitResult.Type.BLOCK) {\n         BlockHitResult blockhitresult = (BlockHitResult)p_37260_;\n         this.onHitBlock(blockhitresult);\n         BlockPos blockpos = blockhitresult.getBlockPos();\n         this.level().gameEvent(GameEvent.PROJECTILE_LAND, blockpos, GameEvent.Context.of(this, this.level().getBlockState(blockpos)));\n      }\n\n   }\n\n   protected void onHitEntity(EntityHitResult p_37259_) {\n   }\n\n   protected void onHitBlock(BlockHitResult p_37258_) {\n      BlockState blockstate = this.level().getBlockState(p_37258_.getBlockPos());\n      blockstate.onProjectileHit(this.level(), blockstate, p_37258_, this);\n   }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraftforge/event/entity/ProjectileImpactEvent.java",
+      "entry_sha256": "3d523f4271309527065f36780d67ca98fe9c16737e8ed725881ecdf79fef0712",
+      "lines": [
+        1,
+        92
+      ],
+      "full_entry_read": true,
+      "raw_excerpt_sha256": "3d523f4271309527065f36780d67ca98fe9c16737e8ed725881ecdf79fef0712",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.event.ForgeEventFactory;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport org.jetbrains.annotations.NotNull;\n\nimport java.util.Objects;\n\n/**\n * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n * This event is fired when a projectile entity impacts something.<br>\n * This event is fired via {@link ForgeEventFactory#onProjectileImpact(Projectile, HitResult)}\n * This event is fired for all vanilla projectiles by Forge,\n * custom projectiles should fire this event and check the result in a similar fashion.\n * This event is cancelable. When canceled, the impact will not be processed and the projectile will continue flying.\n * Killing or other handling of the entity after event cancellation is up to the modder.\n * You can also directly set the {@link ImpactResult} to change the impact behaviour.\n * @see #setImpactResult(ImpactResult)\n */\n@Cancelable\npublic class ProjectileImpactEvent extends EntityEvent\n{\n    private final HitResult ray;\n    private final Projectile projectile;\n\n    private ImpactResult result = ImpactResult.DEFAULT;\n\n    public ProjectileImpactEvent(Projectile projectile, HitResult ray)\n    {\n        super(projectile);\n        this.ray = ray;\n        this.projectile = projectile;\n    }\n\n    /**\n     * {@inheritDoc}\n     * @deprecated Use {@link #setImpactResult(ImpactResult)} instead.\n     */\n    @Deprecated(forRemoval = true, since = \"1.20.1\")\n    public void setCanceled(boolean cancel)\n    {\n        super.setCanceled(cancel);\n    }\n\n    public HitResult getRayTraceResult()\n    {\n        return ray;\n    }\n\n    public Projectile getProjectile()\n    {\n        return projectile;\n    }\n\n    public void setImpactResult(@NotNull ImpactResult newResult)\n    {\n        this.result = Objects.requireNonNull(newResult, \"ImpactResult cannot be null\");\n    }\n\n    public ImpactResult getImpactResult()\n    {\n        return result;\n    }\n\n    public enum ImpactResult\n    {\n        /**\n         * The default behaviour, the projectile will be destroyed and the hit will be processed.\n         */\n        DEFAULT,\n        /**\n         * The projectile will pass through the current entity as if it wasn't there. This will return default behaviour if there is no entity.\n         */\n        SKIP_ENTITY,\n        /**\n         * Damage the entity and stop the projectile here, the projectile will not pierce.\n         */\n        STOP_AT_CURRENT,\n        /**\n         * Cancel the piercing aspect of the projectile, and do not damage the entity.\n         */\n        STOP_AT_CURRENT_NO_DAMAGE\n    }\n}\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        672,
+        711
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "450f4206cc762d97443aec06702b4afbd1efe50feeb08429a3147402d608f90f",
+      "raw_excerpt_utf8": "    public static ProjectileImpactEvent.ImpactResult onProjectileImpactResult(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return ProjectileImpactEvent.ImpactResult.SKIP_ENTITY;\n\n        return event.getImpactResult();\n    }\n\n    /**\n     * This sister method exists due to an oversight in the original introduction of adding\n     * {@link ProjectileImpactEvent.ImpactResult ImpactResult} to {@link ProjectileImpactEvent}. Prior to its addition,\n     * the cancelling of this event would call <i>all</i> behavior within the if-clause of the while loop to stop and\n     * then break out of the loop early. When the result was added, the default cancellation was changed to\n     * {@link ProjectileImpactEvent.ImpactResult#SKIP_ENTITY}, breaking the ability to use\n     * {@link Event#setCanceled(boolean)} to actually cancel the event logic.\n     * <p>\n     * While not entirely ideal, this preserves compatibility with older 1.20.1 mods that rely on the cancellation of\n     * the projectile impact event.\n     *\n     * @return The result of the event, or {@code null} if it was cancelled.\n     * @see <a href=\"https://github.com/MinecraftForge/MinecraftForge/pull/10481\">PR #10481</a>\n     */\n    public static @Nullable ProjectileImpactEvent.ImpactResult onProjectileImpactResultNullable(Projectile projectile, HitResult ray)\n    {\n        ProjectileImpactEvent event = new ProjectileImpactEvent(projectile, ray);\n\n        // Remove this when the event is no longer cancelable\n        if (MinecraftForge.EVENT_BUS.post(event))\n            return null;\n\n        return event.getImpactResult();\n    }\n\n    public static boolean onProjectileImpact(Projectile projectile, HitResult ray)\n    {\n        return onProjectileImpactResult(projectile, ray) != ProjectileImpactEvent.ImpactResult.DEFAULT;\n    }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        867,
+        873
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "6dac1763d8f2eeb37d042b7e656f93a187dd706bce4775e226a9c994260bc04b",
+      "raw_excerpt_utf8": "    @ApiStatus.Internal\n    public static EntityTeleportEvent.EnderPearl onEnderPearlLand(ServerPlayer entity, double targetX, double targetY, double targetZ, ThrownEnderpearl pearlEntity, float attackDamage, HitResult hitResult)\n    {\n        EntityTeleportEvent.EnderPearl event = new EntityTeleportEvent.EnderPearl(entity, targetX, targetY, targetZ, pearlEntity, attackDamage, hitResult);\n        MinecraftForge.EVENT_BUS.post(event);\n        return event;\n    }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "entry_sha256": "d3d36cdad413fddee4739d379ee0baceb6cb1b98c9ec16be97dc3ea735512f32",
+      "lines": [
+        1,
+        55
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "780c7265935ae63729107267ad00f17a0a4b24e817e615c8803738209c741f66",
+      "raw_excerpt_utf8": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.projectile.ThrownEnderpearl;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport net.minecraftforge.eventbus.api.Event;\nimport net.minecraftforge.fml.LogicalSide;\nimport org.jetbrains.annotations.ApiStatus;\nimport org.jetbrains.annotations.Nullable;\n\n/**\n * EntityTeleportEvent is fired when an event involving any teleportation of an Entity occurs.<br>\n * If a method utilizes this {@link Event} as its parameter, the method will\n * receive every child event of this class.<br>\n * <br>\n * {@link #getTarget()} contains the target destination.<br>\n * {@link #getPrev()} contains the entity's current position.<br>\n * <br>\n * All children of this event are fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n **/\n@Cancelable\npublic class EntityTeleportEvent extends EntityEvent\n{\n    protected double targetX;\n    protected double targetY;\n    protected double targetZ;\n\n    public EntityTeleportEvent(Entity entity, double targetX, double targetY, double targetZ) {\n        super(entity);\n        this.targetX = targetX;\n        this.targetY = targetY;\n        this.targetZ = targetZ;\n    }\n\n    public double getTargetX() { return targetX; }\n    public void setTargetX(double targetX) { this.targetX = targetX; }\n    public double getTargetY() { return targetY; }\n    public void setTargetY(double targetY) { this.targetY = targetY; }\n    public double getTargetZ() { return targetZ; }\n    public void setTargetZ(double targetZ) { this.targetZ = targetZ; }\n    public Vec3 getTarget() { return new Vec3(this.targetX, this.targetY, this.targetZ); }\n    public double getPrevX() { return getEntity().getX(); }\n    public double getPrevY() { return getEntity().getY(); }\n    public double getPrevZ() { return getEntity().getZ(); }\n    public Vec3 getPrev() { return getEntity().position(); }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "entry_sha256": "d3d36cdad413fddee4739d379ee0baceb6cb1b98c9ec16be97dc3ea735512f32",
+      "lines": [
+        150,
+        193
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "16754c4def3717b5bdd0cbad4b1c5d52e07af1ce3041daba302629459ff69bbe",
+      "raw_excerpt_utf8": "    @Cancelable\n    public static class EnderPearl extends EntityTeleportEvent\n    {\n        private final ServerPlayer player;\n        private final ThrownEnderpearl pearlEntity;\n        private float attackDamage;\n        private final HitResult hitResult;\n\n        @ApiStatus.Internal\n        public EnderPearl(ServerPlayer entity, double targetX, double targetY, double targetZ, ThrownEnderpearl pearlEntity, float attackDamage, HitResult hitResult)\n        {\n            super(entity, targetX, targetY, targetZ);\n            this.pearlEntity = pearlEntity;\n            this.player = entity;\n            this.attackDamage = attackDamage;\n            this.hitResult = hitResult;\n        }\n\n        public ThrownEnderpearl getPearlEntity()\n        {\n            return pearlEntity;\n        }\n\n        public ServerPlayer getPlayer()\n        {\n            return player;\n        }\n\n        @Nullable\n        public HitResult getHitResult()\n        {\n            return this.hitResult;\n        }\n\n        public float getAttackDamage()\n        {\n            return attackDamage;\n        }\n\n        public void setAttackDamage(float attackDamage)\n        {\n            this.attackDamage = attackDamage;\n        }\n    }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        918,
+        921
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "d896620c8620cd2efcd437110af8a92ba639ea540af8a91a7940935a81d44031",
+      "raw_excerpt_utf8": "   public void dismountTo(double p_143389_, double p_143390_, double p_143391_) {\n      this.removeVehicle();\n      this.setPos(p_143389_, p_143390_, p_143391_);\n   }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/server/level/ServerPlayer.java",
+      "entry_sha256": "7a80e73004ac0eb8f64ae22fc4b4ca46764272522046c0444f1779b1a289dca6",
+      "lines": [
+        1191,
+        1193
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "7883b89051ff0525e578c5ea90f8779d8ef79962099722273b8e2e872f9fcbe6",
+      "raw_excerpt_utf8": "   public void teleportTo(double p_8969_, double p_8970_, double p_8971_) {\n      this.connection.teleport(p_8969_, p_8970_, p_8971_, this.getYRot(), this.getXRot(), RelativeMovement.ROTATION);\n   }\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/item/Items.java",
+      "entry_sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+      "lines": [
+        973,
+        973
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "ef402840e8b859ea21455347bc1c58f6ca5bd6a13f49408829ecb56128346e65",
+      "raw_excerpt_utf8": "   public static final Item ENDER_PEARL = registerItem(\"ender_pearl\", new EnderpearlItem((new Item.Properties()).stacksTo(16)));\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        196,
+        196
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "936419b0564e78880e12cc5aecbf1d75496af99ae09ec2e5dae2ca357db067af",
+      "raw_excerpt_utf8": "   public static final EntityType<ThrownEnderpearl> ENDER_PEARL = register(\"ender_pearl\", EntityType.Builder.<ThrownEnderpearl>of(ThrownEnderpearl::new, MobCategory.MISC).sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10));\n",
+      "credit": 0
+    },
+    {
+      "entry": "net/minecraft/world/entity/EntityType.java",
+      "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "lines": [
+        198,
+        198
+      ],
+      "full_entry_read": false,
+      "raw_excerpt_sha256": "9f0bca3966ab798b7da9abd70b866f49772da3feb5efdde93f81d22551de4c19",
+      "raw_excerpt_utf8": "   public static final EntityType<Endermite> ENDERMITE = register(\"endermite\", EntityType.Builder.of(Endermite::new, MobCategory.MONSTER).sized(0.4F, 0.3F).clientTrackingRange(8));\n",
+      "credit": 0
+    }
+  ],
+  "new_findings": [
+    "Native parentThrowableProjectile tick suppresses land hit when MISS/portal/endgateway or Forge onProjectileImpact bool. Current Forge672..681 cancellation mapsSKIP_ENTITY and708..710 returnsnonDEFAULT as true; anynonDEFAULT suppresses this own onHit, not just entity hits. ProjectileImpactEvent complete92read, bus handlers unexpanded.",
+    "EntityTeleportEvent base targetXYZ mutable, getPrev reads live current entity position, EnderPearl supplies mutable damage and final player/projectile/hit references. Land factory posts then returns event. Canceledland prevents endermite+travel+damage ownbranch, but serverdiscard still executes; generic hit entity0damage and gameevent precede it.",
+    "Noncancel land atownerlocation can requestEndermite before rawtarget dismount/teleport and another eventtarget teleport. ServerPlayer.dismount removesvehicle+setPos, teleportTo delegates connection; native final position/packet ACK/collision/damage remain unverified.",
+    "BaseProjectile setOwner onlynonnull, so changeDimension calling setOwner(null) does not itself clear cachedOwner/UUID in this shown method; full parentdimensionclone/savepath unexpanded, no crossdimension exploit claim.",
+    "Endermite casefold ledger matches were irrelevant equipment converter comments/rule-renaming/crate content lists, not a verified complete Endermite lifetime owner. Relevant metadata only recovered after large unrelated dumps clipped; embedded evidence or long support lists not read or counted. No global novelty claim."
+  ],
+  "remaining_scope": [
+    "Read actual ThrowableItemProjectile bridge to establish no hidden hit override; no need full unrelated physics/teleport or player packet internals, preserve boundaries.",
+    "Prepare complete original one-family proposal comparing paid projectile/travel-triggered temporary origin encounter to EA11, EA30 and other actual prior whole decisions; no copied Cat differences.",
+    "Current urgent step: actual Main-installed Cat EA0031 no-override real author confirmation; Main independently reviews/aggregates."
+  ],
+  "whole_source_policy_complete": false,
+  "formal_candidate_id": null,
+  "accepted_or_applied_credit": 0,
+  "production_changes": 0,
+  "shared_tools_changed": 0,
+  "formal_ledger_changes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

@@ -1,0 +1,138 @@
+{
+  "recorded_at": "2026-11-03T18:56:25.735868+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "INCOMPLETE_NEW_SOURCE_STUDY_PAUSED_FOR_ACTUAL_INSTALLED_SIEGE_AUTHOR_CONFIRMATION",
+  "formal_candidate_id": null,
+  "accepted_or_applied_credit": 0,
+  "source_metadata": {
+    "path": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/source.json",
+    "sha256": "503e8b933d51581f2949312697f14f503a3af77ba1b92589f443f6dfd7196084"
+  },
+  "tree_metadata": {
+    "path": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/tree.json",
+    "sha256": "8e36c9680713d8ff86cab4cdb9c2c404089532dadeca22b2aaa7cc0d6102e8c3"
+  },
+  "actual_read_ranges": [
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/ai/GorillaAIFollowCaravan.java",
+      "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/ai/GorillaAIFollowCaravan.java",
+      "source_sha256": "69b168260eee92b6f8df7d579e8392dbe4e33b6efa4f5d768491cb23645136c6",
+      "git_blob_sha1": "408a895ab3512656d742a105b1ae1e23fa68075f",
+      "lines": [
+        1,
+        137
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "69b168260eee92b6f8df7d579e8392dbe4e33b6efa4f5d768491cb23645136c6",
+      "raw_excerpt_utf8": "package com.github.alexthe666.alexsmobs.entity.ai;\n\nimport com.github.alexthe666.alexsmobs.AlexsMobs;\nimport com.github.alexthe666.alexsmobs.entity.EntityGorilla;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.ai.goal.Goal;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.EnumSet;\nimport java.util.List;\n\npublic class GorillaAIFollowCaravan extends Goal {\n    public final EntityGorilla gorilla;\n    private double speedModifier;\n    private int distCheckCounter;\n\n    public GorillaAIFollowCaravan(EntityGorilla llamaIn, double speedModifierIn) {\n        this.gorilla = llamaIn;\n        this.speedModifier = speedModifierIn;\n        this.setFlags(EnumSet.of(Goal.Flag.MOVE));\n    }\n\n    public boolean canUse() {\n        if (!this.gorilla.isSilverback() && !this.gorilla.inCaravan() && !gorilla.isSitting()) {\n            double dist = 15D;\n            List<EntityGorilla> list = gorilla.level().getEntitiesOfClass(EntityGorilla.class, gorilla.getBoundingBox().inflate(dist, dist / 2, dist));\n            EntityGorilla gorilla = null;\n            double d0 = Double.MAX_VALUE;\n\n            for (Entity entity : list) {\n                EntityGorilla gorilla1 = (EntityGorilla) entity;\n                if (gorilla1.inCaravan() && !gorilla1.hasCaravanTrail()) {\n                    double d1 = this.gorilla.distanceToSqr(gorilla1);\n                    if (!(d1 > d0)) {\n                        d0 = d1;\n                        gorilla = gorilla1;\n                    }\n                }\n            }\n\n            if (gorilla == null) {\n                for (Entity entity1 : list) {\n                    EntityGorilla llamaentity2 = (EntityGorilla) entity1;\n                    if (llamaentity2.isSilverback() && !llamaentity2.hasCaravanTrail()) {\n                        double d2 = this.gorilla.distanceToSqr(llamaentity2);\n                        if (!(d2 > d0)) {\n                            d0 = d2;\n                            gorilla = llamaentity2;\n                        }\n                    }\n                }\n            }\n\n            if (gorilla == null) {\n                return false;\n            } else if (d0 < 2.0D) {\n                return false;\n            } else if (!gorilla.isSilverback() && !this.firstIsSilverback(gorilla, 1)) {\n                return false;\n            } else {\n                this.gorilla.joinCaravan(gorilla);\n                return true;\n            }\n        } else {\n            return false;\n        }\n    }\n\n    /**\n     * Returns whether an in-progress EntityAIBase should continue executing\n     */\n    public boolean canContinueToUse() {\n        if (gorilla.isSitting()) {\n            return false;\n        }\n        if (this.gorilla.inCaravan() && this.gorilla.getCaravanHead().isAlive() && this.firstIsSilverback(this.gorilla, 0)) {\n            double d0 = this.gorilla.distanceToSqr(this.gorilla.getCaravanHead());\n            if (d0 > 676.0D) {\n                if (this.speedModifier <= 1.5D) {\n                    this.speedModifier *= 1.2D;\n                    this.distCheckCounter = 40;\n                    return true;\n                }\n\n                if (this.distCheckCounter == 0) {\n                    return false;\n                }\n            }\n\n            if (this.distCheckCounter > 0) {\n                --this.distCheckCounter;\n            }\n\n            return true;\n        } else {\n            return false;\n        }\n    }\n\n    public void stop() {\n        this.gorilla.leaveCaravan();\n        this.speedModifier = 1.5D;\n    }\n\n    public void tick() {\n        if (this.gorilla.inCaravan() && !this.gorilla.isSitting()) {\n            EntityGorilla llamaentity = this.gorilla.getCaravanHead();\n            if (llamaentity != null) {\n                double d0 = this.gorilla.distanceTo(llamaentity);\n                Vec3 vector3d = (new Vec3(llamaentity.getX() - this.gorilla.getX(), llamaentity.getY() - this.gorilla.getY(), llamaentity.getZ() - this.gorilla.getZ())).normalize().scale(Math.max(d0 - 2.0D, 0.0D));\n                if(gorilla.getNavigation().isDone()) {\n                    try {\n                        this.gorilla.getNavigation().moveTo(this.gorilla.getX() + vector3d.x, this.gorilla.getY() + vector3d.y, this.gorilla.getZ() + vector3d.z, this.speedModifier);\n                    } catch (NullPointerException e) {\n                        AlexsMobs.LOGGER.warn(\"gorilla encountered issue following caravan head\");\n                    }\n                }\n            }\n        }\n    }\n\n    private boolean firstIsSilverback(EntityGorilla llama, int p_190858_2_) {\n        if (p_190858_2_ > 8) {\n            return false;\n        } else if (llama.inCaravan()) {\n            if (llama.getCaravanHead().isSilverback()) {\n                return true;\n            } else {\n                EntityGorilla llamaentity = llama.getCaravanHead();\n                ++p_190858_2_;\n                return this.firstIsSilverback(llamaentity, p_190858_2_);\n            }\n        } else {\n            return false;\n        }\n    }\n}\n",
+      "actual_text_read": true,
+      "credit": 0
+    },
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_sha256": "81b0b7c34d6b903bb62610e455996a67e24ca2295657e71b39b43277aca1aa72",
+      "git_blob_sha1": "48f3c998cbbc1ec84d2a6c2ff01596cd99a0f72d",
+      "lines": [
+        61,
+        95
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e0317468375f06e56f43f5789f9ee86ae939721a5d954cddecbcd3f5631d6b50",
+      "raw_excerpt_utf8": "public class EntityGorilla extends TamableAnimal implements IAnimatedEntity, ITargetsDroppedItems {\n    public static final Animation ANIMATION_BREAKBLOCK_R = Animation.create(20);\n    public static final Animation ANIMATION_BREAKBLOCK_L = Animation.create(20);\n    public static final Animation ANIMATION_POUNDCHEST = Animation.create(40);\n    public static final Animation ANIMATION_ATTACK = Animation.create(20);\n    protected static final EntityDimensions SILVERBACK_SIZE = EntityDimensions.scalable(1.35F, 1.95F);\n    private static final EntityDataAccessor<Boolean> SILVERBACK = SynchedEntityData.defineId(EntityGorilla.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> STANDING = SynchedEntityData.defineId(EntityGorilla.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> SITTING = SynchedEntityData.defineId(EntityGorilla.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Boolean> EATING = SynchedEntityData.defineId(EntityGorilla.class, EntityDataSerializers.BOOLEAN);\n    public int maxStandTime = 75;\n    public float prevStandProgress;\n    public float prevSitProgress;\n    public float standProgress;\n    public float sitProgress;\n    public boolean forcedSit = false;\n    private int animationTick;\n    private Animation currentAnimation;\n    private int standingTime = 0;\n    private int eatingTime;\n    @Nullable\n    private EntityGorilla caravanHead;\n    @Nullable\n    private EntityGorilla caravanTail;\n    private int sittingTime = 0;\n    private int maxSitTime = 75;\n    @Nullable\n    private UUID bananaThrowerID = null;\n    private boolean hasSilverbackAttributes = false;\n    public int poundChestCooldown = 0;\n\n    protected EntityGorilla(EntityType type, Level worldIn) {\n        super(type, worldIn);\n        this.setPathfindingMalus(BlockPathTypes.WATER, -1.0F);\n        this.setPathfindingMalus(BlockPathTypes.LEAVES, 0.0F);\n",
+      "actual_text_read": true,
+      "credit": 0
+    },
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_sha256": "81b0b7c34d6b903bb62610e455996a67e24ca2295657e71b39b43277aca1aa72",
+      "git_blob_sha1": "48f3c998cbbc1ec84d2a6c2ff01596cd99a0f72d",
+      "lines": [
+        141,
+        163
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c2ab5a315b14a3c65d3ef233492dfda28a2e9ea9e4f23ec9edb763e725b2f4c2",
+      "raw_excerpt_utf8": "            }\n            return super.hurt(source, amount);\n        }\n    }\n\n    protected void registerGoals() {\n        super.registerGoals();\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new SitWhenOrderedToGoal(this));\n        this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.2D, true));\n        this.goalSelector.addGoal(2, new GorillaAIFollowCaravan(this, 0.8D));\n        this.goalSelector.addGoal(3, new GorillaAIChargeLooker(this, 1.6D));\n        this.goalSelector.addGoal(4, new TameableAITempt(this, 1.1D, Ingredient.of(AMTagRegistry.GORILLA_TAMEABLES), false));\n        this.goalSelector.addGoal(4, new AnimalAIRideParent(this, 1.25D));\n        this.goalSelector.addGoal(6, new AIWalkIdle(this, 0.8D));\n        this.goalSelector.addGoal(5, new GorillaAIForageLeaves(this));\n        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D));\n        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0F));\n        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new CreatureAITargetItems(this, false));\n        this.targetSelector.addGoal(1, (new HurtByTargetGoal(this)).setAlertOthers());\n        this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));\n        this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));\n",
+      "actual_text_read": true,
+      "credit": 0
+    },
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_sha256": "81b0b7c34d6b903bb62610e455996a67e24ca2295657e71b39b43277aca1aa72",
+      "git_blob_sha1": "48f3c998cbbc1ec84d2a6c2ff01596cd99a0f72d",
+      "lines": [
+        176,
+        229
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ad4d7aa91eb8c08001d96c19390c642270fe8b2adfd5a37614154e52bc0b3f45",
+      "raw_excerpt_utf8": "    }\n\n    public boolean doHurtTarget(Entity entityIn) {\n        if (this.getAnimation() == NO_ANIMATION) {\n            this.setAnimation(ANIMATION_ATTACK);\n        }\n        return true;\n    }\n\n    public void travel(Vec3 vec3d) {\n        if (this.isSitting()) {\n            if (this.getNavigation().getPath() != null) {\n                this.getNavigation().stop();\n            }\n            vec3d = Vec3.ZERO;\n        }\n        super.travel(vec3d);\n    }\n\n    @Nullable\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor worldIn, DifficultyInstance difficultyIn, MobSpawnType reason, @Nullable SpawnGroupData spawnDataIn, @Nullable CompoundTag dataTag) {\n        if (spawnDataIn instanceof AgeableMob.AgeableMobGroupData) {\n            AgeableMob.AgeableMobGroupData lvt_6_1_ = (AgeableMob.AgeableMobGroupData) spawnDataIn;\n            if (lvt_6_1_.getGroupSize() == 0) {\n                this.setSilverback(true);\n            }\n        } else {\n            this.setSilverback(this.getRandom().nextBoolean());\n        }\n\n        return super.finalizeSpawn(worldIn, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n    @Nullable\n    public EntityGorilla getNearestSilverback(LevelAccessor world, double dist) {\n        List<? extends EntityGorilla> list = world.getEntitiesOfClass(this.getClass(), this.getBoundingBox().inflate(dist, dist / 2, dist));\n        if (list.isEmpty()) {\n            return null;\n        }\n        EntityGorilla gorilla = null;\n        double d0 = Double.MAX_VALUE;\n        for (EntityGorilla gorrila2 : list) {\n            if (gorrila2.isSilverback()) {\n                double d1 = this.distanceToSqr(gorrila2);\n                if (!(d1 > d0)) {\n                    d0 = d1;\n                    gorilla = gorrila2;\n                }\n            }\n        }\n        return gorilla;\n    }\n\n    public EntityDimensions getDimensions(Pose poseIn) {\n",
+      "actual_text_read": true,
+      "credit": 0
+    },
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_sha256": "81b0b7c34d6b903bb62610e455996a67e24ca2295657e71b39b43277aca1aa72",
+      "git_blob_sha1": "48f3c998cbbc1ec84d2a6c2ff01596cd99a0f72d",
+      "lines": [
+        265,
+        313
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f291f5836d7adc718b05bfbf6bd85bf909fd58753b7c8ca40f32299dd7b4c121",
+      "raw_excerpt_utf8": "    public boolean isSilverback() {\n        return this.entityData.get(SILVERBACK);\n    }\n\n    public void setSilverback(boolean silver) {\n        this.entityData.set(SILVERBACK, silver);\n    }\n\n    public boolean isStanding() {\n        return this.entityData.get(STANDING);\n    }\n\n    public void setStanding(boolean standing) {\n        this.entityData.set(STANDING, standing);\n    }\n\n    public boolean isSitting() {\n        return this.entityData.get(SITTING);\n    }\n\n    public void setOrderedToSit(boolean sit) {\n        this.entityData.set(SITTING, sit);\n    }\n\n    public boolean isEating() {\n        return this.entityData.get(EATING);\n    }\n\n    public void setEating(boolean eating) {\n        this.entityData.set(EATING, eating);\n    }\n\n    public void addAdditionalSaveData(CompoundTag compound) {\n        super.addAdditionalSaveData(compound);\n        compound.putBoolean(\"Silverback\", this.isSilverback());\n        compound.putBoolean(\"Standing\", this.isStanding());\n        compound.putBoolean(\"GorillaSitting\", this.isSitting());\n        compound.putBoolean(\"ForcedToSit\", this.forcedSit);\n    }\n\n    public void readAdditionalSaveData(CompoundTag compound) {\n        super.readAdditionalSaveData(compound);\n        this.setSilverback(compound.getBoolean(\"Silverback\"));\n        this.setStanding(compound.getBoolean(\"Standing\"));\n        this.setOrderedToSit(compound.getBoolean(\"GorillaSitting\"));\n        this.forcedSit = compound.getBoolean(\"ForcedToSit\");\n    }\n\n    public InteractionResult mobInteract(Player player, InteractionHand hand) {\n",
+      "actual_text_read": true,
+      "credit": 0
+    },
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityGorilla.java",
+      "source_sha256": "81b0b7c34d6b903bb62610e455996a67e24ca2295657e71b39b43277aca1aa72",
+      "git_blob_sha1": "48f3c998cbbc1ec84d2a6c2ff01596cd99a0f72d",
+      "lines": [
+        514,
+        569
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "be90ea1dedc1cb4f2f1889ff529b1b82d218b9262e3c43303ee87dee4fd03d08",
+      "raw_excerpt_utf8": "\n    public boolean canTargetItem(ItemStack stack) {\n        return stack.is(AMTagRegistry.GORILLA_FOODSTUFFS);\n    }\n\n    @Override\n    public void onGetItem(ItemEntity targetEntity) {\n        ItemStack duplicate = targetEntity.getItem().copy();\n        duplicate.setCount(1);\n        if (!this.getItemInHand(InteractionHand.MAIN_HAND).isEmpty() && !this.level().isClientSide) {\n            this.spawnAtLocation(this.getItemInHand(InteractionHand.MAIN_HAND), 0.0F);\n        }\n        this.setItemInHand(InteractionHand.MAIN_HAND, duplicate);\n        Entity thrower = targetEntity.getOwner();\n        if (EntityGorilla.isTameableFood(targetEntity.getItem()) && thrower != null && !this.isTame()) {\n            bananaThrowerID = thrower.getUUID();\n        }\n    }\n\n    @Override\n    public Animation[] getAnimations() {\n        return new Animation[]{ANIMATION_BREAKBLOCK_R, ANIMATION_BREAKBLOCK_L, ANIMATION_POUNDCHEST, ANIMATION_ATTACK};\n    }\n\n    @Nullable\n    @Override\n    public AgeableMob getBreedOffspring(ServerLevel p_241840_1_, AgeableMob p_241840_2_) {\n        return AMEntityRegistry.GORILLA.get().create(p_241840_1_);\n    }\n\n    public void leaveCaravan() {\n        if (this.caravanHead != null) {\n            this.caravanHead.caravanTail = null;\n        }\n\n        this.caravanHead = null;\n    }\n\n    public void joinCaravan(EntityGorilla caravanHeadIn) {\n        this.caravanHead = caravanHeadIn;\n        this.caravanHead.caravanTail = this;\n    }\n\n    public boolean hasCaravanTrail() {\n        return this.caravanTail != null;\n    }\n\n    public boolean inCaravan() {\n        return this.caravanHead != null;\n    }\n\n    @Nullable\n    public EntityGorilla getCaravanHead() {\n        return this.caravanHead;\n    }\n\n",
+      "actual_text_read": true,
+      "credit": 0
+    }
+  ],
+  "whole_source_policy_complete": false,
+  "findings_so_far": [
+    "Full Gorilla caravan helper137 read; existing alive actors form directed caravanHead/caravanTail links toward a silverback-root chain, not creation/admission or breed outcome. At most one possible live-cohort policy pending completion/comparison; no novelty accepted.",
+    "canUse prioritizes nearest tail among existing chains, then silverback withouttail; join mutates links inside canUse before actual scheduler start. Direct silverback candidate bypasses recursive validation; recursion has depth bound8; threshold squared2 is not2blocks.",
+    "Continuation uses own sitting/head alive/root validation, speed escalation above distance squared676 then countdown of canContinue invocations; stop writes speed1.5 instead of constructor0.8. No walltime/fairnavigation guarantee.",
+    "EntityGorilla native superclass TamableAnimal full scheduling not read; only five explicit core ranges actual. Own add/read stores role/pose but no caravan links; fresh object versus read-existing semantics unresolved.",
+    "Core finalization silverback role chosen BEFORE parent Ageable group handling: incoming GroupData size0 sets true, no else forcingfalse. Full caller/parent sequence and current composition not yet read. Native Llama caravan ancestry must be compared; one species-specific fork of same policy cannot claim another whole family."
+  ],
+  "remaining_scope": [
+    "Finish complete bounded producer-consumer chain and actual native Ageable group/Goal scheduler contexts as needed, not entire unrelated tame/attack branch.",
+    "Check closest Patrol leader-cohort and existing native/mod caravan whole owner before any distinct proposal. Do not count metadata or candidate lookup as new reference."
+  ],
+  "upstream_code_executed": false,
+  "production_changes": 0,
+  "shared_tools_changed": 0,
+  "formal_ledger_changes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

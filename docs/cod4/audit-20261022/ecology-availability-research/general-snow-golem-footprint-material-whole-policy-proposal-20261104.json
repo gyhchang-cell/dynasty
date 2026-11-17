@@ -1,0 +1,1028 @@
+{
+  "recorded_at": "2026-11-03T22:21:48.338948+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "WHOLE_BOUNDED_SOURCE_POLICY_PROPOSAL_PENDING_MAIN_RELEVANCE_FAMILY_REVIEW_NO_PACKAGE",
+  "semantic_key": "server-mob-griefing-authorized-body-footprint-air-to-supported-snow-layer-material-renewal-before-unchecked-world-event",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/animal/SnowGolem.java",
+      "entry_sha256": "60e6179fc379d670d0b87e4f74828cddd3f56e7b30740515876c27d3555ca52f",
+      "lines": [
+        1,
+        210
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "60e6179fc379d670d0b87e4f74828cddd3f56e7b30740515876c27d3555ca52f",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.animal;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.BiomeTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.EntityDimensions;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.Pose;\nimport net.minecraft.world.entity.Shearable;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;\nimport net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;\nimport net.minecraft.world.entity.ai.goal.RangedAttackGoal;\nimport net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.monster.Enemy;\nimport net.minecraft.world.entity.monster.RangedAttackMob;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.Snowball;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.Vec3;\n\npublic class SnowGolem extends AbstractGolem implements Shearable, RangedAttackMob, net.minecraftforge.common.IForgeShearable {\n   private static final EntityDataAccessor<Byte> DATA_PUMPKIN_ID = SynchedEntityData.defineId(SnowGolem.class, EntityDataSerializers.BYTE);\n   private static final byte PUMPKIN_FLAG = 16;\n   private static final float EYE_HEIGHT = 1.7F;\n\n   public SnowGolem(EntityType<? extends SnowGolem> p_29902_, Level p_29903_) {\n      super(p_29902_, p_29903_);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(1, new RangedAttackGoal(this, 1.25D, 20, 10.0F));\n      this.goalSelector.addGoal(2, new WaterAvoidingRandomStrollGoal(this, 1.0D, 1.0000001E-5F));\n      this.goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 6.0F));\n      this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));\n      this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false, (p_29932_) -> {\n         return p_29932_ instanceof Enemy;\n      }));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 4.0D).add(Attributes.MOVEMENT_SPEED, (double)0.2F);\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_PUMPKIN_ID, (byte)16);\n   }\n\n   public void addAdditionalSaveData(CompoundTag p_29923_) {\n      super.addAdditionalSaveData(p_29923_);\n      p_29923_.putBoolean(\"Pumpkin\", this.hasPumpkin());\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_29915_) {\n      super.readAdditionalSaveData(p_29915_);\n      if (p_29915_.contains(\"Pumpkin\")) {\n         this.setPumpkin(p_29915_.getBoolean(\"Pumpkin\"));\n      }\n\n   }\n\n   public boolean isSensitiveToWater() {\n      return true;\n   }\n\n   public void aiStep() {\n      super.aiStep();\n      if (!this.level().isClientSide) {\n         if (this.level().getBiome(this.blockPosition()).is(BiomeTags.SNOW_GOLEM_MELTS)) {\n            this.hurt(this.damageSources().onFire(), 1.0F);\n         }\n\n         if (!net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), this)) {\n            return;\n         }\n\n         BlockState blockstate = Blocks.SNOW.defaultBlockState();\n\n         for(int i = 0; i < 4; ++i) {\n            int j = Mth.floor(this.getX() + (double)((float)(i % 2 * 2 - 1) * 0.25F));\n            int k = Mth.floor(this.getY());\n            int l = Mth.floor(this.getZ() + (double)((float)(i / 2 % 2 * 2 - 1) * 0.25F));\n            BlockPos blockpos = new BlockPos(j, k, l);\n            if (this.level().isEmptyBlock(blockpos) && blockstate.canSurvive(this.level(), blockpos)) {\n               this.level().setBlockAndUpdate(blockpos, blockstate);\n               this.level().gameEvent(GameEvent.BLOCK_PLACE, blockpos, GameEvent.Context.of(this, blockstate));\n            }\n         }\n      }\n\n   }\n\n   public void performRangedAttack(LivingEntity p_29912_, float p_29913_) {\n      Snowball snowball = new Snowball(this.level(), this);\n      double d0 = p_29912_.getEyeY() - (double)1.1F;\n      double d1 = p_29912_.getX() - this.getX();\n      double d2 = d0 - snowball.getY();\n      double d3 = p_29912_.getZ() - this.getZ();\n      double d4 = Math.sqrt(d1 * d1 + d3 * d3) * (double)0.2F;\n      snowball.shoot(d1, d2 + d4, d3, 1.6F, 12.0F);\n      this.playSound(SoundEvents.SNOW_GOLEM_SHOOT, 1.0F, 0.4F / (this.getRandom().nextFloat() * 0.4F + 0.8F));\n      this.level().addFreshEntity(snowball);\n   }\n\n   protected float getStandingEyeHeight(Pose p_29917_, EntityDimensions p_29918_) {\n      return 1.7F;\n   }\n\n   protected InteractionResult mobInteract(Player p_29920_, InteractionHand p_29921_) {\n      ItemStack itemstack = p_29920_.getItemInHand(p_29921_);\n      if (false && itemstack.getItem() == Items.SHEARS && this.readyForShearing()) { //Forge: Moved to onSheared\n         this.shear(SoundSource.PLAYERS);\n         this.gameEvent(GameEvent.SHEAR, p_29920_);\n         if (!this.level().isClientSide) {\n            itemstack.hurtAndBreak(1, p_29920_, (p_29910_) -> {\n               p_29910_.broadcastBreakEvent(p_29921_);\n            });\n         }\n\n         return InteractionResult.sidedSuccess(this.level().isClientSide);\n      } else {\n         return InteractionResult.PASS;\n      }\n   }\n\n   public void shear(SoundSource p_29907_) {\n      this.level().playSound((Player)null, this, SoundEvents.SNOW_GOLEM_SHEAR, p_29907_, 1.0F, 1.0F);\n      if (!this.level().isClientSide()) {\n         this.setPumpkin(false);\n         this.spawnAtLocation(new ItemStack(Items.CARVED_PUMPKIN), 1.7F);\n      }\n\n   }\n\n   public boolean readyForShearing() {\n      return this.isAlive() && this.hasPumpkin();\n   }\n\n   public boolean hasPumpkin() {\n      return (this.entityData.get(DATA_PUMPKIN_ID) & 16) != 0;\n   }\n\n   public void setPumpkin(boolean p_29937_) {\n      byte b0 = this.entityData.get(DATA_PUMPKIN_ID);\n      if (p_29937_) {\n         this.entityData.set(DATA_PUMPKIN_ID, (byte)(b0 | 16));\n      } else {\n         this.entityData.set(DATA_PUMPKIN_ID, (byte)(b0 & -17));\n      }\n\n   }\n\n   @Nullable\n   protected SoundEvent getAmbientSound() {\n      return SoundEvents.SNOW_GOLEM_AMBIENT;\n   }\n\n   @Nullable\n   protected SoundEvent getHurtSound(DamageSource p_29929_) {\n      return SoundEvents.SNOW_GOLEM_HURT;\n   }\n\n   @Nullable\n   protected SoundEvent getDeathSound() {\n      return SoundEvents.SNOW_GOLEM_DEATH;\n   }\n\n   public Vec3 getLeashOffset() {\n      return new Vec3(0.0D, (double)(0.75F * this.getEyeHeight()), (double)(this.getBbWidth() * 0.4F));\n   }\n\n   @Override\n   public boolean isShearable(@org.jetbrains.annotations.NotNull ItemStack item, Level world, BlockPos pos) {\n      return readyForShearing();\n   }\n\n   @org.jetbrains.annotations.NotNull\n   @Override\n   public java.util.List<ItemStack> onSheared(@Nullable Player player, @org.jetbrains.annotations.NotNull ItemStack item, Level world, BlockPos pos, int fortune) {\n      world.playSound(null, this, SoundEvents.SNOW_GOLEM_SHEAR, player == null ? SoundSource.BLOCKS : SoundSource.PLAYERS, 1.0F, 1.0F);\n      this.gameEvent(GameEvent.SHEAR, player);\n      if (!world.isClientSide()) {\n         setPumpkin(false);\n         return java.util.Collections.singletonList(new ItemStack(Items.CARVED_PUMPKIN));\n      }\n      return java.util.Collections.emptyList();\n   }\n}\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/SnowLayerBlock.java",
+      "entry_sha256": "07f702c49eb4fbb3b470dcab60029dc6bd896d507699beef78686ae3520fd3e6",
+      "lines": [
+        1,
+        122
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "07f702c49eb4fbb3b470dcab60029dc6bd896d507699beef78686ae3520fd3e6",
+      "raw_excerpt_utf8": "package net.minecraft.world.level.block;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.item.context.BlockPlaceContext;\nimport net.minecraft.world.level.BlockGetter;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.LightLayer;\nimport net.minecraft.world.level.block.state.BlockBehaviour;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.StateDefinition;\nimport net.minecraft.world.level.block.state.properties.BlockStateProperties;\nimport net.minecraft.world.level.block.state.properties.IntegerProperty;\nimport net.minecraft.world.level.pathfinder.PathComputationType;\nimport net.minecraft.world.phys.shapes.CollisionContext;\nimport net.minecraft.world.phys.shapes.Shapes;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\npublic class SnowLayerBlock extends Block {\n   public static final int MAX_HEIGHT = 8;\n   public static final IntegerProperty LAYERS = BlockStateProperties.LAYERS;\n   protected static final VoxelShape[] SHAPE_BY_LAYER = new VoxelShape[]{Shapes.empty(), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 2.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 4.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 6.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 8.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 10.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 12.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 14.0D, 16.0D), Block.box(0.0D, 0.0D, 0.0D, 16.0D, 16.0D, 16.0D)};\n   public static final int HEIGHT_IMPASSABLE = 5;\n\n   public SnowLayerBlock(BlockBehaviour.Properties p_56585_) {\n      super(p_56585_);\n      this.registerDefaultState(this.stateDefinition.any().setValue(LAYERS, Integer.valueOf(1)));\n   }\n\n   public boolean isPathfindable(BlockState p_56592_, BlockGetter p_56593_, BlockPos p_56594_, PathComputationType p_56595_) {\n      switch (p_56595_) {\n         case LAND:\n            return p_56592_.getValue(LAYERS) < 5;\n         case WATER:\n            return false;\n         case AIR:\n            return false;\n         default:\n            return false;\n      }\n   }\n\n   public VoxelShape getShape(BlockState p_56620_, BlockGetter p_56621_, BlockPos p_56622_, CollisionContext p_56623_) {\n      return SHAPE_BY_LAYER[p_56620_.getValue(LAYERS)];\n   }\n\n   public VoxelShape getCollisionShape(BlockState p_56625_, BlockGetter p_56626_, BlockPos p_56627_, CollisionContext p_56628_) {\n      return SHAPE_BY_LAYER[p_56625_.getValue(LAYERS) - 1];\n   }\n\n   public VoxelShape getBlockSupportShape(BlockState p_56632_, BlockGetter p_56633_, BlockPos p_56634_) {\n      return SHAPE_BY_LAYER[p_56632_.getValue(LAYERS)];\n   }\n\n   public VoxelShape getVisualShape(BlockState p_56597_, BlockGetter p_56598_, BlockPos p_56599_, CollisionContext p_56600_) {\n      return SHAPE_BY_LAYER[p_56597_.getValue(LAYERS)];\n   }\n\n   public boolean useShapeForLightOcclusion(BlockState p_56630_) {\n      return true;\n   }\n\n   public float getShadeBrightness(BlockState p_222453_, BlockGetter p_222454_, BlockPos p_222455_) {\n      return p_222453_.getValue(LAYERS) == 8 ? 0.2F : 1.0F;\n   }\n\n   public boolean canSurvive(BlockState p_56602_, LevelReader p_56603_, BlockPos p_56604_) {\n      BlockState blockstate = p_56603_.getBlockState(p_56604_.below());\n      if (blockstate.is(BlockTags.SNOW_LAYER_CANNOT_SURVIVE_ON)) {\n         return false;\n      } else if (blockstate.is(BlockTags.SNOW_LAYER_CAN_SURVIVE_ON)) {\n         return true;\n      } else {\n         return Block.isFaceFull(blockstate.getCollisionShape(p_56603_, p_56604_.below()), Direction.UP) || blockstate.is(this) && blockstate.getValue(LAYERS) == 8;\n      }\n   }\n\n   public BlockState updateShape(BlockState p_56606_, Direction p_56607_, BlockState p_56608_, LevelAccessor p_56609_, BlockPos p_56610_, BlockPos p_56611_) {\n      return !p_56606_.canSurvive(p_56609_, p_56610_) ? Blocks.AIR.defaultBlockState() : super.updateShape(p_56606_, p_56607_, p_56608_, p_56609_, p_56610_, p_56611_);\n   }\n\n   public void randomTick(BlockState p_222448_, ServerLevel p_222449_, BlockPos p_222450_, RandomSource p_222451_) {\n      if (p_222449_.getBrightness(LightLayer.BLOCK, p_222450_) > 11) {\n         dropResources(p_222448_, p_222449_, p_222450_);\n         p_222449_.removeBlock(p_222450_, false);\n      }\n\n   }\n\n   public boolean canBeReplaced(BlockState p_56589_, BlockPlaceContext p_56590_) {\n      int i = p_56589_.getValue(LAYERS);\n      if (p_56590_.getItemInHand().is(this.asItem()) && i < 8) {\n         if (p_56590_.replacingClickedOnBlock()) {\n            return p_56590_.getClickedFace() == Direction.UP;\n         } else {\n            return true;\n         }\n      } else {\n         return i == 1;\n      }\n   }\n\n   @Nullable\n   public BlockState getStateForPlacement(BlockPlaceContext p_56587_) {\n      BlockState blockstate = p_56587_.getLevel().getBlockState(p_56587_.getClickedPos());\n      if (blockstate.is(this)) {\n         int i = blockstate.getValue(LAYERS);\n         return blockstate.setValue(LAYERS, Integer.valueOf(Math.min(8, i + 1)));\n      } else {\n         return super.getStateForPlacement(p_56587_);\n      }\n   }\n\n   protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> p_56613_) {\n      p_56613_.add(LAYERS);\n   }\n}",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/Level.java",
+      "entry_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+      "lines": [
+        195,
+        278
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "313085ce5ff5dcb024b1569f0391fc2805f30c1222d5e8fa0adcc7740446c6f7",
+      "raw_excerpt_utf8": "   public boolean setBlock(BlockPos p_46601_, BlockState p_46602_, int p_46603_) {\n      return this.setBlock(p_46601_, p_46602_, p_46603_, 512);\n   }\n\n   public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {\n      if (this.isOutsideBuildHeight(p_46605_)) {\n         return false;\n      } else if (!this.isClientSide && this.isDebug()) {\n         return false;\n      } else {\n         LevelChunk levelchunk = this.getChunkAt(p_46605_);\n         Block block = p_46606_.getBlock();\n\n         p_46605_ = p_46605_.immutable(); // Forge - prevent mutable BlockPos leaks\n         net.minecraftforge.common.util.BlockSnapshot blockSnapshot = null;\n         if (this.captureBlockSnapshots && !this.isClientSide) {\n             blockSnapshot = net.minecraftforge.common.util.BlockSnapshot.create(this.dimension, this, p_46605_, p_46607_);\n             this.capturedBlockSnapshots.add(blockSnapshot);\n         }\n\n         BlockState old = getBlockState(p_46605_);\n         int oldLight = old.getLightEmission(this, p_46605_);\n         int oldOpacity = old.getLightBlock(this, p_46605_);\n\n         BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);\n         if (blockstate == null) {\n            if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);\n            return false;\n         } else {\n            BlockState blockstate1 = this.getBlockState(p_46605_);\n\n            if (blockSnapshot == null) { // Don't notify clients or update physics while capturing blockstates\n               this.markAndNotifyBlock(p_46605_, levelchunk, blockstate, p_46606_, p_46607_, p_46608_);\n            }\n\n            return true;\n         }\n      }\n   }\n\n   // Split off from original setBlockState(BlockPos, BlockState, int, int) method in order to directly send client and physic updates\n   public void markAndNotifyBlock(BlockPos p_46605_, @Nullable LevelChunk levelchunk, BlockState blockstate, BlockState p_46606_, int p_46607_, int p_46608_) {\n      Block block = p_46606_.getBlock();\n      BlockState blockstate1 = getBlockState(p_46605_);\n      {\n         {\n            if (blockstate1 == p_46606_) {\n               if (blockstate != blockstate1) {\n                  this.setBlocksDirty(p_46605_, blockstate, blockstate1);\n               }\n\n               if ((p_46607_ & 2) != 0 && (!this.isClientSide || (p_46607_ & 4) == 0) && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(FullChunkStatus.BLOCK_TICKING))) {\n                  this.sendBlockUpdated(p_46605_, blockstate, p_46606_, p_46607_);\n               }\n\n               if ((p_46607_ & 1) != 0) {\n                  this.blockUpdated(p_46605_, blockstate.getBlock());\n                  if (!this.isClientSide && p_46606_.hasAnalogOutputSignal()) {\n                     this.updateNeighbourForOutputSignal(p_46605_, block);\n                  }\n               }\n\n               if ((p_46607_ & 16) == 0 && p_46608_ > 0) {\n                  int i = p_46607_ & -34;\n                  blockstate.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n                  p_46606_.updateNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n                  p_46606_.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);\n               }\n\n               this.onBlockStateChange(p_46605_, blockstate, blockstate1);\n               p_46606_.onBlockStateChange(this, p_46605_, blockstate);\n            }\n         }\n      }\n   }\n\n   public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {\n   }\n\n   public boolean removeBlock(BlockPos p_46623_, boolean p_46624_) {\n      FluidState fluidstate = this.getFluidState(p_46623_);\n      return this.setBlock(p_46623_, fluidstate.createLegacyBlock(), 3 | (p_46624_ ? 64 : 0));\n   }\n\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/Level.java",
+      "entry_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+      "lines": [
+        306,
+        308
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6ef91c84586d443312dadfab4e774d520d0dbdf42f46917aa4ea14a5d3918ca1",
+      "raw_excerpt_utf8": "   public boolean setBlockAndUpdate(BlockPos p_46598_, BlockState p_46599_) {\n      return this.setBlock(p_46598_, p_46599_, 3);\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/LevelReader.java",
+      "entry_sha256": "f4ad0bd4c7734ba3cad9d8cc0a5e8a1bb646c3c0cc6eb1abf0309e3ab48ff9ee",
+      "lines": [
+        84,
+        86
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c8ec585b57ce1e837109f26a8becf03087ef43bbd48cbc4c26fbf10eb6013eae",
+      "raw_excerpt_utf8": "   default boolean isEmptyBlock(BlockPos p_46860_) {\n      return this.getBlockState(p_46860_).isAir();\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Blocks.java",
+      "entry_sha256": "f56e75c83075cb1eff308d9f0326766919e03c461c80e2e8b5b3ab4a8949e9a6",
+      "lines": [
+        306,
+        308
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "4588e14ebad680dda0e8fcf2429099e95a08c7acc21d086d15d9a5fc69232bb4",
+      "raw_excerpt_utf8": "   public static final Block SNOW = register(\"snow\", new SnowLayerBlock(BlockBehaviour.Properties.of().mapColor(MapColor.SNOW).replaceable().forceSolidOff().randomTicks().strength(0.1F).requiresCorrectToolForDrops().sound(SoundType.SNOW).isViewBlocking((p_187417_, p_187418_, p_187419_) -> {\n      return p_187417_.getValue(SnowLayerBlock.LAYERS) >= 8;\n   }).pushReaction(PushReaction.DESTROY)));\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/tags/BlockTags.java",
+      "entry_sha256": "e6a28c0e361ed0fac2fe66b5561ba4f87a27ed8eedf0bdd850ec306c2e7b420c",
+      "lines": [
+        168,
+        169
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8edb4f688fb2abce3df0ee4b8325dfcea347c98c633b6356cdd2dbf2fb4b4188",
+      "raw_excerpt_utf8": "   public static final TagKey<Block> SNOW_LAYER_CANNOT_SURVIVE_ON = create(\"snow_layer_cannot_survive_on\");\n   public static final TagKey<Block> SNOW_LAYER_CAN_SURVIVE_ON = create(\"snow_layer_can_survive_on\");\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/tags/BiomeTags.java",
+      "entry_sha256": "bb6e530a7c5200d4b377068da2b1a7979c295f0aca1f4f26150909c8a22411d8",
+      "lines": [
+        63,
+        63
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a0d237b567b29099418718c5ca37c5ebf177bf3b0c593264d57d4d7d0d073916",
+      "raw_excerpt_utf8": "   public static final TagKey<Biome> SNOW_GOLEM_MELTS = create(\"snow_golem_melts\");\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "entry_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "lines": [
+        251,
+        292
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e87c2adef270e91c37a57c999780aa51b1102ea8ebe1cf7e7d853ef5fd1cb0d9",
+      "raw_excerpt_utf8": "   public static List<ItemStack> getDrops(BlockState p_49870_, ServerLevel p_49871_, BlockPos p_49872_, @Nullable BlockEntity p_49873_) {\n      LootParams.Builder lootparams$builder = (new LootParams.Builder(p_49871_)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(p_49872_)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withOptionalParameter(LootContextParams.BLOCK_ENTITY, p_49873_);\n      return p_49870_.getDrops(lootparams$builder);\n   }\n\n   public static List<ItemStack> getDrops(BlockState p_49875_, ServerLevel p_49876_, BlockPos p_49877_, @Nullable BlockEntity p_49878_, @Nullable Entity p_49879_, ItemStack p_49880_) {\n      LootParams.Builder lootparams$builder = (new LootParams.Builder(p_49876_)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(p_49877_)).withParameter(LootContextParams.TOOL, p_49880_).withOptionalParameter(LootContextParams.THIS_ENTITY, p_49879_).withOptionalParameter(LootContextParams.BLOCK_ENTITY, p_49878_);\n      return p_49875_.getDrops(lootparams$builder);\n   }\n\n   public static void dropResources(BlockState p_49951_, Level p_49952_, BlockPos p_49953_) {\n      if (p_49952_ instanceof ServerLevel) {\n         getDrops(p_49951_, (ServerLevel)p_49952_, p_49953_, (BlockEntity)null).forEach((p_152406_) -> {\n            popResource(p_49952_, p_49953_, p_152406_);\n         });\n         p_49951_.spawnAfterBreak((ServerLevel)p_49952_, p_49953_, ItemStack.EMPTY, true);\n      }\n\n   }\n\n   public static void dropResources(BlockState p_49893_, LevelAccessor p_49894_, BlockPos p_49895_, @Nullable BlockEntity p_49896_) {\n      if (p_49894_ instanceof ServerLevel) {\n         getDrops(p_49893_, (ServerLevel)p_49894_, p_49895_, p_49896_).forEach((p_49859_) -> {\n            popResource((ServerLevel)p_49894_, p_49895_, p_49859_);\n         });\n         p_49893_.spawnAfterBreak((ServerLevel)p_49894_, p_49895_, ItemStack.EMPTY, true);\n      }\n\n   }\n\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_) {\n      dropResources(p_49882_, p_49883_, p_49884_, p_49885_, p_49886_, p_49887_, true);\n   }\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_, boolean dropXp) {\n      if (p_49883_ instanceof ServerLevel) {\n         getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach((p_49944_) -> {\n            popResource(p_49883_, p_49884_, p_49944_);\n         });\n         p_49882_.spawnAfterBreak((ServerLevel)p_49883_, p_49884_, p_49887_, dropXp);\n      }\n\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "entry_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "lines": [
+        294,
+        302
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "37c128282ee92eaef8839262941ea53c03147836edb843495c0ea80907258532",
+      "raw_excerpt_utf8": "   public static void popResource(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {\n      double d0 = (double)EntityType.ITEM.getHeight() / 2.0D;\n      double d1 = (double)p_49842_.getX() + 0.5D + Mth.nextDouble(p_49841_.random, -0.25D, 0.25D);\n      double d2 = (double)p_49842_.getY() + 0.5D + Mth.nextDouble(p_49841_.random, -0.25D, 0.25D) - d0;\n      double d3 = (double)p_49842_.getZ() + 0.5D + Mth.nextDouble(p_49841_.random, -0.25D, 0.25D);\n      popResource(p_49841_, () -> {\n         return new ItemEntity(p_49841_, d1, d2, d3, p_49843_);\n      }, p_49843_);\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "entry_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "lines": [
+        321,
+        327
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "7838616b622453a2949e0ce430bd2bbcb308ee69aa8d54ce1deee4a22e0a78ed",
+      "raw_excerpt_utf8": "   private static void popResource(Level p_152441_, Supplier<ItemEntity> p_152442_, ItemStack p_152443_) {\n      if (!p_152441_.isClientSide && !p_152443_.isEmpty() && p_152441_.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && !p_152441_.restoringBlockSnapshots) {\n         ItemEntity itementity = p_152442_.get();\n         itementity.setDefaultPickUpDelay();\n         p_152441_.addFreshEntity(itementity);\n      }\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "entry_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "lines": [
+        352,
+        357
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "651d9aec445a0be444fab36ddc9362dccc1774e68a568259ba237fbe59ad369c",
+      "raw_excerpt_utf8": "   public void playerDestroy(Level p_49827_, Player p_49828_, BlockPos p_49829_, BlockState p_49830_, @Nullable BlockEntity p_49831_, ItemStack p_49832_) {\n      p_49828_.awardStat(Stats.BLOCK_MINED.get(this));\n      p_49828_.causeFoodExhaustion(0.005F);\n      //Forge: Don't drop xp as part of the resources as it is handled by the patches in ServerPlayerGameMode#destroyBlock\n      dropResources(p_49830_, p_49827_, p_49829_, p_49831_, p_49828_, p_49832_, false);\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        250,
+        260
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "102f870330755fc9bf1e7dded27e90f221d198ed151c80b234ac143d528cb2b8",
+      "raw_excerpt_utf8": "   public List<ItemStack> getDrops(BlockState p_287732_, LootParams.Builder p_287596_) {\n      ResourceLocation resourcelocation = this.getLootTable();\n      if (resourcelocation == BuiltInLootTables.EMPTY) {\n         return Collections.emptyList();\n      } else {\n         LootParams lootparams = p_287596_.withParameter(LootContextParams.BLOCK_STATE, p_287732_).create(LootContextParamSets.BLOCK);\n         ServerLevel serverlevel = lootparams.getLevel();\n         LootTable loottable = serverlevel.getServer().getLootData().getLootTable(resourcelocation);\n         return loottable.getRandomItems(lootparams);\n      }\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        773,
+        775
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "6dfccadba78c8e19fdf7087d5aff162d8451268c34de87dd03568c70f8b52d9e",
+      "raw_excerpt_utf8": "      public List<ItemStack> getDrops(LootParams.Builder p_287688_) {\n         return this.getBlock().getDrops(this.asState(), p_287688_);\n      }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/predicates/LootItemEntityPropertyCondition.java",
+      "entry_sha256": "7153fc762226af37a840796e560aea5c404af813ec4a422992785afe3b65de84",
+      "lines": [
+        1,
+        66
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "7153fc762226af37a840796e560aea5c404af813ec4a422992785afe3b65de84",
+      "raw_excerpt_utf8": "package net.minecraft.world.level.storage.loot.predicates;\n\nimport com.google.common.collect.ImmutableSet;\nimport com.google.gson.JsonDeserializationContext;\nimport com.google.gson.JsonObject;\nimport com.google.gson.JsonSerializationContext;\nimport java.util.Set;\nimport net.minecraft.advancements.critereon.EntityPredicate;\nimport net.minecraft.util.GsonHelper;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.level.storage.loot.LootContext;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParam;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.Vec3;\n\npublic class LootItemEntityPropertyCondition implements LootItemCondition {\n   final EntityPredicate predicate;\n   final LootContext.EntityTarget entityTarget;\n\n   LootItemEntityPropertyCondition(EntityPredicate p_81849_, LootContext.EntityTarget p_81850_) {\n      this.predicate = p_81849_;\n      this.entityTarget = p_81850_;\n   }\n\n   public LootItemConditionType getType() {\n      return LootItemConditions.ENTITY_PROPERTIES;\n   }\n\n   public Set<LootContextParam<?>> getReferencedContextParams() {\n      return ImmutableSet.of(LootContextParams.ORIGIN, this.entityTarget.getParam());\n   }\n\n   public boolean test(LootContext p_81871_) {\n      Entity entity = p_81871_.getParamOrNull(this.entityTarget.getParam());\n      Vec3 vec3 = p_81871_.getParamOrNull(LootContextParams.ORIGIN);\n      return this.predicate.matches(p_81871_.getLevel(), vec3, entity);\n   }\n\n   public static LootItemCondition.Builder entityPresent(LootContext.EntityTarget p_81863_) {\n      return hasProperties(p_81863_, EntityPredicate.Builder.entity());\n   }\n\n   public static LootItemCondition.Builder hasProperties(LootContext.EntityTarget p_81865_, EntityPredicate.Builder p_81866_) {\n      return () -> {\n         return new LootItemEntityPropertyCondition(p_81866_.build(), p_81865_);\n      };\n   }\n\n   public static LootItemCondition.Builder hasProperties(LootContext.EntityTarget p_81868_, EntityPredicate p_81869_) {\n      return () -> {\n         return new LootItemEntityPropertyCondition(p_81869_, p_81868_);\n      };\n   }\n\n   public static class Serializer implements net.minecraft.world.level.storage.loot.Serializer<LootItemEntityPropertyCondition> {\n      public void serialize(JsonObject p_81884_, LootItemEntityPropertyCondition p_81885_, JsonSerializationContext p_81886_) {\n         p_81884_.add(\"predicate\", p_81885_.predicate.serializeToJson());\n         p_81884_.add(\"entity\", p_81886_.serialize(p_81885_.entityTarget));\n      }\n\n      public LootItemEntityPropertyCondition deserialize(JsonObject p_81892_, JsonDeserializationContext p_81893_) {\n         EntityPredicate entitypredicate = EntityPredicate.fromJson(p_81892_.get(\"predicate\"));\n         return new LootItemEntityPropertyCondition(entitypredicate, GsonHelper.getAsObject(p_81892_, \"entity\", p_81893_, LootContext.EntityTarget.class));\n      }\n   }\n}",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/advancements/critereon/EntityPredicate.java",
+      "entry_sha256": "430aa29cb6912c5a876e0ee069985746ca9f8fa920388f337028e6434b16ec8b",
+      "lines": [
+        118,
+        122
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "4f2214c5790812081ae3d85492fb60486bfe3f2c3dfdade0ab05641d7f404e36",
+      "raw_excerpt_utf8": "   public boolean matches(ServerLevel p_36608_, @Nullable Vec3 p_36609_, @Nullable Entity p_36610_) {\n      if (this == ANY) {\n         return true;\n      } else if (p_36610_ == null) {\n         return false;\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/advancements/critereon/EntityPredicate.java",
+      "entry_sha256": "430aa29cb6912c5a876e0ee069985746ca9f8fa920388f337028e6434b16ec8b",
+      "lines": [
+        176,
+        196
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "9002b000c7536d07607ce7393c524403708158507bd383eb8d1ed55d3efa0883",
+      "raw_excerpt_utf8": "   public static EntityPredicate fromJson(@Nullable JsonElement p_36615_) {\n      if (p_36615_ != null && !p_36615_.isJsonNull()) {\n         JsonObject jsonobject = GsonHelper.convertToJsonObject(p_36615_, \"entity\");\n         EntityTypePredicate entitytypepredicate = EntityTypePredicate.fromJson(jsonobject.get(\"type\"));\n         DistancePredicate distancepredicate = DistancePredicate.fromJson(jsonobject.get(\"distance\"));\n         LocationPredicate locationpredicate = LocationPredicate.fromJson(jsonobject.get(\"location\"));\n         LocationPredicate locationpredicate1 = LocationPredicate.fromJson(jsonobject.get(\"stepping_on\"));\n         MobEffectsPredicate mobeffectspredicate = MobEffectsPredicate.fromJson(jsonobject.get(\"effects\"));\n         NbtPredicate nbtpredicate = NbtPredicate.fromJson(jsonobject.get(\"nbt\"));\n         EntityFlagsPredicate entityflagspredicate = EntityFlagsPredicate.fromJson(jsonobject.get(\"flags\"));\n         EntityEquipmentPredicate entityequipmentpredicate = EntityEquipmentPredicate.fromJson(jsonobject.get(\"equipment\"));\n         EntitySubPredicate entitysubpredicate = EntitySubPredicate.fromJson(jsonobject.get(\"type_specific\"));\n         EntityPredicate entitypredicate = fromJson(jsonobject.get(\"vehicle\"));\n         EntityPredicate entitypredicate1 = fromJson(jsonobject.get(\"passenger\"));\n         EntityPredicate entitypredicate2 = fromJson(jsonobject.get(\"targeted_entity\"));\n         String s = GsonHelper.getAsString(jsonobject, \"team\", (String)null);\n         return (new EntityPredicate.Builder()).entityType(entitytypepredicate).distance(distancepredicate).located(locationpredicate).steppingOn(locationpredicate1).effects(mobeffectspredicate).nbt(nbtpredicate).flags(entityflagspredicate).equipment(entityequipmentpredicate).subPredicate(entitysubpredicate).team(s).vehicle(entitypredicate).passenger(entitypredicate1).targetedEntity(entitypredicate2).build();\n      } else {\n         return ANY;\n      }\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/advancements/critereon/EntityPredicate.java",
+      "entry_sha256": "430aa29cb6912c5a876e0ee069985746ca9f8fa920388f337028e6434b16ec8b",
+      "lines": [
+        320,
+        322
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b948e7e66815ffa7e96467fbaf252f6d154605576f9571e6ee6efdf6c6a4ebb8",
+      "raw_excerpt_utf8": "      public EntityPredicate build() {\n         return new EntityPredicate(this.entityType, this.distanceToPlayer, this.location, this.steppingOnLocation, this.effects, this.nbt, this.flags, this.equipment, this.subPredicate, this.vehicle, this.passenger, this.targetedEntity, this.team);\n      }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/server/level/ServerPlayerGameMode.java",
+      "entry_sha256": "adb410297a0c2b7bb395ba1e639ad79d9418d491117916b6b43442a9a59928f4",
+      "lines": [
+        235,
+        282
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3d45726e7f7af66f3ca3e572c66ee67b72640687deeb171728de3a7fd06e1696",
+      "raw_excerpt_utf8": "   public boolean destroyBlock(BlockPos p_9281_) {\n      BlockState blockstate = this.level.getBlockState(p_9281_);\n      int exp = net.minecraftforge.common.ForgeHooks.onBlockBreakEvent(level, gameModeForPlayer, player, p_9281_);\n      if (exp == -1) {\n         return false;\n      } else {\n         BlockEntity blockentity = this.level.getBlockEntity(p_9281_);\n         Block block = blockstate.getBlock();\n         if (block instanceof GameMasterBlock && !this.player.canUseGameMasterBlocks()) {\n            this.level.sendBlockUpdated(p_9281_, blockstate, blockstate, 3);\n            return false;\n         } else if (player.getMainHandItem().onBlockStartBreak(p_9281_, player)) {\n            return false;\n         } else if (this.player.blockActionRestricted(this.level, p_9281_, this.gameModeForPlayer)) {\n            return false;\n         } else {\n            if (this.isCreative()) {\n               removeBlock(p_9281_, false);\n               return true;\n            } else {\n               ItemStack itemstack = this.player.getMainHandItem();\n               ItemStack itemstack1 = itemstack.copy();\n               boolean flag1 = blockstate.canHarvestBlock(this.level, p_9281_, this.player); // previously player.hasCorrectToolForDrops(blockstate)\n               itemstack.mineBlock(this.level, blockstate, p_9281_, this.player);\n               if (itemstack.isEmpty() && !itemstack1.isEmpty())\n                  net.minecraftforge.event.ForgeEventFactory.onPlayerDestroyItem(this.player, itemstack1, InteractionHand.MAIN_HAND);\n               boolean flag = removeBlock(p_9281_, flag1);\n\n               if (flag && flag1) {\n                  block.playerDestroy(this.level, this.player, p_9281_, blockstate, blockentity, itemstack1);\n               }\n\n               if (flag && exp > 0)\n                  blockstate.getBlock().popExperience(level, p_9281_, exp);\n\n               return true;\n            }\n         }\n      }\n   }\n\n   private boolean removeBlock(BlockPos p_180235_1_, boolean canHarvest) {\n      BlockState state = this.level.getBlockState(p_180235_1_);\n      boolean removed = state.onDestroyedByPlayer(this.level, p_180235_1_, this.player, canHarvest, this.level.getFluidState(p_180235_1_));\n      if (removed)\n         state.getBlock().destroy(this.level, p_180235_1_, state);\n      return removed;\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootParams.java",
+      "entry_sha256": "2561c669acfeb226231d9e28ee78f5db23711ad06e5c1b2905a89dbe6fc9c8ae",
+      "lines": [
+        37,
+        54
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "885f7f2e77c4779eeaecb741b64894842f1448fc7d36c4bc1926052f729d4147",
+      "raw_excerpt_utf8": "   public <T> T getParameter(LootContextParam<T> p_287670_) {\n      T t = (T)this.params.get(p_287670_);\n      if (t == null) {\n         throw new NoSuchElementException(p_287670_.getName().toString());\n      } else {\n         return t;\n      }\n   }\n\n   @Nullable\n   public <T> T getOptionalParameter(LootContextParam<T> p_287644_) {\n      return (T)this.params.get(p_287644_);\n   }\n\n   @Nullable\n   public <T> T getParamOrNull(LootContextParam<T> p_287769_) {\n      return (T)this.params.get(p_287769_);\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootContext.java",
+      "entry_sha256": "1520ff376e95916321e6e510d49841e56c0fbbc8dc2271c4c19aa7b6250ed268",
+      "lines": [
+        47,
+        49
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "2273a2a8c4f6aeac91d6489ba2cff92aa72377911a4bc953d9142e903ff631cd",
+      "raw_excerpt_utf8": "   public <T> T getParamOrNull(LootContextParam<T> p_78954_) {\n      return this.params.getParamOrNull(p_78954_);\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootContext.java",
+      "entry_sha256": "1520ff376e95916321e6e510d49841e56c0fbbc8dc2271c4c19aa7b6250ed268",
+      "lines": [
+        161,
+        177
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "b6ecfa64a4d475f813d20c3420811c5ae2b6964ff48b894479b5b2f94dabc879",
+      "raw_excerpt_utf8": "   public static enum EntityTarget {\n      THIS(\"this\", LootContextParams.THIS_ENTITY),\n      KILLER(\"killer\", LootContextParams.KILLER_ENTITY),\n      DIRECT_KILLER(\"direct_killer\", LootContextParams.DIRECT_KILLER_ENTITY),\n      KILLER_PLAYER(\"killer_player\", LootContextParams.LAST_DAMAGE_PLAYER);\n\n      final String name;\n      private final LootContextParam<? extends Entity> param;\n\n      private EntityTarget(String p_79001_, LootContextParam<? extends Entity> p_79002_) {\n         this.name = p_79001_;\n         this.param = p_79002_;\n      }\n\n      public LootContextParam<? extends Entity> getParam() {\n         return this.param;\n      }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootPool.java",
+      "entry_sha256": "d3ec1556b7e8bf4136283ca3f80591312670f0e9481375095f34303b609d2a1b",
+      "lines": [
+        88,
+        98
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ae6918b002743598e7c197f5430e5f13ff4cbc278284a5e68ef30ff497ec7394",
+      "raw_excerpt_utf8": "   public void addRandomItems(Consumer<ItemStack> p_79054_, LootContext p_79055_) {\n      if (this.compositeCondition.test(p_79055_)) {\n         Consumer<ItemStack> consumer = LootItemFunction.decorate(this.compositeFunction, p_79054_, p_79055_);\n         int i = this.rolls.getInt(p_79055_) + Mth.floor(this.bonusRolls.getFloat(p_79055_) * p_79055_.getLuck());\n\n         for(int j = 0; j < i; ++j) {\n            this.addRandomItem(consumer, p_79055_);\n         }\n\n      }\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        402,
+        408
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "12e305d35019ec845f2ea715f233091e1a1a612d058f68cbe537c47263e0518e",
+      "raw_excerpt_utf8": "   public final ResourceLocation getLootTable() {\n      if (this.drops == null) {\n         this.drops = this.lootTableSupplier.get();\n      }\n\n      return this.drops;\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        103,
+        116
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e590b32adca437248e7896f2a49385403a5647d3881df660e6efa83c256c756b",
+      "raw_excerpt_utf8": "      this.requiredFeatures = p_60452_.requiredFeatures;\n      this.properties = p_60452_;\n      final ResourceLocation lootTableCache = p_60452_.drops;\n      if (lootTableCache != null) {\n         this.lootTableSupplier = () -> lootTableCache;\n      } else if (p_60452_.lootTableSupplier != null) {\n         this.lootTableSupplier = p_60452_.lootTableSupplier;\n      } else {\n         this.lootTableSupplier = () -> {\n            ResourceLocation registryName = net.minecraftforge.registries.ForgeRegistries.BLOCKS.getKey((Block) this);\n            return new ResourceLocation(registryName.getNamespace(), \"blocks/\" + registryName.getPath());\n         };\n      }\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/parameters/LootContextParamSets.java",
+      "entry_sha256": "30845ee3e02b0760809691bdf71ddbb3d2fff7fff0eca61c918ea59035e585be",
+      "lines": [
+        51,
+        53
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "05998b1a7692bb42bbac17fc17e9ff48b02b0b5ea006fb1c3a6347943631a229",
+      "raw_excerpt_utf8": "   public static final LootContextParamSet BLOCK = register(\"block\", (p_81425_) -> {\n      p_81425_.required(LootContextParams.BLOCK_STATE).required(LootContextParams.ORIGIN).required(LootContextParams.TOOL).optional(LootContextParams.THIS_ENTITY).optional(LootContextParams.BLOCK_ENTITY).optional(LootContextParams.EXPLOSION_RADIUS);\n   });\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootPool.java",
+      "entry_sha256": "d3ec1556b7e8bf4136283ca3f80591312670f0e9481375095f34303b609d2a1b",
+      "lines": [
+        42,
+        51
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "34569e0139fec5768d94c5f6f0b1c06aa43f9be1258cfec9ec65f0da5c000e81",
+      "raw_excerpt_utf8": "   LootPool(LootPoolEntryContainer[] p_165128_, LootItemCondition[] p_165129_, LootItemFunction[] p_165130_, NumberProvider p_165131_, NumberProvider p_165132_, @org.jetbrains.annotations.Nullable String name) {\n      this.name = name;\n      this.entries = p_165128_;\n      this.conditions = p_165129_;\n      this.compositeCondition = LootItemConditions.andConditions(p_165129_);\n      this.functions = p_165130_;\n      this.compositeFunction = LootItemFunctions.compose(p_165130_);\n      this.rolls = p_165131_;\n      this.bonusRolls = p_165132_;\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/util/Mth.java",
+      "entry_sha256": "368c87075f7d5fd159ea89426e4f89bb29ecb4a76814f6a4c2eda10eb881bf43",
+      "lines": [
+        58,
+        61
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a6d7a4b1925b4a420d43044d3f7fb176954e5ce3d611076aedb9dc192cdab808",
+      "raw_excerpt_utf8": "   public static int floor(double p_14108_) {\n      int i = (int)p_14108_;\n      return p_14108_ < (double)i ? i - 1 : i;\n   }\n",
+      "supporting_range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/predicates/LootItemConditions.java",
+      "entry_sha256": "9c427d7686f9a8ab77d5a0adcdf9dfdd080fd04987c2a6e5654f78a062a47f1b",
+      "lines": [
+        38,
+        64
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "18242e97e45f6cc95a9ee38f13411b9cbd1dad6252d65707770c6176bf92b447",
+      "raw_excerpt_utf8": "   public static <T> Predicate<T> andConditions(Predicate<T>[] p_81835_) {\n      Predicate predicate;\n      switch (p_81835_.length) {\n         case 0:\n            predicate = (p_81840_) -> {\n               return true;\n            };\n            break;\n         case 1:\n            predicate = p_81835_[0];\n            break;\n         case 2:\n            predicate = p_81835_[0].and(p_81835_[1]);\n            break;\n         default:\n            predicate = (p_81845_) -> {\n               for(Predicate<T> predicate1 : p_81835_) {\n                  if (!predicate1.test((T)p_81845_)) {\n                     return false;\n                  }\n               }\n\n               return true;\n            };\n      }\n\n      return predicate;\n",
+      "supporting_range_credit": 0
+    }
+  ],
+  "actual_read_range_count": 29,
+  "actual_read_entry_count": 18,
+  "actual_full_file_count": 3,
+  "actual_cited_lines": 763,
+  "continuation_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-snow-golem-footprint-material-read-checkpoint-v2-20261104.json",
+    "sha256": "7e3e162d21263b94f4f2c0dbca9d4423608065e2d4bb50e8abd69abf6be68aa5"
+  },
+  "actual_raw_base_resources": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/tags/worldgen/biome/snow_golem_melts.json",
+      "entry_sha256": "0a5f5eea627cfcccc185364c6ed70cc1e89947b1caabc0e7c730a83c2d697174",
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:badlands\",\n    \"minecraft:basalt_deltas\",\n    \"minecraft:crimson_forest\",\n    \"minecraft:desert\",\n    \"minecraft:eroded_badlands\",\n    \"minecraft:nether_wastes\",\n    \"minecraft:savanna\",\n    \"minecraft:savanna_plateau\",\n    \"minecraft:soul_sand_valley\",\n    \"minecraft:warped_forest\",\n    \"minecraft:windswept_savanna\",\n    \"minecraft:wooded_badlands\"\n  ]\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/tags/blocks/snow_layer_can_survive_on.json",
+      "entry_sha256": "c7491ae1bafae440421e90a1387ac87f46f7e003f37315f4acf5ea0d0ee8cd5a",
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:honey_block\",\n    \"minecraft:soul_sand\",\n    \"minecraft:mud\"\n  ]\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/tags/blocks/snow_layer_cannot_survive_on.json",
+      "entry_sha256": "282662c1139488dcc43e3bfe48a36a6c4a759e53cb6a4024454236b8f07384cb",
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:ice\",\n    \"minecraft:packed_ice\",\n    \"minecraft:barrier\"\n  ]\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    },
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/loot_tables/blocks/snow.json",
+      "entry_sha256": "f9ebb71a05c7a63ce376619de4b5e60550d834a926d14557a3407fcdc3b90a34",
+      "raw_utf8": "{\n  \"type\": \"minecraft:block\",\n  \"pools\": [\n    {\n      \"bonus_rolls\": 0.0,\n      \"conditions\": [\n        {\n          \"condition\": \"minecraft:entity_properties\",\n          \"entity\": \"this\",\n          \"predicate\": {}\n        }\n      ],\n      \"entries\": [\n        {\n          \"type\": \"minecraft:alternatives\",\n          \"children\": [\n            {\n              \"type\": \"minecraft:alternatives\",\n              \"children\": [\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"1\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 1.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"2\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 2.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"3\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 3.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"4\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 4.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"5\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 5.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"6\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 6.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"7\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 7.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"8\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 8.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snowball\"\n                }\n              ],\n              \"conditions\": [\n                {\n                  \"condition\": \"minecraft:inverted\",\n                  \"term\": {\n                    \"condition\": \"minecraft:match_tool\",\n                    \"predicate\": {\n                      \"enchantments\": [\n                        {\n                          \"enchantment\": \"minecraft:silk_touch\",\n                          \"levels\": {\n                            \"min\": 1\n                          }\n                        }\n                      ]\n                    }\n                  }\n                }\n              ]\n            },\n            {\n              \"type\": \"minecraft:alternatives\",\n              \"children\": [\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"1\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 1.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"2\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 2.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"3\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 3.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"4\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 4.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"5\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 5.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"6\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 6.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"conditions\": [\n                    {\n                      \"block\": \"minecraft:snow\",\n                      \"condition\": \"minecraft:block_state_property\",\n                      \"properties\": {\n                        \"layers\": \"7\"\n                      }\n                    }\n                  ],\n                  \"functions\": [\n                    {\n                      \"add\": false,\n                      \"count\": 7.0,\n                      \"function\": \"minecraft:set_count\"\n                    }\n                  ],\n                  \"name\": \"minecraft:snow\"\n                },\n                {\n                  \"type\": \"minecraft:item\",\n                  \"name\": \"minecraft:snow_block\"\n                }\n              ]\n            }\n          ]\n        }\n      ],\n      \"rolls\": 1.0\n    }\n  ],\n  \"random_sequence\": \"minecraft:blocks/snow\"\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    }
+  ],
+  "prior_actual_own_native_support_reused_zero": [
+    {
+      "kind": "native_fixed_artifact_range",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        748,
+        758
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8876fa63e8f1606fb6ead4a4bde40bd51d8e3ee5b53aba5ede30e858c615490a",
+      "raw_excerpt_utf8": "    public static boolean getMobGriefingEvent(Level level, @Nullable Entity entity)\n    {\n        if (entity == null)\n            return level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);\n\n        EntityMobGriefingEvent event = new EntityMobGriefingEvent(entity);\n        MinecraftForge.EVENT_BUS.post(event);\n\n        Result result = event.getResult();\n        return result == Result.DEFAULT ? level.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING) : result == Result.ALLOW;\n    }\n",
+      "range_or_helper_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootDataResolver.java",
+      "entry_sha256": "cd7b9e428c1437baacd7ba61777f989f0f966877a45ebb0c6de935c9a02d7af2",
+      "lines": [
+        1,
+        28
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "cd7b9e428c1437baacd7ba61777f989f0f966877a45ebb0c6de935c9a02d7af2",
+      "raw_excerpt_utf8": "package net.minecraft.world.level.storage.loot;\n\nimport java.util.Optional;\nimport javax.annotation.Nullable;\nimport net.minecraft.resources.ResourceLocation;\n\n@FunctionalInterface\npublic interface LootDataResolver {\n   @Nullable\n   <T> T getElement(LootDataId<T> p_279309_);\n\n   @Nullable\n   default <T> T getElement(LootDataType<T> p_279423_, ResourceLocation p_279277_) {\n      return this.getElement(new LootDataId<>(p_279423_, p_279277_));\n   }\n\n   default <T> Optional<T> getElementOptional(LootDataId<T> p_279486_) {\n      return Optional.ofNullable(this.getElement(p_279486_));\n   }\n\n   default <T> Optional<T> getElementOptional(LootDataType<T> p_279350_, ResourceLocation p_279323_) {\n      return this.getElementOptional(new LootDataId<>(p_279350_, p_279323_));\n   }\n\n   default LootTable getLootTable(ResourceLocation p_279456_) {\n      return this.getElementOptional(LootDataType.TABLE, p_279456_).orElse(LootTable.EMPTY);\n   }\n}",
+      "supporting_ranges_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootParams.java",
+      "entry_sha256": "2561c669acfeb226231d9e28ee78f5db23711ad06e5c1b2905a89dbe6fc9c8ae",
+      "lines": [
+        70,
+        137
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "3ac88fd4f46d44a913a23018c3c5e036aeabf395bca9639b5fdca75caca0e050",
+      "raw_excerpt_utf8": "      private final Map<LootContextParam<?>, Object> params = Maps.newIdentityHashMap();\n      private final Map<ResourceLocation, LootParams.DynamicDrop> dynamicDrops = Maps.newHashMap();\n      private float luck;\n\n      public Builder(ServerLevel p_287594_) {\n         this.level = p_287594_;\n      }\n\n      public ServerLevel getLevel() {\n         return this.level;\n      }\n\n      public <T> LootParams.Builder withParameter(LootContextParam<T> p_287706_, T p_287606_) {\n         this.params.put(p_287706_, p_287606_);\n         return this;\n      }\n\n      public <T> LootParams.Builder withOptionalParameter(LootContextParam<T> p_287680_, @Nullable T p_287630_) {\n         if (p_287630_ == null) {\n            this.params.remove(p_287680_);\n         } else {\n            this.params.put(p_287680_, p_287630_);\n         }\n\n         return this;\n      }\n\n      public <T> T getParameter(LootContextParam<T> p_287646_) {\n         T t = (T)this.params.get(p_287646_);\n         if (t == null) {\n            throw new NoSuchElementException(p_287646_.getName().toString());\n         } else {\n            return t;\n         }\n      }\n\n      @Nullable\n      public <T> T getOptionalParameter(LootContextParam<T> p_287759_) {\n         return (T)this.params.get(p_287759_);\n      }\n\n      public LootParams.Builder withDynamicDrop(ResourceLocation p_287734_, LootParams.DynamicDrop p_287724_) {\n         LootParams.DynamicDrop lootparams$dynamicdrop = this.dynamicDrops.put(p_287734_, p_287724_);\n         if (lootparams$dynamicdrop != null) {\n            throw new IllegalStateException(\"Duplicated dynamic drop '\" + this.dynamicDrops + \"'\");\n         } else {\n            return this;\n         }\n      }\n\n      public LootParams.Builder withLuck(float p_287703_) {\n         this.luck = p_287703_;\n         return this;\n      }\n\n      public LootParams create(LootContextParamSet p_287701_) {\n         Set<LootContextParam<?>> set = Sets.difference(this.params.keySet(), p_287701_.getAllowed());\n         if (false && !set.isEmpty()) { // Forge: Allow mods to pass custom loot parameters (not part of the vanilla loot table) to the loot context.\n            throw new IllegalArgumentException(\"Parameters not allowed in this parameter set: \" + set);\n         } else {\n            Set<LootContextParam<?>> set1 = Sets.difference(p_287701_.getRequired(), this.params.keySet());\n            if (!set1.isEmpty()) {\n               throw new IllegalArgumentException(\"Missing required parameters: \" + set1);\n            } else {\n               return new LootParams(this.level, this.params, this.dynamicDrops, this.luck);\n            }\n         }\n      }\n",
+      "supporting_ranges_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootDataManager.java",
+      "entry_sha256": "1e8b007be73a2fd143b9db7813c8f09f040ef9d9732bb369568993a4631224f0",
+      "lines": [
+        31,
+        35
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "f155d3558cb54cae7e4c6b3c8a0343e81f10ceaca0560e292085ed331b1a8e95",
+      "raw_excerpt_utf8": "public class LootDataManager implements PreparableReloadListener, LootDataResolver {\n   private static final Logger LOGGER = LogUtils.getLogger();\n   public static final LootDataId<LootTable> EMPTY_LOOT_TABLE_KEY = new LootDataId<>(LootDataType.TABLE, BuiltInLootTables.EMPTY);\n   private Map<LootDataId<?>, ?> elements = Map.of();\n   private Multimap<LootDataType<?>, ResourceLocation> typeKeys = ImmutableMultimap.of();\n",
+      "supporting_ranges_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootDataManager.java",
+      "entry_sha256": "1e8b007be73a2fd143b9db7813c8f09f040ef9d9732bb369568993a4631224f0",
+      "lines": [
+        100,
+        102
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "c6e3b79e578360bfca41c08872adf2cf6754d965ab67a5e8233c50f16d55e599",
+      "raw_excerpt_utf8": "   public <T> T getElement(LootDataId<T> p_279467_) {\n      return (T)this.elements.get(p_279467_);\n   }\n",
+      "supporting_ranges_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootTable.java",
+      "entry_sha256": "346886dc2b1d5b00584ccc488df80d9b95db625ad1c048826a535ab290aeb9c1",
+      "lines": [
+        37,
+        46
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8ec8aedf540d8dffc3acbbe09d2761fde0eecb4a70d96479642788a598b3101a",
+      "raw_excerpt_utf8": "   public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, (ResourceLocation)null, new LootPool[0], new LootItemFunction[0]);\n   public static final LootContextParamSet DEFAULT_PARAM_SET = LootContextParamSets.ALL_PARAMS;\n   final LootContextParamSet paramSet;\n   @Nullable\n   final ResourceLocation randomSequence;\n   private final List<LootPool> pools;\n   final LootItemFunction[] functions;\n   private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;\n\n   LootTable(LootContextParamSet p_287716_, @Nullable ResourceLocation p_287737_, LootPool[] p_287700_, LootItemFunction[] p_287663_) {\n",
+      "supporting_ranges_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootTable.java",
+      "entry_sha256": "346886dc2b1d5b00584ccc488df80d9b95db625ad1c048826a535ab290aeb9c1",
+      "lines": [
+        48,
+        51
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "7199abdcaabf258ae435e6933ee48ab8f9b0e8596a9013b764dc82115f0665a6",
+      "raw_excerpt_utf8": "      this.randomSequence = p_287737_;\n      this.pools = Lists.newArrayList(p_287700_);\n      this.functions = p_287663_;\n      this.compositeFunction = LootItemFunctions.compose(p_287663_);\n",
+      "supporting_ranges_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/storage/loot/LootTable.java",
+      "entry_sha256": "346886dc2b1d5b00584ccc488df80d9b95db625ad1c048826a535ab290aeb9c1",
+      "lines": [
+        54,
+        120
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e3e5138d415eb39b6c95f03c357eb8a0d1963ca0755fd23156e4001cfc038ef3",
+      "raw_excerpt_utf8": "   public static Consumer<ItemStack> createStackSplitter(ServerLevel p_287765_, Consumer<ItemStack> p_251308_) {\n      return (p_287570_) -> {\n         if (p_287570_.isItemEnabled(p_287765_.enabledFeatures())) {\n            if (p_287570_.getCount() < p_287570_.getMaxStackSize()) {\n               p_251308_.accept(p_287570_);\n            } else {\n               int i = p_287570_.getCount();\n\n               while(i > 0) {\n                  ItemStack itemstack = p_287570_.copyWithCount(Math.min(p_287570_.getMaxStackSize(), i));\n                  i -= itemstack.getCount();\n                  p_251308_.accept(itemstack);\n               }\n            }\n\n         }\n      };\n   }\n\n   @Deprecated // Use a non-'Raw' version of 'getRandomItems', so that the Forge Global Loot Modifiers will be applied\n   public void getRandomItemsRaw(LootParams p_287669_, Consumer<ItemStack> p_287781_) {\n      this.getRandomItemsRaw((new LootContext.Builder(p_287669_)).create(this.randomSequence), p_287781_);\n   }\n\n   @Deprecated // Use a non-'Raw' version of 'getRandomItems', so that the Forge Global Loot Modifiers will be applied\n   public void getRandomItemsRaw(LootContext p_79132_, Consumer<ItemStack> p_79133_) {\n      LootContext.VisitedEntry<?> visitedentry = LootContext.createVisitedEntry(this);\n      if (p_79132_.pushVisitedElement(visitedentry)) {\n         Consumer<ItemStack> consumer = LootItemFunction.decorate(this.compositeFunction, p_79133_, p_79132_);\n\n         for(LootPool lootpool : this.pools) {\n            lootpool.addRandomItems(consumer, p_79132_);\n         }\n\n         p_79132_.popVisitedElement(visitedentry);\n      } else {\n         LOGGER.warn(\"Detected infinite loop in loot tables\");\n      }\n\n   }\n\n   public void getRandomItems(LootParams p_287748_, long p_287729_, Consumer<ItemStack> p_287583_) {\n      this.getRandomItems((new LootContext.Builder(p_287748_)).withOptionalRandomSeed(p_287729_).create(this.randomSequence)).forEach(p_287583_);\n   }\n\n   public void getRandomItems(LootParams p_287704_, Consumer<ItemStack> p_287617_) {\n      this.getRandomItems(p_287704_).forEach(p_287617_);\n   }\n\n   public void getRandomItems(LootContext p_79149_, Consumer<ItemStack> p_79150_) {\n      this.getRandomItems(p_79149_).forEach(p_79150_);\n   }\n\n   public ObjectArrayList<ItemStack> getRandomItems(LootParams p_287574_, long p_287773_) {\n      return this.getRandomItems((new LootContext.Builder(p_287574_)).withOptionalRandomSeed(p_287773_).create(this.randomSequence));\n   }\n\n   public ObjectArrayList<ItemStack> getRandomItems(LootParams p_287616_) {\n      return this.getRandomItems((new LootContext.Builder(p_287616_)).create(this.randomSequence));\n   }\n\n   private ObjectArrayList<ItemStack> getRandomItems(LootContext p_230923_) {\n      ObjectArrayList<ItemStack> objectarraylist = new ObjectArrayList<>();\n      this.getRandomItemsRaw(p_230923_, createStackSplitter(p_230923_.getLevel(), objectarraylist::add));\n      objectarraylist = net.minecraftforge.common.ForgeHooks.modifyLoot(this.getLootTableId(), objectarraylist, p_230923_);\n      return objectarraylist;\n   }\n",
+      "supporting_ranges_credit": 0
+    }
+  ],
+  "prior_actual_own_source_bindings": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-evoker-livestock-phenotype-service-whole-policy-proposal-20261104.json",
+      "sha256": "dfd1ea7bec8802b8a6b76fe1c89e20ec023f25e6575290fa9910c0814264c470",
+      "old_source_chain_reread": false,
+      "credit": 0
+    },
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-hero-gift-whole-policy-proposal-20261104.json",
+      "sha256": "69166c5917751248a11729809399650fe996c807e9d637698b52282b229ae091",
+      "old_source_chain_reread": false,
+      "credit": 0
+    }
+  ],
+  "prior_complete_semantic_decisions": [
+    {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0022.json",
+      "sha256": "ea1a03533b174230569257a5b15e3f7b7ca7f576e9ce931432a8cdc8e185cca3",
+      "actual_complete_semantic_decision_fields": {
+        "id": "EA-0022",
+        "semantic_key": "player-filled-poi-facility-and-flower-visits-share-persistent-crop-service-counter-with-uncommitted-growth",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION_GENERAL_WITH_EXPLICIT_LIMITS",
+        "accepted_credit": 1,
+        "observed_chain": [
+          "Actual registries and mod constructor wire CREATURE Hummingbird factory/attributes and feeder Block+BlockItem+POI. POI declares every possible feeder state, not only contents3. Forge GameData callback maps matching states; PoiManager findAll Occupancy.ANY radius64 filters actual 3D squared BlockPos distance. No POI ticket reservation/acquisition in bird code; declared ticket32/validRange6 is not a32-bird cap or guaranteed allocation.",
+          "Block player use implements one two-input facility state machine: empty0 plus tagged sweetener→2 or exact water potion item+NBT/caps→1; completing other ingredient→3. No automatic refill/random tick consumption is implemented by this complete class despite randomTicks property. Native PotionUtils creates Potion tag; exact comparison includes caps and tags and ignores count. Tags and craft/deployment not assumed.",
+          "Payment precedes unchecked setBlockAndUpdate: noncreative sweetener/water hand stack shrinks1, water path first requests glass-bottle inventory add and ignores boolean. It returns SUCCESS even if block update returnsfalse. No explicit side guard in shown use; no player interaction/cross-mod authority or double-charge runtime reproduction. Native addItem forwards inventory boolean, no guaranteed bottle return or drop fallback from this caller.",
+          "Important fixed-source resource naming boundary: AMTagRegistry declares hummingnbird_feeder_sweeteners with extra n, whereas exhaustive nontruncated pinned tree has only hummingbird_feeder_sweeteners.json and no matching misspelled path. Neither raw resource is locally read. This proves source-key/tree-path mismatch, NOT merged loaded-tag emptiness or actual sugar membership; external datapacks/mods may define matching tag. Whole policy is parameterized, no normal material availability or complete survival loop asserted.",
+          "Feeder AI and pollination are both registered priority4 with MOVE/JUMP, feeder inserted first. Native LinkedHashSet goal ordering, flags and strict-lower-priority replacement mean same-priority goals cannot replace a currently running peer; earlier higher-priority breed/tempt/follow may suppress both. EffectiveAI gate is server and !noAI; own tick cooldown updates are outside that gate. Feeder goal lacks baby guard while pollinate canUse explicitly excludes babies.",
+          "Feeder canUse first rejects sipCooldown>0. At runCooldown==0 it reuses saved feeder position if current block contents3 with no64-distance/LOS/path restriction; otherwise searches current64 POIs then chooses nearest valid by position-to-integer coordinate distance. No canBlockBeSeen/full-body/floor/path-success eligibility gate. Finding a valid source is not reachability or successful sip.",
+          "Exact failed-retry logic: when runCooldown>0, canUse decrements it, then unconditionally assigns400+nextInt600 before false return. Any failed zero search also assigns positive; completed sip does too. With only the shown methods and same goal object, later eligible canUse evaluations never reach the zero/search else again after this positive assignment. sipCooldown>0 pauses even that evaluation. This is bounded source-order inference, not live starvation/reload exploit; no claim all instances never sip since first canUse can succeed and other runtime mutations/reconstruction are outside this object contract.",
+          "Continuation requires localFeeder nonnull, current valid contents3 and sipCooldown==0, but no distance, baby or path/time budget. Movement is direct FlightMoveController wanted position; above and airborne it aims just above feeder, otherwise random nearby rise. Controller applies velocity, unused canReach helper is never called from tick, so path safety is not guaranteed.",
+          "Within Euclidean distance<2.5 and birdY>feederY it increments idleAtFlowerTime, caches feederPos and broadcasts event68. Counter does not reset simply for an out-of-range tick; interruption stop does reset. Completion strictly>55 qualifying feeder-goal updates, not56 guaranteed consecutive world ticks. Goal default requiresUpdateEveryTick=false, Mob half-phase scheduling means do not turn updates into fixed wall time. Client event68 requests optional nectar particles/sip animation only, no authoritative output receipt.",
+          "At completion, if existing CropsPollinated>2 and1/25 RNG it requests feeder contents0, ignoring setBlock boolean. Then increments SAME counter used by flower visits, sets sipCooldown120..1319, integer-divides pollinateCooldown by3 clamped at0, assigns runCooldown400..999 and calls underlying stop. Does not reset visitation counter, require actual drained state or commit a resource-use receipt. Initial two ingredients can support multiple conceptual visits but same-object retry defect/other gates preclude a guaranteed long-run economy.",
+          "Pollination uses native MoveToBlockGoal range32 and vertical8 search, with cached nextStart interval reduced(200..399). It only calls parent when adult and pollinateCooldown==0, so eligibility/flag arbitration gates retry decrement. Target is current hummingbird_pollinates tag and LOS clip; nearest algorithm is native ordered rectangular rings/restriction test, not proven shortest flight path.",
+          "Pollination tick first calls native parent tick, which adjusts tryTicks/repaths using3D center distance; override then adjusts tryTicks a second time using XZ integer-truncated AMBlockPos coordinates at targetY and strict squared<9. AMBlockPos casts doubles to int (toward zero, not floor); target from parent is blockPos.above. Own reached flag plus abs(birdY-originalblockY)<=2 permits idle accumulation; not continuous20worldtick contact. super requiresUpdateEveryTick=true; parent continuation revalidates target and time window only on full selector cleanup.",
+          "At idle>=20 it first requests levelEvent2005, increments CropsPollinated and sets pollinateCooldown200. If new shared counter>3 it conditionally calls native BoneMealItem.growCrop only when CURRENT block is CropBlock and !maxAge, then sets counter0 regardless of no crop, mature crop, false growth or denied hook. Thus four flower visits are NOT necessarily required: feeder visits use same counter; event/counter/cooldown are not real growth or harvest receipts.",
+          "Native growCrop only runs in ServerLevel using FakePlayerFactory Minecraft fake player. onApplyBonemeal cancellable hook can return-1; ALLOW returns1 without requiring default crop change and shrinks supplied stack onserver. Default path checks current Bonemealable target, native success and calls performBonemeal then shrinks; growCrop boolean ignored by mod. The supplied bone-meal stack is newly constructed and not taken from any player inventory. No real player payment, owner attribution or quest credit follows.",
+          "Native CropBlock baseline performBonemeal→growCrops requests age+random2..5 clamped max7 and ignores setBlock boolean; subclasses can override. Natural randomTick uses separate light and Forge crops-grow pre/post hooks. The AI bonemeal call is not simply the same event path, nor a guaranteed crop mutation or seed/item yield. Never split native crop/hook/feeder stages into more references.",
+          "Underlying pollination stop resets only idle; feeder stop clears local target/idle only. Calling underlying stop does not set native WrappedGoal.isRunning=false. Selector later stops on continuationfalse/flags and resets again. No automatic navigation/controller reset is added by these overrides; movement requests, interruption side effects and actual endpoint outcome remain bounded.",
+          "Own NBT serializes Variant, sharedCropsPollinated, pollinateCooldown and optional feeder XYZ; on existing object read, missingHLPX clears feeder, fields usegetInt without range clamp. sipCooldown, runCooldown, per-goal idle/localtarget and animation are not in own extra-save methods. Fresh normal constructor initializes them0; full inherited serialization/capability/mixin lifecycle and actual reloaded work fairness are unverified. No automatic restored output receipt.",
+          "Wander uses saved feeder as optional sampling origin, at most15 XZ samples [-8,7], descends air aboveY0 then chooses1..3 above support; rangeY6 stored but unused, last valid sample retained; distance-to-point continuation and direct move control have no hard completion guarantee. Ordinary breeding/spawnroll/SPAWNER rules, standard BABY creation, particles/sounds/model/variant are supporting context0, not separately accepted ecological availability or design units.",
+          "All actual fixed mod core418 entity/105 pollination/143 feeder/28POI/73Flight/83Wander/15AMBlockPos read completely, plus exact bounded registry/constructor/tag/potion helpers. Registration wires CREATURE actor and block+item+POI; placement/crafting/default ingredients, actual natural population and full survival route are not established.",
+          "Actual feeder use is two-input CONTENTS0..3 with tagged sweetener and exact water-potion item/tag/cap comparison. It calls noncreative debit helper before unchecked block update; water branch requests addItem(glass bottle) then debits even if inventory add false. Player.addItem forwards Inventory.add; partial add/failure/exception possible, and caller ignores result. No explicit client-side guard, but complete player-interaction network/Forge authority not audited: no alleged replicated payment or proven bottle loss.",
+          "Fixed AMTagRegistry spelling is hummingnbird_feeder_sweeteners; nontruncated pinned tree has only hummingbird_feeder_sweeteners.json, no raw for either in selected source root. Read tree path and blob metadata, not tag contents. This does not establish loaded-tag emptiness: external datapacks can define the misspelled key. No sugar/member/recipe/default feeder access claimed.",
+          "POI registers ALL possible feeder block states. Forge GameData callback maps matching states and can reject duplicate state ownership. PoiManager.findAll with Occupancy.ANY passes PoiSection.getRecords and enum ANY true predicate; it does not acquire a ticket. radius64 is actual3D BlockPos range in this queried branch. PoiType32/6 data is not a capacity lease or32-bird cap. Cached valid feeder bypasses64-distance query and LOS/path checks.",
+          "Both same-priority4 feeder/pollination goals share MOVE/JUMP. GoalSelector LinkedHashSet evaluates available goals in insertion order, feeder first, and strict-lower numeric priority is needed to replace a running goal for shared flags. They cannot normally run concurrently within this selector and a same-priority peer cannot preempt an already running one; higher-priority breeding/tempt/follow and disabled flags can defer them. This is not scheduling fairness or guaranteed order of world outcomes.",
+          "Feeder runCooldown positive branch decrements then falls through to unconditional400..999 assignment/false; failed zero search and completed visit also set positive. Given only shown methods and unchanged same goal object, after any such positive assignment no later eligible canUse evaluation reaches zero/search. sipCooldown early return pauses those evaluations. Initial0 may successfully select feeder; interrupted incomplete visit with runCooldown still0 is distinct. No claim every instance can never sip, automatic retry after400 ticks, or runtime exploit.",
+          "Feeder movement issues direct FlightMoveController desired velocity toward above feeder/random rise; private canReach collision helper is not called in its complete tick. Within distance<2.5 and Y>feederY it accumulates qualifying updates without resetting simply on leaving range, saves feederPos, requests event68. At>55 it conditionally requests emptying only when old shared counter>2 and1/25, then increments sameCropsPollinated, sets sipCooldown120..1319 and divides pollinateCooldown by3. No actual drained block, consecutive tick duration or resource success receipt guaranteed.",
+          "Pollinate adult/cooldown gate delegates MoveToBlockGoal search only when eligible. Parent nextStartTick reduced interval counts canUse evaluations, not all world ticks; ring search is bounded by range32 and vertical8/restriction predicate, not nearest safe navigable destination. Target requires symbolic block tag and LOS clip. Mod AMBlockPos truncates x/z toward0 instead of floor; own XZ test is strict squared<9 with height independently<=2.",
+          "Pollination first executes parent tick and then own tryTicks update; each can increment or decrement, so net can be+2,0,-2 depending 3D versus XZ proximity, not a simple one-tick bound. Idle not cleared on every lost-proximity update, only stop; initial0 increments while<20 and next qualifying update polls at>=20. Parent requiresUpdateEveryTick=true, feeder inheritsfalse. No fixed20worldtick contact/56feederworldtick or wall time guarantee.",
+          "Pollinate() requests levelEvent2005, increments SAME persistentCropsPollinated and sets cooldown200 BEFORE attempted crop operation. New count>3 triggers isGrowable currentCropBlock/!maxAge then growCrop(new BONE_MEAL stack), and always resets counter0 afterward on normal return even when no growable block or hook denial/false outcome. Feeder visits can contribute count, so not necessarily four flowers, and successful drain/growth/harvest is not recorded.",
+          "Complete BoneMealItem.growCrop only delegates in ServerLevel with FakePlayerFactory.getMinecraft. Actual complete factory caches by ServerLevel+Minecraft game profile, not player who funded feeder. Forge BonemealEvent is cancellable/resultful: canceled-1 suppresses default, ALLOW1 may shrink supplied stack without any crop mutation, DEFAULT0 checks Bonemealable validity/success and calls performBonemeal then shrinks. Mod ignores boolean and constructs its own bone meal rather than debiting real player inventory. No owner/payment/growth quest receipt.",
+          "Actual default CropBlock isValid target=!maxAge, success=true, perform ->growCrops adds random2..5 clamped ownmax then requests setBlock without boolean handling. Subclasses/hooks/listeners can differ. Random tick separately uses light/areaLoaded/Forge crop Pre/Post; manual bone meal is not identical callback route. Complete setBlock/chunk hooks and final changed state not proved. No item or seed harvest pickup follows this request.",
+          "Underlying goal.stop methods reset local target/idle only and do not clear WrappedGoal.isRunning. Native wrapper later cleanup may stop again; not atomic completion or guaranteed movement cancellation. Feedercontinuation ignores distance/path/baby/time budget; pollinationcontinuation delegates parent time/revalidation but can still have an intermediate everytick invocation before next full cleanup. Source-order statements presume preceding calls return normally.",
+          "NBT explicitly stores shared count,pollinateCooldown,variant,optional feederXYZ; absenceHLPX clears feeder on existing object, unlike merely omitted ephemeral fields. sipCooldown/runCooldown/localidle/animation do not have own save fields; fresh object defaults differ from read on existing instance. No complete inherited save/capability/packet or world reload success proof, no exact recovered fairness.",
+          "One whole related implementation remains despite retry defect and resource/default-access gaps: actor and player-filled external facility feed a shared persistent visitation state that controls conditional service to other crop blocks, with distinct resource and commit ownership. This differs from EA10 stored colony, EA13 self maturation and Raccoon held-food/conditional-owner policy. Generic POI, food, service helper, timer, typo, threshold or byte count itself earns0.",
+          "Five original span hashes use one appended terminalLF for actual no-terminalLF complete entries. All original source/archive bytes and pinned mod blobs/tree match; original proposal hashes match explicitly stated LFjoin+oneLF algorithm, not raw keepends for these five. Carry both actual raw and original normalized hashes; do not silently assert original raw exact or create a second mechanism from normalization."
+        ],
+        "limits": [
+          "No raw tag memberships/default feeder craft/deployment or survival inputs; pinned source/tree naming mismatch cannot be silently fixed or papered over. Parametric source policy only.",
+          "No runtime/player payment/block admission/crop mutation/harvest acquisition/POI contention or save-reload success, no successful native birth/kill/UUID pickup.",
+          "No whole Level#setBlock/hooks/chunk/entity/cross-mod listener or packet/render internals, no bound elapsed survival duration or indefinite retry fairness.",
+          "No Dynasty production change, tag/cap/category/probability tweak, art/building asset, QA launch or natural ecology gap closure. Applicable1000 remains false.",
+          "No raw tag memberships/default feeder craft/deployment or survival inputs; pinned source/tree naming mismatch cannot be silently fixed or papered over. Parametric source policy only.",
+          "No runtime/player payment/block admission/crop mutation/harvest acquisition/POI contention or save-reload success, no successful native birth/kill/UUID pickup.",
+          "No whole Level#setBlock/hooks/chunk/entity/cross-mod listener or packet/render internals, no bound elapsed survival duration or indefinite retry fairness.",
+          "No Dynasty production change, tag/cap/category/probability tweak, art/building asset, QA launch or natural ecology gap closure. Applicable1000 remains false.",
+          "All17 mod core/support spans read now. Five native scheduler/effective-AI spans reuse exact prior actual115446 reading (last is a covered subset),16 native spans read now plus4 support. Current raw/archive/excerpt checks replayed for all; no19/20 newly reread old source chains or1000 references claim.",
+          "No complete Forge registry/chunk POI storage load/unload, MoveControl base/navigator/clip/collision engine, fake player constructor/capabilities, complete event bus/listeners/block-state/crop subclass/randomtick or recipe/tag/ItemStack capability implementation runtime. Selected source policy permits failures; not proof ordinary terrain/player behavior or default installation can realize every branch.",
+          "No source/upstream/Java/Gradle/game/UI/server/process/display/network/download/retry, sound/brightness/wake/focus, production/art/model/building/sharedJar/userworld or Git action. No tasks, original prompts, existing receipts/validator/ledger/session edited.",
+          "One new independent review only, coordinator alone may assign formal ID and request later real receipt/packaging. Native birth/kill/pickup/material/payment/crop growth/performance and1000-gate credit remain0.",
+          "Bind immutable original ec8c proposal and this actual independent review with real distinct main author and General reviewer. No formal ID/receipt/master change from this proposal-stage reading.",
+          "At most1 whole related parameterized source facility/actor/shared-counter/crop-service policy. All helpers/POI/cooldowns/native crop branches/typo/defects/variants and additional source ranges support0.",
+          "Retain five explicit raw versus normalized excerpt SHA records and exact splitlines/LFjoin/one-terminalLF algorithm; actual file/archive and Git tree bindings independently exact. Original proposal unchanged; no false all-raw-exact claim.",
+          "Retain code/tree sweetener spelling mismatch and raw tag contents missing. No actual sugar/member/nonempty loaded tags, matching recipe/deployment, guaranteed feeder survival access or player-material economic closure.",
+          "Retain positive-runCooldown fallthrough reset/retry failure under same-object shown methods, first-zero success possibility, cached feeder distance bypass, no path/visibility/flight safety guarantee and no32-ticket cap inference.",
+          "Retain same-priority MOVE/JUMP arbitration, shared counter across feeding/pollinating, update versus worldtick distinction, stop versus wrapper-running state, nonconsecutive idle and parent+override tryTicks effects.",
+          "Retain actual fake player consumer, cancellable/ALLOW/default BoneMeal hook and unchecked block/growth calls; no real player bonemeal debit, completed crop growth/drain, harvest/material, native birth/kill/pickup or gameplay reward proof.",
+          "Retain fresh/existing/missing feeder NBT differences and incomplete external callback/exception/reload/network lifecycle; no universal restore/atomicity/fairness/dupe exploit claim.",
+          "Novelty assessed versus EA10/13 and entire current Raccoon mechanism, not POI helper or defect alone. Preserve existing exact evidence; no source fetching/retry/Java/Gradle/game/display/process/Git/production/assets/sharedJar/world/checklist changes or time-credit claim."
+        ],
+        "evidence_scope": "parameterized_source_policy_only",
+        "resource_membership_state": "same_pin_tree_only_raw_missing_with_code_tree_spelling_mismatch",
+        "resource_membership_boundary": [
+          {
+            "path": "src/main/resources/data/alexsmobs/tags/items/hummingnbird_feeder_sweeteners.json",
+            "in_fixed_tree": false,
+            "tree_blob_sha1": null,
+            "raw_in_selected_root": false,
+            "resource_members_read": false
+          },
+          {
+            "path": "src/main/resources/data/alexsmobs/tags/items/hummingbird_feeder_sweeteners.json",
+            "in_fixed_tree": true,
+            "tree_blob_sha1": "976c1ae32f50c78640c76d6fe267becf8afff76a",
+            "raw_in_selected_root": false,
+            "resource_members_read": false
+          },
+          {
+            "path": "src/main/resources/data/alexsmobs/tags/blocks/hummingbird_pollinates.json",
+            "in_fixed_tree": true,
+            "tree_blob_sha1": "aa61dae8e9de773e42cab5dfb3e415ceba7e3071",
+            "raw_in_selected_root": false,
+            "resource_members_read": false
+          },
+          {
+            "path": "src/main/resources/data/alexsmobs/tags/items/hummingbird_breedables.json",
+            "in_fixed_tree": true,
+            "tree_blob_sha1": "9d931f88ef50826134df90f4a15b66de90c3f1a4",
+            "raw_in_selected_root": false,
+            "resource_members_read": false
+          },
+          {
+            "path": "src/main/resources/data/alexsmobs/tags/blocks/hummingbird_spawns.json",
+            "in_fixed_tree": true,
+            "tree_blob_sha1": "8a14fcdc0f3fb1fcf19258757f4f2ad68746c20b",
+            "raw_in_selected_root": false,
+            "resource_members_read": false
+          }
+        ],
+        "resource_boundary_decision": {
+          "parameterized_source_policy_reference_blocked": false,
+          "default_concrete_inputs_loaded_tag_reachability_payment_growth_and_harvest_receipt_blocked": true,
+          "raw_resources_silently_fetched_or_fixed": false,
+          "why": "Complete current guarded code policy can be studied without asserting loaded member/access; same-object retry defect is explicitly part of limited policy, first-zero feeder and independent crop-goal code are not universally dead. Default playable/economic/sustainable service closure remains0."
+        },
+        "excerpt_normalization_corrections": [
+          {
+            "kind": "mod",
+            "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/ai/FlightMoveController.java",
+            "line": 1,
+            "end_line": 73,
+            "actual_file_sha256": "e3229693b66be0ff2f7ffb6a70f091055485578e8893812e67806090998d85d7",
+            "actual_raw_excerpt_sha256": "e3229693b66be0ff2f7ffb6a70f091055485578e8893812e67806090998d85d7",
+            "original_normalized_excerpt_sha256": "53df4914b70e07db27d21c7028e9f20b46250768aeb6e2027d2e286afb4d2daa",
+            "actual_file_has_terminal_LF": false,
+            "normalization_algorithm": "UTF8 splitlines, join LF, append exactly one terminal LF",
+            "raw_original_excerpt_match": false,
+            "normalized_original_excerpt_match": true,
+            "support_credit": 0
+          },
+          {
+            "kind": "native",
+            "path": "net/minecraft/world/entity/ai/goal/MoveToBlockGoal.java",
+            "line": 1,
+            "end_line": 123,
+            "actual_file_sha256": "29551d463634439cdb59117da0b063b6a95321ba3f55d701ca55f8fa4d108280",
+            "actual_raw_excerpt_sha256": "29551d463634439cdb59117da0b063b6a95321ba3f55d701ca55f8fa4d108280",
+            "original_normalized_excerpt_sha256": "d5dedf4b036e7e6d61b338427a88ef1924a127eb8cb4e3d247051c0105a2dad4",
+            "actual_file_has_terminal_LF": false,
+            "normalization_algorithm": "UTF8 splitlines, join LF, append exactly one terminal LF",
+            "raw_original_excerpt_match": false,
+            "normalized_original_excerpt_match": true,
+            "support_credit": 0
+          },
+          {
+            "kind": "native",
+            "path": "net/minecraft/world/entity/ai/goal/Goal.java",
+            "line": 1,
+            "end_line": 59,
+            "actual_file_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+            "actual_raw_excerpt_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+            "original_normalized_excerpt_sha256": "48a610a5ec27e6237d373b4c54afa0aae3312c22ec861cb9f83ce639267d6db5",
+            "actual_file_has_terminal_LF": false,
+            "normalization_algorithm": "UTF8 splitlines, join LF, append exactly one terminal LF",
+            "raw_original_excerpt_match": false,
+            "normalized_original_excerpt_match": true,
+            "support_credit": 0
+          },
+          {
+            "kind": "native",
+            "path": "net/minecraft/world/entity/ai/goal/WrappedGoal.java",
+            "line": 1,
+            "end_line": 89,
+            "actual_file_sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+            "actual_raw_excerpt_sha256": "38fc05eacaf0f6e37badc54b0d476fab3039c27ba0fe9962498b21f6c03a8413",
+            "original_normalized_excerpt_sha256": "31039afef935b259b4cfdde1720d0716e52161bab4b90f81247886accf1a9f36",
+            "actual_file_has_terminal_LF": false,
+            "normalization_algorithm": "UTF8 splitlines, join LF, append exactly one terminal LF",
+            "raw_original_excerpt_match": false,
+            "normalized_original_excerpt_match": true,
+            "support_credit": 0
+          },
+          {
+            "kind": "native",
+            "path": "net/minecraft/world/entity/ai/goal/GoalSelector.java",
+            "line": 1,
+            "end_line": 158,
+            "actual_file_sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+            "actual_raw_excerpt_sha256": "9530b142ae23c5c21868935dd32982e05786216019e1d8116c863c7bcfec1898",
+            "original_normalized_excerpt_sha256": "5bacb3874df5b9eddd25fdd2349986479ae6b0253b77a6fd05061db7e20b67b2",
+            "actual_file_has_terminal_LF": false,
+            "normalization_algorithm": "UTF8 splitlines, join LF, append exactly one terminal LF",
+            "raw_original_excerpt_match": false,
+            "normalized_original_excerpt_match": true,
+            "support_credit": 0
+          }
+        ],
+        "excerpt_byte_conventions": {
+          "original_proposal": "UTF8 splitlines, join LF, append exactly one terminal LF",
+          "raw_excerpt": "raw bytes splitlines(keepends=True), exact selected lines",
+          "formal_source_excerpt": "UTF8 splitlines, join LF, no added terminal LF"
+        },
+        "identity_boundary": "User-authorized existing independent General reviewer; exact local hashes/namespace roles, no remote cryptographic identity proof."
+      },
+      "actual_reading": "Full current actual EA22 judgment, all34 observations/all21 limits and resource/normalization/identity boundaries read for semantic comparison; no old upstream source chain reread or new support credit.",
+      "old_source_chains_reread": false,
+      "support_credit": 0,
+      "difference": "Whole sharedfeeder/nectar visitation counter to cropgrowth versus body-footprint supporteddeposit andpostplacement environmental/harvest lifecycle; Main maymerge0."
+    }
+  ],
+  "closest_pending_whole_comparison": {
+    "original_Farmer_proposal": {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-farmer-compost-material-service-whole-policy-proposal-20261104.json",
+      "sha256": "1a82358a0e9eb1b5ebcc4f9a4a003aedc8078846bea6a50f830cd0aac196f0ac"
+    },
+    "distinct_Main_review": {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-farmer-compost-material-service-independent-review-20261104.json",
+      "sha256": "fadb9ecb1c2c778ea23391d3ed26b0b70c3e44c8d98b0fd4543a867ae18a5844"
+    },
+    "actual_complete_current_independent_fields": {
+      "reviewer": "Main independent coordinator, distinct from original General author",
+      "decision": "ACCEPT_IN_PRINCIPLE_MAXIMUM_ONE_WHOLE_RELATED_SOURCE_POLICY_FORMAL_PENDING",
+      "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+      "formal_candidate_id": null,
+      "recommended_maximum_credit": 1,
+      "accepted_credit": 0,
+      "applied_credit": 0,
+      "independent_findings": [
+        "One related native material-service family: finite villager inventory and JOB_SITE work turn reserved inputs into attempted bread, staged compost and ordinary world-item pickup, with local harvest/plant/fertilizer behavior. No class, seed, helper, timing threshold or unchecked-write defect is separately credited.",
+        "WorkAtPoi debits lastCheck after the random half gate but before dimension/distance validation. Registered LOOK does not mean absent or owned LOOK. LAST_WORKED/sound/restock and requested movement are independent of actual production success. Prior full Behavior/GoalPackages/Villager contexts are exact own Main reused reads, not new source credit.",
+        "WorkAtComposter revalidates the current COMPOSTER block at remembered JOB_SITE. Bread count<=36 permits at most3 newly created bread and thus39. Wheat removal precedes add/remainder-drop request, with removal result and spawn success unchecked; no atomic inventory/output or actual player payment claim.",
+        "Reverse inventory scanning reserves10 per wheat/beetroot seed type and debits a20-attempt budget before the insertion loop. Reserve and attempt arithmetic is not proof20items were consumed. Wider plantable tag membership does not widen these two literal compost inputs.",
+        "Composter insert shrinks1 after addItem even if chance fails; level0 positive-chance first stage differs from subsequent probability. The local computed blockstate can advance despite ignored setBlock return; a level7 schedule request is not committed readiness. Literal0.3 seed entries alone do not prove current bootstrap/map membership.",
+        "Level7 callback requests8 after scheduled20 and asks ready sound. Extract requests world bone-meal ItemEntity/default pickup delay before resetting to0 through unchecked writes. Accepted item admission and real reset may diverge; no native duplicate/loss exploit reproduced.",
+        "Mob aiStep pickup is independently server/alive/notdead/canpickup/griefing/reach/no-delay gated. Villager wanted/requested items also require inventory capacity. InventoryCarrier adds a copy and uses returned remainder for take/discard/ground-stack update. This source chain is not a witnessed pickup by that villager or the intended player.",
+        "HarvestFarmland requires own FARMER/griefing and the exact memory statuses. The27 sampled positions are local to the actor, not remembered SECONDARY_JOB_SITE coordinates. Mature CropBlock and air-above-FarmBlock eligibility differ. Selecting a site proves neither ownership nor navigation.",
+        "The state read before destroyBlock is reused for the following air test, so same-call mature harvest then replant is not established. Plant branches mark local success and shrink1 after an unchecked block-write request; sound and seed debit do not prove accepted placement or harvested loot.",
+        "Harvest own timeWorked increments only in the near/null branch; its200 counter and UseBonemeal80 counter differ from the parent Behavior default60 deadline. Movement-memory requests, stop erasure and nextOk+40 are not guaranteed continuous world-tick work or scheduling fairness.",
+        "UseBonemeal has no own profession or griefing check; enclosing role-package wiring is separate. Its10-tick predicate/160-session gate and inventory count are entry conditions. Reservoir selection of a nearby immature CropBlock is not reachable-field proof.",
+        "UseBonemeal start replaces MAINHAND with a newly constructed visual stack; actual growCrop receives the real inventory stack. Stop empties the hand without restoring prior equipment or proving ownership. True response schedules next work+40 and requests event1505; false leaves next-work clock unchanged, potentially retrying on later eligible near updates.",
+        "Forge growCrop obtains the Minecraft FakePlayer for ServerLevel, not actual villager/player attribution. Canceled BonemealEvent returns-1; ALLOW shrinks on server and returns1 without default growth; other result states return0, so noncancel DENY is not itself a local veto. Default valid target can consume and returntrue even when isBonemealSuccess isfalse.",
+        "Base CropBlock growth adds random2..5 capped at max and ignores setBlock return. Default success=true is only this base behavior; subclass/event/current loaded data and final world state remain outside. No fertilizer or growth response grants a quest, payment, harvest or intended-player receipt.",
+        "Container.countItem sums exact item identity rather than NBT equality. SimpleContainer merges sameItemSameTags with capacities and moves a copy to empty slots, returning remainder. The bounded source does not establish every corrupt-stack/backend/capability serialization or lossless inventory invariant.",
+        "The full actual base villager_plantable_seeds tag was read and archive/entry bound: wheat_seeds,potato,carrot,beetroot_seeds,torchflower_seeds,pitcher_pod. It is a six-member source parameter, not six mechanisms or a current merged-tag guarantee.",
+        "All18 current selected native ranges/14entries/5wholefiles/882lines were independently read. UseBonemeal76-94 was explicitly recovered after clipped output. Raw keepends excerpts, actual source bytes and all archive hashes match; nine older own Main source contexts are exact bound reuse0, not newly reread chains.",
+        "Complete current EA22 selected judgment fields were independently read: all34 observed-chain paragraphs, all21 limits and resource/raw-normalization/identity boundaries. This is decision comparison only, not rereading its old upstream source chains. Field-equality and whole-receipt hash are exact.",
+        "Whole-policy difference from EA22 is material custody/conversion readiness: farmer real reserved inventory, compost stages and returned world-product/pickup remainder versus externally player-filled feeder and persistent shared visitation counter using constructed bone meal. Shared crop helpers, AI memories, timers and failures support0. Max1 pending formal packaging; no global uniqueness, generalized migration or current playable economic closure."
+      ],
+      "author_mandatory_constraints_retained": [
+        "Whole farmer material-service family max1, never separate bread/compost/harvest/fertilizer/tag/crop/helper/seed references; global novelty/new migration/native gameplay/runtime player material credit0.",
+        "18 actual new selected source ranges/14 entries/5 fullfiles/882 citedlines; three prior GoalPackages/Behavior/Villager contexts and six prior block-write contexts support0, no old source replay claim. One raw derived base tag support0, never Git or current loaded data.",
+        "JOB_SITE present and LOOK registered only; lastCheck debited after random pass but before dimension/distance validation; no job-site ownership/path/reservation/exclusive LOOK or guaranteed restock/product.",
+        "Preserve bread<=36 allowing39, real wheat removal return unchecked, bread add/drop remainder caller boundaries; no atomic debit/output or player payment.",
+        "Only wheat/beetroot seed compost paths here; pertype10 reserve, global20 attempt budget and reverse slot order. Blocked states can spend attempts without consuming. No20guaranteed items or allplantables compostable claim.",
+        "Composter initial0 positivechance local success versus later chance, shrink1 even insertion chance failure. Literal0.3 registrations do not prove bootstrap invocation/current mutable compost map. Return computed state/setBlock ignored, no committed block equivalence.",
+        "Level7 schedules20 and scheduled callback requests8. Product ItemEntity/add request precedes reset0 write; pickupdelay added but admission/reset not verified. No sustainable bonemeal proof, rollback or live duplication exploit claim.",
+        "Ordinary native loot pickup has server/alive/canpickup/griefing/wants/capacity/reach/delay gates and returned-remainder handling. Actual world product/entity/inventory/player pickup not witnessed; complete inherited save callers/backend remain unexpanded.",
+        "Harvest own FARMER/griefing and absent LOOK/WALK plus SECONDARY_JOB_SITE presence; actual27 local positions ignore secondary coordinates. Current mature-crop selection versus emptyaboveFarmBlock differs, not allcrops require native farmland.",
+        "Harvest uses stale pre-destroy state for following air test: no samecall guaranteed harvest+replant. Seed branch shrinks after request/sound flag independently of block-write return; no validated harvest loot/placement/refund/readback.",
+        "Behavior default60 timeout and own nearwork counters200/80 are distinct; no guaranteed continuous field work/worldticks. Movement/LOOK/WALK writes/erasure do not establish ownership or navigation success.",
+        "UseBonemeal own predicate lacks profession/griefing guard; enclosing package wires expected farmer behavior but no universal authorization proof. Visual new MAINHAND stack differs from inventory stack; stop clears without original hand restore/ownership check.",
+        "Fertilizer false response does not advance nextWorkCycleTime; true response can advance after hook ALLOW or default valid but unsuccessful grow. Preserve Forge canceled=-1, ALLOW consumes/returns1, other results0 including noncancel DENY; no universal DENY veto or growth receipt.",
+        "FakePlayerFactory.getMinecraft actor differs from actual player. Default crop random2..5/cap and unchecked write, subclass/events/current loaded data outside; no actual material payment/quest reward/native yield.",
+        "Base six-entry villager_plantable_seeds tag and finite itemidentity counters are parameters/support0; no NBT-equivalence/current membership/exhaustive seed ownership claim. SimpleContainer merges sameItemSameTags, returned remainder handling does not prove all backend losslessness.",
+        "Complete current EA22 facility/visitation-counter judgment and explicit limits retained for whole comparison. No old source-chain reread, no additional credit from resource typos, unchecked writes, generic crop helper or numeric differences.",
+        "No production/art/models/textures/buildings/sharedJar/world/game/UI/Git/session/master/checklist edits; no duration-hour claim. Applicable1000 gate not met and no prompt deletion."
+      ],
+      "mandatory_corrections": [],
+      "limits": [
+        "Only bounded pinned local-source policy, no upstream code executed, downloaded or newly authenticated remotely.",
+        "No complete Brain scheduling/goal arbitration/pathfinding/collision/crop subclass/event listener/ItemStack capability/network/chunk commit audit; ordinary calls may fail or throw and source-order claims assume prior calls return normally.",
+        "No actual farmer job assignment/biome/survival inputs/current datapack/registry mutation/composter bootstrap or production installation proved.",
+        "No committed wheat/bread/world bone meal/pickup/crop/seed/harvest/player payment/reward/quest result, no sustainable economic balance or native availability acceptance.",
+        "No full inherited inventory save caller chain/world save-reload, hand restore fairness or multi-actor contention guarantee.",
+        "Names and a bounded accepted-metadata screen do not prove global uniqueness. No new global owner is assigned; a future discovered whole equivalent must merge.",
+        "One proposal only with formal_candidate_id null, accepted/applied0; current35/1000 ledger unchanged. Distinct Main complete judgment required before minimum package authorization.",
+        "Main author-independent static source acceptance only; no formal ID assigned, no new package authorized by this receipt. Existing pending Gorilla source-index schema failure must be resolved first.",
+        "Exact own prior source reuse and old whole-decision comparison earn0; no hash or range count can substitute for semantic study."
+      ],
+      "semantic_comparison_rationale": "Whole-policy difference from EA22 is material custody/conversion readiness: farmer real reserved inventory, compost stages and returned world-product/pickup remainder versus externally player-filled feeder and persistent shared visitation counter using constructed bone meal. Shared crop helpers, AI memories, timers and failures support0. Max1 pending formal packaging; no global uniqueness, generalized migration or current playable economic closure."
+    },
+    "formal_status": "independent Main recommendedmax1, package pending; comparison support0 not a formal credit here",
+    "old_original_source_chains_reread": false,
+    "support_credit": 0
+  },
+  "existing_global_whole_owners": [
+    {
+      "candidate_id": "36d8b00c2ef66ef0897a",
+      "canonical_complete_row_sha256": "a4d3d19e46f951fb56f10065bb2ee63d0e23f43ec3ae808bc01efa1cc3ac3f8b",
+      "actual_complete_current_non_evidence_fields": {
+        "candidate_id": "36d8b00c2ef66ef0897a",
+        "status": "accepted",
+        "family": "native-constructed-golems-material-provenance-and-harvest-receipt-retention",
+        "trigger": "Full IronGolem/SnowGolem pairs and combat/shear consumers; CarvedPumpkinBlock full spawn+clear methods",
+        "input": "PlayerCreated flag on iron golem; Pumpkin intact flag on snow golem",
+        "output": "physical pattern is cleared and golem spawned, iron role persists and excludes player attacks; snow missingPumpkin retains ctor intact, shearing clears before returning carved pumpkin item",
+        "preservation": "Two small constructed-golem property readers grouped one. Actual paid construction/material return semantics, rather than two bare booleans. Distinguishes permanent provenance and consumed item receipt from delegated anger, which is not made permanent.",
+        "application_limit": "Pattern is cleared before unchecked addFreshEntity; no crash-atomic material refund. Forge mobInteract shearing branch disabled: actual onSheared returns stack after flag clear, callerdelivery not reviewed. Anger cloned nowhere here; native health repair parent mechanism already support0.",
+        "supporting_candidates": [
+          "4515a0435b6dfd7a3751"
+        ],
+        "credit": 1
+      },
+      "old_full_original_source_chains_reread": false,
+      "new_credit": 0
+    }
+  ],
+  "observed_chain": [
+    "One possible whole creature-body-footprint to renewable world-material policy, atmost1 pending Main relevance/family review.29bounded ranges763lines18entries3whole(SnowGolem210,SnowLayer122,LootEntityCondition66),1priorEvoker griefing+7priorHeroLoot and4rawresources are context0. Construction/shearing/combat/cosmetics/layers/looppositions/helperfiles not newreferences; no actual materialproduction acceptance.",
+    "SnowGolem aiStep delegates super first, then logicalserver: currentbiome SNOW_GOLEM_MELTS tag requests onFire damage1 BEFORE griefing check. It doesnotown immediatelyreturn orrecheckalive afterhurt. Sourceorder alone doesnotprove deadactorproduction orcurrentbiomelifetime. FullsuperAI/NoAi dispatch/physics/damagehooks outside.",
+    "Exact priorEvoker ForgeEventFactory748..758: nonnullactor posts EntityMobGriefingEvent; DEFAULT usesmobGriefing gamerule, ALLOWtrue/DENYfalse. False returnsbeforefootprints. Eventpolicy/dynamic handlers differfrom doTileDrops; no sourceinventorydebit/productioncounter/cooldown here, no assertion ofglobalcap/gamerulebypass.",
+    "Fourloop iterations samplefloor(X±.25),floorY,floor(Z±.25), notfootboundingbox enumeration orfourguaranteeduniqueblocks. LiteralMthfloor read; atX=Z=.5allfourmaptosamecell. Existingwrites canchange laterairtest; failedwritesmayrepeatsamecandidate. No exactly4snowperworldtick/second orpaths/movement requirement.",
+    "LevelReader.isEmptyBlock usesstate.isAir. Eachqualifiedcell mustbeair anddefaultSNOW.canSurvive. SnowLayerdefaultLAYERS1; existing snowisnotair, so owntrail cannotstack layer2..8. No claimedmaterialinputcost/currentinventory/materialconservation orreceiptonvisualeffect.",
+    "SnowLayercanSurvive checksbelow: cannot-survive-tagfalse winsbeforecan-survive-tagtrue, elsefullUPcollisionface ORsameSnowwith8layers. Geometry/tagbackend/currentmembership external. Showntrail/supporthasno separatetemperaturethreshold; meltstagdamage andSNOWrandomtick brightness aredifferentconditions.",
+    "setBlockAndUpdate returnssetBlock flags3/defaultdepth512. Boundedcompleteoverloadsrejectoutheight/debug/nullablechunksetresult; Forge snapshotcapture canretain snapshotsandsuppressnotify. SnowGolem ignoresboolean andrequestBLOCK_PLACEafterqualifiedwriteevenfalse. Returntrue/event/sourceaircheck notdurableblockmaterial/persistence/currentworldreceipt; neighbor/IO/snapshotcommit outside.",
+    "SnowLayer.updateShape returnsAIRifunsupported. randomTick BLOCKbrightness>11 requestsdropResources THENremoveBlock, notskybrightness/temperature norforcedsuccessfulremoval. Snowregistered randomTicks/strength.1/requiresCorrectToolForDrops. Fullscheduler/weather/miningtool/callbackcomposition notaudited.",
+    "BlockBehaviourboundedconstructortail choosespropertyexplicitdrops/customsupplier ordefaultregistryname→blocks/path; getLootTable cachesupplierresult. NativeSNOWsymbolregistration andrawblocks/snow filearefixedbaseevidence, notcurrentloadedregistry/table/feature. No livebinding/exactdropoutcome implied.",
+    "BoundedServerPlayerGameMode destroy235..282: Forge breakveto,privilege,itemstart/restricted checks; creatives callremove noownplayerDestroy. Survival copiestool beforemineBlock, computescanHarvest beforetoolmutation, removes thenonlyifremoved&&canHarvest invokesblock.playerDestroy withcopy. Returntrue canoccurwithoutloot. onDestroyedByPlayer/fullcanHarvest/hooks/reach/packetdelivery outside; nostaticguaranteedshovel/actualtoolpayment.",
+    "Block.playerDestroy requestsstat/exhaustion thenactorgetDrops withplayerandcopiedtool; noactor dropResources usesemptyTOOLandnoTHIS_ENTITY. BlockBehaviouraddsBLOCK_STATE andcreatesBLOCK(requiredSTATE/ORIGIN/TOOL, optionalTHIS/BE/explosion). SevenpriorHeroParams/resolver/manager/Tablecontexts reused0 retainEMPTY-beforemodifier,feature/function/pool/Forge boundaries andunreadTable47,52..53.",
+    "Fixedrawsnowtableonepool/oneroll requiresentity_properties this,predicate{}. Conditionfull66→fromJson{}builder→newEntityPredicate(nonANY); matchesprefixrejectsnull. thisenumbindsTHIS_ENTITY→paramsmapnull. PoolconstructorandConditionssingleconditiondirect,addRandomItemschecksconditionbeforefunction/roll. Thusunderthatfixednormalbasepathnoactor-meltcontextfailsbasepool; currenttable/globalmodifier/crossmodcontext canchangefinaloutput. Noactualzero-itemmeltingproof.",
+    "Rawtablefirstalternative onlyifNOTsilk_touch>=1 yieldssnowballs bymatchedlayers1..8; otheralternative mapslayers1..7 tosamecountsnowitems andfallbacksnow_block8. ThisrawmappingdoesnotbypasscanHarvest/toolrules, provecurrentitemavailability, actualitemdraw/count/pickup orsplitreferencesbylayer/enchantment. Fullraw356lines recoveredunclippedin1..180+181..356,notcreditfromclippedfirstdisplay.",
+    "BlockpopResource checkslogicalserver/nonempty/doTileDrops/notrestoringBlockSnapshots, allocatesnearbyItemEntity, setsdefaultpickupdelay andignoresaddresult. Noowner/thrower/playerinventorytarget here. Worldplacement, breakremoval, rawlootpool, droprequest, admission andintendedplayerinventoryreceipt aredistinct; noatomicrefund/once-only/nativeitemUUIDproof.",
+    "Completecurrentconstructedgolem36d ownercanonical/non-evidence actuallyread; paidconstruction/provenance andfinitepumpkinshearreceipt remainitssoleowner0. EntireoldoriginalIronGolem/CarvedPumpkinchainsnotreread. Thisproposalaskswhetherindependentbody-to-supportedworlddepositplusdecay/harvestrouteisrelatedwholeecologyfamily; no newmigration/globalcredit.",
+    "ClosestEA22 completecurrent34observations21limits/resources/normalization/identitydecision fromactualpreviousread retainedexact0; FarmercompleteMain19findings9limits/original17constraints alreadyactuallyread pendingformal0. Feeder-fundedsharedcropvisitcounter andreservedinventory/stagedcompost/localcropservice differfromcontinuousmobfootprint air-to-terraindeposit followedbysupport/light/toolconditionedproduct. No difference solelyspecies/chance/uncheckedwrite earnscredit; Mainmaymerge0.",
+    "Noactualgolemconstructioncost/ordinarynaturalspawn/sustainablefactory/worldplacement/miningpayment/itempickup/questaward/currentpackroute demonstrated. NoDynastyIDs/items/recipes/rewards/assets/productioncode, no tasksdeleted or1000gateclaim."
+  ],
+  "mandatory_constraints": [
+    "Max1 whole related body-footprint→supportedworldmaterial→conditionaldecay/harvestpolicy onlyafterdistinctMainreview; Mainmaymerge0. Allranges/layers/foursamples/biomes/tags/tools/rawentries/helpers/oldowners0.",
+    "Preserve super-first logicalserver melt-damage BEFOREgriefing gate; noownaliveguardafterhurt isconditionalstaticboundary, notruntime deadmobproduction/exploit. Fullsuper/NoAi/scheduler/damagecomposition outside.",
+    "LiteralnonnullableactorGriefingevent DEFAULTgamerule/ALLOW/DENY isnotidenticaldoTileDrops. Noownresourcebudget/debit/cooldown doesnotproveinfinite/sustainable/currentpackproduction orcapbypass.",
+    "Fourquarter-block flooroffsetsmayduplicate, floorysame, onlyair+survivabledefaultsinglelayer. Noexistinglayerstacking, fouruniqueunits, fixedwall/worldtickrate, movementorpathreceipt.",
+    "Supporttagnegativewinsbeforepositive, fallbackfullUPface/full8Snow; fixedrawmembershipnotloadedtags. Shownsurfacepredicatehasnotemperaturethreshold; keepmeltstag/Blocklight>11separate.",
+    "IgnoredsetBlock result thenunconditionalqualifiedBLOCK_PLACEisrequestnotcommit; preserveheight/debug/nullchunkset/Forgecapture/notify/neighbor/lifecycleboundaries. Noactualblockorentityadmission proof.",
+    "Unsupportedshape→AIR; blocklightmelting callsdropbeforeignoredremove. Rawentitypresencepoolandnoactorcontextcanpreventbaseoutput. DynamicForge/global/currentdata notfixedbyrawsource, nocurrentzero-dropclaim.",
+    "Preservemininghook/permission/creative/survivalcopy-before-mine/canHarvest/removal gating. Requirescorrecttoolproperty andrawsilktouchbranch notactualtoolavailability/payment/currentdropquantity orauthoritativepickup.",
+    "Namedlootsupplier/registry/sourcefile notloadedcurrentbinding. Fullraw4entries fixedderivednotGit; BLOCKparamrequirementsandnoactorvsplayercontextdistinct. ExactpriorHero7support0 andTable47,52..53unreadgapsretained.",
+    "EmptyJSONentitypredicateconstructsnonANY; nullTHISfailsboundedmatchesprefix, notallpredicatesread. Lootconditionhelperspartialwheremarked; no completeEntityPredicate324/LootPool218/LootContext207/BlockBehaviour1286/ServerGameMode383claim.",
+    "popResource server/nonempty/doTileDrops/notrestoringSnapshots/defaultdelay/uncheckedadd≠ownedplayerreceipt. Noatomicity/refund/perpetualfactory/shell-model/taskprogressclaim.",
+    "Existingconstructed36d fullcanonical/non-evidence stayssolemigrationowner0. CurrentEA22whole andpendingFarmerdistinctMainwholecomparisonmustremaincompletewithlimits, nohistoricaldraftclaimascurrentformalacceptance.",
+    "No production/assets/sharedJar/Java/Gradle/game/server/world/network/UI/display/audio/brightness/focus/Git/commit/push/master/sharedsession/ownership/TODOchange. Applicable1000gate/runtime/nativebirthkillpaymentpickupacceptanceunmet, no completedtaskdeletion oractivehours."
+  ],
+  "mandatory_corrections": [],
+  "limits": [
+    "FixedlocalmappedForge1.20.1/47.4.10 source+derivedbasearchiveonly; noupstreamfreshness/loadedcurrentpack/build/runtimeproof.",
+    "OnlySnowGolem210/SnowLayer122/LootEntityCondition66whole. Otherexactrangesbounded, constructor103..116partial; EntityPredicate.matchesonly118..122prefix, EntityTargetenum161..177partial, andConditions38..64endsreturnbeforeclosingbrace. Noentirecontainingclassclaims.",
+    "Fullactualgolemconstructor/materialorigin/NoAI/parentAI/serverpacket reach/canHarvesttoolhook/physics/worldregistry/tags/neighbors/IO/snapshotcommit/Forgehandlers outside. No successfulconstruction/continuousyield/committedblock/materialpayment/dropownership proof.",
+    "Rawloottableandthreebasetagsactualread, nolivedeployment/enableditem/distribution. Shownbasepoolnoactorfailure notdynamicmodifier/currentpackfinalemptyguarantee. Alllayersandtoolsettingscontext0.",
+    "SevenexactpriorHeroLoot andoneEvokerGriefing supports reused0, nooldpassedtests orfullsourcechainreplay. CurrentHummingbirdwholedecisionexactreadreused, FarmerMainpreformalreviewnotformalacceptance.1000gateunmet.",
+    "Negativeplacement/ignoredremoval/add/cleanuporders arestaticconditionalboundaries, notruntimeexploit/nativebug ortransaction/refund claim.",
+    "Currentglobalconstructedownercompletecanonical bound, globalledgerotherappendmaychangefilehashbutnotclaimedtargetrow; noexhaustiveglobalwhole-source semanticdedup/newmigration/globalcredit.",
+    "Onlynewimmutableresearchproposal; noproduction/assets/game/world/sharedJar/network/Java/Gradle/UI/process/display/Git/taskdeletion/session/master/ownershipwrites,0activehourclaim."
+  ],
+  "application": [
+    "Futurematerialtasks mustseparateproducingasurvivableworldblock, admittedworldwrite, harvesttool/cost, qualifyinglootcontext andnativeownedpickup; noquestprogressfromBLOCK_PLACE alone.",
+    "PreservepriorIDs/rewards/prerequisites; noautomaticgolemfactory/currentpackmaterialavailability oractualpayment/acquisitionrouteprovided bythisreference."
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": false,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0
+}

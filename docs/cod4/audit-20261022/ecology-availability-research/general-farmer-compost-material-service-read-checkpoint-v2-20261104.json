@@ -1,0 +1,584 @@
+{
+  "recorded_at": "2026-11-03T20:31:28.105384+00:00",
+  "owner_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "status": "ACTUAL_NATIVE_MATERIAL_SERVICE_READ_CHECKPOINT_V2_PENDING_WHOLE_COMPARISON",
+  "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+  "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+  "source_archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+  "actual_native_read_ranges": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/WorkAtComposter.java",
+      "entry_sha256": "76762f4e67694e3a3498444a75f47dabdb1205a12a931cfa3ba174c4ff3d883a",
+      "lines": [
+        1,
+        95
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "76762f4e67694e3a3498444a75f47dabdb1205a12a931cfa3ba174c4ff3d883a",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableList;\nimport java.util.List;\nimport java.util.Optional;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.ComposterBlock;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class WorkAtComposter extends WorkAtPoi {\n   private static final List<Item> COMPOSTABLE_ITEMS = ImmutableList.of(Items.WHEAT_SEEDS, Items.BEETROOT_SEEDS);\n\n   protected void useWorkstation(ServerLevel p_24790_, Villager p_24791_) {\n      Optional<GlobalPos> optional = p_24791_.getBrain().getMemory(MemoryModuleType.JOB_SITE);\n      if (optional.isPresent()) {\n         GlobalPos globalpos = optional.get();\n         BlockState blockstate = p_24790_.getBlockState(globalpos.pos());\n         if (blockstate.is(Blocks.COMPOSTER)) {\n            this.makeBread(p_24791_);\n            this.compostItems(p_24790_, p_24791_, globalpos, blockstate);\n         }\n\n      }\n   }\n\n   private void compostItems(ServerLevel p_24793_, Villager p_24794_, GlobalPos p_24795_, BlockState p_24796_) {\n      BlockPos blockpos = p_24795_.pos();\n      if (p_24796_.getValue(ComposterBlock.LEVEL) == 8) {\n         p_24796_ = ComposterBlock.extractProduce(p_24794_, p_24796_, p_24793_, blockpos);\n      }\n\n      int i = 20;\n      int j = 10;\n      int[] aint = new int[COMPOSTABLE_ITEMS.size()];\n      SimpleContainer simplecontainer = p_24794_.getInventory();\n      int k = simplecontainer.getContainerSize();\n      BlockState blockstate = p_24796_;\n\n      for(int l = k - 1; l >= 0 && i > 0; --l) {\n         ItemStack itemstack = simplecontainer.getItem(l);\n         int i1 = COMPOSTABLE_ITEMS.indexOf(itemstack.getItem());\n         if (i1 != -1) {\n            int j1 = itemstack.getCount();\n            int k1 = aint[i1] + j1;\n            aint[i1] = k1;\n            int l1 = Math.min(Math.min(k1 - 10, i), j1);\n            if (l1 > 0) {\n               i -= l1;\n\n               for(int i2 = 0; i2 < l1; ++i2) {\n                  blockstate = ComposterBlock.insertItem(p_24794_, blockstate, p_24793_, itemstack, blockpos);\n                  if (blockstate.getValue(ComposterBlock.LEVEL) == 7) {\n                     this.spawnComposterFillEffects(p_24793_, p_24796_, blockpos, blockstate);\n                     return;\n                  }\n               }\n            }\n         }\n      }\n\n      this.spawnComposterFillEffects(p_24793_, p_24796_, blockpos, blockstate);\n   }\n\n   private void spawnComposterFillEffects(ServerLevel p_24798_, BlockState p_24799_, BlockPos p_24800_, BlockState p_24801_) {\n      p_24798_.levelEvent(1500, p_24800_, p_24801_ != p_24799_ ? 1 : 0);\n   }\n\n   private void makeBread(Villager p_24803_) {\n      SimpleContainer simplecontainer = p_24803_.getInventory();\n      if (simplecontainer.countItem(Items.BREAD) <= 36) {\n         int i = simplecontainer.countItem(Items.WHEAT);\n         int j = 3;\n         int k = 3;\n         int l = Math.min(3, i / 3);\n         if (l != 0) {\n            int i1 = l * 3;\n            simplecontainer.removeItemType(Items.WHEAT, i1);\n            ItemStack itemstack = simplecontainer.addItem(new ItemStack(Items.BREAD, l));\n            if (!itemstack.isEmpty()) {\n               p_24803_.spawnAtLocation(itemstack, 0.5F);\n            }\n\n         }\n      }\n   }\n}",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/HarvestFarmland.java",
+      "entry_sha256": "4164771498aa3a8bcc92af43d53d66ae56ba9236d83548cbc49c78606a1ba012",
+      "lines": [
+        1,
+        155
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "4164771498aa3a8bcc92af43d53d66ae56ba9236d83548cbc49c78606a1ba012",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.Lists;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.ItemTags;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.memory.WalkTarget;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.npc.VillagerProfession;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.BlockItem;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.CropBlock;\nimport net.minecraft.world.level.block.FarmBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class HarvestFarmland extends Behavior<Villager> {\n   private static final int HARVEST_DURATION = 200;\n   public static final float SPEED_MODIFIER = 0.5F;\n   @Nullable\n   private BlockPos aboveFarmlandPos;\n   private long nextOkStartTime;\n   private int timeWorkedSoFar;\n   private final List<BlockPos> validFarmlandAroundVillager = Lists.newArrayList();\n\n   public HarvestFarmland() {\n      super(ImmutableMap.of(MemoryModuleType.LOOK_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SECONDARY_JOB_SITE, MemoryStatus.VALUE_PRESENT));\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_23174_, Villager p_23175_) {\n      if (!net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(p_23174_, p_23175_)) {\n         return false;\n      } else if (p_23175_.getVillagerData().getProfession() != VillagerProfession.FARMER) {\n         return false;\n      } else {\n         BlockPos.MutableBlockPos blockpos$mutableblockpos = p_23175_.blockPosition().mutable();\n         this.validFarmlandAroundVillager.clear();\n\n         for(int i = -1; i <= 1; ++i) {\n            for(int j = -1; j <= 1; ++j) {\n               for(int k = -1; k <= 1; ++k) {\n                  blockpos$mutableblockpos.set(p_23175_.getX() + (double)i, p_23175_.getY() + (double)j, p_23175_.getZ() + (double)k);\n                  if (this.validPos(blockpos$mutableblockpos, p_23174_)) {\n                     this.validFarmlandAroundVillager.add(new BlockPos(blockpos$mutableblockpos));\n                  }\n               }\n            }\n         }\n\n         this.aboveFarmlandPos = this.getValidFarmland(p_23174_);\n         return this.aboveFarmlandPos != null;\n      }\n   }\n\n   @Nullable\n   private BlockPos getValidFarmland(ServerLevel p_23165_) {\n      return this.validFarmlandAroundVillager.isEmpty() ? null : this.validFarmlandAroundVillager.get(p_23165_.getRandom().nextInt(this.validFarmlandAroundVillager.size()));\n   }\n\n   private boolean validPos(BlockPos p_23181_, ServerLevel p_23182_) {\n      BlockState blockstate = p_23182_.getBlockState(p_23181_);\n      Block block = blockstate.getBlock();\n      Block block1 = p_23182_.getBlockState(p_23181_.below()).getBlock();\n      return block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate) || blockstate.isAir() && block1 instanceof FarmBlock;\n   }\n\n   protected void start(ServerLevel p_23177_, Villager p_23178_, long p_23179_) {\n      if (p_23179_ > this.nextOkStartTime && this.aboveFarmlandPos != null) {\n         p_23178_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(this.aboveFarmlandPos));\n         p_23178_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(new BlockPosTracker(this.aboveFarmlandPos), 0.5F, 1));\n      }\n\n   }\n\n   protected void stop(ServerLevel p_23188_, Villager p_23189_, long p_23190_) {\n      p_23189_.getBrain().eraseMemory(MemoryModuleType.LOOK_TARGET);\n      p_23189_.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);\n      this.timeWorkedSoFar = 0;\n      this.nextOkStartTime = p_23190_ + 40L;\n   }\n\n   protected void tick(ServerLevel p_23196_, Villager p_23197_, long p_23198_) {\n      if (this.aboveFarmlandPos == null || this.aboveFarmlandPos.closerToCenterThan(p_23197_.position(), 1.0D)) {\n         if (this.aboveFarmlandPos != null && p_23198_ > this.nextOkStartTime) {\n            BlockState blockstate = p_23196_.getBlockState(this.aboveFarmlandPos);\n            Block block = blockstate.getBlock();\n            Block block1 = p_23196_.getBlockState(this.aboveFarmlandPos.below()).getBlock();\n            if (block instanceof CropBlock && ((CropBlock)block).isMaxAge(blockstate)) {\n               p_23196_.destroyBlock(this.aboveFarmlandPos, true, p_23197_);\n            }\n\n            if (blockstate.isAir() && block1 instanceof FarmBlock && p_23197_.hasFarmSeeds()) {\n               SimpleContainer simplecontainer = p_23197_.getInventory();\n\n               for(int i = 0; i < simplecontainer.getContainerSize(); ++i) {\n                  ItemStack itemstack = simplecontainer.getItem(i);\n                  boolean flag = false;\n                  if (!itemstack.isEmpty() && itemstack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS)) {\n                     Item $$11 = itemstack.getItem();\n                     if ($$11 instanceof BlockItem) {\n                        BlockItem blockitem = (BlockItem)$$11;\n                        BlockState blockstate1 = blockitem.getBlock().defaultBlockState();\n                        p_23196_.setBlockAndUpdate(this.aboveFarmlandPos, blockstate1);\n                        p_23196_.gameEvent(GameEvent.BLOCK_PLACE, this.aboveFarmlandPos, GameEvent.Context.of(p_23197_, blockstate1));\n                        flag = true;\n                     } else if (itemstack.getItem() instanceof net.minecraftforge.common.IPlantable) {\n                        if (((net.minecraftforge.common.IPlantable)itemstack.getItem()).getPlantType(p_23196_, aboveFarmlandPos) == net.minecraftforge.common.PlantType.CROP) {\n                           p_23196_.setBlock(aboveFarmlandPos, ((net.minecraftforge.common.IPlantable)itemstack.getItem()).getPlant(p_23196_, aboveFarmlandPos), 3);\n                           flag = true;\n                        }\n                     }\n                  }\n\n                  if (flag) {\n                     p_23196_.playSound((Player)null, (double)this.aboveFarmlandPos.getX(), (double)this.aboveFarmlandPos.getY(), (double)this.aboveFarmlandPos.getZ(), SoundEvents.CROP_PLANTED, SoundSource.BLOCKS, 1.0F, 1.0F);\n                     itemstack.shrink(1);\n                     if (itemstack.isEmpty()) {\n                        simplecontainer.setItem(i, ItemStack.EMPTY);\n                     }\n                     break;\n                  }\n               }\n            }\n\n            if (block instanceof CropBlock && !((CropBlock)block).isMaxAge(blockstate)) {\n               this.validFarmlandAroundVillager.remove(this.aboveFarmlandPos);\n               this.aboveFarmlandPos = this.getValidFarmland(p_23196_);\n               if (this.aboveFarmlandPos != null) {\n                  this.nextOkStartTime = p_23198_ + 20L;\n                  p_23197_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(new BlockPosTracker(this.aboveFarmlandPos), 0.5F, 1));\n                  p_23197_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(this.aboveFarmlandPos));\n               }\n            }\n         }\n\n         ++this.timeWorkedSoFar;\n      }\n   }\n\n   protected boolean canStillUse(ServerLevel p_23204_, Villager p_23205_, long p_23206_) {\n      return this.timeWorkedSoFar < 200;\n   }\n}\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/WorkAtPoi.java",
+      "entry_sha256": "669f1bdb95a7065b3baf9d0d77ca8b72a654daa33effe44daceb0145488f2b2b",
+      "lines": [
+        1,
+        59
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "669f1bdb95a7065b3baf9d0d77ca8b72a654daa33effe44daceb0145488f2b2b",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport java.util.Optional;\nimport net.minecraft.core.GlobalPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.npc.Villager;\n\npublic class WorkAtPoi extends Behavior<Villager> {\n   private static final int CHECK_COOLDOWN = 300;\n   private static final double DISTANCE = 1.73D;\n   private long lastCheck;\n\n   public WorkAtPoi() {\n      super(ImmutableMap.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT, MemoryModuleType.LOOK_TARGET, MemoryStatus.REGISTERED));\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_24827_, Villager p_24828_) {\n      if (p_24827_.getGameTime() - this.lastCheck < 300L) {\n         return false;\n      } else if (p_24827_.random.nextInt(2) != 0) {\n         return false;\n      } else {\n         this.lastCheck = p_24827_.getGameTime();\n         GlobalPos globalpos = p_24828_.getBrain().getMemory(MemoryModuleType.JOB_SITE).get();\n         return globalpos.dimension() == p_24827_.dimension() && globalpos.pos().closerToCenterThan(p_24828_.position(), 1.73D);\n      }\n   }\n\n   protected void start(ServerLevel p_24816_, Villager p_24817_, long p_24818_) {\n      Brain<Villager> brain = p_24817_.getBrain();\n      brain.setMemory(MemoryModuleType.LAST_WORKED_AT_POI, p_24818_);\n      brain.getMemory(MemoryModuleType.JOB_SITE).ifPresent((p_24821_) -> {\n         brain.setMemory(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(p_24821_.pos()));\n      });\n      p_24817_.playWorkSound();\n      this.useWorkstation(p_24816_, p_24817_);\n      if (p_24817_.shouldRestock()) {\n         p_24817_.restock();\n      }\n\n   }\n\n   protected void useWorkstation(ServerLevel p_24813_, Villager p_24814_) {\n   }\n\n   protected boolean canStillUse(ServerLevel p_24830_, Villager p_24831_, long p_24832_) {\n      Optional<GlobalPos> optional = p_24831_.getBrain().getMemory(MemoryModuleType.JOB_SITE);\n      if (!optional.isPresent()) {\n         return false;\n      } else {\n         GlobalPos globalpos = optional.get();\n         return globalpos.dimension() == p_24830_.dimension() && globalpos.pos().closerToCenterThan(p_24831_.position(), 1.73D);\n      }\n   }\n}",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/UseBonemeal.java",
+      "entry_sha256": "fe5935596ffa9ce4f91eda46df5addec4e6bc136469d743984b20560e2d9c2a7",
+      "lines": [
+        1,
+        121
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "fe5935596ffa9ce4f91eda46df5addec4e6bc136469d743984b20560e2d9c2a7",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableMap;\nimport java.util.Optional;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.memory.WalkTarget;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.item.BoneMealItem;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.CropBlock;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic class UseBonemeal extends Behavior<Villager> {\n   private static final int BONEMEALING_DURATION = 80;\n   private long nextWorkCycleTime;\n   private long lastBonemealingSession;\n   private int timeWorkedSoFar;\n   private Optional<BlockPos> cropPos = Optional.empty();\n\n   public UseBonemeal() {\n      super(ImmutableMap.of(MemoryModuleType.LOOK_TARGET, MemoryStatus.VALUE_ABSENT, MemoryModuleType.WALK_TARGET, MemoryStatus.VALUE_ABSENT));\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_24474_, Villager p_24475_) {\n      if (p_24475_.tickCount % 10 == 0 && (this.lastBonemealingSession == 0L || this.lastBonemealingSession + 160L <= (long)p_24475_.tickCount)) {\n         if (p_24475_.getInventory().countItem(Items.BONE_MEAL) <= 0) {\n            return false;\n         } else {\n            this.cropPos = this.pickNextTarget(p_24474_, p_24475_);\n            return this.cropPos.isPresent();\n         }\n      } else {\n         return false;\n      }\n   }\n\n   protected boolean canStillUse(ServerLevel p_24477_, Villager p_24478_, long p_24479_) {\n      return this.timeWorkedSoFar < 80 && this.cropPos.isPresent();\n   }\n\n   private Optional<BlockPos> pickNextTarget(ServerLevel p_24493_, Villager p_24494_) {\n      BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();\n      Optional<BlockPos> optional = Optional.empty();\n      int i = 0;\n\n      for(int j = -1; j <= 1; ++j) {\n         for(int k = -1; k <= 1; ++k) {\n            for(int l = -1; l <= 1; ++l) {\n               blockpos$mutableblockpos.setWithOffset(p_24494_.blockPosition(), j, k, l);\n               if (this.validPos(blockpos$mutableblockpos, p_24493_)) {\n                  ++i;\n                  if (p_24493_.random.nextInt(i) == 0) {\n                     optional = Optional.of(blockpos$mutableblockpos.immutable());\n                  }\n               }\n            }\n         }\n      }\n\n      return optional;\n   }\n\n   private boolean validPos(BlockPos p_24486_, ServerLevel p_24487_) {\n      BlockState blockstate = p_24487_.getBlockState(p_24486_);\n      Block block = blockstate.getBlock();\n      return block instanceof CropBlock && !((CropBlock)block).isMaxAge(blockstate);\n   }\n\n   protected void start(ServerLevel p_24496_, Villager p_24497_, long p_24498_) {\n      this.setCurrentCropAsTarget(p_24497_);\n      p_24497_.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.BONE_MEAL));\n      this.nextWorkCycleTime = p_24498_;\n      this.timeWorkedSoFar = 0;\n   }\n\n   private void setCurrentCropAsTarget(Villager p_24481_) {\n      this.cropPos.ifPresent((p_24484_) -> {\n         BlockPosTracker blockpostracker = new BlockPosTracker(p_24484_);\n         p_24481_.getBrain().setMemory(MemoryModuleType.LOOK_TARGET, blockpostracker);\n         p_24481_.getBrain().setMemory(MemoryModuleType.WALK_TARGET, new WalkTarget(blockpostracker, 0.5F, 1));\n      });\n   }\n\n   protected void stop(ServerLevel p_24504_, Villager p_24505_, long p_24506_) {\n      p_24505_.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);\n      this.lastBonemealingSession = (long)p_24505_.tickCount;\n   }\n\n   protected void tick(ServerLevel p_24512_, Villager p_24513_, long p_24514_) {\n      BlockPos blockpos = this.cropPos.get();\n      if (p_24514_ >= this.nextWorkCycleTime && blockpos.closerToCenterThan(p_24513_.position(), 1.0D)) {\n         ItemStack itemstack = ItemStack.EMPTY;\n         SimpleContainer simplecontainer = p_24513_.getInventory();\n         int i = simplecontainer.getContainerSize();\n\n         for(int j = 0; j < i; ++j) {\n            ItemStack itemstack1 = simplecontainer.getItem(j);\n            if (itemstack1.is(Items.BONE_MEAL)) {\n               itemstack = itemstack1;\n               break;\n            }\n         }\n\n         if (!itemstack.isEmpty() && BoneMealItem.growCrop(itemstack, p_24512_, blockpos)) {\n            p_24512_.levelEvent(1505, blockpos, 0);\n            this.cropPos = this.pickNextTarget(p_24512_, p_24513_);\n            this.setCurrentCropAsTarget(p_24513_);\n            this.nextWorkCycleTime = p_24514_ + 40L;\n         }\n\n         ++this.timeWorkedSoFar;\n      }\n   }\n}",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/ComposterBlock.java",
+      "entry_sha256": "aab0cec67eb4398215fb6dcf15ab1ab18f070c1a8f8ab3489b463283bf03699e",
+      "lines": [
+        43,
+        94
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d15e93ac345c8bdec0498392fa8e573b595cec3a22adbaae8147186ba7e4839c",
+      "raw_excerpt_utf8": "public class ComposterBlock extends Block implements WorldlyContainerHolder {\n   public static final int READY = 8;\n   public static final int MIN_LEVEL = 0;\n   public static final int MAX_LEVEL = 7;\n   public static final IntegerProperty LEVEL = BlockStateProperties.LEVEL_COMPOSTER;\n   public static final Object2FloatMap<ItemLike> COMPOSTABLES = new Object2FloatOpenHashMap<>();\n   private static final int AABB_SIDE_THICKNESS = 2;\n   private static final VoxelShape OUTER_SHAPE = Shapes.block();\n   private static final VoxelShape[] SHAPES = Util.make(new VoxelShape[9], (p_51967_) -> {\n      for(int i = 0; i < 8; ++i) {\n         p_51967_[i] = Shapes.join(OUTER_SHAPE, Block.box(2.0D, (double)Math.max(2, 1 + i * 2), 2.0D, 14.0D, 16.0D, 14.0D), BooleanOp.ONLY_FIRST);\n      }\n\n      p_51967_[8] = p_51967_[7];\n   });\n\n   public static void bootStrap() {\n      COMPOSTABLES.defaultReturnValue(-1.0F);\n      float f = 0.3F;\n      float f1 = 0.5F;\n      float f2 = 0.65F;\n      float f3 = 0.85F;\n      float f4 = 1.0F;\n      add(0.3F, Items.JUNGLE_LEAVES);\n      add(0.3F, Items.OAK_LEAVES);\n      add(0.3F, Items.SPRUCE_LEAVES);\n      add(0.3F, Items.DARK_OAK_LEAVES);\n      add(0.3F, Items.ACACIA_LEAVES);\n      add(0.3F, Items.CHERRY_LEAVES);\n      add(0.3F, Items.BIRCH_LEAVES);\n      add(0.3F, Items.AZALEA_LEAVES);\n      add(0.3F, Items.MANGROVE_LEAVES);\n      add(0.3F, Items.OAK_SAPLING);\n      add(0.3F, Items.SPRUCE_SAPLING);\n      add(0.3F, Items.BIRCH_SAPLING);\n      add(0.3F, Items.JUNGLE_SAPLING);\n      add(0.3F, Items.ACACIA_SAPLING);\n      add(0.3F, Items.CHERRY_SAPLING);\n      add(0.3F, Items.DARK_OAK_SAPLING);\n      add(0.3F, Items.MANGROVE_PROPAGULE);\n      add(0.3F, Items.BEETROOT_SEEDS);\n      add(0.3F, Items.DRIED_KELP);\n      add(0.3F, Items.GRASS);\n      add(0.3F, Items.KELP);\n      add(0.3F, Items.MELON_SEEDS);\n      add(0.3F, Items.PUMPKIN_SEEDS);\n      add(0.3F, Items.SEAGRASS);\n      add(0.3F, Items.SWEET_BERRIES);\n      add(0.3F, Items.GLOW_BERRIES);\n      add(0.3F, Items.WHEAT_SEEDS);\n      add(0.3F, Items.MOSS_CARPET);\n      add(0.3F, Items.PINK_PETALS);\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/ComposterBlock.java",
+      "entry_sha256": "aab0cec67eb4398215fb6dcf15ab1ab18f070c1a8f8ab3489b463283bf03699e",
+      "lines": [
+        169,
+        173
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8f0ae35eb9ace21aad2beb20be4025676ee9d2fd6e9dfba9781727f9a9ca58c5",
+      "raw_excerpt_utf8": "   private static void add(float p_51921_, ItemLike p_51922_) {\n      COMPOSTABLES.put(p_51922_.asItem(), p_51921_);\n   }\n\n   public ComposterBlock(BlockBehaviour.Properties p_51919_) {\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/ComposterBlock.java",
+      "entry_sha256": "aab0cec67eb4398215fb6dcf15ab1ab18f070c1a8f8ab3489b463283bf03699e",
+      "lines": [
+        195,
+        294
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a16f755f522335200501db7ba41187c69867790eed00b97bf0af2f78c82249c4",
+      "raw_excerpt_utf8": "   public VoxelShape getShape(BlockState p_51973_, BlockGetter p_51974_, BlockPos p_51975_, CollisionContext p_51976_) {\n      return SHAPES[p_51973_.getValue(LEVEL)];\n   }\n\n   public VoxelShape getInteractionShape(BlockState p_51969_, BlockGetter p_51970_, BlockPos p_51971_) {\n      return OUTER_SHAPE;\n   }\n\n   public VoxelShape getCollisionShape(BlockState p_51990_, BlockGetter p_51991_, BlockPos p_51992_, CollisionContext p_51993_) {\n      return SHAPES[0];\n   }\n\n   public void onPlace(BlockState p_51978_, Level p_51979_, BlockPos p_51980_, BlockState p_51981_, boolean p_51982_) {\n      if (p_51978_.getValue(LEVEL) == 7) {\n         p_51979_.scheduleTick(p_51980_, p_51978_.getBlock(), 20);\n      }\n\n   }\n\n   public InteractionResult use(BlockState p_51949_, Level p_51950_, BlockPos p_51951_, Player p_51952_, InteractionHand p_51953_, BlockHitResult p_51954_) {\n      int i = p_51949_.getValue(LEVEL);\n      ItemStack itemstack = p_51952_.getItemInHand(p_51953_);\n      if (i < 8 && COMPOSTABLES.containsKey(itemstack.getItem())) {\n         if (i < 7 && !p_51950_.isClientSide) {\n            BlockState blockstate = addItem(p_51952_, p_51949_, p_51950_, p_51951_, itemstack);\n            p_51950_.levelEvent(1500, p_51951_, p_51949_ != blockstate ? 1 : 0);\n            p_51952_.awardStat(Stats.ITEM_USED.get(itemstack.getItem()));\n            if (!p_51952_.getAbilities().instabuild) {\n               itemstack.shrink(1);\n            }\n         }\n\n         return InteractionResult.sidedSuccess(p_51950_.isClientSide);\n      } else if (i == 8) {\n         extractProduce(p_51952_, p_51949_, p_51950_, p_51951_);\n         return InteractionResult.sidedSuccess(p_51950_.isClientSide);\n      } else {\n         return InteractionResult.PASS;\n      }\n   }\n\n   public static BlockState insertItem(Entity p_270919_, BlockState p_270087_, ServerLevel p_270284_, ItemStack p_270253_, BlockPos p_270678_) {\n      int i = p_270087_.getValue(LEVEL);\n      if (i < 7 && COMPOSTABLES.containsKey(p_270253_.getItem())) {\n         BlockState blockstate = addItem(p_270919_, p_270087_, p_270284_, p_270678_, p_270253_);\n         p_270253_.shrink(1);\n         return blockstate;\n      } else {\n         return p_270087_;\n      }\n   }\n\n   public static BlockState extractProduce(Entity p_270467_, BlockState p_51999_, Level p_52000_, BlockPos p_52001_) {\n      if (!p_52000_.isClientSide) {\n         Vec3 vec3 = Vec3.atLowerCornerWithOffset(p_52001_, 0.5D, 1.01D, 0.5D).offsetRandom(p_52000_.random, 0.7F);\n         ItemEntity itementity = new ItemEntity(p_52000_, vec3.x(), vec3.y(), vec3.z(), new ItemStack(Items.BONE_MEAL));\n         itementity.setDefaultPickUpDelay();\n         p_52000_.addFreshEntity(itementity);\n      }\n\n      BlockState blockstate = empty(p_270467_, p_51999_, p_52000_, p_52001_);\n      p_52000_.playSound((Player)null, p_52001_, SoundEvents.COMPOSTER_EMPTY, SoundSource.BLOCKS, 1.0F, 1.0F);\n      return blockstate;\n   }\n\n   static BlockState empty(@Nullable Entity p_270236_, BlockState p_270873_, LevelAccessor p_270963_, BlockPos p_270211_) {\n      BlockState blockstate = p_270873_.setValue(LEVEL, Integer.valueOf(0));\n      p_270963_.setBlock(p_270211_, blockstate, 3);\n      p_270963_.gameEvent(GameEvent.BLOCK_CHANGE, p_270211_, GameEvent.Context.of(p_270236_, blockstate));\n      return blockstate;\n   }\n\n   static BlockState addItem(@Nullable Entity p_270464_, BlockState p_270603_, LevelAccessor p_270151_, BlockPos p_270547_, ItemStack p_270354_) {\n      int i = p_270603_.getValue(LEVEL);\n      float f = COMPOSTABLES.getFloat(p_270354_.getItem());\n      if ((i != 0 || !(f > 0.0F)) && !(p_270151_.getRandom().nextDouble() < (double)f)) {\n         return p_270603_;\n      } else {\n         int j = i + 1;\n         BlockState blockstate = p_270603_.setValue(LEVEL, Integer.valueOf(j));\n         p_270151_.setBlock(p_270547_, blockstate, 3);\n         p_270151_.gameEvent(GameEvent.BLOCK_CHANGE, p_270547_, GameEvent.Context.of(p_270464_, blockstate));\n         if (j == 7) {\n            p_270151_.scheduleTick(p_270547_, p_270603_.getBlock(), 20);\n         }\n\n         return blockstate;\n      }\n   }\n\n   public void tick(BlockState p_221015_, ServerLevel p_221016_, BlockPos p_221017_, RandomSource p_221018_) {\n      if (p_221015_.getValue(LEVEL) == 7) {\n         p_221016_.setBlock(p_221017_, p_221015_.cycle(LEVEL), 3);\n         p_221016_.playSound((Player)null, p_221017_, SoundEvents.COMPOSTER_READY, SoundSource.BLOCKS, 1.0F, 1.0F);\n      }\n\n   }\n\n   public boolean hasAnalogOutputSignal(BlockState p_51928_) {\n      return true;\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        752,
+        788
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "4f5e8cd9da47e71b9718e0a523d412604b3c68606ed2adb53ec9caaa9cf804e2",
+      "raw_excerpt_utf8": "   protected void pickUpItem(ItemEntity p_35467_) {\n      InventoryCarrier.pickUpItem(this, this, p_35467_);\n   }\n\n   public boolean wantsToPickUp(ItemStack p_35543_) {\n      Item item = p_35543_.getItem();\n      return (WANTED_ITEMS.contains(item) || this.getVillagerData().getProfession().requestedItems().contains(item)) && this.getInventory().canAddItem(p_35543_);\n   }\n\n   public boolean hasExcessFood() {\n      return this.countFoodPointsInInventory() >= 24;\n   }\n\n   public boolean wantsMoreFood() {\n      return this.countFoodPointsInInventory() < 12;\n   }\n\n   private int countFoodPointsInInventory() {\n      SimpleContainer simplecontainer = this.getInventory();\n      return FOOD_POINTS.entrySet().stream().mapToInt((p_186300_) -> {\n         return simplecontainer.countItem(p_186300_.getKey()) * p_186300_.getValue();\n      }).sum();\n   }\n\n   public boolean hasFarmSeeds() {\n      return this.getInventory().hasAnyMatching((p_281096_) -> {\n         return p_281096_.is(ItemTags.VILLAGER_PLANTABLE_SEEDS);\n      });\n   }\n\n   protected void updateTrades() {\n      VillagerData villagerdata = this.getVillagerData();\n      Int2ObjectMap<VillagerTrades.ItemListing[]> int2objectmap = VillagerTrades.TRADES.get(villagerdata.getProfession());\n      if (int2objectmap != null && !int2objectmap.isEmpty()) {\n         VillagerTrades.ItemListing[] avillagertrades$itemlisting = int2objectmap.get(villagerdata.getLevel());\n         if (avillagertrades$itemlisting != null) {\n            MerchantOffers merchantoffers = this.getOffers();\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/VillagerProfession.java",
+      "entry_sha256": "264b3c3630e374181cf2788f166beb543415441d66b9edae98ed7377f26d46f5",
+      "lines": [
+        21,
+        32
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "8c0334ce694c60c55af1009952d1996a815d4e094b03bb24af6ae76661b191e3",
+      "raw_excerpt_utf8": "public record VillagerProfession(String name, Predicate<Holder<PoiType>> heldJobSite, Predicate<Holder<PoiType>> acquirableJobSite, ImmutableSet<Item> requestedItems, ImmutableSet<Block> secondaryPoi, @Nullable SoundEvent workSound) {\n   public static final Predicate<Holder<PoiType>> ALL_ACQUIRABLE_JOBS = (p_238239_) -> {\n      return p_238239_.is(PoiTypeTags.ACQUIRABLE_JOB_SITE);\n   };\n   public static final VillagerProfession NONE = register(\"none\", PoiType.NONE, ALL_ACQUIRABLE_JOBS, (SoundEvent)null);\n   public static final VillagerProfession ARMORER = register(\"armorer\", PoiTypes.ARMORER, SoundEvents.VILLAGER_WORK_ARMORER);\n   public static final VillagerProfession BUTCHER = register(\"butcher\", PoiTypes.BUTCHER, SoundEvents.VILLAGER_WORK_BUTCHER);\n   public static final VillagerProfession CARTOGRAPHER = register(\"cartographer\", PoiTypes.CARTOGRAPHER, SoundEvents.VILLAGER_WORK_CARTOGRAPHER);\n   public static final VillagerProfession CLERIC = register(\"cleric\", PoiTypes.CLERIC, SoundEvents.VILLAGER_WORK_CLERIC);\n   public static final VillagerProfession FARMER = register(\"farmer\", PoiTypes.FARMER, ImmutableSet.of(Items.WHEAT, Items.WHEAT_SEEDS, Items.BEETROOT_SEEDS, Items.BONE_MEAL), ImmutableSet.of(Blocks.FARMLAND), SoundEvents.VILLAGER_WORK_FARMER);\n   public static final VillagerProfession FISHERMAN = register(\"fisherman\", PoiTypes.FISHERMAN, SoundEvents.VILLAGER_WORK_FISHERMAN);\n   public static final VillagerProfession FLETCHER = register(\"fletcher\", PoiTypes.FLETCHER, SoundEvents.VILLAGER_WORK_FLETCHER);\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/InventoryCarrier.java",
+      "entry_sha256": "34a7e00aa0d11bd46f264a278b27c59c0fce68f2378b272d109e8412b6991a64",
+      "lines": [
+        1,
+        46
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "34a7e00aa0d11bd46f264a278b27c59c0fce68f2378b272d109e8412b6991a64",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.npc;\n\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.world.SimpleContainer;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.item.ItemStack;\n\npublic interface InventoryCarrier {\n   String TAG_INVENTORY = \"Inventory\";\n\n   SimpleContainer getInventory();\n\n   static void pickUpItem(Mob p_219612_, InventoryCarrier p_219613_, ItemEntity p_219614_) {\n      ItemStack itemstack = p_219614_.getItem();\n      if (p_219612_.wantsToPickUp(itemstack)) {\n         SimpleContainer simplecontainer = p_219613_.getInventory();\n         boolean flag = simplecontainer.canAddItem(itemstack);\n         if (!flag) {\n            return;\n         }\n\n         p_219612_.onItemPickup(p_219614_);\n         int i = itemstack.getCount();\n         ItemStack itemstack1 = simplecontainer.addItem(itemstack);\n         p_219612_.take(p_219614_, i - itemstack1.getCount());\n         if (itemstack1.isEmpty()) {\n            p_219614_.discard();\n         } else {\n            itemstack.setCount(itemstack1.getCount());\n         }\n      }\n\n   }\n\n   default void readInventoryFromTag(CompoundTag p_253699_) {\n      if (p_253699_.contains(\"Inventory\", 9)) {\n         this.getInventory().fromTag(p_253699_.getList(\"Inventory\", 10));\n      }\n\n   }\n\n   default void writeInventoryToTag(CompoundTag p_254428_) {\n      p_254428_.put(\"Inventory\", this.getInventory().createTag());\n   }\n}",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/item/BoneMealItem.java",
+      "entry_sha256": "e76a54dbdec658a4f5e12469fc1393ee7d447a56b456208b8117c820eae2133f",
+      "lines": [
+        58,
+        94
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e1d26c6784e90d9f45f9914cc2ea2ca54f96082d51308f3a39dba70877c1b5b5",
+      "raw_excerpt_utf8": "   public static boolean growCrop(ItemStack p_40628_, Level p_40629_, BlockPos p_40630_) {\n      if (p_40629_ instanceof net.minecraft.server.level.ServerLevel)\n         return applyBonemeal(p_40628_, p_40629_, p_40630_, net.minecraftforge.common.util.FakePlayerFactory.getMinecraft((net.minecraft.server.level.ServerLevel)p_40629_));\n      return false;\n   }\n\n   public static boolean applyBonemeal(ItemStack p_40628_, Level p_40629_, BlockPos p_40630_, net.minecraft.world.entity.player.Player player) {\n      BlockState blockstate = p_40629_.getBlockState(p_40630_);\n      int hook = net.minecraftforge.event.ForgeEventFactory.onApplyBonemeal(player, p_40629_, p_40630_, blockstate, p_40628_);\n      if (hook != 0) return hook > 0;\n      if (blockstate.getBlock() instanceof BonemealableBlock) {\n         BonemealableBlock bonemealableblock = (BonemealableBlock)blockstate.getBlock();\n         if (bonemealableblock.isValidBonemealTarget(p_40629_, p_40630_, blockstate, p_40629_.isClientSide)) {\n            if (p_40629_ instanceof ServerLevel) {\n               if (bonemealableblock.isBonemealSuccess(p_40629_, p_40629_.random, p_40630_, blockstate)) {\n                  bonemealableblock.performBonemeal((ServerLevel)p_40629_, p_40629_.random, p_40630_, blockstate);\n               }\n\n               p_40628_.shrink(1);\n            }\n\n            return true;\n         }\n      }\n\n      return false;\n   }\n\n   public static boolean growWaterPlant(ItemStack p_40632_, Level p_40633_, BlockPos p_40634_, @Nullable Direction p_40635_) {\n      if (p_40633_.getBlockState(p_40634_).is(Blocks.WATER) && p_40633_.getFluidState(p_40634_).getAmount() == 8) {\n         if (!(p_40633_ instanceof ServerLevel)) {\n            return true;\n         } else {\n            RandomSource randomsource = p_40633_.getRandom();\n\n            label78:\n            for(int i = 0; i < 128; ++i) {\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/CropBlock.java",
+      "entry_sha256": "a8ac04740df650451de900a25721ed02762a65d203acb329db037aa6f50e74ca",
+      "lines": [
+        81,
+        94
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "d8cb59615d6eac1a4580938aacd5a11008cc8b80eee6fb3719b66d166f523a40",
+      "raw_excerpt_utf8": "   public void growCrops(Level p_52264_, BlockPos p_52265_, BlockState p_52266_) {\n      int i = this.getAge(p_52266_) + this.getBonemealAgeIncrease(p_52264_);\n      int j = this.getMaxAge();\n      if (i > j) {\n         i = j;\n      }\n\n      p_52264_.setBlock(p_52265_, this.getStateForAge(i), 2);\n   }\n\n   protected int getBonemealAgeIncrease(Level p_52262_) {\n      return Mth.nextInt(p_52262_.random, 2, 5);\n   }\n\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/CropBlock.java",
+      "entry_sha256": "a8ac04740df650451de900a25721ed02762a65d203acb329db037aa6f50e74ca",
+      "lines": [
+        156,
+        171
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "670de04683e3ef3f3fc029a9dd718b990bbee197e8aa8be8c555088c7b1492de",
+      "raw_excerpt_utf8": "   public boolean isValidBonemealTarget(LevelReader p_255715_, BlockPos p_52259_, BlockState p_52260_, boolean p_52261_) {\n      return !this.isMaxAge(p_52260_);\n   }\n\n   public boolean isBonemealSuccess(Level p_221045_, RandomSource p_221046_, BlockPos p_221047_, BlockState p_221048_) {\n      return true;\n   }\n\n   public void performBonemeal(ServerLevel p_221040_, RandomSource p_221041_, BlockPos p_221042_, BlockState p_221043_) {\n      this.growCrops(p_221040_, p_221042_, p_221043_);\n   }\n\n   protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> p_52286_) {\n      p_52286_.add(AGE);\n   }\n}\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/SimpleContainer.java",
+      "entry_sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+      "lines": [
+        68,
+        118
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5d97435dbc0eca79fd906a35844b08d5a50fed0cb63f2e1a2e52738bf40c4244",
+      "raw_excerpt_utf8": "   public ItemStack removeItemType(Item p_19171_, int p_19172_) {\n      ItemStack itemstack = new ItemStack(p_19171_, 0);\n\n      for(int i = this.size - 1; i >= 0; --i) {\n         ItemStack itemstack1 = this.getItem(i);\n         if (itemstack1.getItem().equals(p_19171_)) {\n            int j = p_19172_ - itemstack.getCount();\n            ItemStack itemstack2 = itemstack1.split(j);\n            itemstack.grow(itemstack2.getCount());\n            if (itemstack.getCount() == p_19172_) {\n               break;\n            }\n         }\n      }\n\n      if (!itemstack.isEmpty()) {\n         this.setChanged();\n      }\n\n      return itemstack;\n   }\n\n   public ItemStack addItem(ItemStack p_19174_) {\n      if (p_19174_.isEmpty()) {\n         return ItemStack.EMPTY;\n      } else {\n         ItemStack itemstack = p_19174_.copy();\n         this.moveItemToOccupiedSlotsWithSameType(itemstack);\n         if (itemstack.isEmpty()) {\n            return ItemStack.EMPTY;\n         } else {\n            this.moveItemToEmptySlots(itemstack);\n            return itemstack.isEmpty() ? ItemStack.EMPTY : itemstack;\n         }\n      }\n   }\n\n   public boolean canAddItem(ItemStack p_19184_) {\n      boolean flag = false;\n\n      for(ItemStack itemstack : this.items) {\n         if (itemstack.isEmpty() || ItemStack.isSameItemSameTags(itemstack, p_19184_) && itemstack.getCount() < itemstack.getMaxStackSize()) {\n            flag = true;\n            break;\n         }\n      }\n\n      return flag;\n   }\n\n   public ItemStack removeItemNoUpdate(int p_19180_) {\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "lines": [
+        432,
+        444
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a332f4d1f87d6b75a982b4b122174406e24d3815d3083fc6345866aa45825ab1",
+      "raw_excerpt_utf8": "    public static int onApplyBonemeal(@NotNull Player player, @NotNull Level level, @NotNull BlockPos pos, @NotNull BlockState state, @NotNull ItemStack stack)\n    {\n        BonemealEvent event = new BonemealEvent(player, level, pos, state, stack);\n        if (MinecraftForge.EVENT_BUS.post(event)) return -1;\n        if (event.getResult() == Result.ALLOW)\n        {\n            if (!level.isClientSide)\n                stack.shrink(1);\n            return 1;\n        }\n        return 0;\n    }\n\n",
+      "reading_basis": "Actual visible nontruncated line-numbered source reads this chat, adjacent Composter43–90/91–94 and Container68–114/115–118 joined only with all lines actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/Mob.java",
+      "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+      "lines": [
+        534,
+        555
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "84461f7e27d11b824565f8c0880c89bbe5313bf9d037fc461305f70109e4f587",
+      "raw_excerpt_utf8": "\n   public void aiStep() {\n      super.aiStep();\n      this.level().getProfiler().push(\"looting\");\n         Vec3i vec3i = this.getPickupReach();\n\n      if (!this.level().isClientSide && this.canPickUpLoot() && this.isAlive() && !this.dead && net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(this.level(), this)) {\n         for(ItemEntity itementity : this.level().getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate((double)vec3i.getX(), (double)vec3i.getY(), (double)vec3i.getZ()))) {\n            if (!itementity.isRemoved() && !itementity.getItem().isEmpty() && !itementity.hasPickUpDelay() && this.wantsToPickUp(itementity.getItem())) {\n               this.pickUpItem(itementity);\n            }\n         }\n      }\n\n      this.level().getProfiler().pop();\n   }\n\n   protected Vec3i getPickupReach() {\n      return ITEM_PICKUP_REACH;\n   }\n\n   protected void pickUpItem(ItemEntity p_21471_) {\n",
+      "reading_basis": "Actual visible source reads; Mob534–551 and551–555 contiguous merged without duplicate boundary counting. SimpleContainer182–211 and212–216 both actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/SimpleContainer.java",
+      "entry_sha256": "b13c92300ee28b5a360a52e321b2da81bde1f3f02517f905530d8e70a620d1e6",
+      "lines": [
+        182,
+        216
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "a48a3136d2680c09b011ec0c9eb5288724d935d2bd7754a67db04097586fe6bd",
+      "raw_excerpt_utf8": "   private void moveItemToEmptySlots(ItemStack p_19190_) {\n      for(int i = 0; i < this.size; ++i) {\n         ItemStack itemstack = this.getItem(i);\n         if (itemstack.isEmpty()) {\n            this.setItem(i, p_19190_.copyAndClear());\n            return;\n         }\n      }\n\n   }\n\n   private void moveItemToOccupiedSlotsWithSameType(ItemStack p_19192_) {\n      for(int i = 0; i < this.size; ++i) {\n         ItemStack itemstack = this.getItem(i);\n         if (ItemStack.isSameItemSameTags(itemstack, p_19192_)) {\n            this.moveItemsBetweenStacks(p_19192_, itemstack);\n            if (p_19192_.isEmpty()) {\n               return;\n            }\n         }\n      }\n\n   }\n\n   private void moveItemsBetweenStacks(ItemStack p_19186_, ItemStack p_19187_) {\n      int i = Math.min(this.getMaxStackSize(), p_19187_.getMaxStackSize());\n      int j = Math.min(p_19186_.getCount(), i - p_19187_.getCount());\n      if (j > 0) {\n         p_19187_.grow(j);\n         p_19186_.shrink(j);\n         this.setChanged();\n      }\n\n   }\n\n",
+      "reading_basis": "Actual visible source reads; Mob534–551 and551–555 contiguous merged without duplicate boundary counting. SimpleContainer182–211 and212–216 both actually read.",
+      "range_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/Container.java",
+      "entry_sha256": "c38df54865e6b9f454426fdc8fd80ea5abd09cc74663d5855076ea8ed1fa6bba",
+      "lines": [
+        50,
+        61
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "dfa610e4050ce69e65c3deb5a75c881b4772fb1905a5979ceb012f0478d09f40",
+      "raw_excerpt_utf8": "   default int countItem(Item p_18948_) {\n      int i = 0;\n\n      for(int j = 0; j < this.getContainerSize(); ++j) {\n         ItemStack itemstack = this.getItem(j);\n         if (itemstack.getItem().equals(p_18948_)) {\n            i += itemstack.getCount();\n         }\n      }\n\n      return i;\n   }\n",
+      "reading_basis": "Actual visible source reads; Mob534–551 and551–555 contiguous merged without duplicate boundary counting. SimpleContainer182–211 and212–216 both actually read.",
+      "range_credit": 0
+    }
+  ],
+  "actual_read_range_count": 18,
+  "actual_read_entry_count": 14,
+  "actual_full_file_count": 5,
+  "actual_cited_lines": 882,
+  "prior_actual_own_native_support_reused_zero": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/npc/Villager.java",
+      "entry_sha256": "f4c2a0b83b9143ee8a8b859a0abbdce792fa9c5aede3e432e2683e46b0ab9f79",
+      "lines": [
+        122,
+        190
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "ea7bc08f8f5c58d295c9e513ad5122d2f3e8b00c0e5142d1a8f12b9337a9ccf9",
+      "raw_excerpt_utf8": "   private static final ImmutableList<MemoryModuleType<?>> MEMORY_TYPES = ImmutableList.of(MemoryModuleType.HOME, MemoryModuleType.JOB_SITE, MemoryModuleType.POTENTIAL_JOB_SITE, MemoryModuleType.MEETING_POINT, MemoryModuleType.NEAREST_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.VISIBLE_VILLAGER_BABIES, MemoryModuleType.NEAREST_PLAYERS, MemoryModuleType.NEAREST_VISIBLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM, MemoryModuleType.ITEM_PICKUP_COOLDOWN_TICKS, MemoryModuleType.WALK_TARGET, MemoryModuleType.LOOK_TARGET, MemoryModuleType.INTERACTION_TARGET, MemoryModuleType.BREED_TARGET, MemoryModuleType.PATH, MemoryModuleType.DOORS_TO_CLOSE, MemoryModuleType.NEAREST_BED, MemoryModuleType.HURT_BY, MemoryModuleType.HURT_BY_ENTITY, MemoryModuleType.NEAREST_HOSTILE, MemoryModuleType.SECONDARY_JOB_SITE, MemoryModuleType.HIDING_PLACE, MemoryModuleType.HEARD_BELL_TIME, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.LAST_SLEPT, MemoryModuleType.LAST_WOKEN, MemoryModuleType.LAST_WORKED_AT_POI, MemoryModuleType.GOLEM_DETECTED_RECENTLY);\n   private static final ImmutableList<SensorType<? extends Sensor<? super Villager>>> SENSOR_TYPES = ImmutableList.of(SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS, SensorType.NEAREST_ITEMS, SensorType.NEAREST_BED, SensorType.HURT_BY, SensorType.VILLAGER_HOSTILES, SensorType.VILLAGER_BABIES, SensorType.SECONDARY_POIS, SensorType.GOLEM_DETECTED);\n   public static final Map<MemoryModuleType<GlobalPos>, BiPredicate<Villager, Holder<PoiType>>> POI_MEMORIES = ImmutableMap.of(MemoryModuleType.HOME, (p_219625_, p_219626_) -> {\n      return p_219626_.is(PoiTypes.HOME);\n   }, MemoryModuleType.JOB_SITE, (p_219622_, p_219623_) -> {\n      return p_219622_.getVillagerData().getProfession().heldJobSite().test(p_219623_);\n   }, MemoryModuleType.POTENTIAL_JOB_SITE, (p_219619_, p_219620_) -> {\n      return VillagerProfession.ALL_ACQUIRABLE_JOBS.test(p_219620_);\n   }, MemoryModuleType.MEETING_POINT, (p_219616_, p_219617_) -> {\n      return p_219617_.is(PoiTypes.MEETING);\n   });\n\n   public Villager(EntityType<? extends Villager> p_35381_, Level p_35382_) {\n      this(p_35381_, p_35382_, VillagerType.PLAINS);\n   }\n\n   public Villager(EntityType<? extends Villager> p_35384_, Level p_35385_, VillagerType p_35386_) {\n      super(p_35384_, p_35385_);\n      ((GroundPathNavigation)this.getNavigation()).setCanOpenDoors(true);\n      this.getNavigation().setCanFloat(true);\n      this.setCanPickUpLoot(true);\n      this.setVillagerData(this.getVillagerData().setType(p_35386_).setProfession(VillagerProfession.NONE));\n   }\n\n   public Brain<Villager> getBrain() {\n      return (Brain<Villager>)super.getBrain();\n   }\n\n   protected Brain.Provider<Villager> brainProvider() {\n      return Brain.provider(MEMORY_TYPES, SENSOR_TYPES);\n   }\n\n   protected Brain<?> makeBrain(Dynamic<?> p_35445_) {\n      Brain<Villager> brain = this.brainProvider().makeBrain(p_35445_);\n      this.registerBrainGoals(brain);\n      return brain;\n   }\n\n   public void refreshBrain(ServerLevel p_35484_) {\n      Brain<Villager> brain = this.getBrain();\n      brain.stopAll(p_35484_, this);\n      this.brain = brain.copyWithoutBehaviors();\n      this.registerBrainGoals(this.getBrain());\n   }\n\n   private void registerBrainGoals(Brain<Villager> p_35425_) {\n      VillagerProfession villagerprofession = this.getVillagerData().getProfession();\n      if (this.isBaby()) {\n         p_35425_.setSchedule(Schedule.VILLAGER_BABY);\n         p_35425_.addActivity(Activity.PLAY, VillagerGoalPackages.getPlayPackage(0.5F));\n      } else {\n         p_35425_.setSchedule(Schedule.VILLAGER_DEFAULT);\n         p_35425_.addActivityWithConditions(Activity.WORK, VillagerGoalPackages.getWorkPackage(villagerprofession, 0.5F), ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT)));\n      }\n\n      p_35425_.addActivity(Activity.CORE, VillagerGoalPackages.getCorePackage(villagerprofession, 0.5F));\n      p_35425_.addActivityWithConditions(Activity.MEET, VillagerGoalPackages.getMeetPackage(villagerprofession, 0.5F), ImmutableSet.of(Pair.of(MemoryModuleType.MEETING_POINT, MemoryStatus.VALUE_PRESENT)));\n      p_35425_.addActivity(Activity.REST, VillagerGoalPackages.getRestPackage(villagerprofession, 0.5F));\n      p_35425_.addActivity(Activity.IDLE, VillagerGoalPackages.getIdlePackage(villagerprofession, 0.5F));\n      p_35425_.addActivity(Activity.PANIC, VillagerGoalPackages.getPanicPackage(villagerprofession, 0.5F));\n      p_35425_.addActivity(Activity.PRE_RAID, VillagerGoalPackages.getPreRaidPackage(villagerprofession, 0.5F));\n      p_35425_.addActivity(Activity.RAID, VillagerGoalPackages.getRaidPackage(villagerprofession, 0.5F));\n      p_35425_.addActivity(Activity.HIDE, VillagerGoalPackages.getHidePackage(villagerprofession, 0.5F));\n      p_35425_.setCoreActivities(ImmutableSet.of(Activity.CORE));\n      p_35425_.setDefaultActivity(Activity.IDLE);\n      p_35425_.setActiveActivityIfPossible(Activity.IDLE);\n      p_35425_.updateActivityFromSchedule(this.level().getDayTime(), this.level().getGameTime());\n   }\n\n",
+      "supporting_ranges_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-read-checkpoint-20261104.json",
+        "sha256": "2191ad1af7239e9374d4c4534d176b79366fb8d76a4649a5fc86c9d5f5272fc1"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/Behavior.java",
+      "entry_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+      "lines": [
+        1,
+        102
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport java.util.Map;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\n\npublic abstract class Behavior<E extends LivingEntity> implements BehaviorControl<E> {\n   public static final int DEFAULT_DURATION = 60;\n   protected final Map<MemoryModuleType<?>, MemoryStatus> entryCondition;\n   private Behavior.Status status = Behavior.Status.STOPPED;\n   private long endTimestamp;\n   private final int minDuration;\n   private final int maxDuration;\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22528_) {\n      this(p_22528_, 60);\n   }\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22530_, int p_22531_) {\n      this(p_22530_, p_22531_, p_22531_);\n   }\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22533_, int p_22534_, int p_22535_) {\n      this.minDuration = p_22534_;\n      this.maxDuration = p_22535_;\n      this.entryCondition = p_22533_;\n   }\n\n   public Behavior.Status getStatus() {\n      return this.status;\n   }\n\n   public final boolean tryStart(ServerLevel p_22555_, E p_22556_, long p_22557_) {\n      if (this.hasRequiredMemories(p_22556_) && this.checkExtraStartConditions(p_22555_, p_22556_)) {\n         this.status = Behavior.Status.RUNNING;\n         int i = this.minDuration + p_22555_.getRandom().nextInt(this.maxDuration + 1 - this.minDuration);\n         this.endTimestamp = p_22557_ + (long)i;\n         this.start(p_22555_, p_22556_, p_22557_);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   protected void start(ServerLevel p_22540_, E p_22541_, long p_22542_) {\n   }\n\n   public final void tickOrStop(ServerLevel p_22559_, E p_22560_, long p_22561_) {\n      if (!this.timedOut(p_22561_) && this.canStillUse(p_22559_, p_22560_, p_22561_)) {\n         this.tick(p_22559_, p_22560_, p_22561_);\n      } else {\n         this.doStop(p_22559_, p_22560_, p_22561_);\n      }\n\n   }\n\n   protected void tick(ServerLevel p_22551_, E p_22552_, long p_22553_) {\n   }\n\n   public final void doStop(ServerLevel p_22563_, E p_22564_, long p_22565_) {\n      this.status = Behavior.Status.STOPPED;\n      this.stop(p_22563_, p_22564_, p_22565_);\n   }\n\n   protected void stop(ServerLevel p_22548_, E p_22549_, long p_22550_) {\n   }\n\n   protected boolean canStillUse(ServerLevel p_22545_, E p_22546_, long p_22547_) {\n      return false;\n   }\n\n   protected boolean timedOut(long p_22537_) {\n      return p_22537_ > this.endTimestamp;\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_22538_, E p_22539_) {\n      return true;\n   }\n\n   public String debugString() {\n      return this.getClass().getSimpleName();\n   }\n\n   protected boolean hasRequiredMemories(E p_22544_) {\n      for(Map.Entry<MemoryModuleType<?>, MemoryStatus> entry : this.entryCondition.entrySet()) {\n         MemoryModuleType<?> memorymoduletype = entry.getKey();\n         MemoryStatus memorystatus = entry.getValue();\n         if (!p_22544_.getBrain().checkMemory(memorymoduletype, memorystatus)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public static enum Status {\n      STOPPED,\n      RUNNING;\n   }\n}",
+      "supporting_ranges_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-read-checkpoint-20261104.json",
+        "sha256": "2191ad1af7239e9374d4c4534d176b79366fb8d76a4649a5fc86c9d5f5272fc1"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/entity/ai/behavior/VillagerGoalPackages.java",
+      "entry_sha256": "f196b367ec9b70a42820b69e02f840ddc5a9474ad983ca17f9b4cc107d8a3866",
+      "lines": [
+        1,
+        98
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "f196b367ec9b70a42820b69e02f840ddc5a9474ad983ca17f9b4cc107d8a3866",
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport com.google.common.collect.ImmutableList;\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.ImmutableSet;\nimport com.mojang.datafixers.util.Pair;\nimport java.util.Optional;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.AgeableMob;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.MobCategory;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.village.poi.PoiTypes;\nimport net.minecraft.world.entity.npc.Villager;\nimport net.minecraft.world.entity.npc.VillagerProfession;\nimport net.minecraft.world.entity.raid.Raid;\n\npublic class VillagerGoalPackages {\n   private static final float STROLL_SPEED_MODIFIER = 0.4F;\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getCorePackage(VillagerProfession p_24586_, float p_24587_) {\n      return ImmutableList.of(Pair.of(0, new Swim(0.8F)), Pair.of(0, InteractWithDoor.create()), Pair.of(0, new LookAtTargetSink(45, 90)), Pair.of(0, new VillagerPanicTrigger()), Pair.of(0, WakeUp.create()), Pair.of(0, ReactToBell.create()), Pair.of(0, SetRaidStatus.create()), Pair.of(0, ValidateNearbyPoi.create(p_24586_.heldJobSite(), MemoryModuleType.JOB_SITE)), Pair.of(0, ValidateNearbyPoi.create(p_24586_.acquirableJobSite(), MemoryModuleType.POTENTIAL_JOB_SITE)), Pair.of(1, new MoveToTargetSink()), Pair.of(2, PoiCompetitorScan.create()), Pair.of(3, new LookAndFollowTradingPlayerSink(p_24587_)), Pair.of(5, GoToWantedItem.create(p_24587_, false, 4)), Pair.of(6, AcquirePoi.create(p_24586_.acquirableJobSite(), MemoryModuleType.JOB_SITE, MemoryModuleType.POTENTIAL_JOB_SITE, true, Optional.empty())), Pair.of(7, new GoToPotentialJobSite(p_24587_)), Pair.of(8, YieldJobSite.create(p_24587_)), Pair.of(10, AcquirePoi.create((p_217499_) -> {\n         return p_217499_.is(PoiTypes.HOME);\n      }, MemoryModuleType.HOME, false, Optional.of((byte)14))), Pair.of(10, AcquirePoi.create((p_217497_) -> {\n         return p_217497_.is(PoiTypes.MEETING);\n      }, MemoryModuleType.MEETING_POINT, true, Optional.of((byte)14))), Pair.of(10, AssignProfessionFromJobSite.create()), Pair.of(10, ResetProfession.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getWorkPackage(VillagerProfession p_24590_, float p_24591_) {\n      WorkAtPoi workatpoi;\n      if (p_24590_ == VillagerProfession.FARMER) {\n         workatpoi = new WorkAtComposter();\n      } else {\n         workatpoi = new WorkAtPoi();\n      }\n\n      return ImmutableList.of(getMinimalLookBehavior(), Pair.of(5, new RunOne<>(ImmutableList.of(Pair.of(workatpoi, 7), Pair.of(StrollAroundPoi.create(MemoryModuleType.JOB_SITE, 0.4F, 4), 2), Pair.of(StrollToPoi.create(MemoryModuleType.JOB_SITE, 0.4F, 1, 10), 5), Pair.of(StrollToPoiList.create(MemoryModuleType.SECONDARY_JOB_SITE, p_24591_, 1, 6, MemoryModuleType.JOB_SITE), 5), Pair.of(new HarvestFarmland(), p_24590_ == VillagerProfession.FARMER ? 2 : 5), Pair.of(new UseBonemeal(), p_24590_ == VillagerProfession.FARMER ? 4 : 7)))), Pair.of(10, new ShowTradesToPlayer(400, 1600)), Pair.of(10, SetLookAndInteract.create(EntityType.PLAYER, 4)), Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.JOB_SITE, p_24591_, 9, 100, 1200)), Pair.of(3, new GiveGiftToHero(100)), Pair.of(99, UpdateActivityFromSchedule.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getPlayPackage(float p_24584_) {\n      return ImmutableList.of(Pair.of(0, new MoveToTargetSink(80, 120)), getFullLookBehavior(), Pair.of(5, PlayTagWithOtherKids.create()), Pair.of(5, new RunOne<>(ImmutableMap.of(MemoryModuleType.VISIBLE_VILLAGER_BABIES, MemoryStatus.VALUE_ABSENT), ImmutableList.of(Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, p_24584_, 2), 2), Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, p_24584_, 2), 1), Pair.of(VillageBoundRandomStroll.create(p_24584_), 1), Pair.of(SetWalkTargetFromLookTarget.create(p_24584_, 2), 1), Pair.of(new JumpOnBed(p_24584_), 2), Pair.of(new DoNothing(20, 40), 2)))), Pair.of(99, UpdateActivityFromSchedule.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getRestPackage(VillagerProfession p_24593_, float p_24594_) {\n      return ImmutableList.of(Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.HOME, p_24594_, 1, 150, 1200)), Pair.of(3, ValidateNearbyPoi.create((p_217495_) -> {\n         return p_217495_.is(PoiTypes.HOME);\n      }, MemoryModuleType.HOME)), Pair.of(3, new SleepInBed()), Pair.of(5, new RunOne<>(ImmutableMap.of(MemoryModuleType.HOME, MemoryStatus.VALUE_ABSENT), ImmutableList.of(Pair.of(SetClosestHomeAsWalkTarget.create(p_24594_), 1), Pair.of(InsideBrownianWalk.create(p_24594_), 4), Pair.of(GoToClosestVillage.create(p_24594_, 4), 2), Pair.of(new DoNothing(20, 40), 2)))), getMinimalLookBehavior(), Pair.of(99, UpdateActivityFromSchedule.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getMeetPackage(VillagerProfession p_24596_, float p_24597_) {\n      return ImmutableList.of(Pair.of(2, TriggerGate.triggerOneShuffled(ImmutableList.of(Pair.of(StrollAroundPoi.create(MemoryModuleType.MEETING_POINT, 0.4F, 40), 2), Pair.of(SocializeAtBell.create(), 2)))), Pair.of(10, new ShowTradesToPlayer(400, 1600)), Pair.of(10, SetLookAndInteract.create(EntityType.PLAYER, 4)), Pair.of(2, SetWalkTargetFromBlockMemory.create(MemoryModuleType.MEETING_POINT, p_24597_, 6, 100, 200)), Pair.of(3, new GiveGiftToHero(100)), Pair.of(3, ValidateNearbyPoi.create((p_217493_) -> {\n         return p_217493_.is(PoiTypes.MEETING);\n      }, MemoryModuleType.MEETING_POINT)), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new TradeWithVillager(), 1)))), getFullLookBehavior(), Pair.of(99, UpdateActivityFromSchedule.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getIdlePackage(VillagerProfession p_24599_, float p_24600_) {\n      return ImmutableList.of(Pair.of(2, new RunOne<>(ImmutableList.of(Pair.of(InteractWith.of(EntityType.VILLAGER, 8, MemoryModuleType.INTERACTION_TARGET, p_24600_, 2), 2), Pair.of(InteractWith.of(EntityType.VILLAGER, 8, AgeableMob::canBreed, AgeableMob::canBreed, MemoryModuleType.BREED_TARGET, p_24600_, 2), 1), Pair.of(InteractWith.of(EntityType.CAT, 8, MemoryModuleType.INTERACTION_TARGET, p_24600_, 2), 1), Pair.of(VillageBoundRandomStroll.create(p_24600_), 1), Pair.of(SetWalkTargetFromLookTarget.create(p_24600_, 2), 1), Pair.of(new JumpOnBed(p_24600_), 1), Pair.of(new DoNothing(30, 60), 1)))), Pair.of(3, new GiveGiftToHero(100)), Pair.of(3, SetLookAndInteract.create(EntityType.PLAYER, 4)), Pair.of(3, new ShowTradesToPlayer(400, 1600)), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.INTERACTION_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new TradeWithVillager(), 1)))), Pair.of(3, new GateBehavior<>(ImmutableMap.of(), ImmutableSet.of(MemoryModuleType.BREED_TARGET), GateBehavior.OrderPolicy.ORDERED, GateBehavior.RunningPolicy.RUN_ONE, ImmutableList.of(Pair.of(new VillagerMakeLove(), 1)))), getFullLookBehavior(), Pair.of(99, UpdateActivityFromSchedule.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getPanicPackage(VillagerProfession p_24602_, float p_24603_) {\n      float f = p_24603_ * 1.5F;\n      return ImmutableList.of(Pair.of(0, VillagerCalmDown.create()), Pair.of(1, SetWalkTargetAwayFrom.entity(MemoryModuleType.NEAREST_HOSTILE, f, 6, false)), Pair.of(1, SetWalkTargetAwayFrom.entity(MemoryModuleType.HURT_BY_ENTITY, f, 6, false)), Pair.of(3, VillageBoundRandomStroll.create(f, 2, 2)), getMinimalLookBehavior());\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getPreRaidPackage(VillagerProfession p_24605_, float p_24606_) {\n      return ImmutableList.of(Pair.of(0, RingBell.create()), Pair.of(0, TriggerGate.triggerOneShuffled(ImmutableList.of(Pair.of(SetWalkTargetFromBlockMemory.create(MemoryModuleType.MEETING_POINT, p_24606_ * 1.5F, 2, 150, 200), 6), Pair.of(VillageBoundRandomStroll.create(p_24606_ * 1.5F), 2)))), getMinimalLookBehavior(), Pair.of(99, ResetRaidStatus.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getRaidPackage(VillagerProfession p_24608_, float p_24609_) {\n      return ImmutableList.of(Pair.of(0, BehaviorBuilder.sequence(BehaviorBuilder.triggerIf(VillagerGoalPackages::raidExistsAndNotVictory), TriggerGate.triggerOneShuffled(ImmutableList.of(Pair.of(MoveToSkySeeingSpot.create(p_24609_), 5), Pair.of(VillageBoundRandomStroll.create(p_24609_ * 1.1F), 2))))), Pair.of(0, new CelebrateVillagersSurvivedRaid(600, 600)), Pair.of(2, BehaviorBuilder.sequence(BehaviorBuilder.triggerIf(VillagerGoalPackages::raidExistsAndActive), LocateHidingPlace.create(24, p_24609_ * 1.4F, 1))), getMinimalLookBehavior(), Pair.of(99, ResetRaidStatus.create()));\n   }\n\n   public static ImmutableList<Pair<Integer, ? extends BehaviorControl<? super Villager>>> getHidePackage(VillagerProfession p_24611_, float p_24612_) {\n      int i = 2;\n      return ImmutableList.of(Pair.of(0, SetHiddenState.create(15, 3)), Pair.of(1, LocateHidingPlace.create(32, p_24612_ * 1.25F, 2)), getMinimalLookBehavior());\n   }\n\n   private static Pair<Integer, BehaviorControl<LivingEntity>> getFullLookBehavior() {\n      return Pair.of(5, new RunOne<>(ImmutableList.of(Pair.of(SetEntityLookTarget.create(EntityType.CAT, 8.0F), 8), Pair.of(SetEntityLookTarget.create(EntityType.VILLAGER, 8.0F), 2), Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 2), Pair.of(SetEntityLookTarget.create(MobCategory.CREATURE, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.WATER_CREATURE, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.AXOLOTLS, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.UNDERGROUND_WATER_CREATURE, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.WATER_AMBIENT, 8.0F), 1), Pair.of(SetEntityLookTarget.create(MobCategory.MONSTER, 8.0F), 1), Pair.of(new DoNothing(30, 60), 2))));\n   }\n\n   private static Pair<Integer, BehaviorControl<LivingEntity>> getMinimalLookBehavior() {\n      return Pair.of(5, new RunOne<>(ImmutableList.of(Pair.of(SetEntityLookTarget.create(EntityType.VILLAGER, 8.0F), 2), Pair.of(SetEntityLookTarget.create(EntityType.PLAYER, 8.0F), 2), Pair.of(new DoNothing(30, 60), 8))));\n   }\n\n   private static boolean raidExistsAndActive(ServerLevel p_260274_, LivingEntity p_260163_) {\n      Raid raid = p_260274_.getRaidAt(p_260163_.blockPosition());\n      return raid != null && raid.isActive() && !raid.isVictory() && !raid.isLoss();\n   }\n\n   private static boolean raidExistsAndNotVictory(ServerLevel p_259939_, LivingEntity p_259384_) {\n      Raid raid = p_259939_.getRaidAt(p_259384_.blockPosition());\n      return raid != null && raid.isVictory();\n   }\n}",
+      "supporting_ranges_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-villager-community-golem-read-checkpoint-20261104.json",
+        "sha256": "2191ad1af7239e9374d4c4534d176b79366fb8d76a4649a5fc86c9d5f5272fc1"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    }
+  ],
+  "observed_so_far": [
+    "Bounded possible whole service policy joins a farmer work facility and inventory reserves to bread-making/seed compost, world-ready bone meal extraction, local harvest/replant and inventory-funded fertilization. Whole role/service flow may be one semantic proposal; classes, seeds, recipes, numeric cases and helpers individually0. Bounded accepted metadata Composter/HarvestFarmland/WorkAtComposter/farmer compost/villager crop/farm name screen found no matching whole owner, not exhaustive novelty.",
+    "Prior actually read Villager constructor sets canPickUpLoot; prior full GoalPackages chooses WorkAtComposter only FARMER and includes weighted HarvestFarmland/UseBonemeal in work package, not guaranteed execution. Behavior default60 endtimestamp and required-memory/state checks apply in addition to own200/80 near-work counters, so neither own duration implies guaranteed200/80 total worldtick session.",
+    "Full WorkAtPoi59: JOB_SITE present and LOOK registered; gameTime-lastCheck<300 veto, then half random veto without clock debit. Passing random writes lastCheck BEFORE actual same-dimension/distance<1.73 validation. Start stamps LAST_WORKED_AT_POI and asks sound/workstation/restock independent of production result. No own cooldown persistence or job-site acquisition proof; registered LOOK is not absent/exclusively owned.",
+    "Full WorkAtComposter95 re-reads JOB_SITE, current block at position must COMPOSTER. makeBread occurs before compost. If current bread count<=36, up to3 new bread from floor(wheat/3); removes3each wheat then adds bread and requests entity drop of remainder.36 allows up to39 after one call; removal return ignored, no atomic inventory/ground commit, no player payment/reward claim.",
+    "Composting reverse-scans inventory with total20 attempt budget and per-seed type reserve10, only wheat/beetroot seeds despite wider global COMPOSTABLES. Counts accumulated while scanning distinct slots; do not generalize allseed types or20guaranteed consumed. If current state8, extract first; insert loops stop when local returned state7. Already blocked state may spend local attempt budget without actual item debit.",
+    "Composter insert iflevel<7 and member calls addItem then always shrinks1, even random level unchanged. Initial0 and positivechance skips random failure; laterchance tested. Literal seed registrations0.3 read plus helper put; bootStrap invocation/current map mutation outside. addItem returns computed state after ignored setBlock; j7 schedules20 before world success receipt, so local state/effects do not prove real world compost.",
+    "Composter onPlace level7 schedules20; tick7 requests cycle8 and ready sound regardless setBlock return. extractProduce server requests new1bonemeal ItemEntity/defaultpickupdelay/uncheckedadd BEFORE resettingblock0 via ignoredwrite+gameevent, returns computedstate. Actual accepted product and emptycomposter can diverge; no live duplicate/loss exploit reproduced.",
+    "Mob aiStep aftersuper gates server/canPickUpLoot/alive/!dead/perentitygriefing, queries pickup-reach AABB ItemEntities, rejectsremoved/empty/delay then wantsToPickUp. Villager accepts WANTED or profession-requested items only if inventory canadd; farmer requested set includes wheat/seeds/bone meal. Full InventoryCarrier46 adds copy, requests take amount and discards or updates ground remainder. No actual scan delivery/path/survival/inventory/player receipt. Inventory default paired methods exist but complete Villager parent save callers/backend not expanded.",
+    "Full HarvestFarmland155 requires absent LOOK/WALK and present SECONDARY_JOB_SITE; own start predicate uses mobgriefing+actual FARMER and scans27 positions around actor, not secondary-site coordinates. Valid mature CropBlock need not itself pass FarmBlock lower predicate; empty positions require FarmBlock. Random one rememberedsite, no farmland access/ownership/path/worldloaded guarantee.",
+    "Harvest start only requests move/look if now>nextOkStartTime; it can otherwise start and occupy behavior without movement. Tick only near remembered center or null; actual actions need now>nextOk. It reads one stale blockstate then requests destroy mature crop and tests THAT OLD state for air; cannot claim immediate same-call replant of just-destroyed maturecrop. Partial mature/callback block mutation outside. Own worked counter increments only this near/null branch, stoperasesmemories/resetscount/setsnext+40.",
+    "Plant uses current inventory tagged seeds. BlockItem branch requests defaultstate setBlockAndUpdate thenevent and flags true; Forge IPlantable CROP branch uses returned plant andsetBlock thenflags true. flag triggers sound+shrink1 andoptionalclearempty slot independent of writeboolean; no placement-readback/recipient output or full tag/itemhandler composition. Mature original crop remainslist until later observed nonmaxage logic; do not infer fair traversal.",
+    "Full UseBonemeal121 has no own explicit farmer profession or griefing check. Start requires tickCount multiple10, prior session0 or+160 comparison, inventorybonemeal>0 and reservoir-sampled nearby nonmaxage CropBlock. Own80counter and parent60timeout distinct; movement/fieldtime not guaranteed. Start replaces mainhand with a NEW visual bone meal stack, while actual tick takes inventory stack; stop clears MAINHAND without restoring old hand or checking ownership and stamps tickCount.",
+    "Fertilizer action only close and gameTime>=nextWorkCycleTime; inventory stack passed to BoneMealItem.growCrop. True result requests event1505, picksnextcrop, asksmovement andsetsnext+40; false leavescycleclockunchanged and can retry at each eligible near tick, incrementing ownworkcounter. Stop does not explicitly clear LOOK/WALK here; exact Brain scheduling/contention outside.",
+    "growCrop on ServerLevel obtains Forge Minecraft FakePlayer, not actual villager/playerbeneficiary, and calls applyBonemeal. Actual Forge helper canceled event gives-1; ALLOW shrinks1 onserver andreturns1, causing true without defaultgrowth. Other results return0; do not equate noncancel DENY with local veto. Defaultvalidtarget calls perform only on success then shrinks1 even successfalse, returns true. Source response is not verified growth or payment ACK.",
+    "Base CropBlock defaultvalid is notmaxage, defaultsuccess true, defaultgrowth adds random2..5 cappedmax then ignoredsetBlock flag2. Concrete subclass overrides/current handlers/load not audited. Common bool failure/framework is support0, not proposed semantic credit. Need whole prior crop-service/conversion references compared before making original complete proposal; still checkpointformal0.",
+    "Exact raw villager_plantable_seeds base tag contains wheat_seeds,potato,carrot,beetroot_seeds,torchflower_seeds,pitcher_pod; source only and six entries0, no current merged-tag guarantee or six farming mechanisms. Inventory hasFarmSeeds is that tag predicate, compost accepts only wheat/beetroot seed constants, so plantable and compostable inputs differ.",
+    "Container.countItem sums item identity counts without NBT equality. SimpleContainer.addItem copies input, merges only sameItemSameTags with max capacities, then copyAndClear into first empty slot; full setItem/copyAndClear/ItemStack/backend/hook semantics unexpanded, no corrupt-stack losslessness asserted. InventoryCarrier uses returned remainder for itementitytake/discard updates, not actual player acquisition.",
+    "Previously actually read Silverfish native Level/LevelWriter/Block callback/write contexts bound0 support same world-write failure/drop-before-replacement boundaries. Their old whole source chains are not repeated or counted. Formal source-policy acceptance is still unavailable for this checkpoint until whole comparison/relevance review."
+  ],
+  "pending": [
+    "Read actual full current EA22 crop-service whole decision and explicit limits, then compare whole reserve-inventory/compost/worldproduct/local crop service with existing facility/visit counter policy; no variant/source count credit.",
+    "Prepare original bounded proposal only when the relevant whole distinction is justified; current scheduler/save/loot/runtime/world/input/actual player output remain boundaries, no source execution or sustainable loop assertion."
+  ],
+  "proposed_maximum_credit": 1,
+  "formal_candidate_id": null,
+  "accepted_credit": 0,
+  "applied_credit": 0,
+  "upstream_code_executed": false,
+  "global_novelty_credit": 0,
+  "new_migration_credit": 0,
+  "supporting_ranges_credit": 0,
+  "native_gameplay_credit": 0,
+  "runtime_material_payment_credit": 0,
+  "native_birth_kill_pickup_credit": 0,
+  "production_changes": false,
+  "checklist_deletions": 0,
+  "formal_ledger_changes": false,
+  "game_starts": 0,
+  "duration_hours_claimed": 0,
+  "continuation_checkpoint": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-farmer-compost-material-service-read-checkpoint-20261104.json",
+    "sha256": "84de5daf86418c14b000fe55175544728ab451d73b245f7efa120d45c39757f1"
+  },
+  "actual_raw_base_resources": [
+    {
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+      "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+      "entry": "data/minecraft/tags/items/villager_plantable_seeds.json",
+      "entry_sha256": "ac4666ae419e4190b8755904d90f35107ef61d2ad260195ad5ca4de5024b9dd9",
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:wheat_seeds\",\n    \"minecraft:potato\",\n    \"minecraft:carrot\",\n    \"minecraft:beetroot_seeds\",\n    \"minecraft:torchflower_seeds\",\n    \"minecraft:pitcher_pod\"\n  ]\n}",
+      "full_file": true,
+      "loaded_current_membership_proved": false,
+      "credit": 0
+    }
+  ],
+  "prior_actual_block_context_reused_zero": [
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/LevelWriter.java",
+      "entry_sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+      "lines": [
+        1,
+        30
+      ],
+      "full_file": true,
+      "raw_excerpt_sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+      "raw_excerpt_utf8": "package net.minecraft.world.level;\n\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.level.block.state.BlockState;\n\npublic interface LevelWriter {\n   boolean setBlock(BlockPos p_46947_, BlockState p_46948_, int p_46949_, int p_46950_);\n\n   default boolean setBlock(BlockPos p_46944_, BlockState p_46945_, int p_46946_) {\n      return this.setBlock(p_46944_, p_46945_, p_46946_, 512);\n   }\n\n   boolean removeBlock(BlockPos p_46951_, boolean p_46952_);\n\n   default boolean destroyBlock(BlockPos p_46962_, boolean p_46963_) {\n      return this.destroyBlock(p_46962_, p_46963_, (Entity)null);\n   }\n\n   default boolean destroyBlock(BlockPos p_46954_, boolean p_46955_, @Nullable Entity p_46956_) {\n      return this.destroyBlock(p_46954_, p_46955_, p_46956_, 512);\n   }\n\n   boolean destroyBlock(BlockPos p_46957_, boolean p_46958_, @Nullable Entity p_46959_, int p_46960_);\n\n   default boolean addFreshEntity(Entity p_46964_) {\n      return false;\n   }\n}",
+      "reading_basis": "actual bounded original source text read offline; locator output not counted as complete scope",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-silverfish-dormant-habitat-disturbance-proposal-20261104.json",
+        "sha256": "4ae7bb7a8b4620ebf1d97c7d6f5b5dbe9f2ebb05e84cd426a4c423b9e10a897f"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/Level.java",
+      "entry_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+      "lines": [
+        195,
+        233
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "da68b285050a6e5ad5de016d17e1756ae18eb7148096a57eb50dcce9ef4856c9",
+      "raw_excerpt_utf8": "   public boolean setBlock(BlockPos p_46601_, BlockState p_46602_, int p_46603_) {\n      return this.setBlock(p_46601_, p_46602_, p_46603_, 512);\n   }\n\n   public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {\n      if (this.isOutsideBuildHeight(p_46605_)) {\n         return false;\n      } else if (!this.isClientSide && this.isDebug()) {\n         return false;\n      } else {\n         LevelChunk levelchunk = this.getChunkAt(p_46605_);\n         Block block = p_46606_.getBlock();\n\n         p_46605_ = p_46605_.immutable(); // Forge - prevent mutable BlockPos leaks\n         net.minecraftforge.common.util.BlockSnapshot blockSnapshot = null;\n         if (this.captureBlockSnapshots && !this.isClientSide) {\n             blockSnapshot = net.minecraftforge.common.util.BlockSnapshot.create(this.dimension, this, p_46605_, p_46607_);\n             this.capturedBlockSnapshots.add(blockSnapshot);\n         }\n\n         BlockState old = getBlockState(p_46605_);\n         int oldLight = old.getLightEmission(this, p_46605_);\n         int oldOpacity = old.getLightBlock(this, p_46605_);\n\n         BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);\n         if (blockstate == null) {\n            if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);\n            return false;\n         } else {\n            BlockState blockstate1 = this.getBlockState(p_46605_);\n\n            if (blockSnapshot == null) { // Don't notify clients or update physics while capturing blockstates\n               this.markAndNotifyBlock(p_46605_, levelchunk, blockstate, p_46606_, p_46607_, p_46608_);\n            }\n\n            return true;\n         }\n      }\n   }\n",
+      "reading_basis": "actual bounded original source text read offline; locator output not counted as complete scope",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-silverfish-dormant-habitat-disturbance-proposal-20261104.json",
+        "sha256": "4ae7bb7a8b4620ebf1d97c7d6f5b5dbe9f2ebb05e84cd426a4c423b9e10a897f"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/Level.java",
+      "entry_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+      "lines": [
+        279,
+        301
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "5d10d7a29f3e02c491731a5821be250ed6163f897fa6a38503a603f40ee9884f",
+      "raw_excerpt_utf8": "   public boolean destroyBlock(BlockPos p_46626_, boolean p_46627_, @Nullable Entity p_46628_, int p_46629_) {\n      BlockState blockstate = this.getBlockState(p_46626_);\n      if (blockstate.isAir()) {\n         return false;\n      } else {\n         FluidState fluidstate = this.getFluidState(p_46626_);\n         if (!(blockstate.getBlock() instanceof BaseFireBlock)) {\n            this.levelEvent(2001, p_46626_, Block.getId(blockstate));\n         }\n\n         if (p_46627_) {\n            BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_46626_) : null;\n            Block.dropResources(blockstate, this, p_46626_, blockentity, p_46628_, ItemStack.EMPTY);\n         }\n\n         boolean flag = this.setBlock(p_46626_, fluidstate.createLegacyBlock(), 3, p_46629_);\n         if (flag) {\n            this.gameEvent(GameEvent.BLOCK_DESTROY, p_46626_, GameEvent.Context.of(p_46628_, blockstate));\n         }\n\n         return flag;\n      }\n   }\n",
+      "reading_basis": "actual bounded original source text read offline; locator output not counted as complete scope",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-silverfish-dormant-habitat-disturbance-proposal-20261104.json",
+        "sha256": "4ae7bb7a8b4620ebf1d97c7d6f5b5dbe9f2ebb05e84cd426a4c423b9e10a897f"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "entry_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "lines": [
+        251,
+        292
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "e87c2adef270e91c37a57c999780aa51b1102ea8ebe1cf7e7d853ef5fd1cb0d9",
+      "raw_excerpt_utf8": "   public static List<ItemStack> getDrops(BlockState p_49870_, ServerLevel p_49871_, BlockPos p_49872_, @Nullable BlockEntity p_49873_) {\n      LootParams.Builder lootparams$builder = (new LootParams.Builder(p_49871_)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(p_49872_)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withOptionalParameter(LootContextParams.BLOCK_ENTITY, p_49873_);\n      return p_49870_.getDrops(lootparams$builder);\n   }\n\n   public static List<ItemStack> getDrops(BlockState p_49875_, ServerLevel p_49876_, BlockPos p_49877_, @Nullable BlockEntity p_49878_, @Nullable Entity p_49879_, ItemStack p_49880_) {\n      LootParams.Builder lootparams$builder = (new LootParams.Builder(p_49876_)).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(p_49877_)).withParameter(LootContextParams.TOOL, p_49880_).withOptionalParameter(LootContextParams.THIS_ENTITY, p_49879_).withOptionalParameter(LootContextParams.BLOCK_ENTITY, p_49878_);\n      return p_49875_.getDrops(lootparams$builder);\n   }\n\n   public static void dropResources(BlockState p_49951_, Level p_49952_, BlockPos p_49953_) {\n      if (p_49952_ instanceof ServerLevel) {\n         getDrops(p_49951_, (ServerLevel)p_49952_, p_49953_, (BlockEntity)null).forEach((p_152406_) -> {\n            popResource(p_49952_, p_49953_, p_152406_);\n         });\n         p_49951_.spawnAfterBreak((ServerLevel)p_49952_, p_49953_, ItemStack.EMPTY, true);\n      }\n\n   }\n\n   public static void dropResources(BlockState p_49893_, LevelAccessor p_49894_, BlockPos p_49895_, @Nullable BlockEntity p_49896_) {\n      if (p_49894_ instanceof ServerLevel) {\n         getDrops(p_49893_, (ServerLevel)p_49894_, p_49895_, p_49896_).forEach((p_49859_) -> {\n            popResource((ServerLevel)p_49894_, p_49895_, p_49859_);\n         });\n         p_49893_.spawnAfterBreak((ServerLevel)p_49894_, p_49895_, ItemStack.EMPTY, true);\n      }\n\n   }\n\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_) {\n      dropResources(p_49882_, p_49883_, p_49884_, p_49885_, p_49886_, p_49887_, true);\n   }\n   public static void dropResources(BlockState p_49882_, Level p_49883_, BlockPos p_49884_, @Nullable BlockEntity p_49885_, @Nullable Entity p_49886_, ItemStack p_49887_, boolean dropXp) {\n      if (p_49883_ instanceof ServerLevel) {\n         getDrops(p_49882_, (ServerLevel)p_49883_, p_49884_, p_49885_, p_49886_, p_49887_).forEach((p_49944_) -> {\n            popResource(p_49883_, p_49884_, p_49944_);\n         });\n         p_49882_.spawnAfterBreak((ServerLevel)p_49883_, p_49884_, p_49887_, dropXp);\n      }\n\n   }\n",
+      "reading_basis": "actual bounded original source text read offline; locator output not counted as complete scope",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-silverfish-dormant-habitat-disturbance-proposal-20261104.json",
+        "sha256": "4ae7bb7a8b4620ebf1d97c7d6f5b5dbe9f2ebb05e84cd426a4c423b9e10a897f"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        374,
+        378
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "83dd5eada14786a45ed3bc3d116865f2ed40f47a4383c6d3bb60d92bb992b061",
+      "raw_excerpt_utf8": "   /** @deprecated */\n   @Deprecated\n   public void spawnAfterBreak(BlockState p_222949_, ServerLevel p_222950_, BlockPos p_222951_, ItemStack p_222952_, boolean p_222953_) {\n      if (p_222953_) net.minecraftforge.common.ForgeHooks.dropXpForBlock(p_222949_, p_222950_, p_222951_, p_222952_);\n   }\n",
+      "reading_basis": "actual bounded original source text read offline; locator output not counted as complete scope",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-silverfish-dormant-habitat-disturbance-proposal-20261104.json",
+        "sha256": "4ae7bb7a8b4620ebf1d97c7d6f5b5dbe9f2ebb05e84cd426a4c423b9e10a897f"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    },
+    {
+      "kind": "native_fixed_local_artifact",
+      "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+      "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+      "coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "entry": "net/minecraft/world/level/block/state/BlockBehaviour.java",
+      "entry_sha256": "1b6adef1396ed388f90a63a4e52eac70c9bfcffa095972a7d132cac8c4f759e9",
+      "lines": [
+        769,
+        771
+      ],
+      "full_file": false,
+      "raw_excerpt_sha256": "79b81d7f3cf667e81475ba3f1b8867fa1581395bfa9dd41cf7b2220e2b781d83",
+      "raw_excerpt_utf8": "      public void spawnAfterBreak(ServerLevel p_222968_, BlockPos p_222969_, ItemStack p_222970_, boolean p_222971_) {\n         this.getBlock().spawnAfterBreak(this.asState(), p_222968_, p_222969_, p_222970_, p_222971_);\n      }\n",
+      "reading_basis": "actual bounded original source text read offline; locator output not counted as complete scope",
+      "range_or_file_credit": 0,
+      "prior_actual_own_source": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/general-silverfish-dormant-habitat-disturbance-proposal-20261104.json",
+        "sha256": "4ae7bb7a8b4620ebf1d97c7d6f5b5dbe9f2ebb05e84cd426a4c423b9e10a897f"
+      },
+      "fresh_source_reread_claimed": false,
+      "new_credit": 0
+    }
+  ]
+}
