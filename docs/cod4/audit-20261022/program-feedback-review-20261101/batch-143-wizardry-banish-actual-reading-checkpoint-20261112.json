@@ -1,0 +1,346 @@
+{
+  "recorded_utc": "2026-11-11T16:49:40.010917+00:00",
+  "status": "PRIVATE143_EARLY_ACTUAL_BANISH_BODY_NOT_COMPLETE_CHAIN_NO_CREDIT",
+  "actual_source": {
+    "path": "tools/cod4/immune-feedback-research/sources/Electroblob77__Wizardry/src/main/java/electroblob/wizardry/spell/Banish.java",
+    "sha256": "4b33d42491edfbbe060964b9238218d3910743cb3c180e68acbab64f48a6fab9",
+    "bytes": 3889,
+    "range": [
+      1,
+      109
+    ],
+    "whole_file_read": true,
+    "raw_excerpt": "package electroblob.wizardry.spell;\n\nimport electroblob.wizardry.Wizardry;\nimport electroblob.wizardry.item.SpellActions;\nimport electroblob.wizardry.registry.WizardryItems;\nimport electroblob.wizardry.util.BlockUtils;\nimport electroblob.wizardry.util.ParticleBuilder;\nimport electroblob.wizardry.util.ParticleBuilder.Type;\nimport electroblob.wizardry.util.SpellModifiers;\nimport net.minecraft.entity.Entity;\nimport net.minecraft.entity.EntityLivingBase;\nimport net.minecraft.entity.player.EntityPlayer;\nimport net.minecraft.util.EnumFacing;\nimport net.minecraft.util.EnumParticleTypes;\nimport net.minecraft.util.math.BlockPos;\nimport net.minecraft.util.math.MathHelper;\nimport net.minecraft.util.math.Vec3d;\nimport net.minecraft.world.World;\n\npublic class Banish extends SpellRay {\n\n\tpublic static final String MINIMUM_TELEPORT_DISTANCE = \"minimum_teleport_distance\";\n\tpublic static final String MAXIMUM_TELEPORT_DISTANCE = \"maximum_teleport_distance\";\n\n\tpublic Banish(){\n\t\tsuper(\"banish\", SpellActions.POINT, false);\n\t\tthis.addProperties(MINIMUM_TELEPORT_DISTANCE, MAXIMUM_TELEPORT_DISTANCE);\n\t}\n\n\t@Override\n\tprotected boolean onEntityHit(World world, Entity target, Vec3d hit, EntityLivingBase caster, Vec3d origin, int ticksInUse, SpellModifiers modifiers){\n\t\t\n\t\tif(target instanceof EntityLivingBase){\n\n\t\t\tEntityLivingBase entity = (EntityLivingBase)target;\n\n\t\t\tdouble minRadius = getProperty(MINIMUM_TELEPORT_DISTANCE).doubleValue();\n\t\t\tdouble maxRadius = getProperty(MAXIMUM_TELEPORT_DISTANCE).doubleValue();\n\t\t\tdouble radius = (minRadius + world.rand.nextDouble() * maxRadius-minRadius) * modifiers.get(WizardryItems.blast_upgrade);\n\n\t\t\tteleport(entity, world, radius);\n\t\t}\n\t\t\n\t\treturn true;\n\t}\n\n\t@Override\n\tprotected boolean onBlockHit(World world, BlockPos pos, EnumFacing side, Vec3d hit, EntityLivingBase caster, Vec3d origin, int ticksInUse, SpellModifiers modifiers){\n\t\treturn false;\n\t}\n\n\t@Override\n\tprotected boolean onMiss(World world, EntityLivingBase caster, Vec3d origin, Vec3d direction, int ticksInUse, SpellModifiers modifiers){\n\t\treturn true;\n\t}\n\t\n\t@Override\n\tprotected void spawnParticle(World world, double x, double y, double z, double vx, double vy, double vz){\n\t\tworld.spawnParticle(EnumParticleTypes.PORTAL, x, y - 0.5, z, 0, 0, 0);\n\t\tParticleBuilder.create(Type.DARK_MAGIC).pos(x, y, z).clr(0.2f, 0, 0.2f).spawn(world);\n\t}\n\n\t// Extracted as a separate method for external use\n\tpublic boolean teleport(EntityLivingBase entity, World world, double radius){\n\n\t\tfloat angle = world.rand.nextFloat() * (float)Math.PI * 2;\n\n\t\tint x = MathHelper.floor(entity.posX + MathHelper.sin(angle) * radius);\n\t\tint z = MathHelper.floor(entity.posZ - MathHelper.cos(angle) * radius);\n\t\tInteger y = BlockUtils.getNearestFloor(world,\n\t\t\t\tnew BlockPos(x, (int)entity.posY, z), (int)radius);\n\n\t\tif(world.isRemote){\n\n\t\t\tfor(int i=0; i<10; i++){\n\t\t\t\tdouble dx1 = entity.posX;\n\t\t\t\tdouble dy1 = entity.posY + entity.height * world.rand.nextFloat();\n\t\t\t\tdouble dz1 = entity.posZ;\n\t\t\t\tworld.spawnParticle(EnumParticleTypes.PORTAL, dx1, dy1, dz1, world.rand.nextDouble() - 0.5,\n\t\t\t\t\t\tworld.rand.nextDouble() - 0.5, world.rand.nextDouble() - 0.5);\n\t\t\t}\n\n\t\t\tif(entity instanceof EntityPlayer) Wizardry.proxy.playBlinkEffect((EntityPlayer)entity);\n\t\t}\n\n\t\tif(y != null){\n\n\t\t\t// This means stuff like snow layers is ignored, meaning when on snow-covered ground the target does\n\t\t\t// not teleport 1 block above the ground.\n\t\t\tif(!world.getBlockState(new BlockPos(x, y, z)).getMaterial().blocksMovement()){\n\t\t\t\ty--;\n\t\t\t}\n\n\t\t\tif(world.getBlockState(new BlockPos(x, y + 1, z)).getMaterial().blocksMovement()\n\t\t\t\t\t|| world.getBlockState(new BlockPos(x, y + 2, z)).getMaterial().blocksMovement()){\n\t\t\t\treturn false;\n\t\t\t}\n\n\t\t\tif(!world.isRemote){\n\t\t\t\tentity.setPositionAndUpdate(x + 0.5, y + 1, z + 0.5);\n\t\t\t}\n\n\t\t\tthis.playSound(world, entity, 0, -1, new SpellModifiers());\n\t\t}\n\n\t\treturn true;\n\t}\n\n}\n"
+  },
+  "source_provenance": "Not yet verified rawGit/archive/manifest bridge; local body only, no fixed upstream authenticity claim.",
+  "complete_before_source_nearest_judgments": [
+    {
+      "formal_index": 33,
+      "complete_original_object": {
+        "id": "goety-banish-preteleport-eligibility-and-cancellable-receipt",
+        "status": "reviewed_effective",
+        "repo": "Polarice3/Goety-2",
+        "commit": "02adbe7491767210f63857fa763a6f1de1262cbd",
+        "category": "control_immunity_semantics",
+        "semantic_dedup_key": "goety-banish-preteleport-eligibility-and-cancellable-receipt",
+        "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+        "source_refs": [
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/magic/spells/void_spells/BanishSpell.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/magic/spells/void_spells/BanishSpell.java",
+            "lines": [
+              1,
+              116
+            ],
+            "file_sha256": "0c75b161662050466227cb3f03d33440676c6941f2c21d67d8f4947d80b47885",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/magic/spells/void_spells/BanishSpell.java#L1-L116"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/api/magic/ITouchSpell.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/api/magic/ITouchSpell.java",
+            "lines": [
+              1,
+              20
+            ],
+            "file_sha256": "e803810459080d9af3cb0b4802cdd4b237f27159a31339c67cc0a44e26b6130f",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/api/magic/ITouchSpell.java#L1-L20"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/api/items/magic/IWand.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/api/items/magic/IWand.java",
+            "lines": [
+              72,
+              95
+            ],
+            "file_sha256": "635debf4ef73c99da57cb7473c8f1398da76886937720e269a1b1e73d3118225",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/api/items/magic/IWand.java#L72-L95"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/api/magic/ISpell.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/api/magic/ISpell.java",
+            "lines": [
+              262,
+              268
+            ],
+            "file_sha256": "fe4091050a63c41feff3820530a85f0a3e7e1252f6abc692ebab07b9fc05ab67",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/api/magic/ISpell.java#L262-L268"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/api/magic/ISpell.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/api/magic/ISpell.java",
+            "lines": [
+              326,
+              332
+            ],
+            "file_sha256": "fe4091050a63c41feff3820530a85f0a3e7e1252f6abc692ebab07b9fc05ab67",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/api/magic/ISpell.java#L326-L332"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/magic/DarkWand.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/items/magic/DarkWand.java",
+            "lines": [
+              726,
+              757
+            ],
+            "file_sha256": "28fc17d5d2012a25d754371fffa38709865a74de3d34505e27e7c5c2780ccd8d",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/items/magic/DarkWand.java#L726-L757"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/utils/MobUtil.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/utils/MobUtil.java",
+            "lines": [
+              379,
+              393
+            ],
+            "file_sha256": "419c4f330d4b16a5422b32a7bc98d49ad5d54d77b853160c7d4312090375b16b",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/utils/MobUtil.java#L379-L393"
+          }
+        ],
+        "full_chain_observation": "DarkWand.canCastTouch→IWand.cannotCast→Banish.conditionsMet：原生视线entityResult查询→目标最大血量/banish标签/配置黑名单拒绝，后经ForgeEnderTeleport取消门；通过才允许touchResult随机传送尝试。",
+        "concrete_observation": "拒绝目标资格时播放SPELL_FAIL并false，Forge传送事件取消则false无该提示；两种失败不能等同。conditionsMet射线找的目标与实际touchResult参数并非同一身份绑定；读取完整touchResult，传送失败只是range次尝试结束，stopRiding在每次尝试前，不能把所有最终未传送称免疫且纹丝不动。事件预检坐标给caster位置，实际随机传送另坐标，未消费预检事件修改后的目标坐标。没有灰字或逐目标限频。",
+        "application_to_boss_immune": "免控回执挂到明确资格拒绝，保留第三方取消与无落点的不同原因；用实际被操作目标校验资格，避免射线预检目标与交互目标脱节。",
+        "limitations": "固定提交本地源码静态研究；未运行/编译，不证明观感、声音或TCP同步。标签资源未取得，不虚构具体Boss成员。",
+        "research_credit": 1,
+        "reviewed_utc": "2026-10-26T12:17:54.592358+00:00"
+      },
+      "actual_fourfield_projection": {
+        "full_chain_observation": "DarkWand.canCastTouch→IWand.cannotCast→Banish.conditionsMet：原生视线entityResult查询→目标最大血量/banish标签/配置黑名单拒绝，后经ForgeEnderTeleport取消门；通过才允许touchResult随机传送尝试。",
+        "concrete_observation": "拒绝目标资格时播放SPELL_FAIL并false，Forge传送事件取消则false无该提示；两种失败不能等同。conditionsMet射线找的目标与实际touchResult参数并非同一身份绑定；读取完整touchResult，传送失败只是range次尝试结束，stopRiding在每次尝试前，不能把所有最终未传送称免疫且纹丝不动。事件预检坐标给caster位置，实际随机传送另坐标，未消费预检事件修改后的目标坐标。没有灰字或逐目标限频。",
+        "application_to_boss_immune": "免控回执挂到明确资格拒绝，保留第三方取消与无落点的不同原因；用实际被操作目标校验资格，避免射线预检目标与交互目标脱节。",
+        "limitations": "固定提交本地源码静态研究；未运行/编译，不证明观感、声音或TCP同步。标签资源未取得，不虚构具体Boss成员。"
+      }
+    },
+    {
+      "formal_index": 66,
+      "complete_original_object": {
+        "id": "ars-exchange-nonatomic-two-target-teleport-gates",
+        "status": "reviewed_effective",
+        "repo": "baileyholl/Ars-Nouveau",
+        "commit": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+        "category": "helper_reviewed_native_immune_feedback",
+        "semantic_dedup_key": "ars-exchange-nonatomic-two-target-teleport-gates",
+        "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+        "source_refs": [
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectExchange.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectExchange.java",
+            "lines": [
+              50,
+              67
+            ],
+            "file_sha256": "15d1a8ead7689554de97e65fc5a976d05aa67f4d0506ce14981d924ecabd927f",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/spell/effect/EffectExchange.java#L50-L67"
+          }
+        ],
+        "full_chain_observation": "EffectExchange.onResolveEntity→caster Ender hook→caster teleport→target Ender hook→target teleport",
+        "concrete_observation": "交换前拒TELEPORTING_NOT_SUPPORTED或FakePlayer；分别向shooter与living目标发EnderTeleport事件并独立决定两次teleport，事件拒绝可能造成只交换一半。 主岗复核：两方传送各自可取消且可能只移动一方，独立于单目标banish；不假称原子交换。",
+        "application_to_boss_immune": "同次双目标控制要区分每一目标的结果；不能把一个事件通过当整次交换成功。",
+        "limitations": "不是灰字生产；非living目标绕过Ender事件检查；与Blink共用底层事件但这里多实体非原子语义独立。 静态源码研究，不证明画面/声音或TCP。普通阴阳体质不要求灰字；守卫旧账0自动转入。",
+        "research_credit": 1,
+        "reviewed_utc": "2026-10-26T12:40:06.447864+00:00"
+      },
+      "actual_fourfield_projection": {
+        "full_chain_observation": "EffectExchange.onResolveEntity→caster Ender hook→caster teleport→target Ender hook→target teleport",
+        "concrete_observation": "交换前拒TELEPORTING_NOT_SUPPORTED或FakePlayer；分别向shooter与living目标发EnderTeleport事件并独立决定两次teleport，事件拒绝可能造成只交换一半。 主岗复核：两方传送各自可取消且可能只移动一方，独立于单目标banish；不假称原子交换。",
+        "application_to_boss_immune": "同次双目标控制要区分每一目标的结果；不能把一个事件通过当整次交换成功。",
+        "limitations": "不是灰字生产；非living目标绕过Ender事件检查；与Blink共用底层事件但这里多实体非原子语义独立。 静态源码研究，不证明画面/声音或TCP。普通阴阳体质不要求灰字；守卫旧账0自动转入。"
+      }
+    },
+    {
+      "formal_index": 290,
+      "complete_original_object": {
+        "id": "goety-native-ender-ground-final-teleport-denial-command-exceptions",
+        "status": "reviewed_effective",
+        "repo": "Polarice3/Goety-2",
+        "commit": "02adbe7491767210f63857fa763a6f1de1262cbd",
+        "category": "native_teleport_control_refusal",
+        "semantic_dedup_key": "goety-native-ender-ground-final-teleport-denial-command-exceptions",
+        "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+        "source_refs": [
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/effects/GoetyEffects.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/effects/GoetyEffects.java",
+            "lines": [
+              163,
+              164
+            ],
+            "file_sha256": "9a1ee77508de0875b673c87d79e956b65febd893f42ec17ce3f0c18de5262c2e",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/effects/GoetyEffects.java#L163-L164"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java",
+            "lines": [
+              107,
+              107
+            ],
+            "file_sha256": "9957755cf4b305a3e84526f00bb4bfddaf159ae941e0773276563b11c5189188",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java#L107-L107"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java",
+            "lines": [
+              220,
+              230
+            ],
+            "file_sha256": "9957755cf4b305a3e84526f00bb4bfddaf159ae941e0773276563b11c5189188",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java#L220-L230"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java",
+            "lines": [
+              250,
+              252
+            ],
+            "file_sha256": "9957755cf4b305a3e84526f00bb4bfddaf159ae941e0773276563b11c5189188",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/effects/brew/BrewEffects.java#L250-L252"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/effects/brew/PotionBrewEffect.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/effects/brew/PotionBrewEffect.java",
+            "lines": [
+              1,
+              56
+            ],
+            "file_sha256": "7b753d44fc73d3e9961ce08ce4feb8c9223ac8361e1091fd25e993213e2f53b1",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/effects/brew/PotionBrewEffect.java#L1-L56"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/blocks/entities/BrewCauldronBlockEntity.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/blocks/entities/BrewCauldronBlockEntity.java",
+            "lines": [
+              756,
+              845
+            ],
+            "file_sha256": "521e16032d0c0a7038f92f3fe8c079c0af92d9e833d8979ddb0171fb26030746",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/blocks/entities/BrewCauldronBlockEntity.java#L756-L845"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/utils/BrewUtils.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/utils/BrewUtils.java",
+            "lines": [
+              210,
+              232
+            ],
+            "file_sha256": "fddb9110edb3ebd893d7eb5cd789cb908be31ca27be8dd7b84b24528a57fb9e0",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/utils/BrewUtils.java#L210-L232"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/brew/BrewItem.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/items/brew/BrewItem.java",
+            "lines": [
+              44,
+              83
+            ],
+            "file_sha256": "64eaf04b997611ef34fbe2d567488478ab7f1989847b5d2c2997c656c6c89132",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/items/brew/BrewItem.java#L44-L83"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/brew/BrewItem.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/items/brew/BrewItem.java",
+            "lines": [
+              119,
+              121
+            ],
+            "file_sha256": "64eaf04b997611ef34fbe2d567488478ab7f1989847b5d2c2997c656c6c89132",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/items/brew/BrewItem.java#L119-L121"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/items/ModItems.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/items/ModItems.java",
+            "lines": [
+              169,
+              172
+            ],
+            "file_sha256": "1bfcb1e8612de4e41dae00a06987f0a49527afd97336219b380dc920de813df1",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/items/ModItems.java#L169-L172"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/events/PotionEvents.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/events/PotionEvents.java",
+            "lines": [
+              97,
+              98
+            ],
+            "file_sha256": "72506cc54e54d30d5c5b83e8007b65dad13d59b4debee45155a7a0dd99e06192",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/events/PotionEvents.java#L97-L98"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/events/PotionEvents.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/events/PotionEvents.java",
+            "lines": [
+              823,
+              831
+            ],
+            "file_sha256": "72506cc54e54d30d5c5b83e8007b65dad13d59b4debee45155a7a0dd99e06192",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/events/PotionEvents.java#L823-L831"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/mixin/LivingEntityMixin.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/mixin/LivingEntityMixin.java",
+            "lines": [
+              100,
+              105
+            ],
+            "file_sha256": "a06bc0bfa7fc31837e04dc13cf500df4e34c9e49736084f88788aa5ff7be2ac6",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/mixin/LivingEntityMixin.java#L100-L105"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/resources/goety.mixins.json",
+            "source_path": "src/main/resources/goety.mixins.json",
+            "lines": [
+              1,
+              56
+            ],
+            "file_sha256": "7dc7c868c78010bead0e18803ec48f47b3795a21277df765d2a083a32413ee1d",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/resources/goety.mixins.json#L1-L56"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/Polarice3__Goety-2/src/main/java/com/Polarice3/Goety/common/magic/spells/void_spells/BanishSpell.java",
+            "source_path": "src/main/java/com/Polarice3/Goety/common/magic/spells/void_spells/BanishSpell.java",
+            "lines": [
+              1,
+              116
+            ],
+            "file_sha256": "0c75b161662050466227cb3f03d33440676c6941f2c21d67d8f4947d80b47885",
+            "url": "https://github.com/Polarice3/Goety-2/blob/02adbe7491767210f63857fa763a6f1de1262cbd/src/main/java/com/Polarice3/Goety/common/magic/spells/void_spells/BanishSpell.java#L1-L116"
+          }
+        ],
+        "full_chain_observation": "实际ENDER_GROUND注册GoetyBaseEffect；珍珠对应PotionBrewEffect，getBrew完整方法把该wrapper转成MobEffectInstance并setCustomEffects写CustomPotionEffects；真实BrewItem.use→finishUsingItem服务端addEffect，返回未检查。已启用LivingEntityMixin在原生randomTeleport HEAD有状态直接return false；实际Forge PotionEvents.enderTeleport又取消非TeleportCommand/SpreadPlayersCommand的EntityTeleportEvent。实际Banish.conditionsMet先发EnderEntity事件会被该subscriber否决；若直接进入touchResult则每次尝试先stopRiding，再randomTeleport由Mixin拒绝。",
+        "concrete_observation": "一个对原生移动操作的最终拒绝位点1，两个入口同一EnderGround控制策略合并；不同于既有Applicable能否挂入状态、Banish施法前目标资格、Wight传送成功后藏身免伤，不是把相同spell换名计数。事件入口命令有例外，而randomTeleport Mixin本身没有命令/伤害/来源例外；不能据事件白名单推断任何底层调用都获准。原生Banish成功才播teleport声音和gameEvent，拒绝无明确灰字或嗡声。单独看touchResult全失败仍可能已解骑乘；正常conditionsMet会先拒绝，不能未经原生序列验证宣称实际已经发生副作用。",
+        "application_to_boss_immune": "Boss控制拒绝应在具体原生位点出明确原因，预检和执行期都要一致，但一次尝试不重复产文字。判定拒绝要发生在stopRiding/速度/位置等副作用之前；不拿传送成功声或无伤结果替代真正免控回执。",
+        "limitations": "固定提交，两个最终gate、完整Banish/药水原生使用方法及getBrew和序列化方法全文已读；大注册容器仅直接注册位置作为支持0，未把全酿造任务/取得过程宣称已验。BrewItem.finishUsingItem与wrapper为本链上下文，不额外信用；未运行游戏/原生Minecraft传送内部/像素和声音，不证明管理员命令所有底层实现。普通体质不新增灰字。",
+        "research_credit": 1,
+        "reviewed_utc": "2026-10-26T19:46:36.603139+00:00"
+      },
+      "actual_fourfield_projection": {
+        "full_chain_observation": "实际ENDER_GROUND注册GoetyBaseEffect；珍珠对应PotionBrewEffect，getBrew完整方法把该wrapper转成MobEffectInstance并setCustomEffects写CustomPotionEffects；真实BrewItem.use→finishUsingItem服务端addEffect，返回未检查。已启用LivingEntityMixin在原生randomTeleport HEAD有状态直接return false；实际Forge PotionEvents.enderTeleport又取消非TeleportCommand/SpreadPlayersCommand的EntityTeleportEvent。实际Banish.conditionsMet先发EnderEntity事件会被该subscriber否决；若直接进入touchResult则每次尝试先stopRiding，再randomTeleport由Mixin拒绝。",
+        "concrete_observation": "一个对原生移动操作的最终拒绝位点1，两个入口同一EnderGround控制策略合并；不同于既有Applicable能否挂入状态、Banish施法前目标资格、Wight传送成功后藏身免伤，不是把相同spell换名计数。事件入口命令有例外，而randomTeleport Mixin本身没有命令/伤害/来源例外；不能据事件白名单推断任何底层调用都获准。原生Banish成功才播teleport声音和gameEvent，拒绝无明确灰字或嗡声。单独看touchResult全失败仍可能已解骑乘；正常conditionsMet会先拒绝，不能未经原生序列验证宣称实际已经发生副作用。",
+        "application_to_boss_immune": "Boss控制拒绝应在具体原生位点出明确原因，预检和执行期都要一致，但一次尝试不重复产文字。判定拒绝要发生在stopRiding/速度/位置等副作用之前；不拿传送成功声或无伤结果替代真正免控回执。",
+        "limitations": "固定提交，两个最终gate、完整Banish/药水原生使用方法及getBrew和序列化方法全文已读；大注册容器仅直接注册位置作为支持0，未把全酿造任务/取得过程宣称已验。BrewItem.finishUsingItem与wrapper为本链上下文，不额外信用；未运行游戏/原生Minecraft传送内部/像素和声音，不证明管理员命令所有底层实现。普通体质不新增灰字。"
+      }
+    }
+  ],
+  "actual_observations": [
+    "onEntityHit attempts teleport onlyLiving, ignores helper boolean and returns true even nonLiving; onMiss true/onBlock false.",
+    "Radius expression(min+rand*max-min)*blast simplifies rand*max beforeupgrade, no enforced minimum at this expression; limits/config not yet unfolded.",
+    "Teleport computes single angle/location/getNearestFloor; client portal+blink requests before headroom test. ynull returns true with no position write/success sound. Solid two headroom blocks returnsfalse. Server yvalid calls setPositionAndUpdate then sound, no own nativecancel gate in this body. ParentSpellRay event pipeline/universal anchoring handler/actual floor helper not yet read; do not call bypass."
+  ],
+  "unexpanded": [
+    "SpellRay entry/target qualification/event handling and exact parent return consumer",
+    "BlockUtils full nearestFloor helper",
+    "Anchoring/teleport event integration",
+    "registration/properties/declared version/local source provenance",
+    "broader whole judgments beyond33/66/290"
+  ],
+  "current_program": 515,
+  "current_ecology": 54,
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "formal_id": null,
+  "production_changes": 0,
+  "append_authorized": false,
+  "tasks_deleted": 0
+}

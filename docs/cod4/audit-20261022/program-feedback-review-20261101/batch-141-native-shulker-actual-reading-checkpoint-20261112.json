@@ -1,0 +1,104 @@
+{
+  "recorded_utc": "2026-11-11T16:16:11.722718+00:00",
+  "status": "141_EARLY_ACTUAL_SOURCE_CHECKPOINT_NO_CANDIDATE_OR_CREDIT_YET",
+  "archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_refs": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Shulker.java",
+      "sha256": "6053155cf0c01708d766f0c6b130199f80d7a93621bc45d3b78ff0ddca8621f7",
+      "bytes": 26561,
+      "ranges": [
+        [
+          354,
+          437
+        ],
+        [
+          443,
+          477
+        ]
+      ],
+      "total_lines": 694,
+      "whole_file_read": false,
+      "archive_entry": "net/minecraft/world/entity/monster/Shulker.java",
+      "archive_entry_exact": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "sha256": "a27d210d38fbccf0dd46274335bc7d5618f0eb8fb3585d34352fcac20d469e97",
+      "bytes": 12289,
+      "ranges": [
+        [
+          266,
+          280
+        ],
+        [
+          288,
+          296
+        ],
+        [
+          302,
+          310
+        ]
+      ],
+      "total_lines": 319,
+      "whole_file_read": false,
+      "archive_entry": "net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "archive_entry_exact": true
+    }
+  ],
+  "actual_excerpts": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Shulker.java",
+      "start": 354,
+      "end": 437,
+      "text": "   protected boolean teleportSomewhere() {\n      if (!this.isNoAi() && this.isAlive()) {\n         BlockPos blockpos = this.blockPosition();\n\n         for(int i = 0; i < 5; ++i) {\n            BlockPos blockpos1 = blockpos.offset(Mth.randomBetweenInclusive(this.random, -8, 8), Mth.randomBetweenInclusive(this.random, -8, 8), Mth.randomBetweenInclusive(this.random, -8, 8));\n            if (blockpos1.getY() > this.level().getMinBuildHeight() && this.level().isEmptyBlock(blockpos1) && this.level().getWorldBorder().isWithinBounds(blockpos1) && this.level().noCollision(this, (new AABB(blockpos1)).deflate(1.0E-6D))) {\n               Direction direction = this.findAttachableSurface(blockpos1);\n               if (direction != null) {\n                  net.minecraftforge.event.entity.EntityTeleportEvent.EnderEntity event = net.minecraftforge.event.ForgeEventFactory.onEnderTeleport(this, blockpos1.getX(), blockpos1.getY(), blockpos1.getZ());\n                  if (event.isCanceled()) direction = null;\n                  blockpos1 = BlockPos.containing(event.getTargetX(), event.getTargetY(), event.getTargetZ());\n               }\n\n               if (direction != null) {\n                  this.unRide();\n                  this.setAttachFace(direction);\n                  this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);\n                  this.setPos((double)blockpos1.getX() + 0.5D, (double)blockpos1.getY(), (double)blockpos1.getZ() + 0.5D);\n                  this.level().gameEvent(GameEvent.TELEPORT, blockpos, GameEvent.Context.of(this));\n                  this.entityData.set(DATA_PEEK_ID, (byte)0);\n                  this.setTarget((LivingEntity)null);\n                  return true;\n               }\n            }\n         }\n\n         return false;\n      } else {\n         return false;\n      }\n   }\n\n   public void lerpTo(double p_33411_, double p_33412_, double p_33413_, float p_33414_, float p_33415_, int p_33416_, boolean p_33417_) {\n      this.lerpSteps = 0;\n      this.setPos(p_33411_, p_33412_, p_33413_);\n      this.setRot(p_33414_, p_33415_);\n   }\n\n   public boolean hurt(DamageSource p_33421_, float p_33422_) {\n      if (this.isClosed()) {\n         Entity entity = p_33421_.getDirectEntity();\n         if (entity instanceof AbstractArrow) {\n            return false;\n         }\n      }\n\n      if (!super.hurt(p_33421_, p_33422_)) {\n         return false;\n      } else {\n         if ((double)this.getHealth() < (double)this.getMaxHealth() * 0.5D && this.random.nextInt(4) == 0) {\n            this.teleportSomewhere();\n         } else if (p_33421_.is(DamageTypeTags.IS_PROJECTILE)) {\n            Entity entity1 = p_33421_.getDirectEntity();\n            if (entity1 != null && entity1.getType() == EntityType.SHULKER_BULLET) {\n               this.hitByShulkerBullet();\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private boolean isClosed() {\n      return this.getRawPeekAmount() == 0;\n   }\n\n   private void hitByShulkerBullet() {\n      Vec3 vec3 = this.position();\n      AABB aabb = this.getBoundingBox();\n      if (!this.isClosed() && this.teleportSomewhere()) {\n         int i = this.level().getEntities(EntityType.SHULKER, aabb.inflate(8.0D), Entity::isAlive).size();\n         float f = (float)(i - 1) / 5.0F;\n         if (!(this.level().random.nextFloat() < f)) {\n            Shulker shulker = EntityType.SHULKER.create(this.level());\n            if (shulker != null) {\n               shulker.setVariant(this.getVariant());\n               shulker.moveTo(vec3);\n               this.level().addFreshEntity(shulker);\n            }\n\n         }\n      }\n   }\n"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/Shulker.java",
+      "start": 443,
+      "end": 477,
+      "text": "   public Direction getAttachFace() {\n      return this.entityData.get(DATA_ATTACH_FACE_ID);\n   }\n\n   private void setAttachFace(Direction p_149789_) {\n      this.entityData.set(DATA_ATTACH_FACE_ID, p_149789_);\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_33434_) {\n      if (DATA_ATTACH_FACE_ID.equals(p_33434_)) {\n         this.setBoundingBox(this.makeBoundingBox());\n      }\n\n      super.onSyncedDataUpdated(p_33434_);\n   }\n\n   private int getRawPeekAmount() {\n      return this.entityData.get(DATA_PEEK_ID);\n   }\n\n   void setRawPeekAmount(int p_33419_) {\n      if (!this.level().isClientSide) {\n         this.getAttribute(Attributes.ARMOR).removeModifier(COVERED_ARMOR_MODIFIER);\n         if (p_33419_ == 0) {\n            this.getAttribute(Attributes.ARMOR).addPermanentModifier(COVERED_ARMOR_MODIFIER);\n            this.playSound(SoundEvents.SHULKER_CLOSE, 1.0F, 1.0F);\n            this.gameEvent(GameEvent.CONTAINER_CLOSE);\n         } else {\n            this.playSound(SoundEvents.SHULKER_OPEN, 1.0F, 1.0F);\n            this.gameEvent(GameEvent.CONTAINER_OPEN);\n         }\n      }\n\n      this.entityData.set(DATA_PEEK_ID, (byte)p_33419_);\n   }\n"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "start": 266,
+      "end": 280,
+      "text": "   protected void onHitEntity(EntityHitResult p_37345_) {\n      super.onHitEntity(p_37345_);\n      Entity entity = p_37345_.getEntity();\n      Entity entity1 = this.getOwner();\n      LivingEntity livingentity = entity1 instanceof LivingEntity ? (LivingEntity)entity1 : null;\n      boolean flag = entity.hurt(this.damageSources().mobProjectile(this, livingentity), 4.0F);\n      if (flag) {\n         this.doEnchantDamageEffects(livingentity, entity);\n         if (entity instanceof LivingEntity) {\n            LivingEntity livingentity1 = (LivingEntity)entity;\n            livingentity1.addEffect(new MobEffectInstance(MobEffects.LEVITATION, 200), MoreObjects.firstNonNull(entity1, this));\n         }\n      }\n\n   }\n"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "start": 288,
+      "end": 296,
+      "text": "   private void destroy() {\n      this.discard();\n      this.level().gameEvent(GameEvent.ENTITY_DAMAGE, this.position(), GameEvent.Context.of(this));\n   }\n\n   protected void onHit(HitResult p_37347_) {\n      super.onHit(p_37347_);\n      this.destroy();\n   }\n"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ShulkerBullet.java",
+      "start": 302,
+      "end": 310,
+      "text": "   public boolean hurt(DamageSource p_37338_, float p_37339_) {\n      if (!this.level().isClientSide) {\n         this.playSound(SoundEvents.SHULKER_BULLET_HURT, 1.0F, 1.0F);\n         ((ServerLevel)this.level()).sendParticles(ParticleTypes.CRIT, this.getX(), this.getY(), this.getZ(), 15, 0.2D, 0.2D, 0.2D, 0.0D);\n         this.destroy();\n      }\n\n      return true;\n   }\n"
+    }
+  ],
+  "actual_cited_files": 2,
+  "actual_cited_ranges": 5,
+  "actual_cited_distinct_lines": 152,
+  "whole_files": 0,
+  "observations": [
+    "Closed shell tests direct AbstractArrow before parenthurt and returnsfalse; successful parenthurt then lowerHP quarterchance teleport takes precedence over projectile/directSHULKER_BULLET reproduction branch. Own result remains true even if movement/newborn request failed.",
+    "hitByShulkerBullet snapshots old position/AABB before requiringopen+successfulteleport; teleport closes raw peek andclears target before population count/random/factory/create/variant/moveToOldPos/addFreshEntity; addFreshEntity result ignored. This is potentially distinct admission/mutation/birth chain but not yet semantically reviewed or credited.",
+    "Own bullet hurttrue triggers enchant and attemptedlevitation, addEffectreturnignored; onHit destroys after super.onHit normalreturns independently. Shared arrow/effect/helper semantics0extra."
+  ],
+  "diagnostic": "Initial ShulkerBullet display264..323 exceeded319linefile after showing closingclass, IndexError. Cited only complete266..280/288..296/302..310 actually visible. No claimed320..323 or whole-file read; no source executed.",
+  "next": "Read full bounded goal/peek lifecycle and attach checks, existing515 complete relevant judgments and migration668 business owner before any potential atmost1 or merge0 candidate. Main140 pending,139sourceHOLD,138actual515 accepted; no new formalappend.",
+  "accepted_credit": 0,
+  "formal_credit": 0,
+  "append_authorized": false,
+  "script_invocations": 0,
+  "production_changes": 0,
+  "tasks_deleted": 0,
+  "hours_claimed": null,
+  "all_tasks_complete": false
+}
