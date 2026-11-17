@@ -1,0 +1,1236 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-09T15:37:27.672138+00:00",
+  "batch": 98,
+  "status": "bounded_unsealed_native_enderman_source_read_checkpoint_for096_author_confirmation_no_candidate_yet",
+  "research_credit": 0,
+  "maximum_pending_credit": 0,
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0"
+  },
+  "source_refs": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/EnderMan.java",
+      "archive_entry": "net/minecraft/world/entity/monster/EnderMan.java",
+      "sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "start_line": 70,
+      "end_line": 175,
+      "normalized_excerpt": "import net.minecraft.world.phys.Vec3;\n\npublic class EnderMan extends Monster implements NeutralMob {\n   private static final UUID SPEED_MODIFIER_ATTACKING_UUID = UUID.fromString(\"020E0DFB-87AE-4653-9556-831010E291A0\");\n   private static final AttributeModifier SPEED_MODIFIER_ATTACKING = new AttributeModifier(SPEED_MODIFIER_ATTACKING_UUID, \"Attacking speed boost\", (double)0.15F, AttributeModifier.Operation.ADDITION);\n   private static final int DELAY_BETWEEN_CREEPY_STARE_SOUND = 400;\n   private static final int MIN_DEAGGRESSION_TIME = 600;\n   private static final EntityDataAccessor<Optional<BlockState>> DATA_CARRY_STATE = SynchedEntityData.defineId(EnderMan.class, EntityDataSerializers.OPTIONAL_BLOCK_STATE);\n   private static final EntityDataAccessor<Boolean> DATA_CREEPY = SynchedEntityData.defineId(EnderMan.class, EntityDataSerializers.BOOLEAN);\n   private static final EntityDataAccessor<Boolean> DATA_STARED_AT = SynchedEntityData.defineId(EnderMan.class, EntityDataSerializers.BOOLEAN);\n   private int lastStareSound = Integer.MIN_VALUE;\n   private int targetChangeTime;\n   private static final UniformInt PERSISTENT_ANGER_TIME = TimeUtil.rangeOfSeconds(20, 39);\n   private int remainingPersistentAngerTime;\n   @Nullable\n   private UUID persistentAngerTarget;\n\n   public EnderMan(EntityType<? extends EnderMan> p_32485_, Level p_32486_) {\n      super(p_32485_, p_32486_);\n      this.setMaxUpStep(1.0F);\n      this.setPathfindingMalus(BlockPathTypes.WATER, -1.0F);\n   }\n\n   protected void registerGoals() {\n      this.goalSelector.addGoal(0, new FloatGoal(this));\n      this.goalSelector.addGoal(1, new EnderMan.EndermanFreezeWhenLookedAt(this));\n      this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0D, false));\n      this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0D, 0.0F));\n      this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));\n      this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n      this.goalSelector.addGoal(10, new EnderMan.EndermanLeaveBlockGoal(this));\n      this.goalSelector.addGoal(11, new EnderMan.EndermanTakeBlockGoal(this));\n      this.targetSelector.addGoal(1, new EnderMan.EndermanLookForPlayerGoal(this, this::isAngryAt));\n      this.targetSelector.addGoal(2, new HurtByTargetGoal(this));\n      this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Endermite.class, true, false));\n      this.targetSelector.addGoal(4, new ResetUniversalAngerTargetGoal<>(this, false));\n   }\n\n   public static AttributeSupplier.Builder createAttributes() {\n      return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 40.0D).add(Attributes.MOVEMENT_SPEED, (double)0.3F).add(Attributes.ATTACK_DAMAGE, 7.0D).add(Attributes.FOLLOW_RANGE, 64.0D);\n   }\n\n   public void setTarget(@Nullable LivingEntity p_32537_) {\n      AttributeInstance attributeinstance = this.getAttribute(Attributes.MOVEMENT_SPEED);\n      if (p_32537_ == null) {\n         this.targetChangeTime = 0;\n         this.entityData.set(DATA_CREEPY, false);\n         this.entityData.set(DATA_STARED_AT, false);\n         attributeinstance.removeModifier(SPEED_MODIFIER_ATTACKING);\n      } else {\n         this.targetChangeTime = this.tickCount;\n         this.entityData.set(DATA_CREEPY, true);\n         if (!attributeinstance.hasModifier(SPEED_MODIFIER_ATTACKING)) {\n            attributeinstance.addTransientModifier(SPEED_MODIFIER_ATTACKING);\n         }\n      }\n\n      super.setTarget(p_32537_); //Forge: Moved down to allow event handlers to write data manager values.\n   }\n\n   protected void defineSynchedData() {\n      super.defineSynchedData();\n      this.entityData.define(DATA_CARRY_STATE, Optional.empty());\n      this.entityData.define(DATA_CREEPY, false);\n      this.entityData.define(DATA_STARED_AT, false);\n   }\n\n   public void startPersistentAngerTimer() {\n      this.setRemainingPersistentAngerTime(PERSISTENT_ANGER_TIME.sample(this.random));\n   }\n\n   public void setRemainingPersistentAngerTime(int p_32515_) {\n      this.remainingPersistentAngerTime = p_32515_;\n   }\n\n   public int getRemainingPersistentAngerTime() {\n      return this.remainingPersistentAngerTime;\n   }\n\n   public void setPersistentAngerTarget(@Nullable UUID p_32509_) {\n      this.persistentAngerTarget = p_32509_;\n   }\n\n   @Nullable\n   public UUID getPersistentAngerTarget() {\n      return this.persistentAngerTarget;\n   }\n\n   public void playStareSound() {\n      if (this.tickCount >= this.lastStareSound + 400) {\n         this.lastStareSound = this.tickCount;\n         if (!this.isSilent()) {\n            this.level().playLocalSound(this.getX(), this.getEyeY(), this.getZ(), SoundEvents.ENDERMAN_STARE, this.getSoundSource(), 2.5F, 1.0F, false);\n         }\n      }\n\n   }\n\n   public void onSyncedDataUpdated(EntityDataAccessor<?> p_32513_) {\n      if (DATA_CREEPY.equals(p_32513_) && this.hasBeenStaredAt() && this.level().isClientSide) {\n         this.playStareSound();\n      }\n\n      super.onSyncedDataUpdated(p_32513_);\n   }\n",
+      "range_sha256": "97fa396fc2ae322a0fc7259b52d92a3fcc302f343ead235e6f1665e4d4368fb7",
+      "whole_file": false,
+      "role": "root type/constructor/registered goals/target state/sync own methods"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/EnderMan.java",
+      "archive_entry": "net/minecraft/world/entity/monster/EnderMan.java",
+      "sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "start_line": 176,
+      "end_line": 198,
+      "normalized_excerpt": "   public void addAdditionalSaveData(CompoundTag p_32520_) {\n      super.addAdditionalSaveData(p_32520_);\n      BlockState blockstate = this.getCarriedBlock();\n      if (blockstate != null) {\n         p_32520_.put(\"carriedBlockState\", NbtUtils.writeBlockState(blockstate));\n      }\n\n      this.addPersistentAngerSaveData(p_32520_);\n   }\n\n   public void readAdditionalSaveData(CompoundTag p_32511_) {\n      super.readAdditionalSaveData(p_32511_);\n      BlockState blockstate = null;\n      if (p_32511_.contains(\"carriedBlockState\", 10)) {\n         blockstate = NbtUtils.readBlockState(this.level().holderLookup(Registries.BLOCK), p_32511_.getCompound(\"carriedBlockState\"));\n         if (blockstate.isAir()) {\n            blockstate = null;\n         }\n      }\n\n      this.setCarriedBlock(blockstate);\n      this.readPersistentAngerSaveData(this.level(), p_32511_);\n   }",
+      "range_sha256": "a01545cd0cb989fc662f5b61ce2c3323ec39c845f91df2fee94d24c8d8ed5a0f",
+      "whole_file": false,
+      "role": "complete own save/read, same native blockcargo owner support0"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/EnderMan.java",
+      "archive_entry": "net/minecraft/world/entity/monster/EnderMan.java",
+      "sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "start_line": 194,
+      "end_line": 297,
+      "normalized_excerpt": "      }\n\n      this.setCarriedBlock(blockstate);\n      this.readPersistentAngerSaveData(this.level(), p_32511_);\n   }\n\n   boolean isLookingAtMe(Player p_32535_) {\n      ItemStack itemstack = p_32535_.getInventory().armor.get(3);\n      if (net.minecraftforge.common.ForgeHooks.shouldSuppressEnderManAnger(this, p_32535_, itemstack)) {\n         return false;\n      } else {\n         Vec3 vec3 = p_32535_.getViewVector(1.0F).normalize();\n         Vec3 vec31 = new Vec3(this.getX() - p_32535_.getX(), this.getEyeY() - p_32535_.getEyeY(), this.getZ() - p_32535_.getZ());\n         double d0 = vec31.length();\n         vec31 = vec31.normalize();\n         double d1 = vec3.dot(vec31);\n         return d1 > 1.0D - 0.025D / d0 ? p_32535_.hasLineOfSight(this) : false;\n      }\n   }\n\n   protected float getStandingEyeHeight(Pose p_32517_, EntityDimensions p_32518_) {\n      return 2.55F;\n   }\n\n   public void aiStep() {\n      if (this.level().isClientSide) {\n         for(int i = 0; i < 2; ++i) {\n            this.level().addParticle(ParticleTypes.PORTAL, this.getRandomX(0.5D), this.getRandomY() - 0.25D, this.getRandomZ(0.5D), (this.random.nextDouble() - 0.5D) * 2.0D, -this.random.nextDouble(), (this.random.nextDouble() - 0.5D) * 2.0D);\n         }\n      }\n\n      this.jumping = false;\n      if (!this.level().isClientSide) {\n         this.updatePersistentAnger((ServerLevel)this.level(), true);\n      }\n\n      super.aiStep();\n   }\n\n   public boolean isSensitiveToWater() {\n      return true;\n   }\n\n   protected void customServerAiStep() {\n      if (this.level().isDay() && this.tickCount >= this.targetChangeTime + 600) {\n         float f = this.getLightLevelDependentMagicValue();\n         if (f > 0.5F && this.level().canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (f - 0.4F) * 2.0F) {\n            this.setTarget((LivingEntity)null);\n            this.teleport();\n         }\n      }\n\n      super.customServerAiStep();\n   }\n\n   protected boolean teleport() {\n      if (!this.level().isClientSide() && this.isAlive()) {\n         double d0 = this.getX() + (this.random.nextDouble() - 0.5D) * 64.0D;\n         double d1 = this.getY() + (double)(this.random.nextInt(64) - 32);\n         double d2 = this.getZ() + (this.random.nextDouble() - 0.5D) * 64.0D;\n         return this.teleport(d0, d1, d2);\n      } else {\n         return false;\n      }\n   }\n\n   boolean teleportTowards(Entity p_32501_) {\n      Vec3 vec3 = new Vec3(this.getX() - p_32501_.getX(), this.getY(0.5D) - p_32501_.getEyeY(), this.getZ() - p_32501_.getZ());\n      vec3 = vec3.normalize();\n      double d0 = 16.0D;\n      double d1 = this.getX() + (this.random.nextDouble() - 0.5D) * 8.0D - vec3.x * 16.0D;\n      double d2 = this.getY() + (double)(this.random.nextInt(16) - 8) - vec3.y * 16.0D;\n      double d3 = this.getZ() + (this.random.nextDouble() - 0.5D) * 8.0D - vec3.z * 16.0D;\n      return this.teleport(d1, d2, d3);\n   }\n\n   private boolean teleport(double p_32544_, double p_32545_, double p_32546_) {\n      BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos(p_32544_, p_32545_, p_32546_);\n\n      while(blockpos$mutableblockpos.getY() > this.level().getMinBuildHeight() && !this.level().getBlockState(blockpos$mutableblockpos).blocksMotion()) {\n         blockpos$mutableblockpos.move(Direction.DOWN);\n      }\n\n      BlockState blockstate = this.level().getBlockState(blockpos$mutableblockpos);\n      boolean flag = blockstate.blocksMotion();\n      boolean flag1 = blockstate.getFluidState().is(FluidTags.WATER);\n      if (flag && !flag1) {\n         net.minecraftforge.event.entity.EntityTeleportEvent.EnderEntity event = net.minecraftforge.event.ForgeEventFactory.onEnderTeleport(this, p_32544_, p_32545_, p_32546_);\n         if (event.isCanceled()) return false;\n         Vec3 vec3 = this.position();\n         boolean flag2 = this.randomTeleport(event.getTargetX(), event.getTargetY(), event.getTargetZ(), true);\n         if (flag2) {\n            this.level().gameEvent(GameEvent.TELEPORT, vec3, GameEvent.Context.of(this));\n            if (!this.isSilent()) {\n               this.level().playSound((Player)null, this.xo, this.yo, this.zo, SoundEvents.ENDERMAN_TELEPORT, this.getSoundSource(), 1.0F, 1.0F);\n               this.playSound(SoundEvents.ENDERMAN_TELEPORT, 1.0F, 1.0F);\n            }\n         }\n\n         return flag2;\n      } else {\n         return false;\n      }\n   }",
+      "range_sha256": "27ee2e9a67e8f001eaba487edad884aee4ed7209ece94fba54e86ea2392ac829",
+      "whole_file": false,
+      "role": "read overlapping fragment of save tail then complete gaze/aiStep/water/daytime/random/toward/final teleport methods"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/EnderMan.java",
+      "archive_entry": "net/minecraft/world/entity/monster/EnderMan.java",
+      "sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "start_line": 335,
+      "end_line": 412,
+      "normalized_excerpt": "   public boolean hurt(DamageSource p_32494_, float p_32495_) {\n      if (this.isInvulnerableTo(p_32494_)) {\n         return false;\n      } else {\n         boolean flag = p_32494_.getDirectEntity() instanceof ThrownPotion;\n         if (!p_32494_.is(DamageTypeTags.IS_PROJECTILE) && !flag) {\n            boolean flag2 = super.hurt(p_32494_, p_32495_);\n            if (!this.level().isClientSide() && !(p_32494_.getEntity() instanceof LivingEntity) && this.random.nextInt(10) != 0) {\n               this.teleport();\n            }\n\n            return flag2;\n         } else {\n            boolean flag1 = flag && this.hurtWithCleanWater(p_32494_, (ThrownPotion)p_32494_.getDirectEntity(), p_32495_);\n\n            for(int i = 0; i < 64; ++i) {\n               if (this.teleport()) {\n                  return true;\n               }\n            }\n\n            return flag1;\n         }\n      }\n   }\n\n   private boolean hurtWithCleanWater(DamageSource p_186273_, ThrownPotion p_186274_, float p_186275_) {\n      ItemStack itemstack = p_186274_.getItem();\n      Potion potion = PotionUtils.getPotion(itemstack);\n      List<MobEffectInstance> list = PotionUtils.getMobEffects(itemstack);\n      boolean flag = potion == Potions.WATER && list.isEmpty();\n      return flag ? super.hurt(p_186273_, p_186275_) : false;\n   }\n\n   public boolean isCreepy() {\n      return this.entityData.get(DATA_CREEPY);\n   }\n\n   public boolean hasBeenStaredAt() {\n      return this.entityData.get(DATA_STARED_AT);\n   }\n\n   public void setBeingStaredAt() {\n      this.entityData.set(DATA_STARED_AT, true);\n   }\n\n   public boolean requiresCustomPersistence() {\n      return super.requiresCustomPersistence() || this.getCarriedBlock() != null;\n   }\n\n   static class EndermanFreezeWhenLookedAt extends Goal {\n      private final EnderMan enderman;\n      @Nullable\n      private LivingEntity target;\n\n      public EndermanFreezeWhenLookedAt(EnderMan p_32550_) {\n         this.enderman = p_32550_;\n         this.setFlags(EnumSet.of(Goal.Flag.JUMP, Goal.Flag.MOVE));\n      }\n\n      public boolean canUse() {\n         this.target = this.enderman.getTarget();\n         if (!(this.target instanceof Player)) {\n            return false;\n         } else {\n            double d0 = this.target.distanceToSqr(this.enderman);\n            return d0 > 256.0D ? false : this.enderman.isLookingAtMe((Player)this.target);\n         }\n      }\n\n      public void start() {\n         this.enderman.getNavigation().stop();\n      }\n\n      public void tick() {\n         this.enderman.getLookControl().setLookAt(this.target.getX(), this.target.getEyeY(), this.target.getZ());\n      }\n   }",
+      "range_sha256": "b2026807fd2db9e98d87c33b5fa135682d6058b7fa281fd514a0f8439953f91e",
+      "whole_file": false,
+      "role": "complete hurt/cleanwater and complete freeze nested goal; persistence helper support0"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/EnderMan.java",
+      "archive_entry": "net/minecraft/world/entity/monster/EnderMan.java",
+      "sha256": "c54e4f2b197b9bd26273fbbec9d34b9da58cf0935c5a96ea6012aae13e6c4b9d",
+      "start_line": 458,
+      "end_line": 544,
+      "normalized_excerpt": "   static class EndermanLookForPlayerGoal extends NearestAttackableTargetGoal<Player> {\n      private final EnderMan enderman;\n      @Nullable\n      private Player pendingTarget;\n      private int aggroTime;\n      private int teleportTime;\n      private final TargetingConditions startAggroTargetConditions;\n      private final TargetingConditions continueAggroTargetConditions = TargetingConditions.forCombat().ignoreLineOfSight();\n      private final Predicate<LivingEntity> isAngerInducing;\n\n      public EndermanLookForPlayerGoal(EnderMan p_32573_, @Nullable Predicate<LivingEntity> p_32574_) {\n         super(p_32573_, Player.class, 10, false, false, p_32574_);\n         this.enderman = p_32573_;\n         this.isAngerInducing = (p_269940_) -> {\n            return (p_32573_.isLookingAtMe((Player)p_269940_) || p_32573_.isAngryAt(p_269940_)) && !p_32573_.hasIndirectPassenger(p_269940_);\n         };\n         this.startAggroTargetConditions = TargetingConditions.forCombat().range(this.getFollowDistance()).selector(this.isAngerInducing);\n      }\n\n      public boolean canUse() {\n         this.pendingTarget = this.enderman.level().getNearestPlayer(this.startAggroTargetConditions, this.enderman);\n         return this.pendingTarget != null;\n      }\n\n      public void start() {\n         this.aggroTime = this.adjustedTickDelay(5);\n         this.teleportTime = 0;\n         this.enderman.setBeingStaredAt();\n      }\n\n      public void stop() {\n         this.pendingTarget = null;\n         super.stop();\n      }\n\n      public boolean canContinueToUse() {\n         if (this.pendingTarget != null) {\n            if (!this.isAngerInducing.test(this.pendingTarget)) {\n               return false;\n            } else {\n               this.enderman.lookAt(this.pendingTarget, 10.0F, 10.0F);\n               return true;\n            }\n         } else {\n            if (this.target != null) {\n               if (this.enderman.hasIndirectPassenger(this.target)) {\n                  return false;\n               }\n\n               if (this.continueAggroTargetConditions.test(this.enderman, this.target)) {\n                  return true;\n               }\n            }\n\n            return super.canContinueToUse();\n         }\n      }\n\n      public void tick() {\n         if (this.enderman.getTarget() == null) {\n            super.setTarget((LivingEntity)null);\n         }\n\n         if (this.pendingTarget != null) {\n            if (--this.aggroTime <= 0) {\n               this.target = this.pendingTarget;\n               this.pendingTarget = null;\n               super.start();\n            }\n         } else {\n            if (this.target != null && !this.enderman.isPassenger()) {\n               if (this.enderman.isLookingAtMe((Player)this.target)) {\n                  if (this.target.distanceToSqr(this.enderman) < 16.0D) {\n                     this.enderman.teleport();\n                  }\n\n                  this.teleportTime = 0;\n               } else if (this.target.distanceToSqr(this.enderman) > 256.0D && this.teleportTime++ >= this.adjustedTickDelay(30) && this.enderman.teleportTowards(this.target)) {\n                  this.teleportTime = 0;\n               }\n            }\n\n            super.tick();\n         }\n\n      }\n   }",
+      "range_sha256": "cd64f6936ad0426c842fed2486d005db1f2ccb8ef33473d8e33aaaebe9fe5dc7",
+      "whole_file": false,
+      "role": "complete nested target goal"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "start_line": 3104,
+      "end_line": 3168,
+      "normalized_excerpt": "   public boolean randomTeleport(double p_20985_, double p_20986_, double p_20987_, boolean p_20988_) {\n      double d0 = this.getX();\n      double d1 = this.getY();\n      double d2 = this.getZ();\n      double d3 = p_20986_;\n      boolean flag = false;\n      BlockPos blockpos = BlockPos.containing(p_20985_, p_20986_, p_20987_);\n      Level level = this.level();\n      if (level.hasChunkAt(blockpos)) {\n         boolean flag1 = false;\n\n         while(!flag1 && blockpos.getY() > level.getMinBuildHeight()) {\n            BlockPos blockpos1 = blockpos.below();\n            BlockState blockstate = level.getBlockState(blockpos1);\n            if (blockstate.blocksMotion()) {\n               flag1 = true;\n            } else {\n               --d3;\n               blockpos = blockpos1;\n            }\n         }\n\n         if (flag1) {\n            this.teleportTo(p_20985_, d3, p_20987_);\n            if (level.noCollision(this) && !level.containsAnyLiquid(this.getBoundingBox())) {\n               flag = true;\n            }\n         }\n      }\n\n      if (!flag) {\n         this.teleportTo(d0, d1, d2);\n         return false;\n      } else {\n         if (p_20988_) {\n            level.broadcastEntityEvent(this, (byte)46);\n         }\n\n         if (this instanceof PathfinderMob) {\n            ((PathfinderMob)this).getNavigation().stop();\n         }\n\n         return true;\n      }\n   }\n\n   public boolean isAffectedByPotions() {\n      return true;\n   }\n\n   public boolean attackable() {\n      return true;\n   }\n\n   public void setRecordPlayingNearby(BlockPos p_21082_, boolean p_21083_) {\n   }\n\n   public boolean canTakeItem(ItemStack p_21249_) {\n      return false;\n   }\n\n   public EntityDimensions getDimensions(Pose p_21047_) {\n      return p_21047_ == Pose.SLEEPING ? SLEEPING_DIMENSIONS : super.getDimensions(p_21047_).scale(this.getScale());\n   }\n",
+      "range_sha256": "46ea9107bff0d6d22206597c50bfa302b4cf1da3647c3ab309a05066ddcfef06",
+      "whole_file": false,
+      "role": "complete randomTeleport plus adjacent accessors"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/projectile/ThrownPotion.java",
+      "archive_entry": "net/minecraft/world/entity/projectile/ThrownPotion.java",
+      "sha256": "60adfa0c9b318afba2f5be6d3708fdb2013d9dcf103f66d723665274401a64f7",
+      "start_line": 82,
+      "end_line": 122,
+      "normalized_excerpt": "   protected void onHit(HitResult p_37543_) {\n      super.onHit(p_37543_);\n      if (!this.level().isClientSide) {\n         ItemStack itemstack = this.getItem();\n         Potion potion = PotionUtils.getPotion(itemstack);\n         List<MobEffectInstance> list = PotionUtils.getMobEffects(itemstack);\n         boolean flag = potion == Potions.WATER && list.isEmpty();\n         if (flag) {\n            this.applyWater();\n         } else if (!list.isEmpty()) {\n            if (this.isLingering()) {\n               this.makeAreaOfEffectCloud(itemstack, potion);\n            } else {\n               this.applySplash(list, p_37543_.getType() == HitResult.Type.ENTITY ? ((EntityHitResult)p_37543_).getEntity() : null);\n            }\n         }\n\n         int i = potion.hasInstantEffects() ? 2007 : 2002;\n         this.level().levelEvent(i, this.blockPosition(), PotionUtils.getColor(itemstack));\n         this.discard();\n      }\n   }\n\n   private void applyWater() {\n      AABB aabb = this.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);\n\n      for(LivingEntity livingentity : this.level().getEntitiesOfClass(LivingEntity.class, aabb, WATER_SENSITIVE_OR_ON_FIRE)) {\n         double d0 = this.distanceToSqr(livingentity);\n         if (d0 < 16.0D) {\n            if (livingentity.isSensitiveToWater()) {\n               livingentity.hurt(this.damageSources().indirectMagic(this, this.getOwner()), 1.0F);\n            }\n\n            if (livingentity.isOnFire() && livingentity.isAlive()) {\n               livingentity.extinguishFire();\n            }\n         }\n      }\n\n      for(Axolotl axolotl : this.level().getEntitiesOfClass(Axolotl.class, aabb)) {\n         axolotl.rehydrate();",
+      "range_sha256": "a3bb8d7936260aa13f2bfd85fbd6e541fbb151cc3248acd7a5ac8bab4ae15ee6",
+      "whole_file": false,
+      "role": "complete onHit and partial applyWater, method tail not yet read"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+      "archive_entry": "net/minecraftforge/event/ForgeEventFactory.java",
+      "sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+      "start_line": 860,
+      "end_line": 865,
+      "normalized_excerpt": "    public static EntityTeleportEvent.EnderEntity onEnderTeleport(LivingEntity entity, double targetX, double targetY, double targetZ)\n    {\n        EntityTeleportEvent.EnderEntity event = new EntityTeleportEvent.EnderEntity(entity, targetX, targetY, targetZ);\n        MinecraftForge.EVENT_BUS.post(event);\n        return event;\n    }",
+      "range_sha256": "5768b2e6471935e9bd25c7a54118c6e5d6ff47327eeaed6f800cbfa7a0251671",
+      "whole_file": false,
+      "role": "complete onEnderTeleport factory"
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "archive_entry": "net/minecraftforge/event/entity/EntityTeleportEvent.java",
+      "sha256": "d3d36cdad413fddee4739d379ee0baceb6cb1b98c9ec16be97dc3ea735512f32",
+      "start_line": 1,
+      "end_line": 149,
+      "normalized_excerpt": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity;\n\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.projectile.ThrownEnderpearl;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport net.minecraftforge.eventbus.api.Event;\nimport net.minecraftforge.fml.LogicalSide;\nimport org.jetbrains.annotations.ApiStatus;\nimport org.jetbrains.annotations.Nullable;\n\n/**\n * EntityTeleportEvent is fired when an event involving any teleportation of an Entity occurs.<br>\n * If a method utilizes this {@link Event} as its parameter, the method will\n * receive every child event of this class.<br>\n * <br>\n * {@link #getTarget()} contains the target destination.<br>\n * {@link #getPrev()} contains the entity's current position.<br>\n * <br>\n * All children of this event are fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n **/\n@Cancelable\npublic class EntityTeleportEvent extends EntityEvent\n{\n    protected double targetX;\n    protected double targetY;\n    protected double targetZ;\n\n    public EntityTeleportEvent(Entity entity, double targetX, double targetY, double targetZ) {\n        super(entity);\n        this.targetX = targetX;\n        this.targetY = targetY;\n        this.targetZ = targetZ;\n    }\n\n    public double getTargetX() { return targetX; }\n    public void setTargetX(double targetX) { this.targetX = targetX; }\n    public double getTargetY() { return targetY; }\n    public void setTargetY(double targetY) { this.targetY = targetY; }\n    public double getTargetZ() { return targetZ; }\n    public void setTargetZ(double targetZ) { this.targetZ = targetZ; }\n    public Vec3 getTarget() { return new Vec3(this.targetX, this.targetY, this.targetZ); }\n    public double getPrevX() { return getEntity().getX(); }\n    public double getPrevY() { return getEntity().getY(); }\n    public double getPrevZ() { return getEntity().getZ(); }\n    public Vec3 getPrev() { return getEntity().position(); }\n\n    /**\n     * EntityTeleportEvent.TeleportCommand is fired before a living entity is teleported\n     * from use of {@link net.minecraft.server.commands.TeleportCommand}.\n     * <br>\n     * This event is {@link Cancelable}.<br>\n     * If the event is not canceled, the entity will be teleported.\n     * <br>\n     * This event does not have a result. {@link HasResult}<br>\n     * <br>\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n     * <br>\n     * This event is only fired on the {@link LogicalSide#SERVER} side.<br>\n     * <br>\n     * If this event is canceled, the entity will not be teleported.\n     */\n    @Cancelable\n    public static class TeleportCommand extends EntityTeleportEvent\n    {\n        public TeleportCommand(Entity entity, double targetX, double targetY, double targetZ)\n        {\n            super(entity, targetX, targetY, targetZ);\n        }\n    }\n\n    /**\n     * EntityTeleportEvent.SpreadPlayersCommand is fired before a living entity is teleported\n     * from use of {@link net.minecraft.server.commands.SpreadPlayersCommand}.\n     * <br>\n     * This event is {@link Cancelable}.<br>\n     * If the event is not canceled, the entity will be teleported.\n     * <br>\n     * This event does not have a result. {@link HasResult}<br>\n     * <br>\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n     * <br>\n     * This event is only fired on the {@link LogicalSide#SERVER} side.<br>\n     * <br>\n     * If this event is canceled, the entity will not be teleported.\n     */\n    @Cancelable\n    public static class SpreadPlayersCommand extends EntityTeleportEvent\n    {\n        public SpreadPlayersCommand(Entity entity, double targetX, double targetY, double targetZ)\n        {\n            super(entity, targetX, targetY, targetZ);\n        }\n    }\n\n    /**\n     * EntityTeleportEvent.EnderEntity is fired before an Enderman or Shulker randomly teleports.\n     * <br>\n     * This event is {@link Cancelable}.<br>\n     * If the event is not canceled, the entity will be teleported.\n     * <br>\n     * This event does not have a result. {@link HasResult}<br>\n     * <br>\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n     * <br>\n     * This event is only fired on the {@link LogicalSide#SERVER} side.<br>\n     * <br>\n     * If this event is canceled, the entity will not be teleported.\n     */\n    @Cancelable\n    public static class EnderEntity extends EntityTeleportEvent\n    {\n        private final LivingEntity entityLiving;\n\n        public EnderEntity(LivingEntity entity, double targetX, double targetY, double targetZ)\n        {\n            super(entity, targetX, targetY, targetZ);\n            this.entityLiving = entity;\n        }\n\n        public LivingEntity getEntityLiving()\n        {\n            return entityLiving;\n        }\n    }\n\n    /**\n     * EntityTeleportEvent.EnderPearl is fired before an Entity is teleported from an EnderPearlEntity.\n     * <br>\n     * This event is {@link Cancelable}.<br>\n     * If the event is not canceled, the entity will be teleported.\n     * <br>\n     * This event does not have a result. {@link HasResult}<br>\n     * <br>\n     * This event is fired on the {@link MinecraftForge#EVENT_BUS}.<br>\n     * <br>\n     * This event is only fired on the {@link LogicalSide#SERVER} side.<br>\n     * <br>\n     * If this event is canceled, the entity will not be teleported.\n     */",
+      "range_sha256": "076b60f0d2cabd680e5ab3eca338f59cbc33b3075334cb539d4515a57f7dbd82",
+      "whole_file": false,
+      "role": "base event/mutable accessors and EnderEntity complete nested type; later nested classes not read"
+    }
+  ],
+  "read_scope": {
+    "ranges": 9,
+    "read_lines_including_overlapping_ranges": 659,
+    "whole_files": 0,
+    "partial_potion_applyWater_explicit": true
+  },
+  "complete_saved_prior_decisions": [
+    {
+      "id": "pnc-native-persistent-hack-ender-teleport-final-cancellation",
+      "status": "reviewed_effective",
+      "repo": "TeamPneumatic/pnc-repressurized",
+      "commit": "93d04cc52714742c4ef747eed82528d0fdbde581",
+      "category": "native_control_damage_refusal_and_receipt",
+      "semantic_dedup_key": "pnc-native-persistent-hack-ender-teleport-final-cancellation",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/PneumaticCraftRepressurized.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/PneumaticCraftRepressurized.java",
+          "lines": [
+            68,
+            102
+          ],
+          "file_sha256": "c63c320f54415c32a6ea175249a5d3ebbd01d88ef44daa42e4477e3e80927837",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/PneumaticCraftRepressurized.java#L68-L102"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/api/java/me/desht/pneumaticcraft/api/pneumatic_armor/hacking/AbstractPersistentEntityHack.java",
+          "source_path": "src/api/java/me/desht/pneumaticcraft/api/pneumatic_armor/hacking/AbstractPersistentEntityHack.java",
+          "lines": [
+            1,
+            107
+          ],
+          "file_sha256": "5135e52648adb17c51527f133ac3970d61a2c0a0afb02d66b30b381dd9412c82",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/api/java/me/desht/pneumaticcraft/api/pneumatic_armor/hacking/AbstractPersistentEntityHack.java#L1-L107"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/api/java/me/desht/pneumaticcraft/api/pneumatic_armor/hacking/IHackableEntity.java",
+          "source_path": "src/api/java/me/desht/pneumaticcraft/api/pneumatic_armor/hacking/IHackableEntity.java",
+          "lines": [
+            1,
+            153
+          ],
+          "file_sha256": "f179a9073698e0d360493ab4c0a8b3dbc2ac333f6336f07fad874646519b20de",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/api/java/me/desht/pneumaticcraft/api/pneumatic_armor/hacking/IHackableEntity.java#L1-L153"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/HackHandler.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/HackHandler.java",
+          "lines": [
+            1,
+            151
+          ],
+          "file_sha256": "ca9eeec8a2f5febc6e63926157cda100d3647fdad75b20cbbb4a823a7ff9d252",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/handlers/HackHandler.java#L1-L151"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/network/PacketHackingEntityStart.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/network/PacketHackingEntityStart.java",
+          "lines": [
+            1,
+            82
+          ],
+          "file_sha256": "7acc809fdeab0ca2af0c82cb75931127880b9a8cbba72e4b0f1db1500d16556f",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/network/PacketHackingEntityStart.java#L1-L82"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/network/PacketHackingEntityFinish.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/network/PacketHackingEntityFinish.java",
+          "lines": [
+            1,
+            71
+          ],
+          "file_sha256": "7a7006b63b06bb8a42a5478bf78fe59d75ac94dba225c5f975afd76aceb043d4",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/network/PacketHackingEntityFinish.java#L1-L71"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/capabilities/ActiveEntityHacks.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/capabilities/ActiveEntityHacks.java",
+          "lines": [
+            1,
+            71
+          ],
+          "file_sha256": "4732955399b0290a2a182ca2d69b29caae544d0a876f9af85d9ec25c68693e16",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/capabilities/ActiveEntityHacks.java#L1-L71"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/hacking/HackTickTracker.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/hacking/HackTickTracker.java",
+          "lines": [
+            1,
+            112
+          ],
+          "file_sha256": "c2e5aa5d2963f48a45dd743694ea737bd0f8a18ad2f45cb93a0b10d53aaff28b",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/hacking/HackTickTracker.java#L1-L112"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/hacking/HackEventListener.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/hacking/HackEventListener.java",
+          "lines": [
+            1,
+            63
+          ],
+          "file_sha256": "973803e33f8b1713591c16ae861fca22b6b1240e0eda8d060c7e006997f38398",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/hacking/HackEventListener.java#L1-L63"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/hacking/HackManager.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/hacking/HackManager.java",
+          "lines": [
+            84,
+            158
+          ],
+          "file_sha256": "9246256338cae9d78ed10546a987ade6056f55c40d01bc7bab7a2cf8db1b2a9d",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/hacking/HackManager.java#L84-L158"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/hacking/HackManager.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/hacking/HackManager.java",
+          "lines": [
+            223,
+            229
+          ],
+          "file_sha256": "9246256338cae9d78ed10546a987ade6056f55c40d01bc7bab7a2cf8db1b2a9d",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/hacking/HackManager.java#L223-L229"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/CommonArmorRegistry.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/CommonArmorRegistry.java",
+          "lines": [
+            109,
+            113
+          ],
+          "file_sha256": "903998c492908abca92f6267a014c4e4ee159a8206e94347b94f4bc892fc571e",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/CommonArmorRegistry.java#L109-L113"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/CommonArmorRegistry.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/CommonArmorRegistry.java",
+          "lines": [
+            144,
+            165
+          ],
+          "file_sha256": "903998c492908abca92f6267a014c4e4ee159a8206e94347b94f4bc892fc571e",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/pneumatic_armor/CommonArmorRegistry.java#L144-L165"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/registry/ModAttachmentTypes.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/registry/ModAttachmentTypes.java",
+          "lines": [
+            1,
+            18
+          ],
+          "file_sha256": "0b92d117f3bfaf9846dda228b9719bb270a3753ac1e8ed20afa3880ae4c2a327",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/registry/ModAttachmentTypes.java#L1-L18"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/PneumaticCraftRepressurized.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/PneumaticCraftRepressurized.java",
+          "lines": [
+            161,
+            181
+          ],
+          "file_sha256": "c63c320f54415c32a6ea175249a5d3ebbd01d88ef44daa42e4477e3e80927837",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/PneumaticCraftRepressurized.java#L161-L181"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/network/NetworkHandler.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/network/NetworkHandler.java",
+          "lines": [
+            176,
+            181
+          ],
+          "file_sha256": "cb59dad7ca82c27094f2170df00dfcb5e026e004e7b437065c7a8d9a87786c11",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/network/NetworkHandler.java#L176-L181"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/hacking/entity/HackableEnderman.java",
+          "source_path": "src/main/java/me/desht/pneumaticcraft/common/hacking/entity/HackableEnderman.java",
+          "lines": [
+            1,
+            56
+          ],
+          "file_sha256": "2bf62154a7ba5c64118c618b6dc5bd3de7a9f2a39e35a68265beb9bb9cd09492",
+          "url": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/hacking/entity/HackableEnderman.java#L1-L56"
+        }
+      ],
+      "full_chain_observation": "真实注册EnderMan hack→C2S start当前world id及entityTracker可用→server HackData tickEntityHack60次并alive→native onHackFinished把ID放目标attachment、tracker记录→EntityTeleportEvent.EnderEntity检测目标persistent class→cancel本次teleport；finish按tracking发客户端，再写本地hack/提示音。",
+      "concrete_observation": "最终传送禁用1；persistent helper/附加存档/60计数/网络包装不额外。canHack默认类+alive和alreadyHacked，不查Boss特性；客户端finish重新getHackable可能受已hacked过滤影响，不当每次拒teleport回执。start server只查entityTracker可用，未在该包显式查距离/LOS/hack模块就绪；HackManager缓存60tick清理不等于逐次验证。原生native拒传送而非暂停所有AI，HUD文案不当世界灰字。",
+      "application_to_boss_immune": "Boss控制拒绝不应冻普通AI；明确语义和目标，客户端只播放当前server裁决结果。",
+      "limitations": "固定93d04cc52714742c4ef747eed82528d0fdbde581；本地Git tree/blob及SHA256源验证，完整关键原生game方法观察。无游戏/正式代码/资产/清单变更；通用网络/粒子几何/平台常量0额外；普通阴阳不新增灰字，守卫旧账0转入。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T15:27:35.533582+00:00"
+    },
+    {
+      "id": "enigmatic-native-pre-settlement-teleport-suppression-presence-lease-dual-entry",
+      "status": "reviewed_effective",
+      "repo": "Aizistral-Studios/Enigmatic-Legacy",
+      "commit": "a0294f119a0a84a4627b008bc90fe31808dbf596",
+      "category": "native_timed_control_refusal_lifecycle",
+      "semantic_dedup_key": "enigmatic-native-pre-settlement-teleport-suppression-presence-lease-dual-entry",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java",
+          "lines": [
+            201,
+            244
+          ],
+          "file_sha256": "3b59d75f4c77b97ddbe4911d2612c0d69b53c1641a116eb9fe5afe33490ab6ef",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/EnigmaticLegacy.java#L201-L244"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/items/EnderSlayer.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/items/EnderSlayer.java",
+          "lines": [
+            1,
+            126
+          ],
+          "file_sha256": "c2dd373b89110ccd9166f8ed323f8dccee16771156a10ce26f0c0711ccee630f",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/items/EnderSlayer.java#L1-L126"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java",
+          "lines": [
+            525,
+            525
+          ],
+          "file_sha256": "7aa86a6de0dcddf44a478e411a47e4afa6cf62c41aeef5575be17ed7643c2691",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/registries/EnigmaticItems.java#L525-L525"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "lines": [
+            551,
+            556
+          ],
+          "file_sha256": "69ea5e44fa52fd57dcf700348370a735e60512b6226441def930fa2f0c426cf4",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java#L551-L556"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "lines": [
+            1016,
+            1266
+          ],
+          "file_sha256": "69ea5e44fa52fd57dcf700348370a735e60512b6226441def930fa2f0c426cf4",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java#L1016-L1266"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java",
+          "lines": [
+            2014,
+            2343
+          ],
+          "file_sha256": "69ea5e44fa52fd57dcf700348370a735e60512b6226441def930fa2f0c426cf4",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/EnigmaticEventHandler.java#L2014-L2343"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "lines": [
+            277,
+            280
+          ],
+          "file_sha256": "3c6140b7d1cc20a9408248cf8dd565973758c42093a26e080fcdac5b291dfb17",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java#L277-L280"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "lines": [
+            1322,
+            1324
+          ],
+          "file_sha256": "3c6140b7d1cc20a9408248cf8dd565973758c42093a26e080fcdac5b291dfb17",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java#L1322-L1324"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/mixin/MixinShulker.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/mixin/MixinShulker.java",
+          "lines": [
+            1,
+            26
+          ],
+          "file_sha256": "c76878b237e3e520c1cd1f2cf99d3136a60ce249411e963b54ef0257f3f096b8",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/mixin/MixinShulker.java#L1-L26"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/resources/enigmaticlegacy.mixins.json",
+          "source_path": "src/main/resources/enigmaticlegacy.mixins.json",
+          "lines": [
+            1,
+            48
+          ],
+          "file_sha256": "21287eeb9996419404975b64b5b88d91b9bfe9f9dbc3972b0cfa53ad7a4331d2",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/resources/enigmaticlegacy.mixins.json#L1-L48"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java",
+          "lines": [
+            477,
+            494
+          ],
+          "file_sha256": "3c6140b7d1cc20a9408248cf8dd565973758c42093a26e080fcdac5b291dfb17",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/handlers/SuperpositionHandler.java#L477-L494"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Aizistral-Studios__Enigmatic-Legacy/src/main/java/com/aizistral/enigmaticlegacy/objects/TransientPlayerData.java",
+          "source_path": "src/main/java/com/aizistral/enigmaticlegacy/objects/TransientPlayerData.java",
+          "lines": [
+            132,
+            158
+          ],
+          "file_sha256": "aec230d3bd24d8cb998e7c6db068ccbb79363bb474171a3f4c347dc1f24bead5",
+          "url": "https://github.com/Aizistral-Studios/Enigmatic-Legacy/blob/a0294f119a0a84a4627b008bc90fe31808dbf596/src/main/java/com/aizistral/enigmaticlegacy/objects/TransientPlayerData.java#L132-L158"
+        }
+      ],
+      "full_chain_observation": "真实mod构造Forge注册handler及EnderSlayer item→LivingHurt直接Player且PLAYER_ATTACK、ServerPlayer且Curios cursed ring且当前主手EnderSlayer→EnderMan/Shulker persistent键ELTeleportBlock=400。EnderEntity传送事件只看contains取消；真实MixinShulker.teleportSomewhere HEAD同键存在返回false，配置列入common mixins。LivingTick存活且server、两物种才读int，正值先--，仍正则写回，否则删除。完整包含onEntityHurt/onPlayerTick已读。",
+      "concrete_observation": "一个在伤害最终结算前刷新、以presence消费且正数tick到期的原生控制禁用租约1。区别PNC完成60tick hack永久资格、TConstruct实际Enderference药水存在、Goety EnderGround命令例外/普遍randomTeleport门：这里两个事件/特定物种底层入口共享实际伤害阶段生产的整数租约。后续伤害取消不撤销该键；HP未损失不能当控制拒绝。正常400正数递减至删除，不凭客户端年龄推断全局wallclock；若外部/存档有0或负键，contains仍拒绝而本tick不清，这仅条件性静态边界，不声称正常生产400必会变成永久0。player目标另施三种item CD和spellstone共享CD是同链上下文0，不为每个item拆数。",
+      "application_to_boss_immune": "Boss纹丝不动与免控应以原生最终控制入口拒绝为准，攻击HP结算与控制写入分离；过期/缺失/非正值策略要一致。正式回执需绑定实际原因和目标，不能把传送按钮冷却或固定提示当Boss灰字，普通阴阳体质不加字。",
+      "limitations": "原生生产/两个消费/存活server tick生命周期和Mixin配置均全文方法阅读。Forge EnderMan引擎派发、Shulker vanilla目标方法与持久数据平台存档实现未新展开，故不证明所有传送路径、跨卸载tick推进、真实reobf装载/跨TCP。producer仅检查当前主手非伤害weapon快照，别推断所有来源拿此剑都阻传送。player共享CD setter/math helpers只支持，不宣称全部主动技能消费者穷尽。无每次拒传送的专用文字、声光或目标级回执节流，未编译/测试/游戏。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-28T15:30:05.246352+00:00"
+    },
+    {
+      "id": "botania-native-teleport-destination-interception-with-live-world-identity-and-paid-attempt",
+      "status": "reviewed_effective",
+      "repo": "VazkiiMods/Botania",
+      "commit": "0ddec883d6ec4c7be78525267e29cbf1bd98c672",
+      "category": "native_control_destination_interception_and_lifecycle",
+      "semantic_dedup_key": "botania-native-teleport-destination-interception-with-live-world-identity-and-paid-attempt",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/flower/functional/VinculotusBlockEntity.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/common/block/flower/functional/VinculotusBlockEntity.java",
+          "lines": [
+            1,
+            107
+          ],
+          "file_sha256": "ead5dfbab599eff1a4789d18f2ddfa87f7cd56666af2e1e5d94b981f7b1bd270",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/block/flower/functional/VinculotusBlockEntity.java#L1-L107"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+          "source_path": "Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+          "lines": [
+            287,
+            469
+          ],
+          "file_sha256": "78bf667722fc2f0fb24d818540256b976a74249cc4cdd2e23eefb2e2eb44e5e1",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java#L287-L469"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+          "source_path": "Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+          "lines": [
+            144,
+            181
+          ],
+          "file_sha256": "78bf667722fc2f0fb24d818540256b976a74249cc4cdd2e23eefb2e2eb44e5e1",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java#L144-L181"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+          "source_path": "Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java",
+          "lines": [
+            190,
+            264
+          ],
+          "file_sha256": "78bf667722fc2f0fb24d818540256b976a74249cc4cdd2e23eefb2e2eb44e5e1",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Forge/src/main/java/vazkii/botania/forge/ForgeCommonInitializer.java#L190-L264"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Forge/src/main/java/vazkii/botania/forge/block/ForgeSpecialFlowerBlock.java",
+          "source_path": "Forge/src/main/java/vazkii/botania/forge/block/ForgeSpecialFlowerBlock.java",
+          "lines": [
+            1,
+            111
+          ],
+          "file_sha256": "6ac1f958dc465133d2bb71cebebf6ee328312a74974221b0264d80d8e36f72e9",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Forge/src/main/java/vazkii/botania/forge/block/ForgeSpecialFlowerBlock.java#L1-L111"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java",
+          "lines": [
+            71,
+            102
+          ],
+          "file_sha256": "a3ffdc0b4256440a0db99a60738272a39b7311f858e0dc943b066de6d00d39cc",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java#L71-L102"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java",
+          "lines": [
+            138,
+            144
+          ],
+          "file_sha256": "a3ffdc0b4256440a0db99a60738272a39b7311f858e0dc943b066de6d00d39cc",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java#L138-L144"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java",
+          "lines": [
+            205,
+            207
+          ],
+          "file_sha256": "a3ffdc0b4256440a0db99a60738272a39b7311f858e0dc943b066de6d00d39cc",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/block_entity/SpecialFlowerBlockEntity.java#L205-L207"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/block_entity/FunctionalFlowerBlockEntity.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/api/block_entity/FunctionalFlowerBlockEntity.java",
+          "lines": [
+            51,
+            74
+          ],
+          "file_sha256": "3166111e0b94f68228ce03c7ccf383b5627d585316ff19fc35577fb29a6e8aa8",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/block_entity/FunctionalFlowerBlockEntity.java#L51-L74"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/api/block_entity/FunctionalFlowerBlockEntity.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/api/block_entity/FunctionalFlowerBlockEntity.java",
+          "lines": [
+            89,
+            109
+          ],
+          "file_sha256": "3166111e0b94f68228ce03c7ccf383b5627d585316ff19fc35577fb29a6e8aa8",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/api/block_entity/FunctionalFlowerBlockEntity.java#L89-L109"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/helper/MathHelper.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/common/helper/MathHelper.java",
+          "lines": [
+            22,
+            24
+          ],
+          "file_sha256": "5d681f5d0c7d14d1b16225b87c5e09133c8d9d019b5b4c56bed1376c085f25cc",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/helper/MathHelper.java#L22-L24"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java",
+          "lines": [
+            203,
+            205
+          ],
+          "file_sha256": "b0d9a1d9a4a8f7ee6d507e2c5c3bccb4d63fb7532605776e665d20d0d3838d5f",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java#L203-L205"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java",
+          "lines": [
+            286,
+            286
+          ],
+          "file_sha256": "b0d9a1d9a4a8f7ee6d507e2c5c3bccb4d63fb7532605776e665d20d0d3838d5f",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java#L286-L286"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/VazkiiMods__Botania/Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java",
+          "source_path": "Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java",
+          "lines": [
+            681,
+            734
+          ],
+          "file_sha256": "b0d9a1d9a4a8f7ee6d507e2c5c3bccb4d63fb7532605776e665d20d0d3838d5f",
+          "url": "https://github.com/VazkiiMods/Botania/blob/0ddec883d6ec4c7be78525267e29cbf1bd98c672/Xplat/src/main/java/vazkii/botania/common/block/BotaniaFlowerBlocks.java#L681-L734"
+        }
+      ],
+      "full_chain_observation": "原生注册VINCULOTUS BE→花block.getTicker/commonTick→服务器tickFlower加入WeakHashMap-backed existingFlowers。Forge实际EntityTeleportEvent.EnderEntity listener仅EnderMan调用onEndermanTeleport，按即将尝试的目的坐标与有效花位置距离筛选，选择一个花返回新目的地，listener写回event XYZ。花重载身份/level与mana/redstone gate均在最终入口重验。",
+      "concrete_observation": "一个实际最终传送目的地控制位点1，不是静态teleport cancel/not-Boss名录。服务器注册过的花集合只是候选，消费时同level对象且blockEntity身份仍一致才有效；WeakMap不等立即卸载移除，但stale花不能仅靠集合存在继续作用。距离是原计划落点到花中心严格<64，不是实体当前位置、也非花到任意世界传送均生效；mana要求>50，恰好50拒绝。多个有效花随机一个，实际扣50/BE sync先于原生最终传送成功，不退失败费用。目标随机XZ偏移±1.2、Y固定+1.5，未在此校验可站立/碰撞，不能叫保证拉回成功或Boss免控。红石停止仅生产重定向候选，未cancel原始传送。共享普通/漂浮花与Fabric ModifyArgs包装不另计。",
+      "application_to_boss_immune": "Boss拒控回执需在最终控制结算层区分被拦截、改目标、实际失败及明确免疫；消费时验证维度与活目标身份，不能拿缓存存在或付款当免疫。可复用生命周期重验思路，不能搬花机制给Boss。普通阴阳不加灰字。",
+      "limitations": "全Vinculotus类、native Forge完整注册方法及共享tick/level有效身份链已读，固定tree文件SHA/blob。另全Fabric EnderManMixin完整三方法仅移植支持，未取Fabric mixin资源故不称Fabric运行注册已闭合。Forge event引擎最终teleport/同步位置消费者、BE网络dispatcher底层尚未全文展开；本链没有专属拒控文字/声光，不宣称观感/TCP/自然世界通过。没有正式修改/游戏/编译；不是全局阻止所有传送。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-28T16:26:39.624473+00:00"
+    },
+    {
+      "id": "ironspells-authoritative-evasion-and-shroud-native-receipts",
+      "status": "reviewed_effective",
+      "repo": "iron431/irons-spells-n-spellbooks",
+      "commit": "9a88991f5ec6e4f076278a9c11dcaf1281980f20",
+      "category": "explicit_rejection_native_feedback",
+      "semantic_dedup_key": "ironspells-authoritative-evasion-and-shroud-native-receipts",
+      "count_unit": "one complete semantically distinct implementation chain, all listed helpers/platform ports merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "lines": [
+            116,
+            117
+          ],
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L116-L117"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "lines": [
+            447,
+            490
+          ],
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L447-L490"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java",
+          "lines": [
+            546,
+            564
+          ],
+          "file_sha256": "f982d66f86f51158774d59a72f1d41a49803cdb714ddf45a1e0fd7a6e4bf7608",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ServerPlayerEvents.java#L546-L564"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/EvasionEffect.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/effect/EvasionEffect.java",
+          "lines": [
+            1,
+            94
+          ],
+          "file_sha256": "0053bad6372b1e44ac5121aae323b78c3c3f06c6c6ea4598307292321595a6e7",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/EvasionEffect.java#L1-L94"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/AbyssalShroudEffect.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/effect/AbyssalShroudEffect.java",
+          "lines": [
+            1,
+            88
+          ],
+          "file_sha256": "cae36b3bf046da498ea53fec6bfe17167b248bcf15f2edc4ec8be56a90416a72",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/AbyssalShroudEffect.java#L1-L88"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java",
+          "lines": [
+            1,
+            48
+          ],
+          "file_sha256": "30e07caead6afeb9770017ee62f64340df7729a6e512fc333de748f0bd63c374",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/effect/MagicMobEffect.java#L1-L48"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/registries/MobEffectRegistry.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/registries/MobEffectRegistry.java",
+          "lines": [
+            23,
+            28
+          ],
+          "file_sha256": "2cc8632a7bb14cf11d2c4443ea3a25386e7d0d5d688940a11d46e80770c5b6f1",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/registries/MobEffectRegistry.java#L23-L28"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/spells/ender/EvasionSpell.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/spells/ender/EvasionSpell.java",
+          "lines": [
+            1,
+            66
+          ],
+          "file_sha256": "e4405ea374383753d8418505bc7da0a8f025712c2c42f5061d5e10594c13cdd5",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/spells/ender/EvasionSpell.java#L1-L66"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "lines": [
+            167,
+            175
+          ],
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L167-L175"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "lines": [
+            290,
+            292
+          ],
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L290-L292"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java",
+          "lines": [
+            638,
+            656
+          ],
+          "file_sha256": "733acc85898273b2721e2246d24acc5585dcb13a4c3246a5c8023fbd69c3d85d",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/api/util/Utils.java#L638-L656"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/MagicManager.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/capabilities/magic/MagicManager.java",
+          "lines": [
+            125,
+            128
+          ],
+          "file_sha256": "81edce519130919e4b93e2a946dc7726beb52b7aaf866b53ce97155727c5aedd",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/MagicManager.java#L125-L128"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java",
+          "lines": [
+            51,
+            78
+          ],
+          "file_sha256": "0ec6564db910915b746ebbb3a1e59df291d456f7b672bd0c315c6f37614332e8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java#L51-L78"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java",
+          "lines": [
+            202,
+            228
+          ],
+          "file_sha256": "0ec6564db910915b746ebbb3a1e59df291d456f7b672bd0c315c6f37614332e8",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/capabilities/magic/SyncedSpellData.java#L202-L228"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/network/casting/SyncPlayerDataPacket.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/network/casting/SyncPlayerDataPacket.java",
+          "lines": [
+            1,
+            41
+          ],
+          "file_sha256": "d74a833ed13578fb804f12feef4117ef13fb28bcb18911c9960cec0a31213410",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/network/casting/SyncPlayerDataPacket.java#L1-L41"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/network/casting/SyncEntityDataPacket.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/network/casting/SyncEntityDataPacket.java",
+          "lines": [
+            1,
+            46
+          ],
+          "file_sha256": "401b5f8dcac711dc2e8cb7d8b236e4077385a1fcb94ededbf9462efb1ce33f80",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/network/casting/SyncEntityDataPacket.java#L1-L46"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/setup/PayloadHandler.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/setup/PayloadHandler.java",
+          "lines": [
+            51,
+            64
+          ],
+          "file_sha256": "c8439e0d281f9a8e7a7eab9fa8a8085a852d1795beade0bf7b70836e50a2b8cd",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/setup/PayloadHandler.java#L51-L64"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/iron431__irons-spells-n-spellbooks/src/main/java/io/redspace/ironsspellbooks/player/ClientMagicData.java",
+          "source_path": "src/main/java/io/redspace/ironsspellbooks/player/ClientMagicData.java",
+          "lines": [
+            176,
+            213
+          ],
+          "file_sha256": "d0a2bcde48ceb7becd6d540c897784634a09eea581a4a140ce663c215bb98f72",
+          "url": "https://github.com/iron431/irons-spells-n-spellbooks/blob/9a88991f5ec6e4f076278a9c11dcaf1281980f20/src/main/java/io/redspace/ironsspellbooks/player/ClientMagicData.java#L176-L213"
+        }
+      ],
+      "full_chain_observation": "EventBusSubscriber两原生入口LivingIncomingDamage和ProjectileImpact→EVASION优先、else-if ABYSSAL_SHROUD→完整doEffect server/bypass校验→取消事件；已读Evasion法术onCast、effect注册/onEffectAdded、次数扣除同步，Evasion/同事件Shroud策略合并1。回执经MagicManager.spawnParticles→ServerLevel.sendParticles原生网络，音效level.playSound；Evasion计数另经SyncedSpellData codec/doSync→已注册SyncPlayerData/SyncEntityData包→enqueueWork→ClientMagicData记录或当前实体应用（后者接口为外部实现边界）。",
+      "concrete_observation": "Evasion在服务端排fall/BYPASSES_INVULNERABILITY/BYPASS_EVASION；先扣次数，<0移除效果但当前仍免伤。最多24次找位，传送事件可被取消，但doEffect不检查handleSpellTeleport返回值，最后仍portal云/ENDERMAN_TELEPORT/true；无可用落点也不等于此次拒伤失败。成功位移可能产生两处云与两次音。Shroud使用碰撞找空位/烟云及自有声音，没有同一次数消费；只调整局部sideStep.yRot返回值未赋回，不能凭调用名认定正确按朝向旋转。两个doEffect都有lookAt，违背本项目禁止强制转向的方向，不可照搬。此链没有免疫文字或自有事件序号去重，不能称灰字范例；已读玩家同步map按整数ID存储，本类未见清空，不能据此声称已复现跨维度bug。",
+      "application_to_boss_immune": "这是已有原生权威拒伤与粒子/声音回执的独立研究：拒伤、成功位移、文本与次数同步应分开判断；现有原版声音可参考，但不需要新录音。研究普通法术防护不对COD4普通阴阳体质新增灰字。两原生入口是否重复消耗须运行事件证据，静态不下故障结论。",
+      "limitations": "完整读所列doEffect/调用者/计数codec/接收方法与位移助手；未审所有法术施法框架、mob具体setSyncedSpellData实现或原版粒子渲染内部，不把基础网络和图形算额外研究。无客户端启动、画面或音频通过结论。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-24T09:29:38.868314+00:00"
+    },
+    {
+      "id": "tconstruct-native-enderference-arrow-immunity-override-settlement",
+      "status": "reviewed_effective",
+      "repo": "SlimeKnights/TinkersConstruct",
+      "commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+      "category": "native_control_refusal_and_target_feedback",
+      "semantic_dedup_key": "tconstruct-native-enderference-arrow-immunity-override-settlement",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java",
+          "lines": [
+            410,
+            574
+          ],
+          "file_sha256": "55a09c76f61d56c595f576f4ec447f3d0890464a455a60741b1e0887a89f5d84",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/ModifierEvents.java#L410-L574"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/shared/TinkerEffects.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/shared/TinkerEffects.java",
+          "lines": [
+            1,
+            114
+          ],
+          "file_sha256": "c155938a2f49fcee34a0409257eb31c925e0e43555606eb2b61645ee1472d02b",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/shared/TinkerEffects.java#L1-L114"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/SlimeKnights__TinkersConstruct/src/main/java/slimeknights/tconstruct/library/modifiers/entity/ReusableProjectile.java",
+          "source_path": "src/main/java/slimeknights/tconstruct/library/modifiers/entity/ReusableProjectile.java",
+          "lines": [
+            1,
+            31
+          ],
+          "file_sha256": "8a20a76aa9d56d2e70a27a7096a982e24e926c523df591a501633c4c6639773b",
+          "url": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/entity/ReusableProjectile.java#L1-L31"
+        }
+      ],
+      "full_chain_observation": "同一原生ProjectileImpact后半：Enderman+实际enderference+箭且非黑名单→pierce预算/记目标id→速度/暴击伤害→MELEE_ARROW刻意绕原版箭免疫→临时火→真实hurt结果分支；成功击退/附魔/箭音/清箭，失败恢复火/反向慢弹，最后取消原版impact。",
+      "concrete_observation": "独立于teleport门与盾反射的最终箭伤结算位点计1，不按每个伤害/粒子/实体id另计。pierce在hurt前消费target ID，本分支不检查contains，不在false回滚；失败不等于Boss免疫。ReusableProjectile.discard只删singleUse，带可复用tag/interface可留下。目标没受伤也取消原版impact，不能以event canceled作伤害成功证明。方法整体没有统一server-only门，不能声称全部分支仅server。",
+      "application_to_boss_immune": "回执需以实际控制政策结果而非hurt=false推断；预算/去重应在明确结果处定义，复用投射物生命周期不能套一次性清理。",
+      "limitations": "固定f4e77d43f39ba1047bf93ae816b7e1beaab514c2。实际JSON启用全文网页观察另存tinker-native-resources-web.json；不冒充raw blob验证，不为JSON/通用loader/网络包装额外计数。无游戏或观感结论，不改正式源/资产/待办，普通阴阳不新增灰字。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T14:56:34.246732+00:00"
+    },
+    {
+      "id": "draconic-native-target-qualified-projectile-immunity-exception-source-spoof",
+      "status": "reviewed_effective",
+      "repo": "Draconic-Inc/Draconic-Evolution",
+      "commit": "6251e32bc93eb4bfcd910236ec1eaa6546516229",
+      "category": "native_target_qualified_immunity_exception_source_classification",
+      "semantic_dedup_key": "draconic-native-target-qualified-projectile-immunity-exception-source-spoof",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java",
+          "lines": [
+            74,
+            78
+          ],
+          "file_sha256": "a8e511c24a65ace3071bd431b10ce78d8042199d1574a206f62d07f9ca78c606",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java#L74-L78"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java",
+          "lines": [
+            141,
+            221
+          ],
+          "file_sha256": "a8e511c24a65ace3071bd431b10ce78d8042199d1574a206f62d07f9ca78c606",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java#L141-L221"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java",
+          "lines": [
+            229,
+            243
+          ],
+          "file_sha256": "a8e511c24a65ace3071bd431b10ce78d8042199d1574a206f62d07f9ca78c606",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/items/equipment/ModularBow.java#L229-L243"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/api/capability/ModuleHost.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/api/capability/ModuleHost.java",
+          "lines": [
+            117,
+            119
+          ],
+          "file_sha256": "8877f93c07c578c3f2d7447b56fbc6f819c65c61d9668f3cdc08fa9521154328",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/api/capability/ModuleHost.java#L117-L119"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/api/modules/lib/ModuleHostImpl.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/api/modules/lib/ModuleHostImpl.java",
+          "lines": [
+            78,
+            94
+          ],
+          "file_sha256": "8e79c4aba242c6e0bcc86c237c7c85d4e64402c32e23f333b481a8641bd9d801",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/api/modules/lib/ModuleHostImpl.java#L78-L94"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "lines": [
+            79,
+            89
+          ],
+          "file_sha256": "26be498fa51310f614a98b048a85c49436b038374edefd9db29a7eff8a6c1a6d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java#L79-L89"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "lines": [
+            134,
+            140
+          ],
+          "file_sha256": "26be498fa51310f614a98b048a85c49436b038374edefd9db29a7eff8a6c1a6d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java#L134-L140"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "lines": [
+            163,
+            322
+          ],
+          "file_sha256": "26be498fa51310f614a98b048a85c49436b038374edefd9db29a7eff8a6c1a6d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java#L163-L322"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "lines": [
+            325,
+            432
+          ],
+          "file_sha256": "26be498fa51310f614a98b048a85c49436b038374edefd9db29a7eff8a6c1a6d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java#L325-L432"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "lines": [
+            513,
+            522
+          ],
+          "file_sha256": "26be498fa51310f614a98b048a85c49436b038374edefd9db29a7eff8a6c1a6d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java#L513-L522"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java",
+          "lines": [
+            553,
+            593
+          ],
+          "file_sha256": "26be498fa51310f614a98b048a85c49436b038374edefd9db29a7eff8a6c1a6d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/entity/projectile/DraconicArrowEntity.java#L553-L593"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/init/DEDamage.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/init/DEDamage.java",
+          "lines": [
+            1,
+            126
+          ],
+          "file_sha256": "1a1335a04379dcc4eaa62517e5125679ba7589f3be12738db0342f779028028d",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/init/DEDamage.java#L1-L126"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/datagen/DamageTypeGenerator.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/datagen/DamageTypeGenerator.java",
+          "lines": [
+            1,
+            47
+          ],
+          "file_sha256": "be31cb56ecde9d7613f7f13ee63ad842178f71e28e813460d62928dd2e8ceae8",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/datagen/DamageTypeGenerator.java#L1-L47"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/DraconicEvolution.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/DraconicEvolution.java",
+          "lines": [
+            1,
+            53
+          ],
+          "file_sha256": "32fd9f2aee4356ccdeddf28bc8b74b132593ed7aca47b5b453c4391a48192f2a",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/DraconicEvolution.java#L1-L53"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/init/DEContent.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/init/DEContent.java",
+          "lines": [
+            94,
+            106
+          ],
+          "file_sha256": "2712709942c1b3d14ef26204d3b73e479e8feb35bab6d04feef3e793caea3036",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/init/DEContent.java#L94-L106"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/init/DEContent.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/init/DEContent.java",
+          "lines": [
+            401,
+            401
+          ],
+          "file_sha256": "2712709942c1b3d14ef26204d3b73e479e8feb35bab6d04feef3e793caea3036",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/init/DEContent.java#L401-L401"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/init/DEModules.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/init/DEModules.java",
+          "lines": [
+            56,
+            67
+          ],
+          "file_sha256": "e2c762237d686f3ca2475a74f18565f86c3043b7a353fceeabafbcb2e2e6f110",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/init/DEModules.java#L56-L67"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/init/DEModules.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/init/DEModules.java",
+          "lines": [
+            192,
+            193
+          ],
+          "file_sha256": "e2c762237d686f3ca2475a74f18565f86c3043b7a353fceeabafbcb2e2e6f110",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/init/DEModules.java#L192-L193"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/java/com/brandon3055/draconicevolution/DEConfig.java",
+          "source_path": "src/main/java/com/brandon3055/draconicevolution/DEConfig.java",
+          "lines": [
+            149,
+            153
+          ],
+          "file_sha256": "ed27b6f46e54c5d64367fdfd0dd898f8de5d1ce57f3e1f9c66f7b1b895f36a2a",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/java/com/brandon3055/draconicevolution/DEConfig.java#L149-L153"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/generated/data/draconicevolution/tags/damage_type/proj_anti_dodge.json",
+          "source_path": "src/main/generated/data/draconicevolution/tags/damage_type/proj_anti_dodge.json",
+          "lines": [
+            1,
+            8
+          ],
+          "file_sha256": "9879e67896524fd84136ae63770bab1c6e723fe4b9d66a56966cecbff1690816",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/generated/data/draconicevolution/tags/damage_type/proj_anti_dodge.json#L1-L8"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/generated/data/minecraft/tags/damage_type/is_projectile.json",
+          "source_path": "src/main/generated/data/minecraft/tags/damage_type/is_projectile.json",
+          "lines": [
+            1,
+            9
+          ],
+          "file_sha256": "ad3ea5979d5bc0933988b51216faa93ad1d9827d131bd06198463e2ef84d17c6",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/generated/data/minecraft/tags/damage_type/is_projectile.json#L1-L9"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/resources/data/draconicevolution/damage_type/draconic_arrow.json",
+          "source_path": "src/main/resources/data/draconicevolution/damage_type/draconic_arrow.json",
+          "lines": [
+            1,
+            5
+          ],
+          "file_sha256": "30818ef39560c0d37479d4a3d4d6d9c3899eee7ac8ab48f915535959f25ce2d3",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/resources/data/draconicevolution/damage_type/draconic_arrow.json#L1-L5"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/Draconic-Inc__Draconic-Evolution/src/main/resources/data/draconicevolution/damage_type/draconic_arrow_spoof.json",
+          "source_path": "src/main/resources/data/draconicevolution/damage_type/draconic_arrow_spoof.json",
+          "lines": [
+            1,
+            5
+          ],
+          "file_sha256": "30818ef39560c0d37479d4a3d4d6d9c3899eee7ac8ab48f915535959f25ce2d3",
+          "url": "https://github.com/Draconic-Inc/Draconic-Evolution/blob/6251e32bc93eb4bfcd910236ec1eaa6546516229/src/main/resources/data/draconicevolution/damage_type/draconic_arrow_spoof.json#L1-L5"
+        }
+      ],
+      "full_chain_observation": "Mod入口注册DEContent实体/DEModules；ModularBow原生releaseUsing读真实ModuleHost安装实体，服务器customArrow仅普通/光灵箭转DraconicArrow，安装PROJ_ANTI_IMMUNE才写箭flag；能量不足直接返回，足够才addFreshEntity。tick/superTick实体碰撞经原生onProjectileImpact可取消，再onHit进入onHitEntity；按当前实际target registryID与配置、箭flag共同决定DEDamage.draconicArrow的normal/spoof源，交实际entity.hurt分支消费。",
+      "concrete_observation": "独立的按目标资格重新分类投射物伤害源实现1。spoof factory把direct entity设null但保留owner；本项目固定generated IS_PROJECTILE文件只列普通箭，anti_dodge文件列spoof，不能凭标签名称冒称存在已证的躲避消费者。4科技等级/配置实体名/模块getter/setter/NBT均合并0额外。flag默认false且持久化；命中时再次按当前目标查配置，不是发射时锁定单一实体。hurt前可消耗穿透ID预算、破盾冷却100tick及停用物品；hurtfalse只恢复火并停箭/服务端掉落及discard，不回滚这些副作用。hurttrue对Enderman立即return，其他Living才knockback/posteffects与玩家命中包；故声响或动画缺席不必然是免疫，false也无明确拒控原因。",
+      "application_to_boss_immune": "免疫反馈应以原生最终控制裁决的明确原因生产，分别记录直接实体与施加者、命中前副作用和结算结果。按目标策略或模块例外不能等价全局Boss免疫开关。Boss灰字不能由普通hurtfalse推导，普通阴阳体质不新增灰字。此参考只供逻辑语义边界，不移植武器新机制。",
+      "limitations": "完整关键原生方法、source factory、tick碰撞、注册入口及固定配置注册片段已读；DEConfig整个大方法、模块UI安装/能力持久化入口、原版AbstractArrow.onHit分派和各目标hurt内部未全文展开，不声称全部Boss免疫实际被绕过或最终掉血。generated资源原字节/hash/blob已核，但build资源包含配置未取得，不能称实际打包后标签必加载，也未排除外部datapack改标签。anti_dodge本地无运行消费证据；不以通用tag额外计数。完全注释的lib/ProjectileAntiImmunityDamage排除。无灰字实现/实际观感/TCP验收，无生产修改或游戏启动。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-28T16:50:24.207053+00:00"
+    },
+    {
+      "id": "endergetic-native-delayed-teleport-evasion-success-result-before-relocation",
+      "status": "reviewed_effective",
+      "repo": "team-abnormals/endergetic",
+      "commit": "6094e7b65f219061387bb1abb31f3900762aea0c",
+      "category": "native_delayed_evasion_outcome_semantics",
+      "semantic_dedup_key": "endergetic-native-delayed-teleport-evasion-success-result-before-relocation",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "source_refs": [
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            86,
+            124
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L86-L124"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            136,
+            329
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L136-L329"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            380,
+            417
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L380-L417"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            570,
+            584
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L570-L584"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            628,
+            660
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L628-L660"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            744,
+            783
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L744-L783"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java",
+          "lines": [
+            853,
+            891
+          ],
+          "file_sha256": "fb430c0b8fadada46df046b43396e7d24b6167fe886ac70bf23f86c45b88aff4",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/common/entity/purpoid/Purpoid.java#L853-L891"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/core/registry/EEEntityTypes.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/core/registry/EEEntityTypes.java",
+          "lines": [
+            53,
+            53
+          ],
+          "file_sha256": "74328f529a12bc973dc25dee873ab3bc9ad028d831fa664723886692dbf82fba",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/core/registry/EEEntityTypes.java#L53-L53"
+        },
+        {
+          "path": "tools/cod4/immune-feedback-research/sources/team-abnormals__endergetic/src/main/java/com/teamabnormals/endergetic/client/renderer/entity/PurpoidRenderer.java",
+          "source_path": "src/main/java/com/teamabnormals/endergetic/client/renderer/entity/PurpoidRenderer.java",
+          "lines": [
+            1,
+            203
+          ],
+          "file_sha256": "7f0a064683c56ad6db08b1eddefda80883d3175b090240cfc66b7d2c4c19511e",
+          "url": "https://github.com/team-abnormals/endergetic/blob/6094e7b65f219061387bb1abb31f3900762aea0c/src/main/java/com/teamabnormals/endergetic/client/renderer/entity/PurpoidRenderer.java#L1-L203"
+        }
+      ],
+      "full_chain_observation": "实际已注册Purpoid native hurt服务器路径：载具本人攻击先下骑并正常super；PURPAZOID其他攻击先wantsToFlee=true及stun=0，间接伤且无动画/不在传送时tryToTeleportRandomly，找到按当前尺寸无碰撞无液体的候选就beginTeleportation并直接return true，不调用super.hurt。普通体型同间接伤路径。实际tick调用controller.tick，到TO/FAST_TO动画10才移动实体或载具、destination清空；onEndimationEnd启动FROM，FROM期间速度0。",
+      "concrete_observation": "计1：原生伤害接纳bool为true但伤害结算被延迟传送规避，区别于立即teleport后检查成功或hurt=false免疫。候选校验发生开始时，10帧动作延迟后没有重验碰撞/维度；若动画未到10先中断，destination可能保留而isTeleporting一直true，onEndimationEnd仅启动FROM，未补传或清destination，不能声称无孤儿。无伤来源不是Living时普通体型尝试传送但仍super。hurt事件真实和传送反馈存在，不证明Boss免控。",
+      "application_to_boss_immune": "不要把原生hurt true/false单独映射Boss灰字；仅显式拒控决定才发免疫语义。异步播放和实体变更要有失效清理，避免已显示免疫但控制仍发生。",
+      "limitations": "关键hurt/controller/候选/完整parent tick以及renderer完整已读，原生注册核对。Blueprint网络/Endimator底层未读，不冒称其S2C序列已全验证；renderer在TO>=10不画连线但super.render先执行，不能推断全部身体不可见；无实际客户端验收。",
+      "research_credit": 1,
+      "reviewed_utc": "2026-10-26T21:12:30.608410+00:00"
+    }
+  ],
+  "migration_owner_complete_row_binding": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "candidate_id": "ae67e17d2c0729af3601"
+  },
+  "migration_substantive_judgment_read": {
+    "candidate_id": "ae67e17d2c0729af3601",
+    "status": "accepted",
+    "family": "native-enderman-removed-worldblock-cargo-restoration-and-place-consumer",
+    "trigger": "EnderMan pair/carried setter/take and leave goal full tick/canUse",
+    "input": "optional carriedBlockState registry properties",
+    "output": "typed compound→blockstate via levellookup, air normalized null; absent clears cargo. Take removes original worldblock and stores defaultstate; place updates neighbour shape then clears cargo",
+    "preservation": "Actual removed-world-block ownership checkpoint, not prior 06f5ea87dd408f659683 legacy blockformat transform. Consumer proves state required for eventual return; anger helper0.",
+    "application_limit": "Take intentionally drops original block properties via defaultBlockState, no BEpayload; place setBlock result unchecked then clearscargo. Unknown blockdecoder fallback not deeply read here; no atomic world/entity save, no guaranteed exactly-once worldreturn.",
+    "credit": 1
+  },
+  "pre_source_screen": "Immune full semantic scalar fields, uncredited full docs, migration substantive records, actual44 accepted ecology receipt JSONs screened before first nativeEnderMan read. No root EnderMan evasion whole owner found in matching fields; Cargo family belongs migrationae67. EcologyEA0039 Enderman mention is generic spawn potential/cost, not this damage policy. Shulker whole overlap already closed097 EA0041. Keyword screening discovery0, not semantic proof of absence.",
+  "observations": [
+    "Native projectile or directThrownPotion path does not call ordinary parent hurt, except actual potion WATER with empty mob effect list invokes parent before atmost64 attempts. First successful teleport returns true regardless that cleanwater bool; if all attempts fail returns cleanwater bool, which is false for ordinary projectile. Thus neither true implies no HP loss nor teleportfailure implies ordinary projectile damage allowed.",
+    "Nonprojectile nonPotion branch calls parent first then may request teleport90percent for nonLiving owner even if parenthurtfalse; returns parentbool independently of relocation result. Alive/server gate is in random helper, not universal whole hurt gate.",
+    "Final teleport scans original candidate solid/nonwater ground, invokes mutable cancellable Forge EnderEntity, then native randomTeleport resolves modified candidate loaded chunk/floor/collision/noLiquid; failure teleports back to captured old position; success emits46/stops navigation before own TELEPORT event/sound requests. External backend/observer/hook mutations not proven transactional.",
+    "Gaze target/freezing/daytime are actual additional callers to same helper; own sound is tied to creepy sync and stared flag, rate400ticks, not rejected-hit feedback. Goal scheduler/base target/gaze hook internals remain unexpanded.",
+    "Current checkpoints not a new complete policy proposal. Need close bounded potion caller/arrow receipt route and carefully compare existing Evasion/Purpoid/source-spoof whole owners before maximum1 candidate or wholemerge0."
+  ],
+  "limitations": [
+    "No whole file read claimed; potionapplyWater partial and source closure incomplete explicitly retained.",
+    "Seven current whole formal judgments and nativeEnderman migrationcargo substantive judgment read; other context hits discovery only.",
+    "No formal credit/native execution/test/build/download/newbug conclusion.096 unrelated pendingMain acceptance now separately authorized author confirmation after safe checkpoint."
+  ],
+  "formal_count_observed": 495,
+  "remaining": 505,
+  "production_changes": 0,
+  "master_edits": 0,
+  "network_requests": 0,
+  "game_starts": 0,
+  "hours_claimed": 0
+}

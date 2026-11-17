@@ -1,0 +1,488 @@
+{
+  "status": "124actualnewread-plus-explicit122123reuse;static-provenance-only",
+  "created_utc": "2026-11-09T23:14:10.510195+00:00",
+  "repo": "P3pp3rF1y/Reliquary",
+  "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+  "source_pins": {
+    "source.json": {
+      "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/source.json",
+      "sha256": "c4d0f2c01ec5331e05762ed4d41be0b1e6b23a3c843acc1593a46276fc586ac5",
+      "bytes": 83384
+    },
+    "tree.json": {
+      "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/tree.json",
+      "sha256": "a313b827ed199c6d58641c476da70624475c5fa8d2f38d47339d2f5466b619f8",
+      "bytes": 486118
+    }
+  },
+  "new_ranges": [
+    {
+      "source": "src/main/java/reliquary/item/RendingGaleItem.java",
+      "lines": [
+        1,
+        190
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/RendingGaleItem.java",
+        "sha256": "fa03c4a687a03c5c682f4f8570ea1f2ac806d0723a9c07a9b40141e31edee239",
+        "bytes": 14063
+      },
+      "git_blob_sha1": "155a4e3e89daff8aadfa733a56e6604939ef35a7",
+      "excerpt_sha256": "3d7f45d26c5c976e0891ba107a149dd8617b9c50939047ed321c1de29481a962",
+      "excerpt": "package reliquary.item;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.mojang.serialization.Codec;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.core.particles.BlockParticleOption;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.StringRepresentable;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.Projectile;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.UseAnim;\nimport net.minecraft.world.level.ClipContext;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.HitResult;\nimport net.minecraft.world.phys.Vec3;\nimport net.neoforged.neoforge.network.codec.NeoForgeStreamCodecs;\nimport reliquary.init.ModDataComponents;\nimport reliquary.item.util.IScrollableItem;\nimport reliquary.reference.Config;\nimport reliquary.util.RegistryHelper;\nimport reliquary.util.TooltipBuilder;\n\nimport javax.annotation.Nullable;\n\nimport java.util.List;\n\npublic class RendingGaleItem extends ChargeableItem implements IScrollableItem {\n\tprivate static final int NO_DAMAGE_ELYTRA_TICKS = 3;\n\n\tpublic RendingGaleItem() {\n\t\tsuper(new Properties().stacksTo(1));\n\t}\n\n\t@Override\n\tpublic MutableComponent getName(ItemStack stack) {\n\t\treturn super.getName(stack).withStyle(ChatFormatting.YELLOW);\n\t}\n\n\t@Override\n\tprotected void addMoreInformation(ItemStack rendingGale, @Nullable HolderLookup.Provider registries, TooltipBuilder tooltipBuilder) {\n\t\ttooltipBuilder.charge(this, \".tooltip2\", getMigratedFeatherCount(rendingGale));\n\t\ttooltipBuilder.description(this, \".tooltip.controls\");\n\t\tif (isEnabled(rendingGale)) {\n\t\t\ttooltipBuilder.absorbActive(Items.FEATHER.getName(new ItemStack(Items.FEATHER)).getString());\n\t\t} else {\n\t\t\ttooltipBuilder.absorb();\n\t\t}\n\t}\n\n\t@Override\n\tprotected boolean hasMoreInformation(ItemStack stack) {\n\t\treturn true;\n\t}\n\n\tprivate static int getChargeLimit() {\n\t\treturn Config.COMMON.items.rendingGale.chargeLimit.get();\n\t}\n\n\tpublic static int getChargeCost() {\n\t\treturn Config.COMMON.items.rendingGale.castChargeCost.get();\n\t}\n\n\tprivate static int getFeathersWorth() {\n\t\treturn Config.COMMON.items.rendingGale.chargeFeatherWorth.get();\n\t}\n\n\tprivate static int getBoltChargeCost() {\n\t\treturn Config.COMMON.items.rendingGale.boltChargeCost.get();\n\t}\n\n\tprivate static int getBoltTargetRange() {\n\t\treturn Config.COMMON.items.rendingGale.blockTargetRange.get();\n\t}\n\n\tprivate static int getRadialPushRadius() {\n\t\treturn Config.COMMON.items.rendingGale.pushPullRadius.get();\n\t}\n\n\tprivate void attemptFlight(LivingEntity livingEntity) {\n\t\tif (!(livingEntity instanceof Player player)) {\n\t\t\treturn;\n\t\t}\n\n\t\tBlockHitResult rayTrace = getPlayerPOVHitResult(player.level(), player, ClipContext.Fluid.NONE);\n\n\t\tVec3 motion = player.getLookAngle().multiply(2, 2, 2);\n\t\tif (rayTrace.getType() == HitResult.Type.BLOCK) {\n\t\t\tdouble distance = player.blockPosition().distSqr(rayTrace.getBlockPos());\n\t\t\tif (distance < 40) {\n\t\t\t\tdouble slowDownFactor = distance / 40;\n\t\t\t\tmotion = player.getLookAngle().multiply(slowDownFactor, slowDownFactor, slowDownFactor);\n\t\t\t}\n\t\t}\n\t\tplayer.setDeltaMovement(motion);\n\t\tplayer.fallDistance = 0.0F;\n\n\t\tif (player.isFallFlying()) {\n\t\t\tplayer.fallFlyTicks = NO_DAMAGE_ELYTRA_TICKS;\n\t\t}\n\t}\n\n\t@Override\n\tpublic void inventoryTick(ItemStack rendingGale, Level level, Entity entity, int slotNumber, boolean isSelected) {\n\t\tif (level.isClientSide || !(entity instanceof Player player) || level.getGameTime() % 10 != 0) {\n\t\t\treturn;\n\t\t}\n\n\t\t// TODO legacy support, remove in future\n\t\tif (!rendingGale.has(ModDataComponents.PARTIAL_CHARGES)) {\n\t\t\tgetMigratedStoredCharge(rendingGale, FIRST_SLOT);\n\t\t}\n\n\t\tif (isEnabled(rendingGale)) {\n\t\t\tint freeFeatherCapacity = Math.max(getChargeLimit() - getTotalCharge(rendingGale), 0) / getFeathersWorth();\n\t\t\tconsumeAndCharge(rendingGale, 0, player, freeFeatherCapacity, 1, 16);\n\t\t}\n\t}\n\n\tpublic Mode getMode(ItemStack stack) {\n\t\treturn stack.getOrDefault(ModDataComponents.RENDING_GALE_MODE, Mode.FLIGHT);\n\t}\n\n\tprivate void setMode(ItemStack stack, Mode mode) {\n\t\tstack.set(ModDataComponents.RENDING_GALE_MODE, mode);\n\t}\n\n\tprivate void cycleMode(ItemStack stack, boolean isRaining, boolean next) {\n\t\tMode currentMode = getMode(stack);\n\t\tMode modeToSet = next ? currentMode.next() : currentMode.previous();\n\t\tif (!isRaining && modeToSet == Mode.BOLT) {\n\t\t\tmodeToSet = next ? modeToSet.next() : modeToSet.previous();\n\t\t}\n\t\tsetMode(stack, modeToSet);\n\t}\n\n\t@Override\n\tpublic InteractionResult onMouseScrolled(ItemStack stack, Player player, double scrollDelta) {\n\t\tif (player.level().isClientSide) {\n\t\t\treturn InteractionResult.PASS;\n\t\t}\n\t\tcycleMode(stack, player.level().isRaining(), scrollDelta > 0);\n\t\treturn InteractionResult.SUCCESS;\n\t}\n\n\t@Override\n\tpublic int getUseDuration(ItemStack stack, LivingEntity livingEntity) {\n\t\treturn 6000;\n\t}\n\n\t@Override\n\tpublic UseAnim getUseAnimation(ItemStack stack) {\n\t\treturn UseAnim.BLOCK;\n\t}\n\n\t@Override\n\tprotected boolean isItemValidForContainerSlot(ItemStack containerStack, int slot, ItemStack stack) {\n\t\treturn stack.is(Items.FEATHER) && slot == 0;\n\t}\n\n\t@Override\n\tpublic InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {\n\t\tItemStack rendingGale = player.getItemInHand(hand);\n\t\tif (player.isShiftKeyDown()) {\n\t\t\tsuper.use(level, player, hand);\n\t\t} else {\n\t\t\tplayer.startUsingItem(hand);\n\t\t}\n\t\treturn new InteractionResultHolder<>(InteractionResult.SUCCESS, rendingGale);\n\t}\n\n\t@Override\n\tpublic void addStoredCharge(ItemStack containerStack, int slot, int chargeToAdd, @Nullable ItemStack chargeStack) {\n\t\tint existingFeatherCount = getFeatherCount(containerStack);\n\t\tint maxFeatherCount = getChargeLimit() / getFeathersWorth();\n\t\tint featherCount = chargeToAdd > 0\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/pedestal/wrappers/PedestalRendingGaleWrapper.java",
+      "lines": [
+        1,
+        84
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/pedestal/wrappers/PedestalRendingGaleWrapper.java",
+        "sha256": "c4954a814a91b1331b207bdf01ad6f9426d683be9139a9775fee35ffc377f4eb",
+        "bytes": 3305
+      },
+      "git_blob_sha1": "8835da833e3fe5aaae072585d3e6387096d27e67",
+      "excerpt_sha256": "c4954a814a91b1331b207bdf01ad6f9426d683be9139a9775fee35ffc377f4eb",
+      "excerpt": "package reliquary.pedestal.wrappers;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.AABB;\nimport reliquary.api.IPedestal;\nimport reliquary.api.IPedestalActionItemWrapper;\nimport reliquary.init.ModEffects;\nimport reliquary.init.ModItems;\nimport reliquary.item.RendingGaleItem;\nimport reliquary.reference.Config;\n\nimport java.util.List;\n\npublic class PedestalRendingGaleWrapper implements IPedestalActionItemWrapper {\n\tprivate static final int SECONDS_BETWEEN_BUFF_CHECKS = 2;\n\tprivate static final int TICKS_BETWEEN_PUSH_PULL_CHECKS = 1;\n\n\tprivate int buffCheckCoolDown;\n\tprivate int pushPullCheckCoolDown;\n\n\t@Override\n\tpublic void update(ItemStack stack, Level level, IPedestal pedestal) {\n\t\tBlockPos pos = pedestal.getBlockPosition();\n\t\tRendingGaleItem rendingGale = (RendingGaleItem) stack.getItem();\n\t\tif (rendingGale.getMode(stack) == RendingGaleItem.Mode.FLIGHT) {\n\t\t\tif (buffCheckCoolDown <= 0) {\n\t\t\t\tbuffPlayersWithFlight(stack, level, pos);\n\t\t\t\tbuffCheckCoolDown = SECONDS_BETWEEN_BUFF_CHECKS * 20;\n\t\t\t} else {\n\t\t\t\tbuffCheckCoolDown--;\n\t\t\t}\n\t\t} else if (rendingGale.getMode(stack) == RendingGaleItem.Mode.PUSH) {\n\t\t\tif (pushPullCheckCoolDown <= 0) {\n\t\t\t\tpushEntities(stack, level, pos, rendingGale, false);\n\t\t\t\tpushPullCheckCoolDown = TICKS_BETWEEN_PUSH_PULL_CHECKS;\n\t\t\t} else {\n\t\t\t\tpushPullCheckCoolDown--;\n\t\t\t}\n\t\t} else if (rendingGale.getMode(stack) == RendingGaleItem.Mode.PULL) {\n\t\t\tif (pushPullCheckCoolDown <= 0) {\n\t\t\t\tpushEntities(stack, level, pos, rendingGale, true);\n\t\t\t\tpushPullCheckCoolDown = TICKS_BETWEEN_PUSH_PULL_CHECKS;\n\t\t\t} else {\n\t\t\t\tpushPullCheckCoolDown--;\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate void pushEntities(ItemStack stack, Level level, BlockPos pos, RendingGaleItem rendingGale, boolean b) {\n\t\trendingGale.doRadialPush(level, pos.getX(), pos.getY(), pos.getZ(), null, b);\n\t\tModItems.RENDING_GALE.get().useCharge(stack,\n\t\t\t\t(int) (TICKS_BETWEEN_PUSH_PULL_CHECKS / 20F * Config.COMMON.items.rendingGale.pedestalCostPerSecond.get()));\n\t}\n\n\tprivate void buffPlayersWithFlight(ItemStack stack, Level level, BlockPos pos) {\n\t\tint flightRange = Config.COMMON.items.rendingGale.pedestalFlightRange.get();\n\t\tint flightChargeCost = SECONDS_BETWEEN_BUFF_CHECKS * Config.COMMON.items.rendingGale.pedestalCostPerSecond.get();\n\t\tRendingGaleItem rendingGale = (RendingGaleItem) stack.getItem();\n\n\t\tList<Player> players = level.getEntitiesOfClass(Player.class, new AABB((double) pos.getX() - flightRange, (double) pos.getY() - flightRange,\n\t\t\t\t(double) pos.getZ() - flightRange, (double) pos.getX() + flightRange, (double) pos.getY() + flightRange, (double) pos.getZ() + flightRange));\n\n\t\tif (!players.isEmpty()\n\t\t\t\t&& (flightChargeCost == 0 || rendingGale.getTotalCharge(stack) >= flightChargeCost && rendingGale.useCharge(stack, flightChargeCost))) {\n\t\t\tfor (Player player : players) {\n\t\t\t\tplayer.addEffect(new MobEffectInstance(ModEffects.FLIGHT, 20 * 20, 0, false, false, true));\n\t\t\t}\n\t\t}\n\t}\n\n\t@Override\n\tpublic void onRemoved(ItemStack stack, Level level, IPedestal pedestal) {\n\t\t// noop\n\t}\n\n\t@Override\n\tpublic void stop(ItemStack stack, Level level, IPedestal pedestal) {\n\t\t// noop\n\t}\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/item/RendingGaleItem.java",
+      "lines": [
+        191,
+        397
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/RendingGaleItem.java",
+        "sha256": "fa03c4a687a03c5c682f4f8570ea1f2ac806d0723a9c07a9b40141e31edee239",
+        "bytes": 14063
+      },
+      "git_blob_sha1": "155a4e3e89daff8aadfa733a56e6604939ef35a7",
+      "excerpt_sha256": "344026afbc6235f6979b364546a862d6f4a20e19fc4c39be0c04fa0724f51737",
+      "excerpt": "\t\t\t\t? existingFeatherCount + Math.min(chargeToAdd, Math.max(maxFeatherCount - existingFeatherCount, 0))\n\t\t\t\t: Math.max(0, existingFeatherCount + chargeToAdd);\n\t\trunOnHandler(containerStack, handler -> handler.setStackInSlot(0, featherCount == 0 ? ItemStack.EMPTY : new ItemStack(Items.FEATHER, featherCount)));\n\t}\n\n\t@Override\n\tpublic int getStoredCharge(ItemStack containerStack, int slot) {\n\t\treturn getFeatherCount(containerStack);\n\t}\n\n\t@Override\n\tprotected int getSlotWorth(int slot) {\n\t\treturn slot == 0 ? getFeathersWorth() : 0;\n\t}\n\n\t@Override\n\tprotected int getContainerSlotLimit(int slot) {\n\t\treturn getChargeLimit() / getFeathersWorth();\n\t}\n\n\t@Override\n\tpublic void onUseTick(Level level, LivingEntity livingEntity, ItemStack rendingGale, int remainingUseDuration) {\n\t\tif (!(livingEntity instanceof Player player)) {\n\t\t\treturn;\n\t\t}\n\n\t\tMode mode = getMode(rendingGale);\n\t\tint chargeCost = mode == Mode.BOLT ? getBoltChargeCost() : getChargeCost();\n\t\tif (getTotalCharge(rendingGale) < chargeCost) {\n\t\t\tplayer.releaseUsingItem();\n\t\t\treturn;\n\t\t}\n\n\t\tif (mode == Mode.BOLT) {\n\t\t\tif (remainingUseDuration % 8 == 0) {\n\t\t\t\tspawnBolt(rendingGale, player);\n\t\t\t}\n\t\t} else if (player.level().isClientSide || useCharge(rendingGale, FIRST_SLOT, chargeCost)) {\n\t\t\tif (mode == Mode.FLIGHT) {\n\t\t\t\tattemptFlight(player);\n\t\t\t\tspawnFlightParticles(player.level(), player.getX(), player.getY() + player.getEyeHeight(), player.getZ(), player);\n\t\t\t} else if (mode == Mode.PUSH) {\n\t\t\t\tdoRadialPush(player.level(), player.getX(), player.getY(), player.getZ(), player, false);\n\t\t\t} else if (mode == Mode.PULL) {\n\t\t\t\tdoRadialPush(player.level(), player.getX(), player.getY(), player.getZ(), player, true);\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate void spawnBolt(ItemStack rendingGale, Player player) {\n\t\tHitResult rayTraceResult = player.pick(getBoltTargetRange(), 1, true);\n\t\tif (rayTraceResult.getType() == HitResult.Type.BLOCK) {\n\t\t\tBlockHitResult blockRayTraceResult = (BlockHitResult) rayTraceResult;\n\t\t\tBlockPos pos = blockRayTraceResult.getBlockPos();\n\t\t\tint attemptedY = pos.getY();\n\t\t\tif (!player.level().isRainingAt(pos)) {\n\t\t\t\tattemptedY++;\n\t\t\t}\n\t\t\tif (!player.level().isClientSide && player.level().isRainingAt(new BlockPos(pos.getX(), attemptedY, pos.getZ()))) {\n\t\t\t\tLightningBolt bolt = EntityType.LIGHTNING_BOLT.create(player.level());\n\t\t\t\tif (bolt != null && useCharge(rendingGale, FIRST_SLOT, getBoltChargeCost())) {\n\t\t\t\t\tbolt.moveTo(pos.getX(), pos.getY(), pos.getZ());\n\t\t\t\t\tplayer.level().addFreshEntity(bolt);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\tpublic boolean hasFlightCharge(ItemStack stack) {\n\t\treturn getTotalCharge(stack) >= getChargeCost();\n\t}\n\n\tpublic int getFeatherCount(ItemStack rendingGale) {\n\t\treturn getFromHandler(rendingGale, handler -> handler.getCountInSlot(0));\n\t}\n\n\tpublic int getMigratedFeatherCount(ItemStack rendingGale) {\n\t\tgetTotalCharge(rendingGale);\n\t\treturn getFeatherCount(rendingGale);\n\t}\n\n\tpublic void doRadialPush(Level level, double posX, double posY, double posZ, @Nullable Player player, boolean pull) {\n\t\t// push effect free at the moment, if you restore cost, remember to change this to getFeatherCount\n\t\tspawnRadialHurricaneParticles(level, posX, posY, posZ, player, pull);\n\t\tif (level.isClientSide) {\n\t\t\treturn;\n\t\t}\n\n\t\tdouble lowerX = posX - getRadialPushRadius();\n\t\tdouble lowerY = posY - getRadialPushRadius() / 5D;\n\t\tdouble lowerZ = posZ - getRadialPushRadius();\n\t\tdouble upperX = posX + getRadialPushRadius();\n\t\tdouble upperY = posY + getRadialPushRadius() / 5D;\n\t\tdouble upperZ = posZ + getRadialPushRadius();\n\n\t\tList<Entity> entities = level.getEntitiesOfClass(Entity.class, new AABB(lowerX, lowerY, lowerZ, upperX, upperY, upperZ),\n\t\t\t\te -> (e instanceof Mob || e instanceof Projectile));\n\n\t\tfor (Entity entity : entities) {\n\t\t\tdouble distance = getDistanceToEntity(posX, posY, posZ, entity);\n\t\t\tif (distance < getRadialPushRadius()) {\n\t\t\t\tif (isBlacklistedEntity(entity) || entity.equals(player)) {\n\t\t\t\t\tcontinue;\n\t\t\t\t}\n\n\t\t\t\tVec3 pushVector;\n\t\t\t\tif (pull) {\n\t\t\t\t\tpushVector = new Vec3(posX - entity.getX(), posY - entity.getY(), posZ - entity.getZ());\n\t\t\t\t} else {\n\t\t\t\t\tpushVector = new Vec3(entity.getX() - posX, entity.getY() - posY, entity.getZ() - posZ);\n\t\t\t\t}\n\t\t\t\tpushVector = pushVector.normalize();\n\t\t\t\tentity.move(MoverType.PLAYER, new Vec3(0.0D, 0.2D, 0.0D));\n\t\t\t\tentity.move(MoverType.PLAYER, new Vec3(pushVector.x, Math.min(pushVector.y, 0.1D) * 1.5D, pushVector.z));\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate boolean isBlacklistedEntity(Entity entity) {\n\t\tString entityName = RegistryHelper.getRegistryName(entity).toString();\n\t\treturn isBlacklistedLivingEntity(entity, entityName)\n\t\t\t\t|| Config.COMMON.items.rendingGale.canPushProjectiles.get() && isBlacklistedProjectile(entity, entityName);\n\t}\n\n\tprivate boolean isBlacklistedProjectile(Entity entity, String entityName) {\n\t\treturn entity instanceof Projectile && Config.COMMON.items.rendingGale.pushableProjectilesBlacklist.get().contains(entityName);\n\t}\n\n\tprivate boolean isBlacklistedLivingEntity(Entity entity, String entityName) {\n\t\treturn entity instanceof Mob && Config.COMMON.items.rendingGale.pushableEntitiesBlacklist.get().contains(entityName);\n\t}\n\n\tprivate float getDistanceToEntity(double posX, double posY, double posZ, Entity entityIn) {\n\t\tfloat f = (float) (posX - entityIn.getX());\n\t\tfloat f1 = (float) (posY - entityIn.getY());\n\t\tfloat f2 = (float) (posZ - entityIn.getZ());\n\t\treturn Mth.sqrt(f * f + f1 * f1 + f2 * f2);\n\t}\n\n\tprivate void spawnFlightParticles(Level level, double x, double y, double z, Player player) {\n\t\tVec3 lookVector = player.getLookAngle();\n\n\t\tBlockParticleOption blockParticleData = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SNOW_BLOCK.defaultBlockState());\n\n\t\t// spawn a whole mess of particles every tick.\n\t\tfor (int i = 0; i < 8; ++i) {\n\t\t\tfloat randX = 10F * (level.random.nextFloat() - 0.5F);\n\t\t\tfloat randY = 10F * (level.random.nextFloat() - 0.5F);\n\t\t\tfloat randZ = 10F * (level.random.nextFloat() - 0.5F);\n\n\t\t\tlevel.addParticle(blockParticleData, x + randX + lookVector.x * 20, y + randY + lookVector.y * 20, z + randZ + lookVector.z * 20, -lookVector.x * 5,\n\t\t\t\t\t-lookVector.y * 5, -lookVector.z * 5);\n\t\t}\n\t}\n\n\tprivate void spawnRadialHurricaneParticles(Level level, double posX, double posY, double posZ, @Nullable Player player, boolean pull) {\n\t\tBlockParticleOption blockParticleData = new BlockParticleOption(ParticleTypes.BLOCK, Blocks.SNOW_BLOCK.defaultBlockState());\n\n\t\t// spawn a whole mess of particles every tick.\n\t\tfor (int i = 0; i < 3; ++i) {\n\t\t\tfloat randX = level.random.nextFloat() - 0.5F;\n\t\t\tfloat randZ = level.random.nextFloat() - 0.5F;\n\t\t\tfloat motX = randX * 10F;\n\t\t\tfloat motZ = randZ * 10F;\n\t\t\tif (pull) {\n\t\t\t\trandX *= 10F;\n\t\t\t\trandZ *= 10F;\n\t\t\t\tmotX *= -1F;\n\t\t\t\tmotZ *= -1F;\n\t\t\t}\n\n\t\t\tdouble posYAdjusted = player == null ? posY : (posY + player.getEyeHeight()) - (player.getBbHeight() / 2);\n\n\t\t\tlevel.addParticle(blockParticleData, posX + randX, posYAdjusted, posZ + randZ, motX, 0.0D, motZ);\n\t\t}\n\t}\n\n\tpublic enum Mode implements StringRepresentable {\n\t\tFLIGHT, PUSH, PULL, BOLT;\n\n\t\tpublic static final Codec<Mode> CODEC = StringRepresentable.fromEnum(Mode::values);\n\t\tpublic static final StreamCodec<FriendlyByteBuf, Mode> STREAM_CODEC = NeoForgeStreamCodecs.enumCodec(Mode.class);\n\n\t\t@Override\n\t\tpublic String getSerializedName() {\n\t\t\treturn name();\n\t\t}\n\n\t\tpublic Mode next() {\n\t\t\treturn VALUES[(ordinal() + 1) % VALUES.length];\n\t\t}\n\n\t\tpublic Mode previous() {\n\t\t\treturn VALUES[Math.floorMod(ordinal() - 1, VALUES.length)];\n\t\t}\n\n\t\tprivate static final Mode[] VALUES;\n\n\t\tstatic {\n\t\t\tImmutableMap.Builder<String, Mode> builder = new ImmutableMap.Builder<>();\n\t\t\tfor (Mode value : values()) {\n\t\t\t\tbuilder.put(value.getSerializedName(), value);\n\t\t\t}\n\t\t\tVALUES = values();\n\t\t}\n\t}\n}\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/potions/FlightEffect.java",
+      "lines": [
+        1,
+        81
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/potions/FlightEffect.java",
+        "sha256": "529266f7e50e8ec4f530fe4ac0c06701880724e4a63781d496473ee31b70421e",
+        "bytes": 2785
+      },
+      "git_blob_sha1": "8ff23e315e1a844924f7c403c73e37e7906b8449",
+      "excerpt_sha256": "529266f7e50e8ec4f530fe4ac0c06701880724e4a63781d496473ee31b70421e",
+      "excerpt": "package reliquary.potions;\n\nimport net.minecraft.network.protocol.game.ClientboundPlayerAbilitiesPacket;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.effect.MobEffect;\nimport net.minecraft.world.effect.MobEffectCategory;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.AttributeInstance;\nimport net.minecraft.world.entity.ai.attributes.AttributeMap;\nimport net.minecraft.world.entity.player.Player;\nimport net.neoforged.neoforge.common.NeoForge;\nimport net.neoforged.neoforge.common.NeoForgeMod;\nimport net.neoforged.neoforge.event.entity.living.MobEffectEvent;\nimport org.jetbrains.annotations.Nullable;\nimport reliquary.init.ModEffects;\n\npublic class FlightEffect extends MobEffect {\n\n\tpublic FlightEffect() {\n\t\tsuper(MobEffectCategory.BENEFICIAL, 0xFFFFFF);\n\t\tNeoForge.EVENT_BUS.addListener(this::onEffectExpired);\n\t\tNeoForge.EVENT_BUS.addListener(this::onEffectRemoved);\n\t}\n\n\t@Override\n\tpublic boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {\n\t\treturn true;\n\t}\n\n\t@Override\n\tpublic boolean applyEffectTick(LivingEntity livingEntity, int amplifier) {\n\t\tif (livingEntity.level().isClientSide) {\n\t\t\treturn true;\n\t\t}\n\n\t\tif (!(livingEntity instanceof Player player)) {\n\t\t\treturn false;\n\t\t}\n\n\t\tAttributeInstance creativeFlightAttribute = player.getAttribute(NeoForgeMod.CREATIVE_FLIGHT);\n\t\tif (creativeFlightAttribute != null && creativeFlightAttribute.getValue() == 0) {\n\t\t\tcreativeFlightAttribute.setBaseValue(1);\n\t\t\t((ServerPlayer) player).connection.send(new ClientboundPlayerAbilitiesPacket(player.getAbilities()));\n\t\t}\n\t\tplayer.fallDistance = 0;\n\t\treturn true;\n\t}\n\n\t@Override\n\tpublic void removeAttributeModifiers(AttributeMap attributeMap) {\n\t\tsuper.removeAttributeModifiers(attributeMap);\n\t}\n\n\tprivate void onEffectExpired(MobEffectEvent.Expired event) {\n\t\tremoveFlight(event.getEntity(), event.getEffectInstance());\n\t}\n\n\tprivate void onEffectRemoved(MobEffectEvent.Remove event) {\n\t\tremoveFlight(event.getEntity(), event.getEffectInstance());\n\t}\n\n\tprivate static void removeFlight(LivingEntity entity, @Nullable MobEffectInstance effectInstance) {\n\t\tif (effectInstance == null || !effectInstance.getEffect().value().equals(ModEffects.FLIGHT.value())) {\n\t\t\treturn;\n\t\t}\n\n\t\tif (!(entity instanceof ServerPlayer serverPlayer)) {\n\t\t\treturn;\n\t\t}\n\n\t\tif (!serverPlayer.isCreative()) {\n\t\t\tAttributeInstance creativeFlightAttribute = serverPlayer.getAttribute(NeoForgeMod.CREATIVE_FLIGHT);\n\t\t\tif (creativeFlightAttribute != null) {\n\t\t\t\tcreativeFlightAttribute.setBaseValue(0);\n\t\t\t}\n\t\t\tserverPlayer.getAbilities().flying = false;\n\t\t\tserverPlayer.connection.send(new ClientboundPlayerAbilitiesPacket(serverPlayer.getAbilities()));\n\t\t}\n\t}\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/init/PedestalItems.java",
+      "lines": [
+        1,
+        30
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/PedestalItems.java",
+        "sha256": "5ffa2680a994ed65ec68c8fc1bf2d32e850e31b86fb4a0402cb5a17fbdcaa98a",
+        "bytes": 1462
+      },
+      "git_blob_sha1": "0b807b9e504bcc1e46e26c64728a283125641075",
+      "excerpt_sha256": "5ffa2680a994ed65ec68c8fc1bf2d32e850e31b86fb4a0402cb5a17fbdcaa98a",
+      "excerpt": "package reliquary.init;\n\nimport net.minecraft.world.item.BucketItem;\nimport net.minecraft.world.item.FishingRodItem;\nimport net.minecraft.world.item.ShearsItem;\nimport net.minecraft.world.item.SwordItem;\nimport net.minecraft.world.level.block.PoweredBlock;\nimport net.minecraft.world.level.block.RedStoneWireBlock;\nimport reliquary.item.HarvestRodItem;\nimport reliquary.item.RendingGaleItem;\nimport reliquary.item.RodOfLyssaItem;\nimport reliquary.pedestal.PedestalRegistry;\nimport reliquary.pedestal.wrappers.*;\n\npublic class PedestalItems {\n\tprivate PedestalItems() {\n\t}\n\n\tpublic static void init() {\n\t\tPedestalRegistry.registerItemWrapper(SwordItem.class, PedestalMeleeWeaponWrapper::new);\n\t\tPedestalRegistry.registerItemWrapper(BucketItem.class, PedestalBucketWrapper::new);\n\t\tPedestalRegistry.registerItemWrapper(ShearsItem.class, PedestalShearsWrapper::new);\n\t\tPedestalRegistry.registerItemWrapper(RendingGaleItem.class, PedestalRendingGaleWrapper::new);\n\t\tPedestalRegistry.registerItemWrapper(HarvestRodItem.class, PedestalHarvestRodWrapper::new);\n\t\tPedestalRegistry.registerItemBlockWrapper(RedStoneWireBlock.class, PedestalRedstoneWrapper.Toggleable::new);\n\t\tPedestalRegistry.registerItemBlockWrapper(PoweredBlock.class, PedestalRedstoneWrapper.AlwaysOn::new);\n\t\tPedestalRegistry.registerItemWrapper(FishingRodItem.class, PedestalFishingRodWrapper::new);\n\t\tPedestalRegistry.registerItemWrapper(RodOfLyssaItem.class, PedestalFishingRodWrapper::new);\n\t}\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/pedestal/PedestalRegistry.java",
+      "lines": [
+        1,
+        108
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/pedestal/PedestalRegistry.java",
+        "sha256": "e834513f5ff42ee7cfef803169999ddf7d599484a13cce13a9715fb5e9e821db",
+        "bytes": 3827
+      },
+      "git_blob_sha1": "af68800851bd6bd1df29a4e5aaee73ece97b5aa8",
+      "excerpt_sha256": "e834513f5ff42ee7cfef803169999ddf7d599484a13cce13a9715fb5e9e821db",
+      "excerpt": "package reliquary.pedestal;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.item.BlockItem;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.block.Block;\nimport net.neoforged.neoforge.event.server.ServerStoppedEvent;\nimport reliquary.api.IPedestalItemWrapper;\n\nimport java.util.*;\nimport java.util.function.Supplier;\n\npublic class PedestalRegistry {\n\tprivate static final PedestalRegistry INSTANCE = new PedestalRegistry();\n\tprivate static final Map<LocationKey, BlockPos> positions = new HashMap<>();\n\n\tprivate final Map<Class<? extends Item>, Supplier<? extends IPedestalItemWrapper>> itemWrappers = new HashMap<>();\n\tprivate final Map<Class<? extends Block>, Supplier<? extends IPedestalItemWrapper>> blockWrappers = new HashMap<>();\n\n\tpublic static void registerItemWrapper(Class<? extends Item> itemClass, Supplier<? extends IPedestalItemWrapper> wrapperClass) {\n\t\tINSTANCE.itemWrappers.put(itemClass, wrapperClass);\n\t}\n\n\tpublic static void registerItemBlockWrapper(Class<? extends Block> blockClass, Supplier<? extends IPedestalItemWrapper> wrapperClass) {\n\t\tINSTANCE.blockWrappers.put(blockClass, wrapperClass);\n\t}\n\n\tpublic static Optional<IPedestalItemWrapper> getItemWrapper(ItemStack item) {\n\t\tfor (Class<? extends Item> itemClass : INSTANCE.itemWrappers.keySet()) {\n\t\t\tif (itemClass.isInstance(item.getItem())) {\n\t\t\t\treturn Optional.of(INSTANCE.itemWrappers.get(itemClass).get());\n\t\t\t}\n\t\t}\n\n\t\tfor (Class<? extends Block> blockClass : INSTANCE.blockWrappers.keySet()) {\n\t\t\tif (item.getItem() instanceof BlockItem blockItem && blockClass.isInstance(blockItem.getBlock())) {\n\t\t\t\treturn Optional.of(INSTANCE.blockWrappers.get(blockClass).get());\n\t\t\t}\n\t\t}\n\n\t\treturn Optional.empty();\n\t}\n\n\tpublic static void registerPosition(ResourceLocation dimension, BlockPos pos) {\n\t\tLocationKey key = new LocationKey(dimension, pos.asLong());\n\t\tpositions.putIfAbsent(key, pos);\n\t}\n\n\tpublic static void unregisterPosition(ResourceLocation dimension, BlockPos pos) {\n\t\tpositions.remove(new LocationKey(dimension, pos.asLong()));\n\t}\n\n\tprivate static void clearPositions() {\n\t\tpositions.clear();\n\t}\n\n\tpublic static List<BlockPos> getPositionsInRange(ResourceLocation dimension, BlockPos startPos, int range) {\n\t\treturn getPositionsInRange(dimension, startPos, range, range, range);\n\t}\n\n\tprivate static List<BlockPos> getPositionsInRange(ResourceLocation dimension, BlockPos startPos, int xRange, int yRange, int zRange) {\n\t\tList<BlockPos> positionsInRange = new ArrayList<>();\n\t\tfor (Map.Entry<LocationKey, BlockPos> position : positions.entrySet()) {\n\t\t\tif (!position.getKey().getDimension().equals(dimension)) {\n\t\t\t\tcontinue;\n\t\t\t}\n\t\t\tBlockPos pos = position.getValue();\n\t\t\tif (pos.getX() < startPos.getX() - xRange || pos.getX() > startPos.getX() + xRange || pos.getY() < startPos.getY() - yRange\n\t\t\t\t\t|| pos.getY() > startPos.getY() + yRange || pos.getZ() < startPos.getZ() - zRange || pos.getZ() > startPos.getZ() + zRange) {\n\t\t\t\tcontinue;\n\t\t\t}\n\n\t\t\tpositionsInRange.add(pos);\n\t\t}\n\t\treturn positionsInRange;\n\t}\n\n\t@SuppressWarnings(\"unused\") // need to have event type here for reflection to call this during correct event\n\tpublic static void serverStopping(ServerStoppedEvent event) {\n\t\tclearPositions();\n\t}\n\n\tprivate record LocationKey(ResourceLocation dimension, long location) {\n\t\t@Override\n\t\tpublic int hashCode() {\n\t\t\treturn Objects.hash(dimension, location);\n\t\t}\n\n\t\t@Override\n\t\tpublic boolean equals(Object o) {\n\t\t\tif (!(o instanceof LocationKey key2)) {\n\t\t\t\treturn false;\n\t\t\t}\n\n\t\t\treturn getDimension().equals(key2.getDimension()) && getLocation() == key2.getLocation();\n\t\t}\n\n\t\tResourceLocation getDimension() {\n\t\t\treturn dimension;\n\t\t}\n\n\t\tpublic long getLocation() {\n\t\t\treturn location;\n\t\t}\n\t}\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+      "lines": [
+        95,
+        174
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+        "sha256": "c114129978b2fbf537c34d897be20e600233a02e7abaebd579cea33b44aa57db",
+        "bytes": 11593
+      },
+      "git_blob_sha1": "2247d81b47d2e370bc72021d8136ed50b84549d1",
+      "excerpt_sha256": "efa3ab21a96aafe3ba7ce0e720790686714400770f7fe2471c568d439fad42aa",
+      "excerpt": "\tpublic void onChunkUnloaded() {\n\t\tif (level != null && !level.isClientSide) {\n\t\t\tPedestalRegistry.unregisterPosition(level.dimension().registry(), worldPosition);\n\t\t}\n\n\t\tsuper.onChunkUnloaded();\n\t}\n\n\t@Override\n\tpublic void onLoad() {\n\t\tif (level != null && !level.isClientSide) {\n\t\t\tPedestalRegistry.registerPosition(level.dimension().registry(), worldPosition);\n\t\t}\n\n\t\tsuper.onLoad();\n\t}\n\n\t@Override\n\tpublic IItemHandler getItemHandler() {\n\t\tIItemHandler superInventory = super.getItemHandler();\n\t\tif (itemHandler == null) {\n\t\t\treturn superInventory;\n\t\t}\n\t\tif (combinedHandler == null) {\n\t\t\tcombinedHandler = new CombinedItemHandler(superInventory, itemHandler);\n\t\t}\n\t\treturn combinedHandler;\n\t}\n\n\tpublic IFluidHandler getFluidHandler() {\n\t\tif (pedestalFluidHandler == null) {\n\t\t\tpedestalFluidHandler = new PedestalFluidHandler(this);\n\t\t}\n\t\treturn pedestalFluidHandler;\n\t}\n\n\tpublic void executeOnActionItem(Consumer<IPedestalActionItem> execute) {\n\t\tif (actionItem == null) {\n\t\t\treturn;\n\t\t}\n\t\texecute.accept(actionItem);\n\t}\n\n\tprivate void executeOnRedstoneItem(Consumer<IPedestalRedstoneItem> execute) {\n\t\tif (redstoneItem == null) {\n\t\t\treturn;\n\t\t}\n\t\texecute.accept(redstoneItem);\n\t}\n\n\tprivate void updateSpecialItems() {\n\t\tresetSpecialItems();\n\n\t\tItemStack item = getItem();\n\t\tif (item.isEmpty()) {\n\t\t\treturn;\n\t\t}\n\n\t\tIItemHandler ih = item.getCapability(Capabilities.ItemHandler.ITEM);\n\t\tif (ih != null) {\n\t\t\titemHandler = ih;\n\t\t}\n\n\t\tif (item.getItem() instanceof IPedestalActionItem pedestalActionItem) {\n\t\t\ttickable = true;\n\t\t\tactionItem = pedestalActionItem;\n\t\t} else if (item.getItem() instanceof IPedestalRedstoneItem pedestalRedstoneItem) {\n\t\t\tredstoneItem = pedestalRedstoneItem;\n\t\t} else {\n\t\t\tPedestalRegistry.getItemWrapper(item).ifPresent(wrapper -> {\n\t\t\t\tif (wrapper instanceof IPedestalActionItem pedestalActionItem) {\n\t\t\t\t\ttickable = true;\n\t\t\t\t\tactionItem = pedestalActionItem;\n\t\t\t\t}\n\t\t\t\tif (wrapper instanceof IPedestalRedstoneItemWrapper) {\n\t\t\t\t\tredstoneItem = (IPedestalRedstoneItem) wrapper;\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        823,
+        874
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "2644cb303ab965d1118482c3dc46aceece4c4ee779718875d8c52dd732f7791a",
+      "excerpt": "\t\t\tpublic static class RendingGaleSettings {\n\t\t\t\tpublic final IntValue chargeLimit;\n\t\t\t\tpublic final IntValue castChargeCost;\n\t\t\t\tpublic final IntValue boltChargeCost;\n\t\t\t\tpublic final IntValue chargeFeatherWorth;\n\t\t\t\tpublic final IntValue blockTargetRange;\n\t\t\t\tpublic final IntValue pushPullRadius;\n\t\t\t\tpublic final BooleanValue canPushProjectiles;\n\t\t\t\tpublic final IntValue pedestalFlightRange;\n\t\t\t\tpublic final IntValue pedestalCostPerSecond;\n\t\t\t\tpublic final ConfigValue<List<? extends String>> pushableEntitiesBlacklist;\n\t\t\t\tpublic final ConfigValue<List<? extends String>> pushableProjectilesBlacklist;\n\n\t\t\t\tRendingGaleSettings(ModConfigSpec.Builder builder) {\n\t\t\t\t\tbuilder.comment(\"Rending Gale settings\").translation(translationKey(\"items.rendingGale\")).push(\"rendingGale\");\n\n\t\t\t\t\tchargeLimit = builder.comment(\"Number of feathers the rending gale can hold\").defineInRange(\"chargeLimit\", 300, 0, Integer.MAX_VALUE);\n\n\t\t\t\t\tcastChargeCost = builder.comment(\"Number of feathers used when the rending gale is cast in flight mode\").defineInRange(\"castChargeCost\", 1,\n\t\t\t\t\t\t\t0, 3);\n\n\t\t\t\t\tboltChargeCost = builder.comment(\"Number of feathers used to cast a lightning bolt\").defineInRange(\"boltChargeCost\", 100, 0, 250);\n\n\t\t\t\t\tchargeFeatherWorth = builder\n\t\t\t\t\t\t\t.comment(\"Number of feathers that get added to the rending gale per one that's consumed from player's inventory\")\n\t\t\t\t\t\t\t.defineInRange(\"chargeFeatherWorth\", 100, 1, 250);\n\n\t\t\t\t\tblockTargetRange = builder.comment(\"How far a lightning block can be cast\").defineInRange(\"blockTargetRange\", 12, 5, 15);\n\n\t\t\t\t\tpushPullRadius = builder.comment(\"Radius in which entities can be pushed/pulled\").defineInRange(\"pushPullRadius\", 10, 1, 20);\n\n\t\t\t\t\tcanPushProjectiles = builder.comment(\"Whether the rending gale can push projectiles\").define(\"canPushProjectiles\", true);\n\n\t\t\t\t\tpedestalFlightRange = builder.comment(\"Range from pedestals at which players will get buffed with flight\")\n\t\t\t\t\t\t\t.defineInRange(\"pedestalFlightRange\", 30, 10, 100);\n\n\t\t\t\t\tpedestalCostPerSecond = builder.comment(\"Cost per second of buffing players with flight\").defineInRange(\"pedestalCostPerSecond\", 2, 1, 20);\n\n\t\t\t\t\tpushableEntitiesBlacklist = builder.comment(\"List of entities that are banned from being pushed by the Rending Gale\").defineListAllowEmpty(\n\t\t\t\t\t\t\t\"pushableEntitiesBlacklist\", ArrayList::new, () -> BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.ZOMBIE).toString(),\n\t\t\t\t\t\t\tREGISTRY_NAME_MATCHER);\n\n\t\t\t\t\tpushableProjectilesBlacklist = builder.comment(\"List of projectiles that are banned from being pushed by the Rending Gale\")\n\t\t\t\t\t\t\t.defineListAllowEmpty(\"pushableProjectilesBlacklist\", ArrayList::new,\n\t\t\t\t\t\t\t\t\t() -> BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.ARROW).toString(), REGISTRY_NAME_MATCHER);\n\n\t\t\t\t\tbuilder.pop();\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tpublic final RodOfLyssaSettings rodOfLyssa;\n\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+      "lines": [
+        1,
+        94
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+        "sha256": "c114129978b2fbf537c34d897be20e600233a02e7abaebd579cea33b44aa57db",
+        "bytes": 11593
+      },
+      "git_blob_sha1": "2247d81b47d2e370bc72021d8136ed50b84549d1",
+      "excerpt_sha256": "4c4d562a9f76e6b6e4f9062c739dec713b8a3ecfc21f59357771a6c63bdbfcc0",
+      "excerpt": "package reliquary.block.tile;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.nbt.LongTag;\nimport net.minecraft.nbt.Tag;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.neoforged.neoforge.capabilities.Capabilities;\nimport net.neoforged.neoforge.common.util.FakePlayer;\nimport net.neoforged.neoforge.fluids.FluidStack;\nimport net.neoforged.neoforge.fluids.capability.IFluidHandler;\nimport net.neoforged.neoforge.fluids.capability.IFluidHandlerItem;\nimport net.neoforged.neoforge.items.IItemHandler;\nimport reliquary.api.IPedestal;\nimport reliquary.api.IPedestalActionItem;\nimport reliquary.api.IPedestalRedstoneItem;\nimport reliquary.api.IPedestalRedstoneItemWrapper;\nimport reliquary.block.PedestalBlock;\nimport reliquary.init.ModBlocks;\nimport reliquary.pedestal.PedestalRegistry;\nimport reliquary.util.CombinedItemHandler;\nimport reliquary.util.FakePlayerFactory;\nimport reliquary.util.InventoryHelper;\n\nimport javax.annotation.Nullable;\n\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.util.Optional;\nimport java.util.function.Consumer;\n\npublic class PedestalBlockEntity extends PassivePedestalBlockEntity implements IPedestal {\n\tprivate boolean tickable = false;\n\tprivate int actionCooldown = 0;\n\t@Nullable\n\tprivate IPedestalActionItem actionItem = null;\n\t@Nullable\n\tprivate IPedestalRedstoneItem redstoneItem = null;\n\t@Nullable\n\tprivate IItemHandler itemHandler = null;\n\t@Nullable\n\tprivate IItemHandler combinedHandler = null;\n\tprivate ItemStack fluidContainer = ItemStack.EMPTY;\n\tprivate boolean switchedOn = false;\n\tprivate final List<Long> onSwitches = new ArrayList<>();\n\tprivate boolean enabledInitialized = false;\n\tprivate boolean powered = false;\n\tprivate PedestalFluidHandler pedestalFluidHandler = null;\n\tprivate Object itemData = null;\n\n\tpublic PedestalBlockEntity(BlockPos pos, BlockState state) {\n\t\tsuper(ModBlocks.PEDESTAL_TILE_TYPE.get(), pos, state);\n\t}\n\n\t@Override\n\tprotected void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {\n\t\tsuper.loadAdditional(tag, registries);\n\n\t\tswitchedOn = tag.getBoolean(\"SwitchedOn\");\n\t\tpowered = tag.getBoolean(\"Powered\");\n\n\t\tListTag onLocations = tag.getList(\"OnSwitches\", 4);\n\n\t\tonSwitches.clear();\n\n\t\tfor (Tag onLocation : onLocations) {\n\t\t\tonSwitches.add(((LongTag) onLocation).getAsLong());\n\t\t}\n\n\t\tupdateSpecialItems();\n\t}\n\n\t@Override\n\tpublic void saveAdditional(CompoundTag compound, HolderLookup.Provider registries) {\n\t\tsuper.saveAdditional(compound, registries);\n\n\t\tcompound.putBoolean(\"SwitchedOn\", switchedOn);\n\t\tcompound.putBoolean(\"Powered\", powered);\n\n\t\tListTag onLocations = new ListTag();\n\n\t\tfor (Long onSwitch : onSwitches) {\n\t\t\tonLocations.add(LongTag.valueOf(onSwitch));\n\t\t}\n\t\tcompound.put(\"OnSwitches\", onLocations);\n\t}\n\n\t@Override\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+      "lines": [
+        175,
+        275
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+        "sha256": "c114129978b2fbf537c34d897be20e600233a02e7abaebd579cea33b44aa57db",
+        "bytes": 11593
+      },
+      "git_blob_sha1": "2247d81b47d2e370bc72021d8136ed50b84549d1",
+      "excerpt_sha256": "1b777edac51729b3cdff062437e308207f1f4bb35928014964697b02bd60deac",
+      "excerpt": "\t\tIFluidHandlerItem itemFluidHandler = item.getCapability(Capabilities.FluidHandler.ITEM);\n\t\tif (itemFluidHandler != null) {\n\t\t\tfluidContainer = item;\n\t\t}\n\n\t\tactionCooldown = 0;\n\t}\n\n\tprivate void resetSpecialItems() {\n\t\ttickable = false;\n\t\tfluidContainer = ItemStack.EMPTY;\n\t\tactionItem = null;\n\t\tredstoneItem = null;\n\t\titemHandler = null;\n\t\tif (combinedHandler != null) {\n\t\t\tlevel.invalidateCapabilities(getBlockPos());\n\t\t}\n\t\tcombinedHandler = null;\n\t}\n\n\tpublic void serverTick(Level level) {\n\t\tif (level.isClientSide) {\n\t\t\treturn;\n\t\t}\n\n\t\tif (!enabledInitialized) {\n\t\t\tenabledInitialized = true;\n\t\t\tneighborUpdate(level);\n\t\t}\n\n\t\tif (tickable && isEnabled()) {\n\t\t\tif (actionCooldown > 0) {\n\t\t\t\tactionCooldown--;\n\t\t\t} else {\n\t\t\t\texecuteOnActionItem(ai -> ai.update(getItem(), level, this));\n\t\t\t}\n\t\t}\n\t}\n\n\tpublic void neighborUpdate(Level level) {\n\t\tif (powered != level.hasNeighborSignal(worldPosition)) {\n\t\t\tpowered = level.hasNeighborSignal(worldPosition);\n\n\t\t\tif (powered) {\n\t\t\t\tswitchOn(level, BlockPos.ZERO);\n\t\t\t} else {\n\t\t\t\tswitchOff(level, BlockPos.ZERO);\n\t\t\t}\n\t\t}\n\n\t\tupdateRedstone(level);\n\t}\n\n\tpublic void updateRedstone(Level level) {\n\t\texecuteOnRedstoneItem(ri -> ri.updateRedstone(getItem(), level, this));\n\t}\n\n\t@Override\n\tpublic BlockPos getBlockPosition() {\n\t\treturn getBlockPos();\n\t}\n\n\t@Override\n\tpublic int addToConnectedInventory(Level level, ItemStack stack) {\n\t\tint numberAdded = 0;\n\t\tfor (Direction side : Direction.values()) {\n\t\t\tnumberAdded += InventoryHelper.tryToAddToInventoryAtPos(stack, level, worldPosition.offset(side.getNormal()), side.getOpposite(),\n\t\t\t\t\tstack.getCount() - numberAdded);\n\t\t\tif (numberAdded >= stack.getCount()) {\n\t\t\t\tbreak;\n\t\t\t}\n\t\t}\n\n\t\treturn numberAdded;\n\t}\n\n\t@Override\n\tpublic int fillConnectedTank(FluidStack fluidStack, IFluidHandler.FluidAction action) {\n\t\tList<IFluidHandler> adjacentTanks = getAdjacentTanks();\n\n\t\tint fluidFilled = 0;\n\t\tFluidStack copy = fluidStack.copy();\n\n\t\tfor (IFluidHandler tank : adjacentTanks) {\n\t\t\tif (tank.fill(copy, IFluidHandler.FluidAction.SIMULATE) == copy.getAmount()) {\n\t\t\t\tfluidFilled += tank.fill(copy, action);\n\n\t\t\t\tif (fluidFilled >= fluidStack.getAmount()) {\n\t\t\t\t\tbreak;\n\t\t\t\t} else {\n\t\t\t\t\tcopy.setAmount(fluidStack.getAmount() - fluidFilled);\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\treturn fluidFilled;\n\t}\n\n\t@Override\n\tpublic int fillConnectedTank(FluidStack fluidStack) {\n\t\treturn fillConnectedTank(fluidStack, IFluidHandler.FluidAction.EXECUTE);\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/item/ChargeableItem.java",
+      "lines": [
+        130,
+        274
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/ChargeableItem.java",
+        "sha256": "ccf053cfe749ea0f26d6af1681494321eea3adbffbb08f70a5178cb886f4e400",
+        "bytes": 10734
+      },
+      "git_blob_sha1": "379c9648310e6afccf47d494678adb8b2f9e65f1",
+      "excerpt_sha256": "3c0a1219a1644a21d8fd88f60d0f9d64b56c38761a3424a370a86b7c1386dce8",
+      "excerpt": "\t\tif (charges != null) {\n\t\t\treturn charges.getOrDefault(slot, 0);\n\t\t}\n\t\treturn 0;\n\t}\n\n\tpublic int getTotalCharge(ItemStack containerStack) {\n\t\treturn getTotalCharge(containerStack, FIRST_SLOT);\n\t}\n\n\tpublic int getTotalCharge(ItemStack containerStack, int slot) {\n\t\tlong totalCharge = (long) getMigratedStoredCharge(containerStack, slot) * getSlotWorth(slot) + getPartialCharge(containerStack, slot);\n\t\treturn (int) Math.min(totalCharge, Integer.MAX_VALUE);\n\t}\n\n\tprivate void setPartialCharge(ItemStack containerStack, int slot, int charge) {\n\t\tMap<Integer, Integer> charges = containerStack.get(ModDataComponents.PARTIAL_CHARGES);\n\t\tcharges = charges != null ? new HashMap<>(charges) : new HashMap<>();\n\t\tcharges.put(slot, charge);\n\t\tsetPartialCharges(containerStack, charges);\n\t}\n\n\tprivate void removePartialCharge(ItemStack containerStack, int slot) {\n\t\tMap<Integer, Integer> charges = containerStack.get(ModDataComponents.PARTIAL_CHARGES);\n\t\tif (charges != null && charges.containsKey(slot)) {\n\t\t\tcharges = new HashMap<>(charges);\n\t\t\tcharges.remove(slot);\n\t\t\tsetPartialCharges(containerStack, charges);\n\t\t}\n\t}\n\n\tprotected boolean addPartialCharge(ItemStack containerStack, int slot, int chargeToAdd, int pointLimit, ItemStack chargeStack) {\n\t\tint worth = getSlotWorth(slot);\n\t\tint storedCharge = getMigratedStoredCharge(containerStack, slot);\n\t\tint currentCharge = getPartialCharge(containerStack, slot);\n\t\tlong totalCharge = (long) storedCharge * worth + currentCharge;\n\t\tint remainingCapacity = Math.toIntExact(Math.max(pointLimit - totalCharge, 0));\n\t\tint acceptedCharge = Math.min(Math.max(chargeToAdd, 0), remainingCapacity);\n\t\tint updatedPartialCharge = currentCharge + acceptedCharge;\n\t\tif (updatedPartialCharge >= worth) {\n\t\t\tint maxPhysicalCharge = pointLimit / worth;\n\t\t\tint fullCharges = Math.min(updatedPartialCharge / worth, Math.max(maxPhysicalCharge - storedCharge, 0));\n\t\t\tif (fullCharges > 0) {\n\t\t\t\tItemStack storedChargeStack = chargeStack.copy();\n\t\t\t\tstoredChargeStack.setCount(fullCharges);\n\t\t\t\taddStoredCharge(containerStack, slot, fullCharges, storedChargeStack);\n\t\t\t\tupdatedPartialCharge -= fullCharges * worth;\n\t\t\t}\n\t\t}\n\t\tsetPartialCharge(containerStack, slot, updatedPartialCharge);\n\t\treturn acceptedCharge > 0;\n\t}\n\n\tprivate void setPartialCharges(ItemStack containerStack, Map<Integer, Integer> charges) {\n\t\tcontainerStack.set(ModDataComponents.PARTIAL_CHARGES, ImmutableMap.copyOf(charges));\n\t}\n\n\tpublic abstract void addStoredCharge(ItemStack containerStack, int slot, int chargeToAdd, @Nullable ItemStack chargeStack);\n\n\tprotected void extractStoredCharge(ItemStack containerStack, int slot, int chargeToExtract) {\n\t\taddStoredCharge(containerStack, slot, -chargeToExtract, null);\n\t}\n\n\tprotected int getMigratedStoredCharge(ItemStack containerStack, int slot) {\n\t\tif (!containerStack.has(ModDataComponents.PARTIAL_CHARGES)) {\n\t\t\tmigrateLegacyChargeData(containerStack);\n\t\t}\n\n\t\treturn getStoredCharge(containerStack, slot);\n\t}\n\n\tpublic abstract int getStoredCharge(ItemStack containerStack, int slot);\n\n\tprotected boolean removeSlotWhenEmpty(int slot) {\n\t\treturn false;\n\t}\n\n\tprotected void removeSlot(ItemStack containerStack, int slot) {\n\t\t// noop\n\t}\n\n\tprivate void migrateLegacyChargeData(ItemStack containerStack) {\n\t\tMap<Integer, Integer> charges = new HashMap<>();\n\t\tint slots = createHandler(containerStack).getSlots();\n\t\tfor (int slot = 0; slot < slots; slot++) {\n\t\t\tint worth = getSlotWorth(slot);\n\t\t\tint storedCharge = getStoredCharge(containerStack, slot);\n\t\t\tif (storedCharge <= 0 || worth <= 1) {\n\t\t\t\tcontinue;\n\t\t\t}\n\n\t\t\tint physicalCharge = storedCharge / worth;\n\t\t\textractStoredCharge(containerStack, slot, storedCharge - physicalCharge);\n\t\t\tint partialCharge = storedCharge % worth;\n\t\t\tif (partialCharge > 0) {\n\t\t\t\tcharges.put(slot, partialCharge);\n\t\t\t}\n\t\t}\n\t\tsetPartialCharges(containerStack, charges);\n\t}\n\n\tpublic boolean useCharge(ItemStack containerStack, int chargeToUse) {\n\t\treturn useCharge(containerStack, FIRST_SLOT, chargeToUse);\n\t}\n\n\tpublic boolean useCharge(ItemStack containerStack, int slot, int chargeToUse) {\n\t\tint charge = getMigratedStoredCharge(containerStack, slot);\n\t\tint partialCharge = getPartialCharge(containerStack, slot);\n\n\t\tif (partialCharge >= chargeToUse) {\n\t\t\tif (partialCharge == chargeToUse) {\n\t\t\t\tremovePartialCharge(containerStack, slot);\n\t\t\t} else {\n\t\t\t\tsetPartialCharge(containerStack, slot, partialCharge - chargeToUse);\n\t\t\t}\n\t\t\treturn true;\n\t\t}\n\n\t\tint worth = getSlotWorth(slot);\n\n\t\tif ((long) charge * worth + partialCharge >= chargeToUse) {\n\t\t\tlong additionalPartialChargeNeeded = (long) chargeToUse - partialCharge;\n\t\t\tint actualChargeToRemove = (int) (additionalPartialChargeNeeded / worth + (additionalPartialChargeNeeded % worth > 0 ? 1 : 0));\n\t\t\tint partialChargeToAdd = (int) ((long) actualChargeToRemove * worth - chargeToUse);\n\t\t\tif (actualChargeToRemove == charge && removeSlotWhenEmpty(slot)) {\n\t\t\t\tremoveSlot(containerStack, slot);\n\t\t\t} else {\n\t\t\t\textractStoredCharge(containerStack, slot, actualChargeToRemove);\n\t\t\t}\n\n\t\t\tint newPartialCharge = partialCharge + partialChargeToAdd;\n\t\t\tif (newPartialCharge > 0) {\n\t\t\t\tsetPartialCharge(containerStack, slot, newPartialCharge);\n\t\t\t} else {\n\t\t\t\tremovePartialCharge(containerStack, slot);\n\t\t\t}\n\t\t\treturn true;\n\t\t}\n\n\t\treturn false;\n\t}\n\n\tprotected boolean addItemToContainer(ItemStack container, Item item, int chargeToAdd) {\n\t\tItemStack stack = new ItemStack(item);\n\t\tstack.setCount(chargeToAdd);\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/api/IPedestalActionItemWrapper.java",
+      "lines": [
+        1,
+        4
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/api/IPedestalActionItemWrapper.java",
+        "sha256": "cf832a16dc6aaf635c24ed4ce7fcb5fa498f1c580a17d18137b495f4671bcb8d",
+        "bytes": 122
+      },
+      "git_blob_sha1": "e3b089937d5a5329f4dee82662783a0a7d0d43b4",
+      "excerpt_sha256": "cf832a16dc6aaf635c24ed4ce7fcb5fa498f1c580a17d18137b495f4671bcb8d",
+      "excerpt": "package reliquary.api;\n\npublic interface IPedestalActionItemWrapper extends IPedestalActionItem, IPedestalItemWrapper {\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+      "lines": [
+        276,
+        438
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+        "sha256": "c114129978b2fbf537c34d897be20e600233a02e7abaebd579cea33b44aa57db",
+        "bytes": 11593
+      },
+      "git_blob_sha1": "2247d81b47d2e370bc72021d8136ed50b84549d1",
+      "excerpt_sha256": "b127fcddb8f95599d3d1285bfb79414c1e0bdb0227a21a6bbc27e9dea994f2ea",
+      "excerpt": "\t}\n\n\t@Override\n\tpublic void setActionCoolDown(int coolDownTicks) {\n\t\tactionCooldown = coolDownTicks;\n\t}\n\n\t@Override\n\tpublic Optional<FakePlayer> getFakePlayer() {\n\t\tif (level == null || !(level instanceof ServerLevel serverLevel)) {\n\t\t\treturn Optional.empty();\n\t\t}\n\t\treturn Optional.of(FakePlayerFactory.get(serverLevel));\n\t}\n\n\t@Override\n\tpublic void destroyItem() {\n\t\tsetItem(ItemStack.EMPTY);\n\t}\n\n\t@Override\n\tpublic List<BlockPos> getPedestalsInRange(Level level, int range) {\n\t\treturn PedestalRegistry.getPositionsInRange(level.dimension().registry(), worldPosition, range);\n\t}\n\n\t@Override\n\tpublic void switchOn(Level level, BlockPos switchedOnFrom) {\n\t\tif (switchedOnFrom != BlockPos.ZERO && !onSwitches.contains(switchedOnFrom.asLong())) {\n\t\t\tonSwitches.add(switchedOnFrom.asLong());\n\t\t}\n\n\t\tsetEnabled(level, true);\n\n\t\tBlockState blockState = level.getBlockState(worldPosition);\n\t\tlevel.sendBlockUpdated(worldPosition, blockState, blockState, 3);\n\t}\n\n\t@Override\n\tpublic void switchOff(Level level, BlockPos switchedOffFrom) {\n\t\tif (switchedOffFrom != BlockPos.ZERO) {\n\t\t\tonSwitches.remove(switchedOffFrom.asLong());\n\t\t}\n\n\t\tif (!switchedOn && !powered && onSwitches.isEmpty()) {\n\t\t\tsetEnabled(level, false);\n\t\t}\n\t\tBlockState blockState = level.getBlockState(worldPosition);\n\t\tlevel.sendBlockUpdated(worldPosition, blockState, blockState, 3);\n\t}\n\n\t@Override\n\tpublic Optional<Object> getItemData() {\n\t\treturn Optional.ofNullable(itemData);\n\t}\n\n\t@Override\n\tpublic void setItemData(@Nullable Object data) {\n\t\titemData = data;\n\t}\n\n\t@Override\n\tpublic boolean switchedOn() {\n\t\treturn switchedOn;\n\t}\n\n\tpublic boolean isPowered() {\n\t\treturn powered;\n\t}\n\n\tpublic List<Long> getOnSwitches() {\n\t\treturn onSwitches;\n\t}\n\n\tprivate void setEnabled(Level level, boolean switchedOn) {\n\t\tif (level.getBlockState(worldPosition).getBlock() instanceof PedestalBlock) {\n\t\t\tlevel.setBlockAndUpdate(worldPosition, level.getBlockState(worldPosition).setValue(PedestalBlock.ENABLED, switchedOn));\n\t\t\tif (!switchedOn) {\n\t\t\t\texecuteOnActionItem(ai -> ai.stop(getItem(), level, this));\n\t\t\t}\n\t\t}\n\t\tsetChanged();\n\t}\n\n\tprivate List<IFluidHandler> getAdjacentTanks() {\n\t\tList<IFluidHandler> adjacentTanks = new ArrayList<>();\n\n\t\tfor (Direction side : Direction.values()) {\n\t\t\tBlockPos tankPos = getBlockPos().offset(side.getNormal());\n\t\t\tDirection tankDirection = side.getOpposite();\n\t\t\taddIfTank(adjacentTanks, tankPos, tankDirection);\n\t\t}\n\n\t\treturn adjacentTanks;\n\t}\n\n\tprivate void addIfTank(List<IFluidHandler> adjacentTanks, BlockPos tankPos, Direction tankDirection) {\n\t\tIFluidHandler fh = level.getCapability(Capabilities.FluidHandler.BLOCK, tankPos, tankDirection);\n\t\tif (fh != null) {\n\t\t\tadjacentTanks.add(fh);\n\t\t}\n\t}\n\n\tpublic void removeSpecialItems(Level level) {\n\t\tremoveSpecialItems(level, getItem());\n\t}\n\n\tpublic void removeSpecialItems(Level level, ItemStack itemBeingRemoved) {\n\t\texecuteOnRedstoneItem(ri -> ri.onRemoved(itemBeingRemoved, level, this));\n\t\texecuteOnActionItem(ai -> ai.onRemoved(itemBeingRemoved, level, this));\n\t}\n\n\t@Override\n\tpublic void removeAndSpawnItem(Level level) {\n\t\tremoveSpecialItems(level);\n\t\tresetSpecialItems();\n\t\tsuper.removeAndSpawnItem(level);\n\t}\n\n\t@Override\n\tprotected void onItemRemoved(ItemStack itemBeingRemoved) {\n\t\tsuper.onItemRemoved(itemBeingRemoved);\n\t\tif (level != null) {\n\t\t\tremoveSpecialItems(level, itemBeingRemoved);\n\t\t}\n\t\tupdateItemsAndBlock();\n\t}\n\n\t@Override\n\tprotected void onItemAdded() {\n\t\tsuper.onItemAdded();\n\t\tupdateItemsAndBlock();\n\t}\n\n\tprivate void updateItemsAndBlock() {\n\t\tupdateSpecialItems();\n\t\tif (level == null) {\n\t\t\treturn;\n\t\t}\n\t\tupdateRedstone(level);\n\t\tBlockState blockState = level.getBlockState(getBlockPos());\n\t\tlevel.sendBlockUpdated(getBlockPos(), blockState, blockState, 3);\n\t}\n\n\tpublic void toggleSwitch(Level level) {\n\t\tswitchedOn = !switchedOn;\n\n\t\tif (switchedOn) {\n\t\t\tswitchOn(level, BlockPos.ZERO);\n\t\t} else {\n\t\t\tswitchOff(level, BlockPos.ZERO);\n\t\t}\n\n\t\tupdateRedstone(level);\n\t}\n\n\tItemStack getFluidContainer() {\n\t\treturn fluidContainer;\n\t}\n\n\tpublic boolean isEnabled() {\n\t\treturn getBlockState().getValue(PedestalBlock.ENABLED);\n\t}\n}\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModEffects.java",
+      "lines": [
+        1,
+        26
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModEffects.java",
+        "sha256": "7e1c7fa1dd969df5d71bd69d37f80e687a25e5f1fc373b1e77908d98cc5f562a",
+        "bytes": 988
+      },
+      "git_blob_sha1": "6fb63ae0996b19940161ab6147ac2d1030d366e7",
+      "excerpt_sha256": "7e1c7fa1dd969df5d71bd69d37f80e687a25e5f1fc373b1e77908d98cc5f562a",
+      "excerpt": "package reliquary.init;\n\nimport net.minecraft.core.Holder;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.world.effect.MobEffect;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.neoforge.registries.DeferredRegister;\nimport reliquary.Reliquary;\nimport reliquary.potions.CureEffect;\nimport reliquary.potions.FlightEffect;\nimport reliquary.potions.PacificationEffect;\n\npublic class ModEffects {\n\tprivate ModEffects() {\n\t}\n\n\tprivate static final DeferredRegister<MobEffect> MOB_EFFECTS = DeferredRegister.create(BuiltInRegistries.MOB_EFFECT, Reliquary.MOD_ID);\n\n\tpublic static Holder<MobEffect> FLIGHT = MOB_EFFECTS.register(\"flight\", FlightEffect::new);\n\tpublic static Holder<MobEffect> PACIFICATION = MOB_EFFECTS.register(\"pacification\", PacificationEffect::new);\n\tpublic static Holder<MobEffect> CURE = MOB_EFFECTS.register(\"cure\", CureEffect::new);\n\n\tpublic static void registerListeners(IEventBus modBus) {\n\t\tMOB_EFFECTS.register(modBus);\n\t}\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/api/IPedestalActionItem.java",
+      "lines": [
+        1,
+        19
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/api/IPedestalActionItem.java",
+        "sha256": "c8edc17658847bad962d5a3698ea1f3c5e04e4475fd76e1b8b6bd05371088a7d",
+        "bytes": 503
+      },
+      "git_blob_sha1": "4426274ecbc3f29fb373f28d3c45e38bda9bbfb1",
+      "excerpt_sha256": "c8edc17658847bad962d5a3698ea1f3c5e04e4475fd76e1b8b6bd05371088a7d",
+      "excerpt": "package reliquary.api;\n\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.Optional;\n\npublic interface IPedestalActionItem {\n\tvoid update(ItemStack stack, Level level, IPedestal pedestal);\n\n\tvoid onRemoved(ItemStack stack, Level level, IPedestal pedestal);\n\n\tvoid stop(ItemStack stack, Level level, IPedestal pedestal);\n\n\tdefault Optional<Vec3> getRenderBoundingBoxOuterPosition() {\n\t\treturn Optional.empty();\n\t}\n}\n",
+      "whole_file_single_range": true
+    },
+    {
+      "source": "src/main/java/reliquary/block/PedestalBlock.java",
+      "lines": [
+        70,
+        96
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/block/PedestalBlock.java",
+        "sha256": "a0e30695aebd60c1b97228147d66cffdb2dd993471f071b2b2ff34ff1a0f46d0",
+        "bytes": 6148
+      },
+      "git_blob_sha1": "1abf109b1c2a9e8b1c3fc6bd0ea04010768c601e",
+      "excerpt_sha256": "7478087ba40d420e301f64a7caa3fbdf1544830cedc9d7b2da4b9443851aefa4",
+      "excerpt": "\t\tList<BlockPos> pedestalPositions = PedestalRegistry.getPositionsInRange(level.dimension().registry(), pos, 160);\n\n\t\tfor (BlockPos pedestalPosition : pedestalPositions) {\n\t\t\tWorldHelper.getBlockEntity(level, pedestalPosition, PedestalBlockEntity.class)\n\t\t\t\t\t.ifPresent(pedestalBlockEntity -> pedestalBlockEntity.updateRedstone(level));\n\t\t}\n\t}\n\n\t@Nullable\n\t@Override\n\tpublic BlockEntity newBlockEntity(BlockPos pos, BlockState state) {\n\t\treturn new PedestalBlockEntity(pos, state);\n\t}\n\n\t@Nullable\n\t@Override\n\tpublic <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> blockEntityType) {\n\t\tif (level.isClientSide) {\n\t\t\treturn null;\n\t\t}\n\n\t\treturn BlockEntityHelper.createTickerHelper(blockEntityType, ModBlocks.PEDESTAL_TILE_TYPE.get(), (l, p, s, be) -> be.serverTick(l));\n\t}\n\n\t@Override\n\tpublic void neighborChanged(BlockState state, Level level, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {\n\t\tsuper.neighborChanged(state, level, pos, blockIn, fromPos, isMoving);\n",
+      "whole_file_single_range": false
+    },
+    {
+      "source": "src/main/java/reliquary/item/ChargeableItem.java",
+      "lines": [
+        1,
+        129
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/ChargeableItem.java",
+        "sha256": "ccf053cfe749ea0f26d6af1681494321eea3adbffbb08f70a5178cb886f4e400",
+        "bytes": 10734
+      },
+      "git_blob_sha1": "379c9648310e6afccf47d494678adb8b2f9e65f1",
+      "excerpt_sha256": "d55f93260344af6b7b0f5947221b852344659df04167fbdcb77620ec494c8771",
+      "excerpt": "package reliquary.item;\n\nimport com.google.common.collect.ImmutableMap;\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.DataResult;\nimport com.mojang.serialization.DynamicOps;\nimport com.mojang.serialization.codecs.PrimitiveCodec;\nimport net.minecraft.network.FriendlyByteBuf;\nimport net.minecraft.network.codec.ByteBufCodecs;\nimport net.minecraft.network.codec.StreamCodec;\nimport net.minecraft.util.ExtraCodecs;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport reliquary.init.ModDataComponents;\nimport reliquary.item.component.OversizedComponentItemHandler;\nimport reliquary.util.InventoryHelper;\n\nimport javax.annotation.Nullable;\n\nimport java.util.HashMap;\nimport java.util.Map;\nimport java.util.function.Consumer;\nimport java.util.function.Function;\nimport java.util.function.Predicate;\nimport java.util.function.Supplier;\n\npublic abstract class ChargeableItem extends ToggleableItem {\n\tpublic static final PrimitiveCodec<Integer> STRING_ENCODED_INT = new PrimitiveCodec<>() {\n\t\t@Override\n\t\tpublic <T> DataResult<Integer> read(final DynamicOps<T> ops, final T input) {\n\t\t\treturn ops.getStringValue(input).map(s -> {\n\t\t\t\tif (s.startsWith(\"i\")) {\n\t\t\t\t\treturn Integer.parseInt(s.substring(1));\n\t\t\t\t} else {\n\t\t\t\t\treturn Integer.parseInt(s);\n\t\t\t\t}\n\t\t\t});\n\t\t}\n\n\t\t@Override\n\t\tpublic <T> T write(final DynamicOps<T> ops, final Integer value) {\n\t\t\treturn ops.createString(\"i\" + value);\n\t\t}\n\n\t\t@Override\n\t\tpublic String toString() {\n\t\t\treturn \"Int\";\n\t\t}\n\t};\n\n\tpublic static final Codec<Map<Integer, Integer>> PARTIAL_CHARGES_CODEC = Codec.unboundedMap(STRING_ENCODED_INT, ExtraCodecs.NON_NEGATIVE_INT);\n\tprivate static final int MAX_PARTIAL_CHARGES = 64;\n\n\tpublic static final StreamCodec<FriendlyByteBuf, Map<Integer, Integer>> PARTIAL_CHARGES_STREAM_CODEC = ByteBufCodecs.map(HashMap::new, ByteBufCodecs.INT,\n\t\t\tByteBufCodecs.INT, MAX_PARTIAL_CHARGES);\n\n\tprotected static final int FIRST_SLOT = 0;\n\n\tprotected ChargeableItem(Properties properties, Supplier<Boolean> isDisabled) {\n\t\tsuper(properties, isDisabled);\n\t}\n\n\tprotected ChargeableItem(Properties properties) {\n\t\tthis(properties, () -> false);\n\t}\n\n\tprotected <T> T getFromHandler(ItemStack stack, Function<OversizedComponentItemHandler, T> getter) {\n\t\treturn getter.apply(createHandler(stack));\n\t}\n\n\tprotected void runOnHandler(ItemStack stack, Consumer<OversizedComponentItemHandler> runner) {\n\t\trunner.accept(createHandler(stack));\n\t}\n\n\tpublic OversizedComponentItemHandler createHandler(ItemStack containerStack) {\n\t\tint size = Math.max(containerStack.has(ModDataComponents.OVERSIZED_ITEM_CONTAINER_CONTENTS)\n\t\t\t\t? containerStack.get(ModDataComponents.OVERSIZED_ITEM_CONTAINER_CONTENTS).getSlots()\n\t\t\t\t: getContainerInitialSize(), getContainerInitialSize());\n\t\treturn new OversizedComponentItemHandler(containerStack, ModDataComponents.OVERSIZED_ITEM_CONTAINER_CONTENTS.get(), size, this::getContainerSlotLimit,\n\t\t\t\t(slot, stack) -> isItemValidForContainerSlot(containerStack, slot, stack));\n\t}\n\n\tprotected int getSlotWorth(int slot) {\n\t\treturn 1;\n\t}\n\n\tprotected void removeContainerContents(ItemStack stack) {\n\t\tstack.remove(ModDataComponents.OVERSIZED_ITEM_CONTAINER_CONTENTS);\n\t}\n\n\tprotected int getContainerInitialSize() {\n\t\treturn 1;\n\t}\n\n\tprotected int getContainerSlotLimit(ItemStack stack, int slot) {\n\t\treturn getContainerSlotLimit(slot);\n\t}\n\n\tprotected int getContainerSlotLimit(int slot) {\n\t\treturn 64;\n\t}\n\n\tprotected abstract boolean isItemValidForContainerSlot(ItemStack containerStack, int slot, ItemStack stack);\n\n\tprotected void consumeAndCharge(ItemStack containerStack, int slot, Player player, int freeCapacity, int chargePerItem, int maxCount) {\n\t\tPredicate<ItemStack> isValidStack = stack -> isItemValidForContainerSlot(containerStack, slot, stack);\n\t\tconsumeAndCharge(containerStack, slot, player, freeCapacity, chargePerItem, maxCount, isValidStack);\n\t}\n\n\tprotected void consumeAndCharge(ItemStack containerStack, int slot, Player player, int freeCapacity, int chargePerItem, int maxCount,\n\t\t\tPredicate<ItemStack> itemMatches) {\n\t\tint maximumToConsume = Math.min(freeCapacity / chargePerItem, maxCount);\n\t\tif (maximumToConsume == 0) {\n\t\t\treturn;\n\t\t}\n\t\tItemStack consumedStack = InventoryHelper.consumeItemStack(itemMatches, player, maximumToConsume);\n\t\tif (consumedStack.getCount() > 0) {\n\t\t\taddStoredCharge(containerStack, slot, consumedStack.getCount() * chargePerItem, consumedStack);\n\t\t\tif (!containerStack.has(ModDataComponents.PARTIAL_CHARGES)) {\n\t\t\t\tHashMap<Integer, Integer> charges = new HashMap<>();\n\t\t\t\tcharges.put(slot, 0);\n\t\t\t\tsetPartialCharges(containerStack, charges);\n\t\t\t}\n\t\t}\n\t}\n\n\tprivate int getPartialCharge(ItemStack containerStack, int slot) {\n\t\tMap<Integer, Integer> charges = containerStack.get(ModDataComponents.PARTIAL_CHARGES);\n",
+      "whole_file_single_range": false
+    }
+  ],
+  "explicit_reused_ranges": [
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1,
+        65
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "27d3d994e84243d5aa90e977adc6f6fd8e1b3bd3769fbe1c002e882ad7116b47",
+      "excerpt": "package reliquary.reference;\n\nimport com.google.common.collect.Lists;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Blocks;\nimport net.neoforged.fml.event.config.ModConfigEvent;\nimport net.neoforged.neoforge.common.ModConfigSpec;\nimport net.neoforged.neoforge.common.ModConfigSpec.*;\nimport org.apache.commons.lang3.tuple.Pair;\nimport reliquary.Reliquary;\nimport reliquary.client.gui.hud.HUDPosition;\nimport reliquary.util.potions.PotionMap;\n\nimport javax.annotation.Nullable;\n\nimport java.util.*;\nimport java.util.function.Predicate;\nimport java.util.regex.Pattern;\nimport java.util.stream.Collectors;\nimport java.util.stream.Stream;\n\nimport static reliquary.util.RegistryHelper.getItemRegistryName;\n\n@SuppressWarnings({\"java:S4968\", \"squid:S1192\"}) // ? extends String is the type parameter returned from defineList so it can't be just String here | no issue\n\t\t\t\t\t\t\t\t\t\t\t\t\t// repeating the same string literal as they are independent\npublic class Config {\n\tprivate Config() {\n\t}\n\n\tprivate static final int ITEM_CAP = 9999;\n\tprivate static final Pattern REGISTRY_NAME_PATTERN = Pattern.compile(\"([a-z0-9_.-]+:[a-z0-9_/.-]+)\");\n\tprivate static final Predicate<Object> REGISTRY_NAME_MATCHER = o -> o instanceof String s && REGISTRY_NAME_PATTERN.matcher(s).matches();\n\tprivate static final Predicate<Object> POTION_MAP_ENTRY_MATCHER = o -> o instanceof String s && s.matches(\"[a-z_:0-9]+=[a-z_0-9:.|;]+\");\n\n\tprivate static String translationKey(String path) {\n\t\treturn Reliquary.MOD_ID + \".configuration.\" + path;\n\t}\n\n\tpublic static <T> T getOrDefault(ModConfigSpec.ConfigValue<T> value, ModConfigSpec configSpec) {\n\t\treturn configSpec.isLoaded() ? value.get() : value.getDefault();\n\t}\n\n\t@SuppressWarnings(\"unused\")\n\t// parameter needs to stay for addListener logic to recognize what this method is listening to\n\tpublic static void onFileChange(ModConfigEvent.Reloading configEvent) {\n\t\tCOMMON.items.mobCharm.resetCache();\n\t\tCOMMON.items.sojournerStaff.resetCache();\n\t}\n\n\tpublic static class Client {\n\t\tpublic final HudPos hudPositions;\n\t\tpublic final BooleanValue wailaShiftForInfo;\n\n\t\tpublic static class HudPos {\n\t\t\tpublic final EnumValue<HUDPosition> sojournerStaff;\n\t\t\tpublic final EnumValue<HUDPosition> handgun;\n\t\t\tpublic final EnumValue<HUDPosition> alkahestryTome;\n\t\t\tpublic final EnumValue<HUDPosition> destructionCatalyst;\n\t\t\tpublic final EnumValue<HUDPosition> enderStaff;\n",
+      "whole_file": false,
+      "reading": "explicit122actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        116,
+        198
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "05e90f11695520b720b1d214e9204afa5c357773361d6b2934d70a9cffcdc66a",
+      "excerpt": "\tpublic static class Common {\n\t\tpublic final DisableSettings disable;\n\t\tpublic final PotionSettings potions;\n\t\tpublic final ItemSettings items;\n\t\tpublic final BlockSettings blocks;\n\t\tpublic final BooleanValue chestLootEnabled;\n\t\tpublic final BooleanValue dropCraftingRecipesEnabled;\n\t\tpublic final BooleanValue mobDropsEnabled;\n\n\t\tpublic static class DisableSettings {\n\t\t\tpublic final BooleanValue disableAlkahestry;\n\t\t\tpublic final BooleanValue disableHandgun;\n\t\t\tpublic final BooleanValue disablePotions;\n\t\t\tpublic final BooleanValue disablePedestal;\n\t\t\tpublic final BooleanValue disablePassivePedestal;\n\t\t\tpublic final BooleanValue disableSpawnEggRecipes;\n\t\t\tpublic final BooleanValue disableCharms;\n\n\t\t\tDisableSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.comment(\"Disable sections of the mod\").translation(translationKey(\"disable\")).push(\"disable\");\n\n\t\t\t\tdisableAlkahestry = builder.comment(\"Disable Alkahestry tome and its recipes\").translation(translationKey(\"disable.alkahestryTome\"))\n\t\t\t\t\t\t.worldRestart().define(\"alkahestryTome\", false);\n\n\t\t\t\tdisableHandgun = builder.comment(\"Disable the HANDGUN, bullets, magazines, and gun parts\").translation(translationKey(\"disable.handgun\"))\n\t\t\t\t\t\t.worldRestart().define(\"handgun\", false);\n\n\t\t\t\tdisablePotions = builder.comment(\"Disable the POTION system including mortar, altar, potions, tipped arrows, and powder\")\n\t\t\t\t\t\t.translation(translationKey(\"disable.potion\")).worldRestart().define(\"potion\", false);\n\n\t\t\t\tdisablePedestal = builder.comment(\"Disable all pedestals\").translation(translationKey(\"disable.pedestal\")).worldRestart().define(\"pedestal\",\n\t\t\t\t\t\tfalse);\n\n\t\t\t\tdisablePassivePedestal = builder.comment(\"Disable all display-only pedestals\").translation(translationKey(\"disable.passivePedestal\"))\n\t\t\t\t\t\t.worldRestart().define(\"passivePedestal\", false);\n\n\t\t\t\tdisableSpawnEggRecipes = builder.comment(\"Disable recipes to craft spawn eggs from fragments\")\n\t\t\t\t\t\t.translation(translationKey(\"disable.disableSpawnEggRecipes\")).worldRestart().define(\"disableSpawnEggRecipes\", false);\n\n\t\t\t\tdisableCharms = builder.comment(\"Disable all charms and their recipes\").translation(translationKey(\"disable.charms\")).worldRestart()\n\t\t\t\t\t\t.define(\"charms\", false);\n\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\t\t}\n\n\t\tCommon(ModConfigSpec.Builder builder) {\n\t\t\tchestLootEnabled = builder\n\t\t\t\t\t.comment(\"Determines whether Reliquary items will be generated in chest loot (mostly mob drops, very rarely some lower level items)\")\n\t\t\t\t\t.worldRestart().define(\"chestLootEnabled\", true);\n\n\t\t\tdropCraftingRecipesEnabled = builder.comment(\"Determines whether Reliquary mob drops have crafting recipes\").define(\"dropCraftingRecipesEnabled\",\n\t\t\t\t\tfalse);\n\n\t\t\tmobDropsEnabled = builder.comment(\n\t\t\t\t\t\"Whether mobs drop the Reliquary mob drops. This won't remove mob drop items from registry and replace them with something else, but allows to turn off the additional drops when mobs are killed by player. If this is turned off the mob drop crafting recipes turned on by the other setting can be used.\")\n\t\t\t\t\t.worldRestart().define(\"mobDropsEnabled\", true);\n\n\t\t\tdisable = new DisableSettings(builder);\n\t\t\tpotions = new PotionSettings(builder);\n\t\t\titems = new ItemSettings(builder);\n\t\t\tblocks = new BlockSettings(builder);\n\t\t}\n\n\t\tpublic static class PotionSettings {\n\t\t\tpublic final ConfigValue<List<? extends String>> potionMap;\n\t\t\tpublic final IntValue maxEffectCount;\n\t\t\tpublic final BooleanValue threeIngredients;\n\t\t\tpublic final BooleanValue differentDurations;\n\t\t\tpublic final BooleanValue redstoneAndGlowstone;\n\n\t\t\tPotionSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.comment(\"Potions related settings\").translation(translationKey(\"potions\")).push(\"potions\");\n\n\t\t\t\tpotionMap = builder.comment(\"Map of POTION ingredients and their effects\").defineList(\"potionMap\", PotionMap::getDefaultConfigPotionMap,\n\t\t\t\t\t\t() -> \"minecraft:sugar=speed|3|0;haste|3|0\", POTION_MAP_ENTRY_MATCHER);\n\n\t\t\t\tmaxEffectCount = builder.comment(\"Maximum number of effects a POTION can have to appear in creative tabs / JEI\").defineInRange(\"maxEffectCount\",\n\t\t\t\t\t\t1, 1, 6);\n\n\t\t\t\tthreeIngredients = builder.comment(\"Whether potions that are made out of three base ingredients appear in creative tabs / JEI\")\n\t\t\t\t\t\t.define(\"threeIngredients\", false);\n\n",
+      "whole_file": false,
+      "reading": "explicit122actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1202,
+        1211
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "37b9728ac9e080c4e72ca7431e41c86cbf83f3dbeec8253669b8200a753ee179",
+      "excerpt": "\n\tpublic static final Common COMMON;\n\tpublic static final ModConfigSpec COMMON_SPEC;\n\n\tstatic {\n\t\tfinal Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);\n\t\tCOMMON_SPEC = specPair.getRight();\n\t\tCOMMON = specPair.getLeft();\n\t}\n}\n",
+      "whole_file": false,
+      "reading": "explicit122actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/Reliquary.java",
+      "lines": [
+        1,
+        86
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/Reliquary.java",
+        "sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+        "bytes": 3178
+      },
+      "git_blob_sha1": "1564c743bda7563d82c610640652a4d80f85abfe",
+      "excerpt_sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+      "excerpt": "package reliquary;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.neoforged.api.distmarker.Dist;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.fml.ModContainer;\nimport net.neoforged.fml.ModList;\nimport net.neoforged.fml.common.Mod;\nimport net.neoforged.fml.config.ModConfig;\nimport net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;\nimport net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;\nimport net.neoforged.neoforge.client.gui.ConfigurationScreen;\nimport net.neoforged.neoforge.client.gui.IConfigScreenFactory;\nimport net.neoforged.neoforge.common.NeoForge;\nimport net.neoforged.neoforge.common.NeoForgeMod;\nimport reliquary.client.init.ModParticles;\nimport reliquary.crafting.AlkahestryRecipeRegistry;\nimport reliquary.data.DataGenerators;\nimport reliquary.handler.ClientEventHandler;\nimport reliquary.handler.CommonEventHandler;\nimport reliquary.init.*;\nimport reliquary.item.MobCharmRegistry;\nimport reliquary.reference.Config;\nimport reliquary.util.potions.PotionMap;\n\n@Mod(Reliquary.MOD_ID)\npublic class Reliquary {\n\n\tpublic static final String MOD_ID = \"reliquary\";\n\tprivate static String networkProtocolVersion;\n\n\t@SuppressWarnings(\"java:S1118\") // needs to be public for mod to work\n\tpublic Reliquary(IEventBus modBus, Dist dist, ModContainer container) {\n\t\tnetworkProtocolVersion = container.getModInfo().getVersion().toString();\n\t\tNeoForgeMod.enableMilkFluid();\n\t\tif (dist == Dist.CLIENT && !ModList.get().isLoaded(\"configured\")) {\n\t\t\tcontainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);\n\t\t}\n\t\tif (dist == Dist.CLIENT) {\n\t\t\tClientEventHandler.registerHandlers(container);\n\t\t}\n\t\tmodBus.addListener(Reliquary::setup);\n\t\tmodBus.addListener(Reliquary::loadComplete);\n\t\tmodBus.addListener(Config::onFileChange);\n\t\tmodBus.addListener(DataGenerators::gatherData);\n\t\tmodBus.addListener(ModPayloads::registerPackets);\n\n\t\tModFluids.registerHandlers(modBus);\n\t\tModItems.registerListeners(modBus);\n\t\tModBlocks.registerListeners(modBus);\n\t\tModEntities.registerListeners(modBus);\n\t\tModEffects.registerListeners(modBus);\n\t\tModSounds.registerListeners(modBus);\n\t\tModParticles.registerListeners(modBus);\n\t\tModDataComponents.register(modBus);\n\n\t\tcontainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);\n\t\tcontainer.registerConfig(ModConfig.Type.COMMON, Config.COMMON_SPEC);\n\n\t\tIEventBus eventBus = NeoForge.EVENT_BUS;\n\t\tCommonEventHandler.registerEventBusListeners(eventBus);\n\t\teventBus.addListener(MobCharmRegistry::handleAddingFragmentDrops);\n\t\teventBus.addListener(AlkahestryRecipeRegistry::onResourceReload);\n\n\t\tModCompat.initCompats(modBus);\n\t}\n\n\tpublic static void setup(FMLCommonSetupEvent event) {\n\t\tevent.enqueueWork(ModItems::registerDispenseBehaviors);\n\t\tPotionMap.initPotionMap();\n\t\tModItems.registerHandgunMagazines();\n\t\tPedestalItems.init();\n\t}\n\n\tpublic static void loadComplete(FMLLoadCompleteEvent event) {\n\t\tMobCharmRegistry.registerDynamicCharmDefinitions();\n\t}\n\n\tpublic static ResourceLocation getRL(String regName) {\n\t\treturn ResourceLocation.fromNamespaceAndPath(MOD_ID, regName);\n\t}\n\n\tpublic static String getNetworkProtocolVersion() {\n\t\treturn networkProtocolVersion;\n\t}\n}\n",
+      "whole_file": true,
+      "reading": "explicit122actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModDataComponents.java",
+      "lines": [
+        102,
+        120
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModDataComponents.java",
+        "sha256": "7ae682ccd5ad1fdb959b3bf7c20f722f6fc519a18dd9a6a54c47b24ee33ac3d0",
+        "bytes": 8365
+      },
+      "git_blob_sha1": "bf90ffa8246665ec22bdd957edf8c2ba98b9b0af",
+      "excerpt_sha256": "b766111d17b6575b786d3a72bf3c63b0fe0f6cfd7af3630d4b21baf7ff036e2c",
+      "excerpt": "\n\tpublic static final Supplier<DataComponentType<RendingGaleItem.Mode>> RENDING_GALE_MODE = DATA_COMPONENT_TYPES.register(\"rending_gale_mode\",\n\t\t\t() -> new DataComponentType.Builder<RendingGaleItem.Mode>().persistent(RendingGaleItem.Mode.CODEC)\n\t\t\t\t\t.networkSynchronized(RendingGaleItem.Mode.STREAM_CODEC).build());\n\n\tpublic static final Supplier<DataComponentType<Integer>> HOOK_ENTITY_ID = DATA_COMPONENT_TYPES.register(\"hook_entity_id\",\n\t\t\t() -> new DataComponentType.Builder<Integer>().persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT).build());\n\n\tpublic static final Supplier<DataComponentType<Byte>> TORCH_INDEX = DATA_COMPONENT_TYPES.register(\"torch_index\",\n\t\t\t() -> new DataComponentType.Builder<Byte>().persistent(Codec.BYTE).networkSynchronized(ByteBufCodecs.BYTE).build());\n\n\tpublic static final Supplier<DataComponentType<VoidTearItem.Mode>> VOID_TEAR_MODE = DATA_COMPONENT_TYPES.register(\"void_tear_mode\",\n\t\t\t() -> new DataComponentType.Builder<VoidTearItem.Mode>().persistent(VoidTearItem.Mode.CODEC).networkSynchronized(VoidTearItem.Mode.STREAM_CODEC)\n\t\t\t\t\t.build());\n\n\tpublic static void register(IEventBus modBus) {\n\t\tDATA_COMPONENT_TYPES.register(modBus);\n\t}\n}\n",
+      "whole_file": false,
+      "reading": "explicit123actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModItems.java",
+      "lines": [
+        91,
+        115
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+        "sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+        "bytes": 25304
+      },
+      "git_blob_sha1": "e6de6be1852bcae823167805992a848ea98c7aa1",
+      "excerpt_sha256": "3c00c0a108a14205af97d5cb2fa23c038e317ac777ad8f01754098ace0cef6f3",
+      "excerpt": "\tpublic static final Supplier<ItemBase> GRIP_ASSEMBLY = ITEMS.register(\"grip_assembly\",\n\t\t\t() -> new ItemBase(new Item.Properties().stacksTo(4), Config.COMMON.disable.disableHandgun));\n\tpublic static final Supplier<ItemBase> BARREL_ASSEMBLY = ITEMS.register(\"barrel_assembly\",\n\t\t\t() -> new ItemBase(new Item.Properties().stacksTo(4), Config.COMMON.disable.disableHandgun));\n\tpublic static final Supplier<ItemBase> HAMMER_ASSEMBLY = ITEMS.register(\"hammer_assembly\",\n\t\t\t() -> new ItemBase(new Item.Properties().stacksTo(4), Config.COMMON.disable.disableHandgun));\n\tpublic static final Supplier<HarvestRodItem> HARVEST_ROD = ITEMS.register(\"harvest_rod\", HarvestRodItem::new);\n\tpublic static final Supplier<MobCharmFragmentItem> MOB_CHARM_FRAGMENT = ITEMS.register(\"mob_charm_fragment\", MobCharmFragmentItem::new);\n\tpublic static final Supplier<HeroMedallionItem> HERO_MEDALLION = ITEMS.register(\"hero_medallion\", HeroMedallionItem::new);\n\tpublic static final Supplier<IceMagusRodItem> ICE_MAGUS_ROD = ITEMS.register(\"ice_magus_rod\", IceMagusRodItem::new);\n\tpublic static final Supplier<InfernalChaliceItem> INFERNAL_CHALICE = ITEMS.register(\"infernal_chalice\", InfernalChaliceItem::new);\n\tpublic static final Supplier<InfernalClawsItem> INFERNAL_CLAWS = ITEMS.register(\"infernal_claws\", InfernalClawsItem::new);\n\tpublic static final Supplier<InfernalTearItem> INFERNAL_TEAR = ITEMS.register(\"infernal_tear\", InfernalTearItem::new);\n\tpublic static final Supplier<KrakenShellItem> KRAKEN_SHELL = ITEMS.register(\"kraken_shell\", KrakenShellItem::new);\n\tpublic static final Supplier<MidasTouchstoneItem> MIDAS_TOUCHSTONE = ITEMS.register(\"midas_touchstone\", MidasTouchstoneItem::new);\n\tpublic static final Supplier<PhoenixDownItem> PHOENIX_DOWN = ITEMS.register(\"phoenix_down\", PhoenixDownItem::new);\n\tpublic static final Supplier<PyromancerStaffItem> PYROMANCER_STAFF = ITEMS.register(\"pyromancer_staff\", PyromancerStaffItem::new);\n\tpublic static final Supplier<RendingGaleItem> RENDING_GALE = ITEMS.register(\"rending_gale\", RendingGaleItem::new);\n\tpublic static final Supplier<RodOfLyssaItem> ROD_OF_LYSSA = ITEMS.register(\"rod_of_lyssa\", RodOfLyssaItem::new);\n\tpublic static final Supplier<SojournerStaffItem> SOJOURNER_STAFF = ITEMS.register(\"sojourner_staff\", SojournerStaffItem::new);\n\tpublic static final Supplier<TippedArrowItem> TIPPED_ARROW = ITEMS.register(\"tipped_arrow\", TippedArrowItem::new);\n\tpublic static final Supplier<VoidTearItem> VOID_TEAR = ITEMS.register(\"void_tear\", VoidTearItem::new);\n\tpublic static final Supplier<WitchHatItem> WITCH_HAT = ITEMS.register(\"witch_hat\", WitchHatItem::new);\n\tpublic static final Supplier<WitherlessRoseItem> WITHERLESS_ROSE = ITEMS.register(\"witherless_rose\", WitherlessRoseItem::new);\n\tpublic static final Supplier<ItemBase> EMPTY_POTION_VIAL = ITEMS.register(\"empty_potion_vial\", () -> new ItemBase(Config.COMMON.disable.disablePotions));\n",
+      "whole_file": false,
+      "reading": "explicit123actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModItems.java",
+      "lines": [
+        275,
+        291
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+        "sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+        "bytes": 25304
+      },
+      "git_blob_sha1": "e6de6be1852bcae823167805992a848ea98c7aa1",
+      "excerpt_sha256": "0a74950ee17012be1651fdaa67a0f208bd038bf3fee2569dee57bbc61e163e74",
+      "excerpt": "\tpublic static void registerListeners(IEventBus modBus) {\n\t\tITEMS.register(modBus);\n\t\tMENU_TYPES.register(modBus);\n\t\tRECIPE_TYPES.register(modBus);\n\t\tRECIPE_SERIALIZERS.register(modBus);\n\t\tCONDITION_CODECS.register(modBus);\n\t\tLOOT_CONDITION_TYPES.register(modBus);\n\t\tLOOT_MODIFIERS.register(modBus);\n\t\tCREATIVE_MODE_TABS.register(modBus);\n\t\tATTACHMENT_TYPES.register(modBus);\n\t\tARMOR_MATERIALS.register(modBus);\n\t\tmodBus.addListener(ModItems::registerCapabilities);\n\t\tNeoForge.EVENT_BUS.addListener(ModItems::onResourceReload);\n\n\t\tif (FMLEnvironment.dist.isClient()) {\n\t\t\tModItemsClient.init(modBus);\n\t\t}\n",
+      "whole_file": false,
+      "reading": "explicit123actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModItems.java",
+      "lines": [
+        292,
+        299
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+        "sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+        "bytes": 25304
+      },
+      "git_blob_sha1": "e6de6be1852bcae823167805992a848ea98c7aa1",
+      "excerpt_sha256": "e54eadeea08c3511b4fd2324945ecd98cc70e04fb5982772fc003d9546c4f099",
+      "excerpt": "\t}\n\n\tprivate static void onResourceReload(AddReloadListenerEvent event) {\n\t\tMobCharmRecipe.REGISTERED_RECIPES.clear();\n\t}\n\n\tprivate static void registerCapabilities(RegisterCapabilitiesEvent event) {\n\t\tevent.registerItem(Capabilities.FluidHandler.ITEM, (itemStack, context) -> new FluidHandlerHeroMedallion(itemStack), HERO_MEDALLION.get());\n",
+      "whole_file": false,
+      "reading": "explicit123actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        205,
+        244
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "855c4fc4ba5462c6e607bd7d85e32bd506e6ba8acd511de22f9b6b53c1e05024",
+      "excerpt": "\t\t\t\tbuilder.pop();\n\t\t\t}\n\t\t}\n\n\t\tpublic static class ItemSettings {\n\t\t\tItemSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.translation(translationKey(\"items\")).push(\"items\");\n\n\t\t\t\talkahestryTome = new AlkahestryTomeSettings(builder);\n\t\t\t\tangelicFeather = new AngelicFeatherSettings(builder);\n\t\t\t\tangelHeartVial = new AngelHeartVialSettings(builder);\n\t\t\t\tdestructionCatalyst = new DestructionCatalystSettings(builder);\n\t\t\t\temperorChalice = new EmperorChaliceSettings(builder);\n\t\t\t\tenderStaff = new EnderStaffSettings(builder);\n\t\t\t\tfortuneCoin = new FortuneCoinSettings(builder);\n\t\t\t\tglacialStaff = new GlacialStaffSettings(builder);\n\t\t\t\thandgun = new HandgunSettings(builder);\n\t\t\t\tharvestRod = new HarvestRodSettings(builder);\n\t\t\t\theroMedallion = new HeroMedallionSettings(builder);\n\t\t\t\ticeMagusRod = new IceMagusRodSettings(builder);\n\t\t\t\tinfernalChalice = new InfernalChaliceSettings(builder);\n\t\t\t\tinfernalClaws = new InfernalClawsSettings(builder);\n\t\t\t\tinfernalTear = new InfernalTearSettings(builder);\n\t\t\t\tkrakenShell = new KrakenShellSettings(builder);\n\t\t\t\tlanternOfParanoia = new LanternOfParanoiaSettings(builder);\n\t\t\t\tmidasTouchstone = new MidasTouchstoneSettings(builder);\n\t\t\t\tmobCharm = new MobCharmSettings(builder);\n\t\t\t\tmobCharmFragment = new MobCharmFragmentSettings(builder);\n\t\t\t\tphoenixDown = new PhoenixDownSettings(builder);\n\t\t\t\tpyromancerStaff = new PyromancerStaffSettings(builder);\n\t\t\t\trendingGale = new RendingGaleSettings(builder);\n\t\t\t\trodOfLyssa = new RodOfLyssaSettings(builder);\n\t\t\t\tseekerShot = new SeekerShotSettings(builder);\n\t\t\t\tsojournerStaff = new SojournerStaffSettings(builder);\n\t\t\t\ttwilightCloak = new TwilightCloakSettings(builder);\n\t\t\t\tvoidTear = new VoidTearSettings(builder);\n\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\n",
+      "whole_file": false,
+      "reading": "explicit123actualread-reuse-notnew124"
+    },
+    {
+      "source": "src/main/java/reliquary/item/ItemBase.java",
+      "lines": [
+        1,
+        71
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/ItemBase.java",
+        "sha256": "3018f77ccbdb3f91cefa26e6fb115fbad876e161dfe92b6c1af204ef88efde0f",
+        "bytes": 2020
+      },
+      "git_blob_sha1": "e87a7cb54e5c66292c3cc07aa441cf5a3fb99f91",
+      "excerpt_sha256": "3018f77ccbdb3f91cefa26e6fb115fbad876e161dfe92b6c1af204ef88efde0f",
+      "excerpt": "package reliquary.item;\n\nimport net.minecraft.client.gui.screens.Screen;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.TooltipFlag;\nimport org.jetbrains.annotations.Nullable;\nimport reliquary.util.TooltipBuilder;\n\nimport java.util.List;\nimport java.util.function.Consumer;\nimport java.util.function.Supplier;\n\npublic class ItemBase extends Item implements ICreativeTabItemGenerator {\n\tprivate final Supplier<Boolean> isDisabled;\n\n\tpublic ItemBase() {\n\t\tthis(new Properties(), () -> false);\n\t}\n\n\tpublic ItemBase(Supplier<Boolean> isDisabled) {\n\t\tthis(new Properties(), isDisabled);\n\t}\n\n\tpublic ItemBase(Properties properties) {\n\t\tthis(properties, () -> false);\n\t}\n\n\tpublic ItemBase(Properties properties, Supplier<Boolean> isDisabled) {\n\t\tsuper(properties);\n\t\tthis.isDisabled = isDisabled;\n\t}\n\n\t@Override\n\tpublic void addCreativeTabItems(Consumer<ItemStack> itemConsumer) {\n\t\tif (Boolean.TRUE.equals(isDisabled.get())) {\n\t\t\treturn;\n\t\t}\n\n\t\titemConsumer.accept(new ItemStack(this));\n\t}\n\n\t@Override\n\tpublic void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {\n\t\tTooltipBuilder tooltipBuilder = TooltipBuilder.of(tooltip, context).itemTooltip(this);\n\n\t\tif (hasMoreInformation(stack)) {\n\t\t\ttooltipBuilder.showMoreInfo();\n\t\t\tif (Screen.hasShiftDown()) {\n\t\t\t\taddMoreInformation(stack, context.registries(), tooltipBuilder);\n\t\t\t}\n\t\t}\n\t}\n\n\t@SuppressWarnings(\"squid:S1172\") // parameter used in overrides\n\tprotected boolean hasMoreInformation(ItemStack stack) {\n\t\treturn false;\n\t}\n\n\tprotected void addMoreInformation(ItemStack stack, @Nullable HolderLookup.Provider registries, TooltipBuilder tooltipBuilder) {\n\t\t// overriden in child classes\n\t}\n\n\t@Override\n\tpublic MutableComponent getName(ItemStack stack) {\n\t\treturn Component.translatable(getDescriptionId(stack));\n\t}\n}\n",
+      "whole_file": true,
+      "reading": "explicit123actualread-reuse-notnew124"
+    }
+  ],
+  "actual_read_summary": {
+    "new_ranges": 17,
+    "new_shown_lines": 1540,
+    "new_distinct_lines": 1540,
+    "new_files": 12,
+    "new_whole_files_by_union": [
+      "src/main/java/reliquary/item/RendingGaleItem.java",
+      "src/main/java/reliquary/pedestal/wrappers/PedestalRendingGaleWrapper.java",
+      "src/main/java/reliquary/potions/FlightEffect.java",
+      "src/main/java/reliquary/init/PedestalItems.java",
+      "src/main/java/reliquary/pedestal/PedestalRegistry.java",
+      "src/main/java/reliquary/block/tile/PedestalBlockEntity.java",
+      "src/main/java/reliquary/api/IPedestalActionItemWrapper.java",
+      "src/main/java/reliquary/init/ModEffects.java",
+      "src/main/java/reliquary/api/IPedestalActionItem.java"
+    ],
+    "reused_ranges": 10,
+    "reused_shown_lines": 424
+  },
+  "source_proofs_or_old_worker_rerun": false,
+  "formal_credit": 0,
+  "production_changes": 0,
+  "network_requests": 0,
+  "game_starts": 0
+}

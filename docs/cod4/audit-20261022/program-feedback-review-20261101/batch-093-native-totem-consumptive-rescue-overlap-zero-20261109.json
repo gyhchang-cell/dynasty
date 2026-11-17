@@ -1,0 +1,797 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-09T14:38:41.340481+00:00",
+  "batch": 93,
+  "status": "fixed_native_source_bounded_supplement_merged_to_existing_consumptive_rescue_family_zero",
+  "research_credit": 0,
+  "maximum_pending_credit": 0,
+  "source_archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0"
+  },
+  "source_refs": [
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "source_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "start_line": 1058,
+      "end_line": 1207,
+      "range_sha256": "bbebcf7a482d817b4992c481866a91eb652dad1736d5c990f94e5371ab99fcf4",
+      "normalized_excerpt": "   public boolean hurt(DamageSource p_21016_, float p_21017_) {\n      if (!net.minecraftforge.common.ForgeHooks.onLivingAttack(this, p_21016_, p_21017_)) return false;\n      if (this.isInvulnerableTo(p_21016_)) {\n         return false;\n      } else if (this.level().isClientSide) {\n         return false;\n      } else if (this.isDeadOrDying()) {\n         return false;\n      } else if (p_21016_.is(DamageTypeTags.IS_FIRE) && this.hasEffect(MobEffects.FIRE_RESISTANCE)) {\n         return false;\n      } else {\n         if (this.isSleeping() && !this.level().isClientSide) {\n            this.stopSleeping();\n         }\n\n         this.noActionTime = 0;\n         float f = p_21017_;\n         boolean flag = false;\n         float f1 = 0.0F;\n         if (p_21017_ > 0.0F && this.isDamageSourceBlocked(p_21016_)) {\n            net.minecraftforge.event.entity.living.ShieldBlockEvent ev = net.minecraftforge.common.ForgeHooks.onShieldBlock(this, p_21016_, p_21017_);\n            if(!ev.isCanceled()) {\n            if(ev.shieldTakesDamage()) this.hurtCurrentlyUsedShield(p_21017_);\n            f1 = ev.getBlockedDamage();\n            p_21017_ -= ev.getBlockedDamage();\n            if (!p_21016_.is(DamageTypeTags.IS_PROJECTILE)) {\n               Entity entity = p_21016_.getDirectEntity();\n               if (entity instanceof LivingEntity) {\n                  LivingEntity livingentity = (LivingEntity)entity;\n                  this.blockUsingShield(livingentity);\n               }\n            }\n\n            flag = p_21017_ <= 0;\n         }\n         }\n\n         if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {\n            p_21017_ *= 5.0F;\n         }\n\n         this.walkAnimation.setSpeed(1.5F);\n         boolean flag1 = true;\n         if ((float)this.invulnerableTime > 10.0F && !p_21016_.is(DamageTypeTags.BYPASSES_COOLDOWN)) {\n            if (p_21017_ <= this.lastHurt) {\n               return false;\n            }\n\n            this.actuallyHurt(p_21016_, p_21017_ - this.lastHurt);\n            this.lastHurt = p_21017_;\n            flag1 = false;\n         } else {\n            this.lastHurt = p_21017_;\n            this.invulnerableTime = 20;\n            this.actuallyHurt(p_21016_, p_21017_);\n            this.hurtDuration = 10;\n            this.hurtTime = this.hurtDuration;\n         }\n\n         if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {\n            this.hurtHelmet(p_21016_, p_21017_);\n            p_21017_ *= 0.75F;\n         }\n\n         Entity entity1 = p_21016_.getEntity();\n         if (entity1 != null) {\n            if (entity1 instanceof LivingEntity) {\n               LivingEntity livingentity1 = (LivingEntity)entity1;\n               if (!p_21016_.is(DamageTypeTags.NO_ANGER)) {\n                  this.setLastHurtByMob(livingentity1);\n               }\n            }\n\n            if (entity1 instanceof Player) {\n               Player player1 = (Player)entity1;\n               this.lastHurtByPlayerTime = 100;\n               this.lastHurtByPlayer = player1;\n            } else if (entity1 instanceof net.minecraft.world.entity.TamableAnimal tamableEntity) {\n               if (tamableEntity.isTame()) {\n                  this.lastHurtByPlayerTime = 100;\n                  LivingEntity livingentity2 = tamableEntity.getOwner();\n                  if (livingentity2 instanceof Player) {\n                     Player player = (Player)livingentity2;\n                     this.lastHurtByPlayer = player;\n                  } else {\n                     this.lastHurtByPlayer = null;\n                  }\n               }\n            }\n         }\n\n         if (flag1) {\n            if (flag) {\n               this.level().broadcastEntityEvent(this, (byte)29);\n            } else {\n               this.level().broadcastDamageEvent(this, p_21016_);\n            }\n\n            if (!p_21016_.is(DamageTypeTags.NO_IMPACT) && (!flag || p_21017_ > 0.0F)) {\n               this.markHurt();\n            }\n\n            if (entity1 != null && !p_21016_.is(DamageTypeTags.IS_EXPLOSION)) {\n               double d0 = entity1.getX() - this.getX();\n\n               double d1;\n               for(d1 = entity1.getZ() - this.getZ(); d0 * d0 + d1 * d1 < 1.0E-4D; d1 = (Math.random() - Math.random()) * 0.01D) {\n                  d0 = (Math.random() - Math.random()) * 0.01D;\n               }\n\n               this.knockback((double)0.4F, d0, d1);\n               if (!flag) {\n                  this.indicateDamage(d0, d1);\n               }\n            }\n         }\n\n         if (this.isDeadOrDying()) {\n            if (!this.checkTotemDeathProtection(p_21016_)) {\n               SoundEvent soundevent = this.getDeathSound();\n               if (flag1 && soundevent != null) {\n                  this.playSound(soundevent, this.getSoundVolume(), this.getVoicePitch());\n               }\n\n               this.die(p_21016_);\n            }\n         } else if (flag1) {\n            this.playHurtSound(p_21016_);\n         }\n\n         boolean flag2 = !flag || p_21017_ > 0.0F;\n         if (flag2) {\n            this.lastDamageSource = p_21016_;\n            this.lastDamageStamp = this.level().getGameTime();\n         }\n\n         if (this instanceof ServerPlayer) {\n            CriteriaTriggers.ENTITY_HURT_PLAYER.trigger((ServerPlayer)this, p_21016_, f, p_21017_, flag);\n            if (f1 > 0.0F && f1 < 3.4028235E37F) {\n               ((ServerPlayer)this).awardStat(Stats.CUSTOM.get(Stats.DAMAGE_BLOCKED_BY_SHIELD), Math.round(f1 * 10.0F));\n            }\n         }\n\n         if (entity1 instanceof ServerPlayer) {\n            CriteriaTriggers.PLAYER_HURT_ENTITY.trigger((ServerPlayer)entity1, this, p_21016_, f, p_21017_, flag);\n         }\n\n         return flag2;\n      }\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "source_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "start_line": 1217,
+      "end_line": 1249,
+      "range_sha256": "72387a0012fd6fff22103513ebd5253170cfd32d444550b51ded42957ca550d1",
+      "normalized_excerpt": "   private boolean checkTotemDeathProtection(DamageSource p_21263_) {\n      if (p_21263_.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {\n         return false;\n      } else {\n         ItemStack itemstack = null;\n\n         for(InteractionHand interactionhand : InteractionHand.values()) {\n            ItemStack itemstack1 = this.getItemInHand(interactionhand);\n            if (itemstack1.is(Items.TOTEM_OF_UNDYING) && net.minecraftforge.common.ForgeHooks.onLivingUseTotem(this, p_21263_, itemstack1, interactionhand)) {\n               itemstack = itemstack1.copy();\n               itemstack1.shrink(1);\n               break;\n            }\n         }\n\n         if (itemstack != null) {\n            if (this instanceof ServerPlayer) {\n               ServerPlayer serverplayer = (ServerPlayer)this;\n               serverplayer.awardStat(Stats.ITEM_USED.get(Items.TOTEM_OF_UNDYING), 1);\n               CriteriaTriggers.USED_TOTEM.trigger(serverplayer, itemstack);\n            }\n\n            this.setHealth(1.0F);\n            this.removeAllEffects();\n            this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 900, 1));\n            this.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 100, 1));\n            this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 800, 0));\n            this.level().broadcastEntityEvent(this, (byte)35);\n         }\n\n         return itemstack != null;\n      }\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/LivingEntity.java",
+      "source_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "start_line": 1303,
+      "end_line": 1336,
+      "range_sha256": "44e39bb5148b85ed63b0d085f2fdc0a81b8ee20b9ed4e14ea7e8a415898aa6b7",
+      "normalized_excerpt": "   public void die(DamageSource p_21014_) {\n      if (net.minecraftforge.common.ForgeHooks.onLivingDeath(this, p_21014_)) return;\n      if (!this.isRemoved() && !this.dead) {\n         Entity entity = p_21014_.getEntity();\n         LivingEntity livingentity = this.getKillCredit();\n         if (this.deathScore >= 0 && livingentity != null) {\n            livingentity.awardKillScore(this, this.deathScore, p_21014_);\n         }\n\n         if (this.isSleeping()) {\n            this.stopSleeping();\n         }\n\n         if (!this.level().isClientSide && this.hasCustomName()) {\n            LOGGER.info(\"Named entity {} died: {}\", this, this.getCombatTracker().getDeathMessage().getString());\n         }\n\n         this.dead = true;\n         this.getCombatTracker().recheckStatus();\n         Level level = this.level();\n         if (level instanceof ServerLevel) {\n            ServerLevel serverlevel = (ServerLevel)level;\n            if (entity == null || entity.killedEntity(serverlevel, this)) {\n               this.gameEvent(GameEvent.ENTITY_DIE);\n               this.dropAllDeathLoot(p_21014_);\n               this.createWitherRose(livingentity);\n            }\n\n            this.level().broadcastEntityEvent(this, (byte)3);\n         }\n\n         this.setPose(Pose.DYING);\n      }\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/common/ForgeHooks.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraftforge/common/ForgeHooks.java",
+      "source_sha256": "e21acd3d13778b54be47ed9b4f8407bfbad3957206281c085219c166e405102c",
+      "start_line": 287,
+      "end_line": 290,
+      "range_sha256": "4445b0b3b6b488ccfaddbf247829bb044ee9f68be069d2a1d71021dff18d3355",
+      "normalized_excerpt": "    public static boolean onLivingUseTotem(LivingEntity entity, DamageSource damageSource, ItemStack totem, InteractionHand hand)\n    {\n        return !MinecraftForge.EVENT_BUS.post(new LivingUseTotemEvent(entity, damageSource, totem, hand));\n    }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/living/LivingUseTotemEvent.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraftforge/event/entity/living/LivingUseTotemEvent.java",
+      "source_sha256": "bd201db8fc218bb118ec1b16bb459a7ee0196fbc46d4b4c15cede6d69c55a1bd",
+      "start_line": 1,
+      "end_line": 63,
+      "range_sha256": "c2fff4f80fa98b051b25e1da7ad4b35665e937e411869ce263979329c36cea6c",
+      "normalized_excerpt": "/*\n * Copyright (c) Forge Development LLC and contributors\n * SPDX-License-Identifier: LGPL-2.1-only\n */\n\npackage net.minecraftforge.event.entity.living;\n\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraftforge.common.MinecraftForge;\nimport net.minecraftforge.eventbus.api.Cancelable;\nimport net.minecraftforge.fml.LogicalSide;\n\n/**\n * Fired when an Entity attempts to use a totem to prevent its death.\n *\n * <p>This event is {@linkplain Cancelable cancellable}, and does not {@linkplain HasResult have a result}.\n * If this event is cancelled, the totem will not prevent the entity's death.</p>\n *\n * <p>This event is fired on the {@linkplain MinecraftForge#EVENT_BUS Forge event bus},\n * only on the {@linkplain LogicalSide#SERVER logical server}.</p>\n */\n@Cancelable\npublic class LivingUseTotemEvent extends LivingEvent\n{\n    private final DamageSource source;\n    private final ItemStack totem;\n    private final InteractionHand hand;\n\n    public LivingUseTotemEvent(LivingEntity entity, DamageSource source, ItemStack totem, InteractionHand hand)\n    {\n        super(entity);\n        this.source = source;\n        this.totem = totem;\n        this.hand = hand;\n    }\n\n    /**\n     * {@return the damage source that caused the entity to die}\n     */\n    public DamageSource getSource()\n    {\n        return source;\n    }\n\n    /**\n     * {@return the totem of undying being used from the entity's inventory}\n     */\n    public ItemStack getTotem()\n    {\n        return totem;\n    }\n\n    /**\n     * {@return the hand holding the totem}\n     */\n    public InteractionHand getHandHolding()\n    {\n        return hand;\n    }\n}",
+      "whole_file": true,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "source_sha256": "397cccc120d7d8884f1327ddd5bef8fcc601fefee9b98f02f5eaaf65c57d7980",
+      "start_line": 966,
+      "end_line": 975,
+      "range_sha256": "1eff4d11cc25f53c568d2e14ca9a0778f7860806741c8e448b5a32f2342853d9",
+      "normalized_excerpt": "   private static ItemStack findTotem(Player p_104928_) {\n      for(InteractionHand interactionhand : InteractionHand.values()) {\n         ItemStack itemstack = p_104928_.getItemInHand(interactionhand);\n         if (itemstack.is(Items.TOTEM_OF_UNDYING)) {\n            return itemstack;\n         }\n      }\n\n      return new ItemStack(Items.TOTEM_OF_UNDYING);\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/client/multiplayer/ClientPacketListener.java",
+      "source_sha256": "397cccc120d7d8884f1327ddd5bef8fcc601fefee9b98f02f5eaaf65c57d7980",
+      "start_line": 977,
+      "end_line": 1001,
+      "range_sha256": "acb9d1c49137188d22b18d33a062ca0b1a30618a7e6b0b649a5217438d6b7a04",
+      "normalized_excerpt": "   public void handleEntityEvent(ClientboundEntityEventPacket p_105010_) {\n      PacketUtils.ensureRunningOnSameThread(p_105010_, this, this.minecraft);\n      Entity entity = p_105010_.getEntity(this.level);\n      if (entity != null) {\n         switch (p_105010_.getEventId()) {\n            case 21:\n               this.minecraft.getSoundManager().play(new GuardianAttackSoundInstance((Guardian)entity));\n               break;\n            case 35:\n               int i = 40;\n               this.minecraft.particleEngine.createTrackingEmitter(entity, ParticleTypes.TOTEM_OF_UNDYING, 30);\n               this.level.playLocalSound(entity.getX(), entity.getY(), entity.getZ(), SoundEvents.TOTEM_USE, entity.getSoundSource(), 1.0F, 1.0F, false);\n               if (entity == this.minecraft.player) {\n                  this.minecraft.gameRenderer.displayItemActivation(findTotem(this.minecraft.player));\n               }\n               break;\n            case 63:\n               this.minecraft.getSoundManager().play(new SnifferSoundInstance((Sniffer)entity));\n               break;\n            default:\n               entity.handleEntityEvent(p_105010_.getEventId());\n         }\n      }\n\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/GameRenderer.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/client/renderer/GameRenderer.java",
+      "source_sha256": "51ec20028a9e9442905cc4afa109cfc9bd0af0558540746cd774bac727315020",
+      "start_line": 1149,
+      "end_line": 1154,
+      "range_sha256": "7a31024ad3e6bbe0829f86dbf66000c32c584c1b8f81ada07285a96684d666f8",
+      "normalized_excerpt": "   public void displayItemActivation(ItemStack p_109114_) {\n      this.itemActivationItem = p_109114_;\n      this.itemActivationTicks = 40;\n      this.itemActivationOffX = this.random.nextFloat() * 2.0F - 1.0F;\n      this.itemActivationOffY = this.random.nextFloat() * 2.0F - 1.0F;\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/client/renderer/GameRenderer.java",
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/client/renderer/GameRenderer.java",
+      "source_sha256": "51ec20028a9e9442905cc4afa109cfc9bd0af0558540746cd774bac727315020",
+      "start_line": 1156,
+      "end_line": 1183,
+      "range_sha256": "38828e731a355bad749a10cecc01de6777cb25a2906b8f83c0e7a9fe335f2ad9",
+      "normalized_excerpt": "   private void renderItemActivationAnimation(int p_109101_, int p_109102_, float p_109103_) {\n      if (this.itemActivationItem != null && this.itemActivationTicks > 0) {\n         int i = 40 - this.itemActivationTicks;\n         float f = ((float)i + p_109103_) / 40.0F;\n         float f1 = f * f;\n         float f2 = f * f1;\n         float f3 = 10.25F * f2 * f1 - 24.95F * f1 * f1 + 25.5F * f2 - 13.8F * f1 + 4.0F * f;\n         float f4 = f3 * (float)Math.PI;\n         float f5 = this.itemActivationOffX * (float)(p_109101_ / 4);\n         float f6 = this.itemActivationOffY * (float)(p_109102_ / 4);\n         RenderSystem.enableDepthTest();\n         RenderSystem.disableCull();\n         PoseStack posestack = new PoseStack();\n         posestack.pushPose();\n         posestack.translate((float)(p_109101_ / 2) + f5 * Mth.abs(Mth.sin(f4 * 2.0F)), (float)(p_109102_ / 2) + f6 * Mth.abs(Mth.sin(f4 * 2.0F)), -50.0F);\n         float f7 = 50.0F + 175.0F * Mth.sin(f4);\n         posestack.scale(f7, -f7, f7);\n         posestack.mulPose(Axis.YP.rotationDegrees(900.0F * Mth.abs(Mth.sin(f4))));\n         posestack.mulPose(Axis.XP.rotationDegrees(6.0F * Mth.cos(f * 8.0F)));\n         posestack.mulPose(Axis.ZP.rotationDegrees(6.0F * Mth.cos(f * 8.0F)));\n         MultiBufferSource.BufferSource multibuffersource$buffersource = this.renderBuffers.bufferSource();\n         this.minecraft.getItemRenderer().renderStatic(this.itemActivationItem, ItemDisplayContext.FIXED, 15728880, OverlayTexture.NO_OVERLAY, posestack, multibuffersource$buffersource, this.minecraft.level, 0);\n         posestack.popPose();\n         multibuffersource$buffersource.endBatch();\n         RenderSystem.enableCull();\n         RenderSystem.disableDepthTest();\n      }\n   }",
+      "whole_file": false,
+      "archive_entry_exact_bytes_match": true
+    }
+  ],
+  "read_scope": {
+    "ranges": 9,
+    "lines": 353,
+    "whole_files": 1,
+    "complete_native_runtime_or_all_transport": false
+  },
+  "prescreen": "Before source reading, formal/uncredited/migration records searched totem/tryUseDeathProtection/tryUseTotem/chorus/enderpearl, then death-protection and revive owners. Native Totem exact identity not found, but consumptive rescue family discovered. Three complete saved substantive decisions recovered with all unique auxiliary judgment notes; actual old source not reread. Source-reference discovery/clipped metadata outputs do not count as reading.",
+  "dedup": {
+    "ledger": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "957a60e7c4e8bdbdb31bd4871995e246985ee1e92cc8ba2dc6b384acd1e24015"
+    },
+    "complete_saved_prior_decisions": [
+      {
+        "id": "ars-player-totem-death-cancel-resource-and-rearm",
+        "status": "reviewed_effective",
+        "repo": "baileyholl/Ars-Nouveau",
+        "commit": "7ee8826269df07cc599a9738d76bcaaea4d8daa7",
+        "category": "helper_reviewed_native_immune_feedback",
+        "semantic_dedup_key": "ars-player-totem-death-cancel-resource-and-rearm",
+        "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+        "source_refs": [
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "lines": [
+              159,
+              180
+            ],
+            "file_sha256": "4d136e09dddbeb12ceb0bcf57bfc6baed68efab8f1ffbd77c02fb87cd80d5742",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java#L159-L180"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "lines": [
+              183,
+              195
+            ],
+            "file_sha256": "4d136e09dddbeb12ceb0bcf57bfc6baed68efab8f1ffbd77c02fb87cd80d5742",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java#L183-L195"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/api/util/PerkUtil.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/api/util/PerkUtil.java",
+            "lines": [
+              84,
+              105
+            ],
+            "file_sha256": "30b577a42531c186fff4ca061b0046fc0286f72af6e99bcd7444c6ea18ad0760",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/api/util/PerkUtil.java#L84-L105"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/perk/TotemPerk.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/perk/TotemPerk.java",
+            "lines": [
+              33,
+              37
+            ],
+            "file_sha256": "6df154258f213a0e3bc3c5345350f9686dc36adf7eb386bbaeb9e3995e69607b",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/perk/TotemPerk.java#L33-L37"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "lines": [
+              159,
+              180
+            ],
+            "file_sha256": "4d136e09dddbeb12ceb0bcf57bfc6baed68efab8f1ffbd77c02fb87cd80d5742",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java#L159-L180"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java",
+            "lines": [
+              183,
+              195
+            ],
+            "file_sha256": "4d136e09dddbeb12ceb0bcf57bfc6baed68efab8f1ffbd77c02fb87cd80d5742",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/event/PerkEvents.java#L183-L195"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/items/data/StackPerkHolder.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/items/data/StackPerkHolder.java",
+            "lines": [
+              54,
+              56
+            ],
+            "file_sha256": "27394a071ebaee1a504ee4dff1c831ee36171efcc53ba3b67d8c34570110b6bb",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/items/data/StackPerkHolder.java#L54-L56"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/items/data/ArmorPerkHolder.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/items/data/ArmorPerkHolder.java",
+            "lines": [
+              71,
+              73
+            ],
+            "file_sha256": "a0fecfd3ee37681cf922cb2a409a66353f826f8389007f53d36966d1e09f8d77",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/items/data/ArmorPerkHolder.java#L71-L73"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/items/data/PerkMap.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/items/data/PerkMap.java",
+            "lines": [
+              43,
+              45
+            ],
+            "file_sha256": "e47ec1bfa75ccb389d462cab139c47cdd07107c4ea682ef796948c0345f68df2",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/items/data/PerkMap.java#L43-L45"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/items/data/ArmorPerkHolder.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/items/data/ArmorPerkHolder.java",
+            "lines": [
+              1,
+              92
+            ],
+            "file_sha256": "a0fecfd3ee37681cf922cb2a409a66353f826f8389007f53d36966d1e09f8d77",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/items/data/ArmorPerkHolder.java#L1-L92"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/common/items/data/PerkMap.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/common/items/data/PerkMap.java",
+            "lines": [
+              1,
+              60
+            ],
+            "file_sha256": "e47ec1bfa75ccb389d462cab139c47cdd07107c4ea682ef796948c0345f68df2",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/common/items/data/PerkMap.java#L1-L60"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/baileyholl__Ars-Nouveau/src/main/java/com/hollingsworth/arsnouveau/setup/registry/DataComponentRegistry.java",
+            "source_path": "src/main/java/com/hollingsworth/arsnouveau/setup/registry/DataComponentRegistry.java",
+            "lines": [
+              1,
+              60
+            ],
+            "file_sha256": "57a09cede3d4dad5cf636defc9b21d666d508f714005b1a665eaec70b39e1f14",
+            "url": "https://github.com/baileyholl/Ars-Nouveau/blob/7ee8826269df07cc599a9738d76bcaaea4d8daa7/src/main/java/com/hollingsworth/arsnouveau/setup/registry/DataComponentRegistry.java#L1-L60"
+          }
+        ],
+        "full_chain_observation": "LivingDeathEvent→PerkEvents.totemEvent→写组件/feedback/cancel；SleepFinished→sleepEvent rearm",
+        "concrete_observation": "LivingDeath只Player，有Totem perk holder且isActive才HP1、清效果并加regen/absorption/fireRes、广播35、置isActive false并写装备组件、发trigger消息再cancel。sleepEvent对世界Player重置isActive并写组件。 主岗：补齐装备tag返回引用→修改active→PerkMap新map/ArmorHolder新holder→ItemStack.set写回，persistent CODEC含perkTags；睡眠重装全部世界Player，对tag为空仍发active消息。getHolderForPerk实际遍历后匹配覆盖，不按maxCount选择最高。区别永久消耗生命符，恢复active是再装填机制，不是Boss免控。",
+        "application_to_boss_immune": "保命取消发生在死亡阶段，不能标为攻击免疫；权威消耗、触发消息、恢复窗口各自需保存。",
+        "limitations": "PerkUtil遍历armor后保留最后一个匹配holder，maxCount计算未用于选择；初始化isActive=true。仅实际装备组件而非永久角色状态；不是Boss无敌机制。 主岗全文复核固定版本；静态不证明实际观感/音量/TCP/Boss覆盖；普通体质不要求灰字；守卫旧账0转入。",
+        "research_credit": 1,
+        "reviewed_utc": "2026-10-26T13:22:27.592706+00:00"
+      },
+      {
+        "id": "tf-lifecharm-native-final-death-cancel-priority",
+        "status": "reviewed_effective",
+        "repo": "TeamTwilight/twilightforest",
+        "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+        "category": "native_refusal_feedback_and_anchor",
+        "semantic_dedup_key": "tf-lifecharm-native-final-death-cancel-priority",
+        "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+        "source_refs": [
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/events/CharmEvents.java",
+            "source_path": "src/main/java/twilightforest/events/CharmEvents.java",
+            "lines": [
+              62,
+              132
+            ],
+            "file_sha256": "5a54770f7a8155567c3e8603869bacac6238d5ddd256c9e86061ef31ae9373bb",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/events/CharmEvents.java#L62-L132"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/events/CharmEvents.java",
+            "source_path": "src/main/java/twilightforest/events/CharmEvents.java",
+            "lines": [
+              1,
+              367
+            ],
+            "file_sha256": "5a54770f7a8155567c3e8603869bacac6238d5ddd256c9e86061ef31ae9373bb",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/events/CharmEvents.java#L1-L367"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/util/TFItemStackUtils.java",
+            "source_path": "src/main/java/twilightforest/util/TFItemStackUtils.java",
+            "lines": [
+              38,
+              67
+            ],
+            "file_sha256": "a3dfc74df3f68f945c0d15c6534de4867900ade909b0bc94653a59d7fdc2ca02",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/util/TFItemStackUtils.java#L38-L67"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/compat/curios/CuriosCompat.java",
+            "source_path": "src/main/java/twilightforest/compat/curios/CuriosCompat.java",
+            "lines": [
+              155,
+              164
+            ],
+            "file_sha256": "8c9b47a5951f443af21e89989ee613cd75686b453ca00f337c262d55fbec4872",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/compat/curios/CuriosCompat.java#L155-L164"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/network/SpawnCharmPacket.java",
+            "source_path": "src/main/java/twilightforest/network/SpawnCharmPacket.java",
+            "lines": [
+              1,
+              69
+            ],
+            "file_sha256": "832eb132c6c47b468b8488227b088337c1cbcabb54250e79725e9afb163f5994",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/network/SpawnCharmPacket.java#L1-L69"
+          }
+        ],
+        "full_chain_observation": "HIGHEST LivingDeath服务端真实生存玩家、事件未取消→优先消费高级生命符（背包或Curios），其次低级→恢复对应HP和药水→给本玩家SpawnCharmPacket+统计→true后cancel。HIGH保持物品/墓箱处理看已取消即return。",
+        "concrete_observation": "原生最终取消和高级符资源优先级完整；两级符/两种库存来源合并1。消费前已服务端过滤FakePlayer/创造/旁观；这是消耗救死而非Boss永久拒控，不能把死而复生声动画当Immune语义。与Ars睡眠重装perk不同，本实现永久消耗物品，装备slot/物品常量不额外计。",
+        "application_to_boss_immune": "反馈生产要在最终成功消费并拒绝事件后表述正确原因；对Boss应限于明确控制拒绝，不能复用救死文案或使其恢复生命。",
+        "limitations": "静态全文方法及原生调用上下文，未运行本版本游戏/渲染；不证明默认资源配置实际触发、可见性优质或TCP。普通阴阳体质不要求灰字，守卫旧账不转移。",
+        "research_credit": 1,
+        "reviewed_utc": "2026-10-26T13:11:01.699301+00:00",
+        "auxiliary_refs": [
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/Reliquary.java",
+            "source_path": "src/main/java/reliquary/Reliquary.java",
+            "lines": [
+              33,
+              66
+            ],
+            "file_sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/Reliquary.java#L33-L66",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/handler/CommonEventHandler.java",
+            "source_path": "src/main/java/reliquary/handler/CommonEventHandler.java",
+            "lines": [
+              51,
+              60
+            ],
+            "file_sha256": "beca275b8b57bc3c4ae128811595ef98d809b7b76f679b89079c8e02700308ac",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/handler/CommonEventHandler.java#L51-L60",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/handler/CommonEventHandler.java",
+            "source_path": "src/main/java/reliquary/handler/CommonEventHandler.java",
+            "lines": [
+              47,
+              49
+            ],
+            "file_sha256": "beca275b8b57bc3c4ae128811595ef98d809b7b76f679b89079c8e02700308ac",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/handler/CommonEventHandler.java#L47-L49",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/handler/CommonEventHandler.java",
+            "source_path": "src/main/java/reliquary/handler/CommonEventHandler.java",
+            "lines": [
+              105,
+              122
+            ],
+            "file_sha256": "beca275b8b57bc3c4ae128811595ef98d809b7b76f679b89079c8e02700308ac",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/handler/CommonEventHandler.java#L105-L122",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/PhoenixDownItem.java",
+            "source_path": "src/main/java/reliquary/item/PhoenixDownItem.java",
+            "lines": [
+              23,
+              98
+            ],
+            "file_sha256": "7ff5150be0baaa7e6944a52a1c035b44ca6dfca7b04abeb96b2be760e55750c4",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/item/PhoenixDownItem.java#L23-L98",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/PhoenixDownItem.java",
+            "source_path": "src/main/java/reliquary/item/PhoenixDownItem.java",
+            "lines": [
+              100,
+              103
+            ],
+            "file_sha256": "7ff5150be0baaa7e6944a52a1c035b44ca6dfca7b04abeb96b2be760e55750c4",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/item/PhoenixDownItem.java#L100-L103",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/PhoenixDownItem.java",
+            "source_path": "src/main/java/reliquary/item/PhoenixDownItem.java",
+            "lines": [
+              105,
+              107
+            ],
+            "file_sha256": "7ff5150be0baaa7e6944a52a1c035b44ca6dfca7b04abeb96b2be760e55750c4",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/item/PhoenixDownItem.java#L105-L107",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/AngelheartVialItem.java",
+            "source_path": "src/main/java/reliquary/item/AngelheartVialItem.java",
+            "lines": [
+              19,
+              59
+            ],
+            "file_sha256": "8571e24685ba4f1beb05ff6cc63c95f3cc9588ff3060f046517c5482a3bed6fa",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/item/AngelheartVialItem.java#L19-L59",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/AngelheartVialItem.java",
+            "source_path": "src/main/java/reliquary/item/AngelheartVialItem.java",
+            "lines": [
+              77,
+              82
+            ],
+            "file_sha256": "8571e24685ba4f1beb05ff6cc63c95f3cc9588ff3060f046517c5482a3bed6fa",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/item/AngelheartVialItem.java#L77-L82",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/handler/HandlerPriorityComparator.java",
+            "source_path": "src/main/java/reliquary/handler/HandlerPriorityComparator.java",
+            "lines": [
+              7,
+              12
+            ],
+            "file_sha256": "7b7b4b6be941499997bc97164fbda9a282ea96b50b63b3e8703228a888233f52",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/handler/HandlerPriorityComparator.java#L7-L12",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/handler/HandlerPriority.java",
+            "source_path": "src/main/java/reliquary/handler/HandlerPriority.java",
+            "lines": [
+              1,
+              5
+            ],
+            "file_sha256": "5f413666994a4d0dfd06392f456a5b2b9b23edcd0e56705e4d942e2715d835ef",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/handler/HandlerPriority.java#L1-L5",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/util/PlayerInventoryProvider.java",
+            "source_path": "src/main/java/reliquary/util/PlayerInventoryProvider.java",
+            "lines": [
+              1,
+              127
+            ],
+            "file_sha256": "cfb98748dcb9eb9ef9ecf7574352b81bba17f680ba24489ecfa5791e789c0cb7",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/util/PlayerInventoryProvider.java#L1-L127",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/util/PlayerInventoryHandler.java",
+            "source_path": "src/main/java/reliquary/util/PlayerInventoryHandler.java",
+            "lines": [
+              1,
+              52
+            ],
+            "file_sha256": "c30ba55dd22000680a7d3bd27e1dc07d83ffb6f0a1841971a44d1293587ead08",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/util/PlayerInventoryHandler.java#L1-L52",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/util/InventoryHelper.java",
+            "source_path": "src/main/java/reliquary/util/InventoryHelper.java",
+            "lines": [
+              262,
+              270
+            ],
+            "file_sha256": "6db578cf59bed561ecebf3dd8bb1d9ef907e57e0a46c8112ba3be78b7edf3ec8",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/util/InventoryHelper.java#L262-L270",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/util/InventoryHelper.java",
+            "source_path": "src/main/java/reliquary/util/InventoryHelper.java",
+            "lines": [
+              258,
+              260
+            ],
+            "file_sha256": "6db578cf59bed561ecebf3dd8bb1d9ef907e57e0a46c8112ba3be78b7edf3ec8",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/util/InventoryHelper.java#L258-L260",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/util/InventoryHelper.java",
+            "source_path": "src/main/java/reliquary/util/InventoryHelper.java",
+            "lines": [
+              248,
+              256
+            ],
+            "file_sha256": "6db578cf59bed561ecebf3dd8bb1d9ef907e57e0a46c8112ba3be78b7edf3ec8",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/util/InventoryHelper.java#L248-L256",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/util/EntityHelper.java",
+            "source_path": "src/main/java/reliquary/util/EntityHelper.java",
+            "lines": [
+              7,
+              16
+            ],
+            "file_sha256": "418c0da33577544497008066b3c18a677aa4d102d9885b9651e352b81f6942f9",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/util/EntityHelper.java#L7-L16",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/network/SpawnPhoenixDownParticlesPayload.java",
+            "source_path": "src/main/java/reliquary/network/SpawnPhoenixDownParticlesPayload.java",
+            "lines": [
+              19,
+              30
+            ],
+            "file_sha256": "9f2101c75b66f8f96cb0b2915d741b66e9223958814920e82817f26b6a7f444f",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/network/SpawnPhoenixDownParticlesPayload.java#L19-L30",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/network/SpawnAngelheartVialParticlesPayload.java",
+            "source_path": "src/main/java/reliquary/network/SpawnAngelheartVialParticlesPayload.java",
+            "lines": [
+              23,
+              56
+            ],
+            "file_sha256": "1f622b1e494fd42851ecfd639354c2fd1b32318c4b3b4453577615b9fec88d20",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/network/SpawnAngelheartVialParticlesPayload.java#L23-L56",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModPayloads.java",
+            "source_path": "src/main/java/reliquary/init/ModPayloads.java",
+            "lines": [
+              12,
+              29
+            ],
+            "file_sha256": "6845bbb9605576112becd768d78701db7d5f98c0b3335d619441466cee4f187d",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/init/ModPayloads.java#L12-L29",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+            "source_path": "src/main/java/reliquary/init/ModItems.java",
+            "lines": [
+              78,
+              78
+            ],
+            "file_sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/init/ModItems.java#L78-L78",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+            "source_path": "src/main/java/reliquary/init/ModItems.java",
+            "lines": [
+              106,
+              106
+            ],
+            "file_sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/init/ModItems.java#L106-L106",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/handler/CommonEventHandler.java",
+            "source_path": "src/main/java/reliquary/handler/CommonEventHandler.java",
+            "lines": [
+              34,
+              49
+            ],
+            "file_sha256": "beca275b8b57bc3c4ae128811595ef98d809b7b76f679b89079c8e02700308ac",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/handler/CommonEventHandler.java#L34-L49",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/network/SpawnPhoenixDownParticlesPayload.java",
+            "source_path": "src/main/java/reliquary/network/SpawnPhoenixDownParticlesPayload.java",
+            "lines": [
+              14,
+              17
+            ],
+            "file_sha256": "9f2101c75b66f8f96cb0b2915d741b66e9223958814920e82817f26b6a7f444f",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/network/SpawnPhoenixDownParticlesPayload.java#L14-L17",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          },
+          {
+            "repo": "P3pp3rF1y/Reliquary",
+            "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+            "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/network/SpawnAngelheartVialParticlesPayload.java",
+            "source_path": "src/main/java/reliquary/network/SpawnAngelheartVialParticlesPayload.java",
+            "lines": [
+              18,
+              21
+            ],
+            "file_sha256": "1f622b1e494fd42851ecfd639354c2fd1b32318c4b3b4453577615b9fec88d20",
+            "url": "https://github.com/P3pp3rF1y/Reliquary/blob/20de88066c41dcb19e50d1744d3edd3627064629/src/main/java/reliquary/network/SpawnAngelheartVialParticlesPayload.java#L18-L21",
+            "research_credit": 0,
+            "role": "auxiliary generic dependency, not an extra implementation",
+            "note": "Main144 full candidate/native rescue chain reread; Reliquary Phoenix/Vial consumed or replaced inventory-backed death rescue merged to existing consumptive lifecharm family0. Fixed Vec3 particles and generic comparator/inventory wrappers do not earn credit; detailed observations HERSCHEL-029-REVIEW.json."
+          }
+        ]
+      },
+      {
+        "id": "tf-lifecharm-client-feedback-mode-and-camera-sound",
+        "status": "reviewed_effective",
+        "repo": "TeamTwilight/twilightforest",
+        "commit": "9911cf7c4223ee7909e97659d0621a87683c8272",
+        "category": "native_refusal_feedback_and_anchor",
+        "semantic_dedup_key": "tf-lifecharm-client-feedback-mode-and-camera-sound",
+        "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+        "source_refs": [
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/network/SpawnCharmPacket.java",
+            "source_path": "src/main/java/twilightforest/network/SpawnCharmPacket.java",
+            "lines": [
+              1,
+              69
+            ],
+            "file_sha256": "832eb132c6c47b468b8488227b088337c1cbcabb54250e79725e9afb163f5994",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/network/SpawnCharmPacket.java#L1-L69"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/events/RegistrationEvents.java",
+            "source_path": "src/main/java/twilightforest/events/RegistrationEvents.java",
+            "lines": [
+              210,
+              243
+            ],
+            "file_sha256": "83fc82ee6c12a7df16ec9d287c13a5126b4c80737a478bda1068c1aa03f2ecc7",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/events/RegistrationEvents.java#L210-L243"
+          },
+          {
+            "path": "tools/cod4/immune-feedback-research/sources/TeamTwilight__twilightforest/src/main/java/twilightforest/entity/CharmEffect.java",
+            "source_path": "src/main/java/twilightforest/entity/CharmEffect.java",
+            "lines": [
+              1,
+              141
+            ],
+            "file_sha256": "fe328fe88a6d46f14c4702058dcd7a51490991ae5d8d5c50635a9eee9698ca06",
+            "url": "https://github.com/TeamTwilight/twilightforest/blob/9911cf7c4223ee7909e97659d0621a87683c8272/src/main/java/twilightforest/entity/CharmEffect.java#L1-L141"
+          }
+        ],
+        "full_chain_observation": "已注册playToClient SpawnCharmPacket→方向确认/主线程→本地Player/ClientLevel；配置为totem则显示ItemActivation并将20tick物品粒子锚在camera或player，否则创建CharmEffect；合法SoundEvent查得且camera非空才在camera坐标播声。",
+        "concrete_observation": "本地玩家回执不含Boss/entityID，不能直接当多目标锚定包；包无epoch/序号/去重。camera是声音/粒子位置选择，并没有改变Camera；声音资源缺失跳过但视觉仍可出现。没有玩家/level空检查；静态不证明音量1.5合适或真人可辨。",
+        "application_to_boss_immune": "Boss包必须有目标身份、世界/会话和明确免疫原因，保持他人Camera；可优先已有SoundEvent但要实测，收到包不等同最终文字可见。",
+        "limitations": "静态全文方法及原生调用上下文，未运行本版本游戏/渲染；不证明默认资源配置实际触发、可见性优质或TCP。普通阴阳体质不要求灰字，守卫旧账不转移。",
+        "research_credit": 1,
+        "reviewed_utc": "2026-10-26T13:11:01.704843+00:00"
+      }
+    ],
+    "complete_decision_canonical_sha256": {
+      "ars-player-totem-death-cancel-resource-and-rearm": "78e03e444bb685640ac923bcf959594c3f44d42634760e0d508e8255df3f109f",
+      "tf-lifecharm-native-final-death-cancel-priority": "facfc7cac206213a4004bb3040c5d1f7b5e1477e689dcab242e5c5e5e3fc9f90",
+      "tf-lifecharm-client-feedback-mode-and-camera-sound": "a2f6c5181cd98332bd2bcfcefa3968f748b3fa20334d3e445ecc9e116452efd8"
+    },
+    "decision": "Merge native Totem consumption/rescue/byte35 and its ordinary display helpers into owned consumptive lifecharm/rescue family0. Ars rearmable perk remains its own owner. Hand iteration/cancel fallback, packet icon source and early versus death-event placement are observations, not sufficient distinct whole-policy claim. No client-message/helper credit.",
+    "old_auxiliary_merge_note_retained": "Main144 already merged Reliquary Phoenix/Vial consumed/replaced inventory-backed rescue into consumptive lifecharm0; do not rescue it via native source completion."
+  },
+  "observations": [
+    "LivingEntity.hurt native onLivingAttack and ordinary early denials/side gates happen first; damage applied before dead-or-dying check. Only then checkTotemDeathProtection; iffalse requests death sound and die. hurt still returns ordinary flag2, not Totem acceptance. This is death prevention, not incoming damage rejection, Boss immunity or no knockback.",
+    "checkTotem rejects BYPASSES_INVULNERABILITY before hand loop. For each hand current TOTEM stack goes through cancellable ForgeHooks.onLivingUseTotem, which returns !EVENT_BUS.post(LivingUseTotemEvent). First accepted candidate is copied, then original stack shrunk1, break. A denied earlier hand does not itself end loop; actual hand ordering enum not separately read, no asserted MAIN/OFF priority. Mutable listener effects/reentry/event-bus arbitration not expanded.",
+    "Found copy gates server-player statistic/criterion; then setHealth1, removeAllEffects, requests REGENERATION900/amp1 ABSORPTION100/amp1 FIRE_RESISTANCE800/amp0 and broadcasts byte35. Removal/addition booleans ignored, so they are not proof all old effects cleared or new buffs admitted. No automatic refund or per-effect success receipt in this method. Generic held-item persistence not expanded, not a new migration owner.",
+    "If noaccepted Totem, die first delegates onLivingDeath and may return; no claim Totem veto guarantees eventual death. Full containing die method read but death loot/helper/superclass contracts unexpanded.",
+    "Client byte35 handler resolves entity in current clientlevel, absent entity gives no branch output; present entity requests tracking-emitter and local sound, self-only displayItemActivation(findTotem(player)). findTotem chooses a current local held Totem or a new default stack, not transmitted consumed server copy. Packet transport/epoch/race reachability not expanded; no claimed wrong icon reproduction.",
+    "displayItemActivation stores input reference, resets40 and random offsets. Whole renderItemActivationAnimation reads current item/ticks, transforms and invokes item renderer. Tick-decrement owner/render caller/current-world reset and item renderer internals not read, so do not claim real40tick appearance or actual sound/pixels. These are source requests, not standalone novel feedback policy."
+  ],
+  "limitations": [
+    "Fixed mappedForge1.20.1-47.4.10 source archive SHA and exact zip-entry bytes, no new source download or git-tree claim. Native source reading is not native execution/acceptance.",
+    "Does not transfer Forge event ordering to090 modernNeoForge. No090/087 sources/append/delta checks rerun.",
+    "No actual use, consumed inventory save/reload, cancellation combination, hidden-status preservation, visuals/sound/TCP or Boss coverage proved.",
+    "Only zero supplement, no proposal/Main new credit requested; formal495 gap505/gatefalse. No production/master/task/sharedJar mutation."
+  ],
+  "formal_count_observed": 495,
+  "remaining": 505,
+  "production_changes": 0,
+  "game_starts": 0,
+  "network_requests": 0,
+  "test_changes": 0,
+  "art_changes": 0,
+  "background_changes": 0,
+  "shared_jar_changes": 0,
+  "master_edits": 0,
+  "hours_claimed": 0
+}

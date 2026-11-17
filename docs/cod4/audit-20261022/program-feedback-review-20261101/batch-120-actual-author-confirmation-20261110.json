@@ -1,0 +1,286 @@
+{
+  "status": "actual-original-author-itemized-ACK-complete; exactplan-only-next",
+  "created_utc": "2026-11-09T22:35:31.305091+00:00",
+  "author_thread_id": "01a16392-312e-72f2-a4dd-56e184f9cb02",
+  "Main_whole_review": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program120-owner-policy-live-revocation-whole-review-20261110.json",
+    "sha256": "2eec77c95a7fd59f35efd73bd4bbf881626c0737c73ae1143df569749f4ec502",
+    "bytes": 388156
+  },
+  "candidate": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-120.json",
+    "sha256": "f8360bc59514d95985b6d53ed178d928fa761b6597628083a312f1aaeea20ddd",
+    "bytes": 384445
+  },
+  "worker_not_replayed": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-120-worker-validation-20261110.json",
+    "sha256": "469bdb056a0852b17a3ad8a12780ed9b1c45eb550334a4060ae835a3431db20a",
+    "bytes": 21457
+  },
+  "retained_original25_observations": [
+    "固定当前实现为Mekanism d4df9b354c209c85713bdc8a017bfe54aa044e40；gradle原文明确MC26.3/J25/Neo26.3.0.76。来源树、完整文件blob和四份实际service声明均有原文和绑定；这些只支持调用来源，不是额外机制。",
+    "ISecurityUtils/IBlockSecurityUtils.INSTANCE经MekanismAPI.getService/getOptionalService，以API自身classloader查ServiceLoader首provider。四个security接口对应concrete实现声明已逐文核对；没有把服务声明存在等同实际生产Jar加载成功。",
+    "SecurityUtils Player入口在isOp允许时短路；UUID/provider入口先检查allowProtection。无security能力时有owner仅允许无owner或相同UUID；无owner且无security允许。能力缺失与完整安全策略不是同一输入。",
+    "实际security对象owner为空或与访问者相同直接允许；否则有效PUBLIC允许、PRIVATE拒绝，TRUSTED服务端要求非空subject并查询owner的SecurityFrequency.isTrusted(UUID)。缺少频率按拒绝处理；client TRUSTED显式乐观true，不是客户端持有完整成员名单。",
+    "全局owner策略并非最后写入覆盖本地模式：override启用且moreRestrictive(local,global)才替换。PUBLIC永不收紧，PRIVATE可收紧非PRIVATE，TRUSTED只收紧PUBLIC；更弱的全局模式不放宽更强本地限制。两次Objects.requireNonNull均检查base这一原文细节不升格为已证bug。",
+    "SecurityFrequency实际成员producer为addTrusted(UUID,name)去重后写UUID和名字cache，removeTrusted(index)按边界分别移除UUID/cache，setOverridden与继承setSecurityMode变更local dirty。成员身份、名字显示cache和同步hash明确分开。",
+    "安全桌toggleOverride改变频率、markForSave、发PacketSyncSecurity全玩家并validateAccess；setSecurityDeskMode仅发生mode变化时同样同步，仅更严格时重新验证。validateAccess遍历在线玩家检查其当前ISecurityContainer后关闭失去访问权限者。",
+    "安全桌removeTrusted按index取得被移除UUID，markForSave后只对该UUID在线玩家的当前容器重查，拒绝则closeContainer。这个撤权后既有会话关闭动作不是仅对下一次open的静态白名单谓词。",
+    "安全桌addTrusted以server.services().nameToIdCache().get(name)解析实际NameAndId再写UUID/name；方法本地未见markForSave。调用者及全域保存边界与显示/同步边界分开保留；不能据此认定实际丢档。",
+    "PacketGuiInteract和PacketAddTrusted已读局部server消费/安全桌调用入口，但外层dispatcher、当前菜单/距离/owner认证链未全读。此候选只描述这些被调用的服务端策略方法和实际消费，不声称任意网络输入都已获授权或有已证越权。",
+    "MekanismTileContainer.canPlayerAccess经IBlockSecurityUtils到SecurityUtils；TileEntityMekanism.open/close维护playersUsing，onSecurityChanged→BlockSecurityUtils.securityChanged对当前使用者快照逐一重查并关闭失去权限的容器。容器stillValid本地并不单独承担完整认证。",
+    "普通openGui的服务端/非潜行/hasGui分支实际先canAccessOrDisplayError，拒绝FAIL在openMenu之前；tryWrench拒绝返回NO_SECURITY在旋转/拆除之前。IBlockSecurityUtils默认helper在拒绝时服务端displayNoAccess，实际producer发RED格式NO_ACCESS systemmessage。",
+    "撤权closeContainer分支本地没有同样的displayNoAccess调用，不能把下次访问的红字提示反推为每次已开界面被关闭都会提示。slot纠正/动作栏和区域事件取消不在本Mek候选里编造。",
+    "安全桌的实际tile注册与普通mekBuilder条件owner/security能力声明已读；withSimple内部提供者/全部capability注册生命周期未全追。不把Entity/Item实现头和接口变体另计，候选明确以已追的block/menu消费为范围。",
+    "SecurityFrequency完整磁盘CODEC包含owner UUID、securityMode、override与trusted UUID列表；streamcodec使用trusted名字cache而非该UUID列表。PacketSyncSecurity是客户端当前owner/security资料更新，不是磁盘保存回执。",
+    "FrequencyLookup为SavedData，实际codec把频率列表交frequencyType.codec编码；controller通过serverdataStorage.computeIfAbsent载入。新增/删除频率或update/deactivate true、tickable聚合true会显式setDirty，既有getOrCreate/validate并不无条件dirty。",
+    "安全桌markForSave→TileEntityUpdateable.setChanged(false)→WorldUtils.markChunkDirty，完整已读方法只将已加载FULL chunk标记unsaved。它不是FrequencyLookup.setDirty回执，缺失chunk时也不强行载入。",
+    "完整TileComponentFrequency实际serializeFrequency保存identity serializer+getIdentity，而非注释所说full frequency data；UUID identity只有owner与mode，SecurityFrequency.getIdentity还固定PUBLIC。因此区块identity不能冒充完整trusted/override政策的另一路落盘。",
+    "完整Frequency181行的update/onDeactivate均false，SecurityFrequency无相关override；完整component495行每5tick对有效selected不再validateAndUpdate，只处理删除/非security撤权，invalid分支才重绑定。invalidate只调继承deactivate，configcard/implicitcomponent不传Security，未发现这些方法补全global dirty桥。",
+    "SECURITY声明PUBLIC_ONLY、UUIDidentity、needsTick=false，manager只注册needsTick者；QIO为true，其实际tick返回继承dirty，lookup.tickSelf才向SavedData.setDirty传播。QIO驱动器随机saveAll另有dirty域，不可移植当成Security桥，也不新计QIO原有库存/转移owner。",
+    "实际读取官方Mojang26.3客户端精确class的SavedData全4方法与SavedDataStorage选定12方法Code/constantpool/Bootstrap：existing computeIfAbsent/get路径不另setDirty，missing构造后set；collect lambda明确filter SavedData.isDirty，再encode/mapput后setDirty(false)。这建立vanilla静态筛选契约，不是类名/哈希猜测。",
+    "官方scheduleSave在收集map为空时返回completedFuture，close/saveAndJoin仍经同样收集。tryWrite方法调用压缩写并catch/log IOException；未读其完整异步worker或执行I/O，不能把排队、join或标记清除当磁盘耐久成功证明。",
+    "本地Forge26.3两全源码250行与12行Storage补丁实际读，另精确Neo26.3.0.76 userdev Storage/Type两全patch实际读。Neo改level factory/codecFactory、nullableDFU/tempcleanup、IOUtilities写路径，文字hunk未改dirty filter/reset；未应用binpatch或最终类，故不宣称Neo运行字节与vanilla相同。",
+    "综合只支持：对已载入或曾收集保存的既有security lookup，子对象local dirty与父SavedData dirty分属两域，已读服务端方法没有证明同次成员变更会向父传播。其他新建/删除等活动可顺带标dirty并保存当前政策；不得表述never-save或已证丢档。",
+    "作为一个whole提议的是owner全局仅收紧本地策略→真实UUID可信成员判定→撤权后重查并关闭既有block/menu访问→下一次访问明确拒绝提示，连同身份/同步/保存域的完整边界。策略算法、撤权动作、反馈、codec/service/helper/QIO对照都合并，最多1候选，最终由Main判新颖/合并0/待补。"
+  ],
+  "retained_original20_limits": [
+    "私有候选1是待Main独立whole判断上限，已应用信用0；未创建append plan/grant，不改正式507/235groups/493gap/gatefalse。",
+    "不是完整C2S认证审计；外层dispatcher、所有菜单/距离/owner检查与用户输入可达性未全审，无漏洞/网络安全通过结论。",
+    "服务器当前成员与撤权后容器重查的源码行为不证明跨tick原子性、离线恢复、跨维/重连/并发事务完整性。",
+    "没有运行游戏或实际客户端消息/菜单关闭验收；RED为服务端消息调用，不是截图/目标灰字/全玩家可见效果。撤权close分支无显式同类红字。",
+    "客户端TRUSTED乐观true与服务器UUID名单分开；未完整读客户端缓存清除/失效重连/全同步时序，不称两端权限一致。",
+    "能力注册仅实际已读builder/registration声明与block消费；withSimple、全部实际provider实例和运行ServiceLoader/资源装包未证明。",
+    "Entity/Item实现仅局部头、API接口部分，不能把block/menu结论扩展到全部实体/物品操作。",
+    "完整CODEC不等于每次变更dirty、调度、写入、fsync或坏档恢复；本轮官方Code是静态方法契约，不是native I/O实测。",
+    "NeoForge精确文字patch和原官方vanilla class分开；未应用NeoForm/binpatch/变换/最终Neo类，也未证明服务端发行类与客户端原类运行一致。",
+    "原生SavedDataStorage仅12方法Code实际审读，异步worker等未读；不伪称全25方法或完整异步写完验证。",
+    "首次创建/其他频率插入删除可顺带保存当前security policy，故保留条件existing-after-prior-dirty-reset，不称永远不保存或确认bug。",
+    "本commitMC26.3/J25不是DynastyForge1.20.1移植/编译/运行验收；禁止从参考直接改变当前项目生产逻辑。",
+    "旧Robit恢复/安全模式PUBLICfallback、QIO库存predicate、QIO精确转移、teleporter事务rollback整项保持；frequency祖先/codec/helper不拆给新credit。",
+    "旧QIO颜色两0条与generic5tick0条保持0；本次完整补读component只是本whole的support，不回写或提升旧0条。",
+    "当前119whole完整persisted multistation any-denier区域授权+纠正请求保持，不重新计shared/hacked grant/旧小游戏/射弹抑制/retame/敌对hurt owner。",
+    "SpellEngine交集与最高ordinal原因已完整记账，EnderIO不可覆盖硬门/白名单及按上下文拒绝反馈已完整记账。本候选不能凭收紧或红字泛型重计，必须由Main判断既有会话撤权与owner全局策略是否构成不同完整实现。",
+    "没有声称对全部507旧项做语义排除；先读保存7Mek whole判词/current119相关完整owner，再两项追加判词及其完整groups，词项检索只发现，不是全账新颖证明。",
+    "没有原proof/worker/validator/119executor/marker重跑；新Code reader仅复用原AST结构定义，未执行legacy main/Java/构建/装工具/联网。",
+    "原私有历史缺service/版本/native边界记录不覆盖，新补证与errata并列保存；Forgepatch12行，旧prose13的错误显式纠正。",
+    "不做新建筑/贴图/UI/生产修复，不修改背景、共享Jar/专业资产/存档/实例/清单/Main状态，不删任务，不声称10小时/全任务完成。"
+  ],
+  "actual_findings_ack": [
+    {
+      "index": 0,
+      "original_text": "Player operator bypass/config and provider capability absence branches are distinct from owned security mode. For foreign owners the server TRUSTED branch reads actual owner frequency UUID membership; missing frequency denies; the client branch is deliberately optimistic and not a server-authoritative membership cache.",
+      "author_response": "同意：operator/config/capability缺失分别保留，server实际UUID查表才是TRUSTED判定，client乐观值不能作authoritative名单。"
+    },
+    {
+      "index": 1,
+      "original_text": "Global owner policy overrides local mode only when override is enabled and moreRestrictive evaluates true. The full PUBLIC/PRIVATE/TRUSTED composition is preserved, not treated as arbitrary last-write priority.",
+      "author_response": "同意：保留启用override且仅moreRestrictive时替换的完整组合，不按三个mode拆数或最后写覆盖。"
+    },
+    {
+      "index": 2,
+      "original_text": "Security desk removing a trusted UUID rechecks only that online player's actual currently open ISecurityContainer; mode tightening and override changes recheck online menus. Denied current menus close. The effect is actual existing-session revocation rather than another static allowlist test.",
+      "author_response": "同意：removeTrusted只重查被移除UUID在线当前ISecurityContainer；模式收紧/override重查在线菜单，关闭是既有会话后果。"
+    },
+    {
+      "index": 3,
+      "original_text": "MekanismTileContainer extends MekanismContainer; Main additionally read the original superclass declaration implementing ISecurityContainer, closing that concrete instanceof consumption link.",
+      "author_response": "已实际补读原MekanismContainer60..75，66行implements ISecurityContainer与子类继承闭环成立；只作support0。"
+    },
+    {
+      "index": 4,
+      "original_text": "Per-block local mode changes call onSecurityChanged, which takes a snapshot of playersUsing and rechecks access before closeContainer. Open/close update playersUsing. stillValid only checks GUI/removed/loaded state and is not falsely credited as the whole authorization check.",
+      "author_response": "同意：playersUsing open/close和snapshot重查路径与stillValid的较窄GUI/loaded检查分开，后者不伪称完整认证。"
+    },
+    {
+      "index": 5,
+      "original_text": "Next ordinary open/wrench explicitly checks canAccessOrDisplayError before menu opening, dismantle or rotation. The actual rejection producer is RED NO_ACCESS systemmessage. Current-session close itself has no equivalent explicit message call.",
+      "author_response": "同意：普通open/wrench失败producer是RED NO_ACCESS；撤权close本地无同类消息，不能将两者混作每次弹提示。"
+    },
+    {
+      "index": 6,
+      "original_text": "PacketAddTrusted and PacketGuiInteract selected native entry and action consumers are read; these local methods do not establish complete dispatcher/distance/current-menu/owner authentication or a network safety result.",
+      "author_response": "同意：所读packet本地consumer不足完整外层认证，不称网络安全通过/越权复现。"
+    },
+    {
+      "index": 7,
+      "original_text": "Main preserved all original25 observations and20 limits, plus SecurityData exact20-line projection and superclass declaration support. Native dirty-domain analysis, NeoForge textual patch bounds, codecs, helpers and QIO tick contrasts remain support0.",
+      "author_response": "同意：原25/20完整保留，SecurityData/父类声明及native dirty/QIO/codec/patch/service均0额外。"
+    },
+    {
+      "index": 8,
+      "original_text": "Compared complete seven saved Mek judgments, actual complete current119 owner, and complete SpellEngine/EnderIO judgments and groups. Robit restoration, QIO stock predicate/export transfer, teleporter rollback, old excluded maintenance remain whole owners; generic AND/security modes/refusal text alone cannot earn this candidate.",
+      "author_response": "同意：七Mek/current119和SpellEngine/EnderIO完整owner保持，不以AND、mode或红字泛型新计数。"
+    },
+    {
+      "index": 9,
+      "original_text": "The accepted unit is one concrete owner-global restrictive policy with live block/menu trust revocation and subsequent denial implementation. It differs from119 active area multistation event veto/slot correction and from effect intersection or capture hardgates; no mode/actor/service/codec/message/persistence subcredits.",
+      "author_response": "同意：仅整条owner全局收紧→live block/menu撤权→下一次明确拒绝可1，所有actor/helper/保存域不拆。"
+    }
+  ],
+  "actual_limits_ack": [
+    {
+      "index": 0,
+      "original_text": "私有候选1是待Main独立whole判断上限，已应用信用0；未创建append plan/grant，不改正式507/235groups/493gap/gatefalse。",
+      "author_response": "保留原历史待审/未入账表述；本ACK之后仅按最新Main指示准备方案，正式仍507/235/gap493，不自行授权。"
+    },
+    {
+      "index": 1,
+      "original_text": "不是完整C2S认证审计；外层dispatcher、所有菜单/距离/owner检查与用户输入可达性未全审，无漏洞/网络安全通过结论。",
+      "author_response": "接受，外层认证未全审，入口调用事实不等于认证完备。"
+    },
+    {
+      "index": 2,
+      "original_text": "服务器当前成员与撤权后容器重查的源码行为不证明跨tick原子性、离线恢复、跨维/重连/并发事务完整性。",
+      "author_response": "接受，当前撤权源码不是跨tick/重连/并发或离线恢复保证。"
+    },
+    {
+      "index": 3,
+      "original_text": "没有运行游戏或实际客户端消息/菜单关闭验收；RED为服务端消息调用，不是截图/目标灰字/全玩家可见效果。撤权close分支无显式同类红字。",
+      "author_response": "接受，无画面/实际菜单验收；close与RED消息分开。"
+    },
+    {
+      "index": 4,
+      "original_text": "客户端TRUSTED乐观true与服务器UUID名单分开；未完整读客户端缓存清除/失效重连/全同步时序，不称两端权限一致。",
+      "author_response": "接受，client乐观缓存不能代替server真实名单或全同步失效证明。"
+    },
+    {
+      "index": 5,
+      "original_text": "能力注册仅实际已读builder/registration声明与block消费；withSimple、全部实际provider实例和运行ServiceLoader/资源装包未证明。",
+      "author_response": "接受，只限定所读builder/block消费与service文本，不称完整cap/provider运行。"
+    },
+    {
+      "index": 6,
+      "original_text": "Entity/Item实现仅局部头、API接口部分，不能把block/menu结论扩展到全部实体/物品操作。",
+      "author_response": "接受，仅block/menu整链；entity/item局部头不扩全部操作。"
+    },
+    {
+      "index": 7,
+      "original_text": "完整CODEC不等于每次变更dirty、调度、写入、fsync或坏档恢复；本轮官方Code是静态方法契约，不是native I/O实测。",
+      "author_response": "接受，CODEC与dirty/调度/耐久/坏档恢复不等价，未实测I/O。"
+    },
+    {
+      "index": 8,
+      "original_text": "NeoForge精确文字patch和原官方vanilla class分开；未应用NeoForm/binpatch/变换/最终Neo类，也未证明服务端发行类与客户端原类运行一致。",
+      "author_response": "接受，vanilla Code、Neo文字patch和最终组装类是不同证据，不声称最终字节/运行相同。"
+    },
+    {
+      "index": 9,
+      "original_text": "原生SavedDataStorage仅12方法Code实际审读，异步worker等未读；不伪称全25方法或完整异步写完验证。",
+      "author_response": "接受，Storage仅选定12方法/总体16含SavedData；asyncworker未语义读。"
+    },
+    {
+      "index": 10,
+      "original_text": "首次创建/其他频率插入删除可顺带保存当前security policy，故保留条件existing-after-prior-dirty-reset，不称永远不保存或确认bug。",
+      "author_response": "接受，仅existing-after-reset传播缺口，其他活动可顺带保存，非never-save/确认bug。"
+    },
+    {
+      "index": 11,
+      "original_text": "本commitMC26.3/J25不是DynastyForge1.20.1移植/编译/运行验收；禁止从参考直接改变当前项目生产逻辑。",
+      "author_response": "接受，26.3/J25只研究参考，未移植DynastyForge1.20.1。"
+    },
+    {
+      "index": 12,
+      "original_text": "旧Robit恢复/安全模式PUBLICfallback、QIO库存predicate、QIO精确转移、teleporter事务rollback整项保持；frequency祖先/codec/helper不拆给新credit。",
+      "author_response": "接受，Robit/QIO库存及转移/teleporter完整旧owner保持。"
+    },
+    {
+      "index": 13,
+      "original_text": "旧QIO颜色两0条与generic5tick0条保持0；本次完整补读component只是本whole的support，不回写或提升旧0条。",
+      "author_response": "接受，颜色两0/generic5tick0不提升，补全component是whole support。"
+    },
+    {
+      "index": 14,
+      "original_text": "当前119whole完整persisted multistation any-denier区域授权+纠正请求保持，不重新计shared/hacked grant/旧小游戏/射弹抑制/retame/敌对hurt owner。",
+      "author_response": "接受，119区域multistation veto/纠正whole及旧grant/小游戏/projectile/retame/伤害owner保持。"
+    },
+    {
+      "index": 15,
+      "original_text": "SpellEngine交集与最高ordinal原因已完整记账，EnderIO不可覆盖硬门/白名单及按上下文拒绝反馈已完整记账。本候选不能凭收紧或红字泛型重计，必须由Main判断既有会话撤权与owner全局策略是否构成不同完整实现。",
+      "author_response": "接受，SpellEngine与EnderIO完整owner不重计；独立性仅Main所判整条live撤权policy。"
+    },
+    {
+      "index": 16,
+      "original_text": "没有声称对全部507旧项做语义排除；先读保存7Mek whole判词/current119相关完整owner，再两项追加判词及其完整groups，词项检索只发现，不是全账新颖证明。",
+      "author_response": "接受，只实际比较已保存相关判词，不称全507全源语义排除。"
+    },
+    {
+      "index": 17,
+      "original_text": "没有原proof/worker/validator/119executor/marker重跑；新Code reader仅复用原AST结构定义，未执行legacy main/Java/构建/装工具/联网。",
+      "author_response": "接受，不运行任何旧executor/proof/validator；新staticreader不重放。"
+    },
+    {
+      "index": 18,
+      "original_text": "原私有历史缺service/版本/native边界记录不覆盖，新补证与errata并列保存；Forgepatch12行，旧prose13的错误显式纠正。",
+      "author_response": "接受，历史缺口/原件不改，Forgepatch实际12行erratum并列保留。"
+    },
+    {
+      "index": 19,
+      "original_text": "不做新建筑/贴图/UI/生产修复，不修改背景、共享Jar/专业资产/存档/实例/清单/Main状态，不删任务，不声称10小时/全任务完成。",
+      "author_response": "接受，不改背景/生产/专业资产/实例/共享Jar/Main清单，无小时/全完成宣称。"
+    },
+    {
+      "index": 20,
+      "original_text": "Main binding checks cover all57 candidate source ranges and4 service bodies, while actual semantic reading was performed in the bounded current ranges plus the previously saved full source/service reviews. These are not new independent counts per range or file.",
+      "author_response": "接受，57ranges+4service为绑定核对，Main实际阅读按自身bounded/reused receipts，不用数量冒充独立信用。"
+    },
+    {
+      "index": 21,
+      "original_text": "Additional SecurityData20 and MekanismContainer60-75 were actually read as support after immutable candidate creation; candidate historical57/3195/37 is not rewritten. Main cumulative scope3231 distinct lines/39 files is not credit.",
+      "author_response": "接受，原candidate57/3195/37不回写；20行projection和16行父声明为之后support，当前3231/39只是覆盖。"
+    },
+    {
+      "index": 22,
+      "original_text": "The first Main whole-review writer stopped safely on an overly strict no-terminal-LF assumption before writing any receipt. Bounded inspection proved the candidate retains two historical exact excerpt conventions; Main now preserves each original excerpt and validates it against exact keep-LF or exact line-join extraction, without changing source/candidate.",
+      "author_response": "接受，Main初writer安全停止原因是两种历史精确摘取约定；保留原excerpt分别与keepLF/linejoin匹配，不责怪candidate，不重写源。"
+    },
+    {
+      "index": 23,
+      "original_text": "The diagnostic that treated the formal JSON list as dictionary keys emitted an oversized clipped object; that output is excluded from semantic reading and novelty claims. Original507 complete source chains were not reread.",
+      "author_response": "接受，oversized诊断输出不计语义阅读，不称完整507源链重读。"
+    },
+    {
+      "index": 24,
+      "original_text": "Independent acceptance is a judgment for at most one whole related research implementation, pending original-author itemized ACK and separate exact append plan/grant/actual-delta review; formal remains507/235groups/493gap.",
+      "author_response": "接受，1是独立whole研究判断，须本ACK、另审exactplan/单次grant/actualdelta才可正式入账；现在不执行。"
+    },
+    {
+      "index": 25,
+      "original_text": "No Dynasty production, current game process, save, assets, sharedJar or masterlist was modified; no actual native authorization/reload/runtime acceptance.",
+      "author_response": "接受，未动任何游戏/生产/共享Jar/清单，不把static研究当native授权/重载通过。"
+    }
+  ],
+  "actual_additional_original_source_read": {
+    "file": {
+      "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/immune-feedback-research/sources/mekanism__Mekanism/src/main/java/mekanism/common/inventory/container/MekanismContainer.java",
+      "sha256": "628d596782fa53400a4cdfe7af3031db18fda53987043d4a334f415e44201935",
+      "bytes": 27901
+    },
+    "upstream_path": "src/main/java/mekanism/common/inventory/container/MekanismContainer.java",
+    "line": 60,
+    "end_line": 75,
+    "git_blob_sha1": "ca66008728d971dbfcdc0bb7ad8476673f236c35",
+    "raw_excerpt_utf8": "import net.neoforged.neoforge.transfer.item.ItemResource;\nimport net.neoforged.neoforge.transfer.resource.Resource;\nimport net.neoforged.neoforge.transfer.transaction.Transaction;\nimport net.neoforged.neoforge.transfer.transaction.TransactionContext;\nimport org.jspecify.annotations.Nullable;\n\npublic abstract class MekanismContainer extends AbstractContainerMenu implements ISecurityContainer {\n\n    public static final int BASE_Y_OFFSET = 84;\n    public static final int TRANSPORTER_CONFIG_WINDOW = 0;\n    public static final int SIDE_CONFIG_WINDOW = 1;\n    public static final int UPGRADE_WINDOW = 2;\n    public static final int SKIN_SELECT_WINDOW = 3;\n\n    protected final Inventory inv;\n    protected final List<InventoryContainerSlot> inventoryContainerSlots = new ArrayList<>();",
+    "raw_excerpt_sha256": "644b5ca3ce584f7f2e3f9566b8c0dc1be9e2512c04fb36703a196924437bc0e6"
+  },
+  "completed_ack_items": 36,
+  "accepted_whole_unit": 1,
+  "formal_count": 507,
+  "groups": 235,
+  "gap": 493,
+  "formal_credit": 0,
+  "gate": false,
+  "Main_append_grant": false,
+  "append_executed": false,
+  "old119_once_grant_permanently_consumed": true,
+  "preserved121_checkpoint": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/direct-dispatch-program-handoff-109-20261110.json",
+    "sha256": "2668055ac2ecd23e4fe4da2527b3010f976d33e8cfe6b1f5bfaece53b365f2bd",
+    "bytes": 2788
+  },
+  "production_changes": false,
+  "network_requests": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "hours_claimed": false
+}

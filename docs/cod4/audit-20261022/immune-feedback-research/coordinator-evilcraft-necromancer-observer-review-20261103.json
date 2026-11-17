@@ -1,0 +1,747 @@
+{
+  "recorded_utc": "2026-11-03T12:19:41.707116+00:00",
+  "reviewer": "main-coordinator",
+  "decision": "ACCEPT_ONE_WHOLE_PROJECTILE_OBSERVER_REMOVAL_VETO_AND_CHILD_LIFETIME_POLICY_WITH_NATIVE_LIMITS",
+  "research_credit": 1,
+  "semantic_key": "evilcraft-native-necromancer-projectile-observer-removal-veto-with-target-bound-group-cleanup-and-independent-child-ttl",
+  "proposal": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-035.json",
+    "sha256": "db76031725f038edad2b912a03588ce73d2cf08df543fb2eba923262b2b63268"
+  },
+  "new_source_reading": {
+    "actual_new_ranges": 20,
+    "actual_new_unique_lines": 1328,
+    "reused034_ranges_not_reread": 16,
+    "all_source_ranges_bound": 36,
+    "all_unique_cited_lines_including_reuse": 3061,
+    "clipped_gap_repaired": "EntityNecromancersHeadConfig whole35 lines separately read after first output clipping; earlier broad035/024 document dump not claimed as full reading."
+  },
+  "source_provenance": [
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "branch": "master-1.20-lts",
+      "tag": null,
+      "manifest_path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/source-manifest.json",
+      "manifest_sha256": "5238d7e61e857deb6ca9830abda85a1593034fada18aed32f1166e6c74fdb388",
+      "commit_metadata_path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/provenance/CyclopsMC__EvilCraft/commit.json",
+      "tree_metadata_path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/provenance/CyclopsMC__EvilCraft/tree.json",
+      "git_tree": "d222dc09fcc6b5bf84bb6b9f32f0eb1265553c7e",
+      "acquisition": "Existing fixed local sources and cached Git commit/tree metadata. No network or upstream execution."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "branch": null,
+      "tag": "1.20.1-1.20.0",
+      "manifest_path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/source-manifest.json",
+      "manifest_sha256": "5238d7e61e857deb6ca9830abda85a1593034fada18aed32f1166e6c74fdb388",
+      "commit_metadata_path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/provenance/CyclopsMC__CyclopsCore/commit.json",
+      "tree_metadata_path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/provenance/CyclopsMC__CyclopsCore/tree.json",
+      "git_tree": "d4b6b7e2f3420696c73f3fe8195488eb2f71ddfb",
+      "acquisition": "Existing fixed local sources and cached Git commit/tree metadata. No network or upstream execution."
+    }
+  ],
+  "all36_raw_sha_manifest_gitblob_tree_commit_verified": true,
+  "registration_support034_reused_acceptance": "4f11f6fb5772b81af1f54c1e8ddde963e5b23091d0c752c169fce735e76a77b7",
+  "full_chain_findings_actually_checked": [
+    {
+      "stage": "concrete registered producer",
+      "observation": "Reused actual EvilCraft.onConfigsRegister adds ItemNecromancerStaffConfig, EntityControlledZombieConfig, EntityNecromancersHeadConfig. Previously read base callbacks create/register concrete factories; entity configs select controlled renderer and native ThrownItemRenderer. New ObjectHolder declarations bind controlled_zombie and necromancers_head. Staff.use gets current hand stack, canConsume usage then calls consume ignoring returned amount, constructs/throws head, returns SUCCESS. Without canConsume, actual ItemBloodContainer.use fallback also returns SUCCESS, even no fluid change. No typed refused-summon message."
+    },
+    {
+      "stage": "input resource boundary, no separate credit",
+      "observation": "Own-item canDrain compares exact simulated amount. Otherwise canConsume checks only nonempty simulated drainFromOthers, not requested total. drainFromOthers cumulatively adds drained, but subtracts cumulative amount from remaining on each iteration, and its final nonempty&&empty condition is impossible. consume EXECUTE only for null player or noncreative server player; creative/client SIMULATE. Parent capability writes Fluid NBT; native Forge drain internals not read. Staff does not verify consume result, does not refund on head/child spawn failure; no full payment claim. Extended inventory iterator reads registered locations, not proof every external inventory provider semantics."
+    },
+    {
+      "stage": "projectile hit admission",
+      "observation": "throwNecromancersHead constructs on either side, sets mobType and shoots/adds only server; addFreshEntity return ignored. mobType field/setter unused by spawnSwarm, which always constructs ControlledZombie. Head.onHit acts only ENTITY, not observing, server. Calls target.hurt(thrown(owner),0) before qualifications and ignores result. Then requires ServerPlayer owner, hit not owner, hit LivingEntity to spawnSwarm; otherwise discard. No alive gate, source immunity result gate or final rejection receipt. Block/client/already-observing hits have no local action in override; no inherited impact behavior claimed."
+    },
+    {
+      "stage": "child list and target state",
+      "observation": "spawnSwarm loops random3..4, constructs each child; canAttackType override true. Copies necromancer position, moves randomXZ, calls Core EntityHelpers.spawnEntity. Helper calls Forge onFinalizeSpawn; non-null SpawnGroupData triggers world.addFreshEntity but ignores its boolean and returns true. Thus observables list means helper-qualified, not proved added entity. Regardless helper result, qualifying child then receives setTarget(original hit entity) and TTL200. After loop head stores target and enters observer mode even if list empty. No child owner UUID/reference set; target may later change via native goals. No guarantee actual mob melee since native goals/caller not expanded and MeleeAttackGoal was put in targetSelector."
+    },
+    {
+      "stage": "observer removal veto and cleanup",
+      "observation": "setObserverMode sets observing=true, motion0, invisible=true. Head.remove delegates to super only when !observing, vetoing any reason while flagtrue. Actual tick first super.tick then, only observing and server and efficientTick(level,10), scans list. Shared helper uses random.nextInt(10)==0 (no parameters), not every10th tick. Dead child removed from list; if original target not alive, each living child discarded and removed. When list empty, clears observing then calls remove(DISCARDED), now permitted. Target death cleanup is sampled, not instant. No explicit owner-alive, distance, dimension or owner-held-item gate. Motion set once, no noGravity flag or pre-super stop, so not guaranteed stationary observer."
+    },
+    {
+      "stage": "independent child lifetime and reload boundary",
+      "observation": "Child defineSynchedData TTL0; staff sets200. Child aiStep super first then server getsTTL, predecrements/stores, and discards only if result==0. Normal positive TTL reaches0; initial/missing-key0 becomes-1 and does not expire on that step, no <=0 or clamp. NBT saves/reads rawttl alongside superclass, so remaining child life survives own data roundtrip; target/owner is not custom saved here. Head observing/target/observables are plain fields with no custom NBT read/write or synced-data definition, no load reconstruction. No persistent observer-child identity/UUID linkage or restart repair demonstrated. Parent native serialization/unload semantics not expanded; veto of remove does not prove process/world unload persistence."
+    },
+    {
+      "stage": "actual feedback consumer and its limits",
+      "observation": "Head ItemSupplier returns skeleton skull; registered native ThrownItemRenderer receives it. Observer invokes native invisible flag but local observing/list/target have no custom network fields. Controlled renderer selects texture and delegates model aggression to entity.isAggressive; does not read TTL or emit expiration/refusal cue. Actual Advancements.NECROMANCE is registered via helper to CriteriaTriggers and test(player,target) is called after observer transition regardless empty list or world-add result; instance checks only target EntityPredicate, not number spawned/payment. Advancement UI delivery/data not inspected. No dedicated success or rejection sound/message in this chain; visual/native tracking not runtime-verified."
+    }
+  ],
+  "substantive_dedup": {
+    "actual_six_current_complete_substantive_decisions_read": true,
+    "snapshot_fields_equal_current_records": true,
+    "all470_sourcechains_reread": false,
+    "comparisons": [
+      {
+        "accepted_id": "aoa-native-summoned-minion-player-owner-damage-admission-and-owner-bound-lifetime",
+        "distinction": "Closest summon-lifetime policy binds child directly to boss alive state and age, disallows save, admits spawn only on native add true before costs/FX. Here a paid projectile becomes an observing removal-veto actor; helper-qualified reference list and original target alive govern group cleanup, while children independently persist raw TTL. No owner-life binding, no player-only incoming damage gate, no native spawn acknowledgement."
+      },
+      {
+        "accepted_id": "pnc-native-owner-identity-qualified-permanent-retame-control",
+        "distinction": "Permanent owner replacement differs from creating new Monster children with one initial target assignment and a transient observer; no ownerUUID written on children. Controlled name is not an actual owner control policy."
+      },
+      {
+        "accepted_id": "goety-native-lethal-capture-owner-transfer-instead-of-death-and-unshackle-release",
+        "distinction": "No lethal event cancellation or existing victim conversion here. Initial zero-hurt result ignored then new children/observer transition; no captured actor restoration or unshackle path."
+      },
+      {
+        "accepted_id": "betweenlands-native-owned-puppet-health-delta-qualified-consumable-player-defense-and-ring-invalidation",
+        "distinction": "Existing owned puppet payment/capability and shield invalidation retains all that policy. New chain has no puppet HP-paid grant or active ring; blood use is only input context0, not proposed separate payment-credit instance. Cleanup uses observer-local references and independent childTTL."
+      },
+      {
+        "accepted_id": "wizardry-native-separate-collision-shield-refusal-and-weak-owner-lifetime",
+        "distinction": "Existing weak-owner collision proxy refuses damage and removes on casting end. This projectile instead vetoes remove while observing its summoned children and original target, then explicitly opens removal when list empty. No weak-ref loss, player shield, reflection or hit sound receipt."
+      },
+      {
+        "accepted_id": "evilcraft-native-beam-additive-freeze-preserves-spirit-finite-lifespan-with-synced-control-state-and-visibility-gated-renderer",
+        "distinction": "Newly accepted034 retained whole. No swapping freeze stock for life here: head removal is state-vetoed; server randomly polls child-list/target life, while each child always pre-decrements saved TTL and discards only at exactzero. Same Core helpers/registration remain0; timing constants/fields not independent credit."
+      }
+    ],
+    "initial_full_object_assertion_failed_because_live_source_refs_are_omitted_from_snapshot_not_semantic_disagreement": true
+  },
+  "migration_overlap": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+    "rows": 1329,
+    "evilcraft_family_index": [
+      {
+        "id": "ee8c255bbd2f7596debe",
+        "family": "evilcraft-werewolf-villager-selective-roundtrip"
+      },
+      {
+        "id": "4eb007f55db1d4efb736",
+        "family": "evilcraft-exalted-crafter-dual-slot-schema"
+      },
+      {
+        "id": "158259a3774315dac3fc",
+        "family": "evilcraft-broom-parts-and-modifiers-reconstruction"
+      },
+      {
+        "id": "85aa4da4025c9889f92a",
+        "family": "evilcraft-environmental-accumulator-resumable-job"
+      },
+      {
+        "id": "a79bb7da634c1502a2ae",
+        "family": "evilcraft-biome-extract-registry-and-chunk-persistence"
+      },
+      {
+        "id": "3bc192c11dd38d310df4",
+        "family": "evilcraft-weather-container-enum-fallback-consumption"
+      },
+      {
+        "id": "8131cceff574f0a280c0",
+        "family": "evilcraft-entangled-chalice-world-owned-contents"
+      },
+      {
+        "id": "155dd2bfebd2e1979e1b",
+        "family": "evilcraft-spirit-box-selective-capture-release-state"
+      }
+    ],
+    "limits": "Index-only scope screen, not full migration-decision reading or semantic credit. No candidate for NBT schema/storage/Clone; all persistence here supports lifetime limits0. No assertion exhaustive unrelated-name dedup."
+  },
+  "constraints": [
+    "At most1 for the complete projectile→observer removal-veto→sampled target-bound group cleanup plus independent childTTL policy. No helper/class/parameter/child variant/persistence credit.",
+    "Do not repeat staff comment claims: target death cleanup is sampled, and no-drop/low-HP claims are not established by these classes/loot sources.",
+    "observables membership is not actual spawn acknowledgement. An unadded but alive constructed child could remain in list; native world-add/tick behavior not asserted or leak reproduced.",
+    "remove veto covers every RemovalReason in override, but no claim it safely prevents native chunk unload/server shutdown or that it is damage immunity.",
+    "TTL0 does not remove after predecrement; raw int arithmetic includes eventual wraparound, so do not claim mathematical immortality. Spawn egg config exists without custom positiveTTL initialization; native egg spawn path not expanded.",
+    "No source payment proof, source damage-result proof, owner identity binding on children, guaranteed AI attack, packet ack or group cleanup atomicity.",
+    "Same Core tag support boundary as034: binary build750 correspondence not independently proved. No native or upstream code executed.",
+    "Own EntityControlledZombie is an ordinary Monster with one initial target assignment, not player-owned control entitlement; canAttackType true does not settle all native attack admission. MeleeAttackGoal appears in targetSelector, native execution not expanded.",
+    "Observer remove override is a source-owned removal veto, not universal damage immunity or proven native unload persistence. super.tick runs first and motion is zeroed once; no permanent stationary/noGravity guarantee.",
+    "Helper success only means Forge finalize returned nonnull, not native addFreshEntity true. Child target/TTL written after helper regardless helper result; criterion test occurs after observer transition even empty membership.",
+    "Staff input route returns success on fallback too. canConsume only checks external drain nonempty, and cumulative subtraction may undercount remaining request; no full fluid payment/refund or native provider behavior certified. Empty first extended inventory could stop iteration; conditional local hasNext boundary, not reproduced external provider failure.",
+    "Child lifetime saves rawTTL; fresh/missing0 predecrements negative, exactzero removal not <=0. Raw integer eventual wraparound precludes mathematical immortality claim. Head has no own saved/synced observation link; native parent serialization and Forge tracking not newly read.",
+    "No generic summon-only class credit: one whole projectile-to-removal-veto observer and sampled target/group cleanup with independently saved childTTL. Payment/renderer/advancement/NBT/helpers and constants all support0.",
+    "No game/native attack/world-add/collision/unload/packet/pixels, binary Core build750 correspondence, model/texture/building or Dynasty production acceptance.033 stays0."
+  ],
+  "full_source_refs": [
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/entity/monster/EntityControlledZombie.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/entity/monster/EntityControlledZombie.java",
+      "file_sha256": "6320a435e12d4b514b66164926f6ab136850ee8d519ec5f2de956bfecf7448f7",
+      "git_blob_sha1": "95528fb31b37ae687e30379b1837a71e3ae236d9",
+      "lines": [
+        1,
+        128
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "6320a435e12d4b514b66164926f6ab136850ee8d519ec5f2de956bfecf7448f7",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/item/ItemNecromancerStaff.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/item/ItemNecromancerStaff.java",
+      "file_sha256": "d987835e0220b003676a8145e7b5a762eb110e64b258d9992973f6c460f6dde2",
+      "git_blob_sha1": "917092c661bd530bbe6c1f2f3cf612d52db56822",
+      "lines": [
+        1,
+        54
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "d987835e0220b003676a8145e7b5a762eb110e64b258d9992973f6c460f6dde2",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/entity/effect/EntityNecromancersHead.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/entity/effect/EntityNecromancersHead.java",
+      "file_sha256": "7ad8eb6f67788a81127d0c53c5bad3b293a492409867577cce921d28c131f9dc",
+      "git_blob_sha1": "e80a4251e68c6c6d3c26a19a9969f754b8a475bb",
+      "lines": [
+        1,
+        156
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "7ad8eb6f67788a81127d0c53c5bad3b293a492409867577cce921d28c131f9dc",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/item/ItemNecromancerStaffConfig.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/item/ItemNecromancerStaffConfig.java",
+      "file_sha256": "78ea6311b80700a8c66c8eb39c1553d73e00d76a7149c1bbe9a503e31306b8c9",
+      "git_blob_sha1": "5009170d6d5a19684bdf5034009f98c115c1440a",
+      "lines": [
+        1,
+        39
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "78ea6311b80700a8c66c8eb39c1553d73e00d76a7149c1bbe9a503e31306b8c9",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/entity/monster/EntityControlledZombieConfig.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/entity/monster/EntityControlledZombieConfig.java",
+      "file_sha256": "3c9628dcc607c7163f4319dd2b6b97f21490d4f184ad1a4a0a9f6ed37ca1ae92",
+      "git_blob_sha1": "5f1de574e849c78ae761f178a4e67ccb1695fcd7",
+      "lines": [
+        1,
+        50
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "3c9628dcc607c7163f4319dd2b6b97f21490d4f184ad1a4a0a9f6ed37ca1ae92",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/entity/effect/EntityNecromancersHeadConfig.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/entity/effect/EntityNecromancersHeadConfig.java",
+      "file_sha256": "3839c54a6996d7e71c41642dbe500fcb8cd9f18efa2cd18fb2b3fe9e7c0fc045",
+      "git_blob_sha1": "1f22741962a63b53a5ec1a9bb1dae9b936848e96",
+      "lines": [
+        1,
+        35
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "3839c54a6996d7e71c41642dbe500fcb8cd9f18efa2cd18fb2b3fe9e7c0fc045",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/client/render/entity/RenderControlledZombie.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/client/render/entity/RenderControlledZombie.java",
+      "file_sha256": "20a6c918e1954237632daf1d503ba3697ad8e30ff2323a0b2401aa66fe0c53d7",
+      "git_blob_sha1": "4627ac1808325cc4b586ca34abdf5d80086ef202",
+      "lines": [
+        1,
+        43
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "20a6c918e1954237632daf1d503ba3697ad8e30ff2323a0b2401aa66fe0c53d7",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/core/item/ItemBloodContainer.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/core/item/ItemBloodContainer.java",
+      "file_sha256": "bc2060f703a5db2603c70cd2cb6e46d6a71a2f8a2606cc18b45e8bec43de1d11",
+      "git_blob_sha1": "9b18149e9219d3d01f57900d0753771849483ea2",
+      "lines": [
+        1,
+        211
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "bc2060f703a5db2603c70cd2cb6e46d6a71a2f8a2606cc18b45e8bec43de1d11",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/advancement/criterion/NecromanceTrigger.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/advancement/criterion/NecromanceTrigger.java",
+      "file_sha256": "cf37842a26a7789f5e4ed5d2e754d7dc1e57ce6a73298b6ad0a4eb0392f21681",
+      "git_blob_sha1": "feba3560d99c4ccc25798bcab2064d8223df877b",
+      "lines": [
+        1,
+        50
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "cf37842a26a7789f5e4ed5d2e754d7dc1e57ce6a73298b6ad0a4eb0392f21681",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/Advancements.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/Advancements.java",
+      "file_sha256": "2909ce0f490dd386655fdb8ccfc0acc1c098405fbd36e7e9f5eb18aadc2776d8",
+      "git_blob_sha1": "ccfd5f08c80cce7f5141bf9f73f305a8ef4bdd1d",
+      "lines": [
+        1,
+        26
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "2909ce0f490dd386655fdb8ccfc0acc1c098405fbd36e7e9f5eb18aadc2776d8",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/RegistryEntries.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/RegistryEntries.java",
+      "file_sha256": "c3f6dea21db57f97fad305cdaee2a62b26d349ce14578b63e0e865def81ad4c9",
+      "git_blob_sha1": "0c3428c0cdcccc9c17ec6d61f00df486a6290a12",
+      "lines": [
+        363,
+        364
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "84fb417071e34954071e0823335136851cad3f97a4e000e0ff39df3f1af82ee2",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/RegistryEntries.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/RegistryEntries.java",
+      "file_sha256": "c3f6dea21db57f97fad305cdaee2a62b26d349ce14578b63e0e865def81ad4c9",
+      "git_blob_sha1": "0c3428c0cdcccc9c17ec6d61f00df486a6290a12",
+      "lines": [
+        393,
+        394
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "4f5874b5e3216ab61df161a41383c73adac24b576d1d4bab2acc57297b737f81",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/helper/EntityHelpers.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/helper/EntityHelpers.java",
+      "file_sha256": "dbf757b85f5e5015e05e104631a2082f5ccf1c6415ad60b93a344374dbc768d6",
+      "git_blob_sha1": "b8c2f1fe06498f84357852d35fcd8d32bd3b1609",
+      "lines": [
+        82,
+        97
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "6b66c1f2af478d9634e28c67c094949496f5e6bd20e98b72cc24f61eb4ff3e50",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/item/DamageIndicatedItemFluidContainer.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/item/DamageIndicatedItemFluidContainer.java",
+      "file_sha256": "9430d3b791a3fe4df279e301d4a0256747c86afd05e55c3a46b49e4b2bd7827a",
+      "git_blob_sha1": "30bb2d88e4746e831b877f87624cab6648dc6037",
+      "lines": [
+        1,
+        126
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "9430d3b791a3fe4df279e301d4a0256747c86afd05e55c3a46b49e4b2bd7827a",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/inventory/PlayerExtendedInventoryIterator.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/inventory/PlayerExtendedInventoryIterator.java",
+      "file_sha256": "c323b09eae1d812de4452016a454ec60c19772b8c195f0063beb7495bfae61d2",
+      "git_blob_sha1": "a1269cfefc8fb551297c15aa3d61919008733fe1",
+      "lines": [
+        1,
+        77
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "c323b09eae1d812de4452016a454ec60c19772b8c195f0063beb7495bfae61d2",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/inventory/InventoryIterator.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/inventory/InventoryIterator.java",
+      "file_sha256": "e0d71d80a04d2cde7738ef99add75eee0efa3ba751487f218fdb15e2f89ae7f8",
+      "git_blob_sha1": "cb46adc7c4ac43a0157ff0cd94940dca9e133d44",
+      "lines": [
+        1,
+        56
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "e0d71d80a04d2cde7738ef99add75eee0efa3ba751487f218fdb15e2f89ae7f8",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/inventory/InventoryLocations.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/inventory/InventoryLocations.java",
+      "file_sha256": "ae9cf0dffb7a3415a05babe36d7332f3a098e0727252e8a739c13a40f564d6f2",
+      "git_blob_sha1": "e84d301786c6f23d7e613d417a58f81d63eabe07",
+      "lines": [
+        1,
+        16
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "ae9cf0dffb7a3415a05babe36d7332f3a098e0727252e8a739c13a40f564d6f2",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/capability/fluid/FluidHandlerItemCapacity.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/capability/fluid/FluidHandlerItemCapacity.java",
+      "file_sha256": "084792d85fe706b783da16c61958211ee40af6a3fc973af204be1a9a0bd879a3",
+      "git_blob_sha1": "7b932d52f62de6854f369d3926681bfc8981c613",
+      "lines": [
+        1,
+        128
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "084792d85fe706b783da16c61958211ee40af6a3fc973af204be1a9a0bd879a3",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/helper/FluidHelpers.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/helper/FluidHelpers.java",
+      "file_sha256": "064b169633d44263be01ce25c5e6cffcdb244adbe5161242e4a94bf0acc50c36",
+      "git_blob_sha1": "442398cb545c97201200d24acba347d161cbb8a6",
+      "lines": [
+        1,
+        100
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "94e21803492bd724725843d67af2fa3997afb1ec99495898208dc44c2aa578ea",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/helper/AdvancementHelpers.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/helper/AdvancementHelpers.java",
+      "file_sha256": "6d9351fe2baf548f5c5ebd3eb5c307ec0aaccf4e327828dc1321dd4637510456",
+      "git_blob_sha1": "fa3d6f0f9d76d20e4ab70a48da114374917a74ca",
+      "lines": [
+        49,
+        61
+      ],
+      "reading_context": "new_actual_bounded_source_read035",
+      "purpose": "Actual staff/head/observer/child/feedback path or explicit0 admission/resource/registry support. No credit by file or parameter.",
+      "excerpt_raw_sha256": "1380d51ed63f11f1c2bf5dc0bcbd33142dec0b1062392c3afbb12f1e5f75ab6a",
+      "coordinator_reading": "New035 actual bounded source read; head-config35-line clipped output repaired by complete separate read."
+    },
+    {
+      "repo": "CyclopsMC/EvilCraft",
+      "commit": "28c380da541df8cef15a3d51ebfcf1ffb2a2e85a",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__EvilCraft/src/main/java/org/cyclops/evilcraft/EvilCraft.java",
+      "upstream_path": "src/main/java/org/cyclops/evilcraft/EvilCraft.java",
+      "lines": [
+        95,
+        428
+      ],
+      "file_sha256": "f186c58d788fc60b193531bd760f245767d1c9f6d8f8c95b9c9789530d525735",
+      "git_blob_sha1": "43af214f61d37ae11e2d6e8f3d624acc165b602a",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "56001905ce6edb06be079b48a22b3d40f34ecef749c4a25b8fd9054c7124e839",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/helper/WorldHelpers.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/helper/WorldHelpers.java",
+      "lines": [
+        1,
+        50
+      ],
+      "file_sha256": "439f669648eee26ee1bd3a461ed8313ac8819e86422791f56b653ed96bd2c4fa",
+      "git_blob_sha1": "f7cf7852d3f1453418613e60ae5c82aec6ccc8ea",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "67efa58892c571e8ca2d9068d2922386fad3a98093fd6192bae992550d7365d1",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/helper/MinecraftHelpers.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/helper/MinecraftHelpers.java",
+      "lines": [
+        105,
+        151
+      ],
+      "file_sha256": "4830e8cd2b40e8a9380ab0601035d3043f248b95e1d26990ba0f080320b15f40",
+      "git_blob_sha1": "47d1b26a91bb1959788641b542adbf906849d70a",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "8e7659af94eb8211bef148b3c68b177bad839f1b85a0297346a7d952027e3ff7",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/extendedconfig/EntityConfig.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/extendedconfig/EntityConfig.java",
+      "lines": [
+        1,
+        111
+      ],
+      "file_sha256": "be56c9bb30bf81071b2eb02d61295e3fa5a96a1c36f9cb24dd7b3383ac899057",
+      "git_blob_sha1": "370560fe4cadc29c90799cd56a6b7dbc5c6c6dac",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "be56c9bb30bf81071b2eb02d61295e3fa5a96a1c36f9cb24dd7b3383ac899057",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/extendedconfig/ItemConfig.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/extendedconfig/ItemConfig.java",
+      "lines": [
+        1,
+        119
+      ],
+      "file_sha256": "2ef76c798fee84a73f6c8c9f66e15a722405a1fa4282078e765177dbe285a2d9",
+      "git_blob_sha1": "2fe9b769f0afca24a7cfd3d7ca3699c0127678c3",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "2ef76c798fee84a73f6c8c9f66e15a722405a1fa4282078e765177dbe285a2d9",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/init/ModBase.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/init/ModBase.java",
+      "lines": [
+        60,
+        150
+      ],
+      "file_sha256": "32b03c59bab619d15dc4f5c3c0d563d8a55006b8009fbe64968dcc88004f2eaf",
+      "git_blob_sha1": "d01279b249e21a5d8ca7e134d235bb4ca4dcdb2e",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "62b96e5bacb8d57a64881dcd59d5bf24a1072b353f8fe92ce71c0ddf32dada50",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/init/ModBase.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/init/ModBase.java",
+      "lines": [
+        222,
+        295
+      ],
+      "file_sha256": "32b03c59bab619d15dc4f5c3c0d563d8a55006b8009fbe64968dcc88004f2eaf",
+      "git_blob_sha1": "d01279b249e21a5d8ca7e134d235bb4ca4dcdb2e",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "5722506f4c5eec2619cb937c8640687ae86b4d0dc0cd86a10654f0392541a706",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/ConfigHandler.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/ConfigHandler.java",
+      "lines": [
+        1,
+        243
+      ],
+      "file_sha256": "48364493a45617b1c3c6f25b0cf5318b8a32a7ad4f844d1a0facf8849a130191",
+      "git_blob_sha1": "1c55db8ca08828faab0801fd6733d634e0b79ded",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "48364493a45617b1c3c6f25b0cf5318b8a32a7ad4f844d1a0facf8849a130191",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/ConfigurableTypeActionForge.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/ConfigurableTypeActionForge.java",
+      "lines": [
+        1,
+        17
+      ],
+      "file_sha256": "610d735419199aa2594b68b4b7eb2bb4f803464ce74987271a9f2b5f86efcba8",
+      "git_blob_sha1": "186b8f793826ee49092f03821a954acf16b3aa6b",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "610d735419199aa2594b68b4b7eb2bb4f803464ce74987271a9f2b5f86efcba8",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/extendedconfig/ExtendedConfigForge.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/extendedconfig/ExtendedConfigForge.java",
+      "lines": [
+        1,
+        39
+      ],
+      "file_sha256": "f726b8c7379763fa0eb47b921041b86f5932baf99f35043ce2883d7e22337926",
+      "git_blob_sha1": "d6ca8cec1805bfa0f57e410d7ad1f651562e9798",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "f726b8c7379763fa0eb47b921041b86f5932baf99f35043ce2883d7e22337926",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/EntityAction.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/EntityAction.java",
+      "lines": [
+        1,
+        15
+      ],
+      "file_sha256": "95d13da1d35365502e88746f3ff286919770b6bbfaf873ea0b60ae9a526f3727",
+      "git_blob_sha1": "269a000ab0a6cfacfdeeba65ba1a23e6b27739b8",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "95d13da1d35365502e88746f3ff286919770b6bbfaf873ea0b60ae9a526f3727",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/init/ModBaseVersionable.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/init/ModBaseVersionable.java",
+      "lines": [
+        1,
+        63
+      ],
+      "file_sha256": "1e7c7533ac456a41b741a04e15859c42d74df8f3cbc17a1c76abd61564911b58",
+      "git_blob_sha1": "12030fb337f68b2424d5843323c203289947ac96",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "1e7c7533ac456a41b741a04e15859c42d74df8f3cbc17a1c76abd61564911b58",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/ConfigurableTypeAction.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/ConfigurableTypeAction.java",
+      "lines": [
+        1,
+        102
+      ],
+      "file_sha256": "01fdecfea98cc0f25f90c23e20486f2612fd3b20a27e531af5ec288afb538429",
+      "git_blob_sha1": "33458a7ffc6a82d95f7d9717424b53e980560a34",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "01fdecfea98cc0f25f90c23e20486f2612fd3b20a27e531af5ec288afb538429",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/extendedconfig/ExtendedConfig.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/extendedconfig/ExtendedConfig.java",
+      "lines": [
+        1,
+        207
+      ],
+      "file_sha256": "6b86b54d6082a7c24169b4bba631e1aabed99c4c7011a3e1e2c2bf1b639b95ca",
+      "git_blob_sha1": "ebfb610318c896a4a772367ed01b4c37fa441af0",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "6b86b54d6082a7c24169b4bba631e1aabed99c4c7011a3e1e2c2bf1b639b95ca",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/ConfigurableType.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/ConfigurableType.java",
+      "lines": [
+        1,
+        149
+      ],
+      "file_sha256": "6b6db98b6f97ca63b953a89ea011a96f24c959aa96cd85b0e480709db8c85bb4",
+      "git_blob_sha1": "cbd2aa6ac973f8e265565a26fe002bc16234db43",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "6b6db98b6f97ca63b953a89ea011a96f24c959aa96cd85b0e480709db8c85bb4",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    },
+    {
+      "repo": "CyclopsMC/CyclopsCore",
+      "commit": "d0d435178700bcdcc674e9738a237d2c3cbdf0cd",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-002/sources/CyclopsMC__CyclopsCore/src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/ItemAction.java",
+      "upstream_path": "src/main/java/org/cyclops/cyclopscore/config/configurabletypeaction/ItemAction.java",
+      "lines": [
+        1,
+        72
+      ],
+      "file_sha256": "bad98f895b48ef9892f1b0e8d48a09c55f1e080aa703d419168c230c860ef2d9",
+      "git_blob_sha1": "df2062f4c7b8845475ec5fbccbf0a0cfd2a42bfa",
+      "purpose": "Previously fully read registration factory/event/helper support0; separate Core build750 binary limit unchanged.",
+      "reading_context": "unchanged034_range_reused_not_reread_or_recredited",
+      "excerpt_raw_sha256": "bad98f895b48ef9892f1b0e8d48a09c55f1e080aa703d419168c230c860ef2d9",
+      "coordinator_reading": "Exact034 complete previously read source hash/range reused unchanged; no claim of new reading or new credit."
+    }
+  ],
+  "production_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "active_hours_claimed": 0
+}

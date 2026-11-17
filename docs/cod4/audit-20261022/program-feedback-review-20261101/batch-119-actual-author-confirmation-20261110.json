@@ -1,0 +1,474 @@
+{
+  "status": "actual-original-author-explicit-33point-acknowledgment-no-append-grant",
+  "created_utc": "2026-11-09T21:33:19.270663+00:00",
+  "author_thread_id": "01a16392-312e-72f2-a4dd-56e184f9cb02",
+  "candidate": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/immune-reference-batch-119.json",
+    "sha256": "eed31a425a0560f17a7a9bd12243d26f5e788cff05a7e9795625e3cf23b98579",
+    "bytes": 73571
+  },
+  "Main_whole_review": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program119-security-station-area-policy-whole-review-20261110.json",
+    "sha256": "f525f48da4dedb29b6212ce9d7d40802346c4b9a623dc7dd5e5f22b8cdef52fe",
+    "bytes": 102826
+  },
+  "current506_ecology50_context": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-119-current506-ecology50-context-20261110.json",
+    "sha256": "26aa87291a5902a0dc82b8d890612a3a94041fd7ba6e9774f6c0dedea0522c07",
+    "bytes": 219512
+  },
+  "original21_observations_verbatim": [
+    "实际权限生产点是SecurityStationBlock.setPlacedBy：放置者为Player时直接把profile放入sharedUsers，继而调用super。站点构造绑定SECURITY_STATION BlockEntity；这不是按注册ID或方块种类新增信用。",
+    "站点本地isOwner读取非空sharedUsers首元素，并调用当前profile.equals；增加/删除共享者仅在本地MainMenu且已白名单的分支中继续检查isOwner。没有宣称完整C2S外层认证已经审过。",
+    "addTrustedUser先以双方非null UUID相等、否则name相等去重，新增后请求description同步；removeTrustedUser按名字移除全部匹配并请求同步。移除方法本身未排除首元素，可能改变后续首元素归属；没有实机越权或界面可达性结论。",
+    "旧addHacker的去重、hacked列表增加、simulation完成/取消/报复整体保持旧owner；本候选只把已获hacked成员作为保护权限输入，不再次把grant包装为新机制。",
+    "writer以SharedUsers/HackedUsers分别写name与uuid文本；reader先清shared再解析添加，再清hacked并解析添加。UUID.fromString未捕获，writer假定id可toString；未观察到事务恢复或旧字段迁移。",
+    "父AbstractPneumaticCraftBlockEntity.saveAdditional最后虚调用writeToPacket，loadAdditional最后虚调用readFromPacket；通过AbstractTickingBlockEntity继承链到站点override。因此两个名单不仅是画面缓存，也参与当前存档编码与读取。",
+    "站点loadAdditional先调用父reader，再恢复startupTimer、inventory并重算validNetwork；saveAdditional先父writer，再存timer和Items。该通用timer/inventory派生网络reader已经迁移研究判duplicate0，本次不将其拆出重计。",
+    "Player权限谓词为rebootTimer>0或sharedUsers.contains(profile)或hackedUsers.contains(profile)；UUID重载以各profile.getId().equals(playerID)匹配。代码层比较入口不同，不推断authlib.equals内部细节或离线同名必然结果。",
+    "本次只把positive rebootTimer作为权限谓词输入；rebootStation设置timer并发送停机声请求。没有重跑旧simulation tick证明、没有新读138–171行，不新增timer倒计时/完成清名单/取消结算结论或TTL信用。",
+    "clearRemoved/setRemoved在super后分别加入/移出GlobalBlockEntityCacheManager；缓存分客户端和服务端，内部weak set；world unload按be.getLevel()==world移除。活跃保护查询还重查!removed、dimension比较为0、hasValidNetwork。",
+    "getSecurityCoverage委托rangeManager.getExtents；isValidAndInRange用XYZ包含两边界比较。尝试放安全站时coverage inflatedBy(16)，普通操作用原extents。没有把坐标轴、常量、范围helper计数。",
+    "getSecurityStations遍历当前侧缓存并应用上述资格；Player和UUID保护重载都anyMatch(!doesAllowPlayer)，所以一个允许站点不覆盖另一有效站点的拒绝；count重载仅另一视图，合并为同一场景。",
+    "Listener以modid Names.MOD_ID注册NeoForge订阅、左右键HIGHEST入口。handleInteraction只对ServerPlayer且目标已loaded进入策略；右键安全站本体被特殊排除，左键本体仍进入。该豁免不等于所有世界操作均豁免。",
+    "交互拒绝时选普通accessPrevented或stationPlacementPrevented翻译key，RED+overlay true发给该玩家；如果手持BlockItem，再发送ClientboundContainerSetSlotPacket(-2,0,inventory.selected,heldItem)，随后返回false让左右键订阅取消事件。消息和槽纠正是明确拒绝分支的后果，不是由成功返回反推。",
+    "方块放置订阅只在非客户端Player且非isPlayerExempt时检查；多放置按replaced snapshots逐个直到第一个拒绝；拒绝后取消整个传入事件并发红色overlay消息。未宣称引擎已实际回滚所有方块或NBT。",
+    "破坏订阅为兼顾其他模组fake player直接BreakEvent入口，对非exempt且被保护者取消并发红字；没有新编造fake player身份保证、真实跨模组回归或Boss灰字。",
+    "isPlayerExempt为creative&&配置或权限2；源码只在place/break/explosion路径调用，handleInteraction本地没有调用。保留入口检查差异，不宣称可利用或所有上游已统一认证。",
+    "ExplosionEvent.Start只对getIndirectSourceEntity为Player、非exempt且server的源，从getToBlow列表removeIf保护位置，不取消整个爆炸也不在此发拒绝消息；列表此时是否已填充/后续是否重建尚未读NeoForge引擎。",
+    "站点本体useWithoutItem对非白名单先看network有效/已hacked/安全级别，再可能报错或发起旧破解；这支持权限入口特例，不把小游戏资格/动画/报复重复计数。",
+    "网络有效性由35槽组件数量与subroutine→IO→registry连接路径计算，inventory改变会重查；本次完整方法checkForNetworkValidity/traceComponent/connects作为资格支持0。网络部件、路径节点、缓存和所有事件重载合并在一个区域权限场景。",
+    "保存编码、名单输入、活跃站点限定、多站点任一拒绝、事件取消和明确纠正请求形成一个待Main判断的权限场景，区别旧破解模拟中完成边沿发放addHacker的生产/消费事务，不能仅凭源文件或新方法名判断语义新颖。"
+  ],
+  "original15_limitations_verbatim": [
+    "仅新固定本地源只读研究与私有候选；正式信用0、生产修改0、游戏运行0。Main可以整条合并旧owner为0，或因依赖范围不足阻塞；作者自评1不等于通过。",
+    "没有重跑旧simulation来源/worker/validator/proof/marker；旧小游戏whole与addHacker完全保留。新读重叠support含addHacker/loadAdditional/GUI分支只是上下文，不新增读数信用。",
+    "未新读station tickCommonPre138–171，故reboot倒计时、清名单时机、跨tick并发/换维和实际撤权过渡均不重新认证；本候选授权谓词把其当前字段值当输入。Main如将该时序列为必要whole核心，应判待补或0，不能以现有限定宣称全生命周期已审。",
+    "未全文读station整文件、整个Listener含旧菜单关闭方法、整个base类；实际范围单独保存。Block与GlobalCache是2个完整文件，Ticking仅18–57类体；行数不是信用。",
+    "write/read编码链成立不等于每次名单变更均触发磁盘落盘；名单变更只看到sendDescriptionPacket而非setChanged，后续dirty触发/保存时机未完整审。",
+    "UUID文本解析无catch且reader非事务式；旧schema兼容、坏NBT、null UUID、名字修改和authlib GameProfile.equals运行行为未实测，不称无损恢复。",
+    "没有读description packet create/codec/客户端消费全部实现；只确认base发送请求与虚调用存档编码。服务端explicit slot correction不等于客户端已接受或界面已显示，未截图、未播放声音。",
+    "没有读当前NeoForge事件总线与所有更早/更晚订阅或原生放置/破坏回滚实现；HIGHEST与setCanceled仅源级事实，不保证其他订阅没有副作用。",
+    "爆炸Start的toBlow时序/后续重建没有引擎证据；不能宣称实际抗爆、完全防爆或实体免伤。",
+    "范围管理器实际尺寸/升级计算、range NBT、配置默认值、真实chunk加载重建没有完整读；只记录本调用消费extents和有效性筛选，不声明全服持久保护或具体有效覆盖尺寸。",
+    "GUI外层C2S dispatcher、profile名字解析器、客户端控件限制没有全读，不把本地owner顺序变化、redstone parse前置或豁免差异包装为确认漏洞。",
+    "离线UUID重载、drone导航/炮塔/门/API等外围消费者未全追；它们不另计且不据此声称所有伪玩家/无主自动化均被拦截。",
+    "固定commit使用NeoForge和HolderLookup.Provider等API，未做1.20.1映射、移植编译或生产兼容验证。缓存hash/blob/tree一致只证明固定来源完整性，不能替代阅读或行为验收。",
+    "词项检索只作发现，不能证明所有旧账无同义机制；新源之前实际读2个formal完整四字段/2组、3个sweep完整判词与3个迁移判词。后续本次额外精确路径筛查只定位另2条已知旧账，不伪称全量语义阅读。",
+    "本文不是新建筑/贴图或UI制作；不触碰共享Jar、存档、实例、正式台账、主协调session/pending/ownership/外部提示词。原主界面背景不变。"
+  ],
+  "original_concrete_observation_verbatim": "放置/owner白名单与既有hacked名单→父类虚调用持久化→有效活跃区域站点any-denier聚合→实际交互/放置/破坏拒绝→明确红字与条件槽纠正请求，整场景候选1而非小游戏或通用NBT新计数。reboot时序未重新认证的范围限制显式保留。",
+  "original_application_verbatim": "借鉴把最终授权拒绝与其明确反馈/客户端纠正绑定在同一实际分支；可持久化的资格不能由UI缓存代替。只作研究参考，普通阴阳和Boss不新增文字，不从setCanceled/hurt false反推原因，不复制这里的C2S/身份/限频缺口。",
+  "actual_Main20_observation_responses": [
+    {
+      "index": 1,
+      "Main_observation_verbatim": "setPlacedBy appends a Player profile directly before super; actual membership production is shown, but the superclass placement body and outer registry/runtime are not newly certified.",
+      "actual_original_author_response": "接受：放置profile生产是局部源事实；super放置体、部署注册和运行成功没有新认证。"
+    },
+    {
+      "index": 2,
+      "Main_observation_verbatim": "The first sharedUsers element defines owner; add uses UUID-else-name dedup while removal by name can remove the first element. Local MainMenu/whitelist/owner guards do not certify the outer C2S dispatcher; redstone parsing precedes them.",
+      "actual_original_author_response": "接受：首元素owner、UUID/名字去重、按名字删除及红石parse在本地守卫前完整保留；外层C2S未认证，不称越权实证。"
+    },
+    {
+      "index": 3,
+      "Main_observation_verbatim": "SharedUsers and HackedUsers name/UUID encodings are reached by parent save/load virtual calls through the ticking class. This is storage coding, but mutation dirtiness and actual flush are unproved.",
+      "actual_original_author_response": "接受：父save/load虚调用证明名单参与编码读取，不能证明每次变更dirty或flush。"
+    },
+    {
+      "index": 4,
+      "Main_observation_verbatim": "The reader clears then parses shared before hacked; malformed UUID can leave partially replaced state and no catch/transaction is shown. Null UUID writing is not protected here.",
+      "actual_original_author_response": "接受：先清shared再解析、后处理hacked并非原子恢复；保留UUID异常/null写入风险，不称无损。"
+    },
+    {
+      "index": 5,
+      "Main_observation_verbatim": "Positive rebootTimer bypass, shared profile membership and old hacked membership are current authorization inputs. Station tick138–171 was not read anew; no expiry, revoke-time or lifetime claim is made.",
+      "actual_original_author_response": "接受：只消费当前positive rebootTimer/shared/hacked字段；不补读或重算138–171，不新增到期撤权或生命周期信用。"
+    },
+    {
+      "index": 6,
+      "Main_observation_verbatim": "Player contains(profile) and UUID overload comparison differ; GameProfile equals implementation and offline identity semantics remain dependencies.",
+      "actual_original_author_response": "接受：Player contains与UUID重载比较不同；authlib equals和离线身份为未解析依赖。"
+    },
+    {
+      "index": 7,
+      "Main_observation_verbatim": "clearRemoved/setRemoved add/remove after super; cache side partition, weak membership and world identity unload removal support current lookup, without proving chunk reload reconstruction.",
+      "actual_original_author_response": "接受：cache加入移除/侧分离/weak/world卸载限定准确保留；chunk重建未完整认证。"
+    },
+    {
+      "index": 8,
+      "Main_observation_verbatim": "Actual lookup filters removed/dimension/network and inclusive spatial bounds; placement of another station uses inflated16. Range-manager internals and coverage persistence are not read.",
+      "actual_original_author_response": "接受：只确认removed/dimension/network/含边界与inflated16消费；range内核和范围持久未读。"
+    },
+    {
+      "index": 9,
+      "Main_observation_verbatim": "Any denying eligible station protects the location; another allowing station does not override it. Counts, UUID overloads, graph slots and axis variants are support within this single policy.",
+      "actual_original_author_response": "接受：any-denier是单个当前区域权限whole；count/UUID/轴和常量0额外，不用允许站点覆盖拒绝站点。"
+    },
+    {
+      "index": 10,
+      "Main_observation_verbatim": "The complete network graph checks require one subroutine/IO/registry and connecting paths; they support active eligibility rather than extra independent credit.",
+      "actual_original_author_response": "接受：网络完整路径方法只支撑活跃资格；35槽/三类部件/图算法不拆计。"
+    },
+    {
+      "index": 11,
+      "Main_observation_verbatim": "HIGHEST interaction handler requires ServerPlayer and loaded target; right-click station itself is exempt while left-click is not. Local interaction does not call the place/break exemption helper.",
+      "actual_original_author_response": "接受：ServerPlayer+loaded及右键本体特例保留；不把其他事件exempt自动套到interaction。"
+    },
+    {
+      "index": 12,
+      "Main_observation_verbatim": "Interaction denial explicitly requests RED overlay feedback and, for BlockItem, a selected-slot packet before returning false for event cancellation. It does not infer denial from absent damage.",
+      "actual_original_author_response": "接受：红overlay和条件slot包在明确拒绝分支产生，随后请求事件取消；不从无伤或画面反推原因。"
+    },
+    {
+      "index": 13,
+      "Main_observation_verbatim": "The interaction stack may be offhand while packet index still uses inventory.selected. This is a source-level argument mismatch risk, not a proven client corruption or exploitable runtime bug; packet consumer is unreviewed.",
+      "actual_original_author_response": "接受新增风险：event.getHand可能取副手heldItem，包仍以inventory.selected取主手槽索引；只记录静态参数不一致风险，不称已证客户端损坏/漏洞，不修生产代码。"
+    },
+    {
+      "index": 14,
+      "Main_observation_verbatim": "Multiplace cancels the passed event at first protected snapshot; single place and break cancel their own events with RED messages. Engine rollback and subsequent event-bus arbitration remain unproved.",
+      "actual_original_author_response": "接受：multiplace首拒取消传入事件，single/break各自取消；引擎回滚和后续事件仲裁未认证。"
+    },
+    {
+      "index": 15,
+      "Main_observation_verbatim": "Creative/config or permission2 exemptions appear in place/break/explosion, not local interaction; entry-point differences are observations, not a confirmed bypass.",
+      "actual_original_author_response": "接受：creative/config或permission2仅在place/break/explosion局部出现；差异不能证明绕过。"
+    },
+    {
+      "index": 16,
+      "Main_observation_verbatim": "ExplosionStart only removes protected positions for indirect Player/server/nonexempt source; list-population/rebuild timing is unreviewed. This is not confirmed anti-explosion protection or total event cancellation.",
+      "actual_original_author_response": "接受：ExplosionStart仅删除toBlow保护项，非整爆炸取消或确认防爆；列表时序/重建未读。"
+    },
+    {
+      "index": 17,
+      "Main_observation_verbatim": "Station useWithoutItem gates network/already-hacked/security level then may invoke old hacking; shift PASS and unconditional terminal SUCCESS do not certify menu access. Failure hurt result is ignored.",
+      "actual_original_author_response": "接受：shift PASS、终端SUCCESS与不检hurt结果都保留；不据此认证菜单授权或反击成功。"
+    },
+    {
+      "index": 18,
+      "Main_observation_verbatim": "Old simulation edge/cancel/retaliation/addHacker, old projectile-owner suppression, permanent retame, foreign-owner damage denial, hostility reversal and saved migration inventory readers remain their complete old owners.",
+      "actual_original_author_response": "接受全部旧whole归属：simulation完成/取消/报复/addHacker、projectile suppression、retame、foreign-owner hurt、hostility reversal与迁移reader不拆不重计。"
+    },
+    {
+      "index": 19,
+      "Main_observation_verbatim": "This one policy concerns persisted area membership plus eligible multistation any-denier and action-specific explicit refusal/correction requests; it is not a new hack-grant, generic NBT migration, entity damage immunity or late-event arbitration.",
+      "actual_original_author_response": "接受Main count_unit：仅一个当前状态persisted区域any-denier授权与明确拒绝/纠正请求whole；不是hackgrant/NBT迁移/伤害免疫/终态仲裁。"
+    },
+    {
+      "index": 20,
+      "Main_observation_verbatim": "The fixed source uses NeoForge/new APIs; no 1.20.1 port, deployed registration, native Boss feedback, client visual, temporal completeness or production compatibility has been validated.",
+      "actual_original_author_response": "接受新API限制：无1.20.1移植、部署、Boss反馈、客户端效果、时间完整性或生产兼容验收。"
+    }
+  ],
+  "actual_Main13_limitation_responses": [
+    {
+      "index": 1,
+      "Main_limitation_verbatim": "At most one whole semantic policy supported; formal applied credit remains0 until actual author acknowledgement, separately reviewed exact append plan and one-use grant.",
+      "actual_original_author_response": "接受：最多1，当前正式0；仅私有精确计划，另Main独立审查与显式单次授权前不执行。"
+    },
+    {
+      "index": 2,
+      "Main_limitation_verbatim": "Full 996-line bounded source reading occurred before this binding receipt. The station/base/Listener were not whole files; only SecurityStationBlock and GlobalCache were whole.",
+      "actual_original_author_response": "接受：996行11合并范围是实际有界阅读；只有Block和GlobalCache两全文，station/base/Listener不称全文。"
+    },
+    {
+      "index": 3,
+      "Main_limitation_verbatim": "Old saved judgments were actually read as complete saved judgments, not new rereads of old original source. Supplemental projectile/hostility judgments were read after the new candidate, never backdated.",
+      "actual_original_author_response": "接受：完整旧判词读取与旧原始source重读区分；补两个比较发生在新源/候选之后，不回填时序。"
+    },
+    {
+      "index": 4,
+      "Main_limitation_verbatim": "Original21 observations,15 limitations and application are preserved verbatim; no timer/grant/graph/event-type subcredits.",
+      "actual_original_author_response": "接受：原21观察/15限制/application逐字保存，不新增timer/grant/graph/event类别信用。"
+    },
+    {
+      "index": 5,
+      "Main_limitation_verbatim": "Timer lifecycle138–171 and original hack producer are preowned and not newly read; the accepted scope consumes current fields and explicitly excludes temporal completeness.",
+      "actual_original_author_response": "接受：preowned tick138–171与hackproducer不新认证；只审current-state字段消费。"
+    },
+    {
+      "index": 6,
+      "Main_limitation_verbatim": "Dirty scheduling, malformed-data recovery, profile equality, range calculation and full C2S/description-packet consumer remain dependencies.",
+      "actual_original_author_response": "接受：dirty、坏数据、profile、range、C2S和description消费者依赖保持待证。"
+    },
+    {
+      "index": 7,
+      "Main_limitation_verbatim": "A local canceled branch is not every later subscriber terminal event state; explicit overlay/slot requests are not client-applied correction or screenshot evidence.",
+      "actual_original_author_response": "接受：局部分支取消不等于后续subscriber终态；overlay/slot请求无实机或截图验收。"
+    },
+    {
+      "index": 8,
+      "Main_limitation_verbatim": "Offhand selected-slot mismatch is an additional bounded observation, not a confirmed defect or authorization for a production repair.",
+      "actual_original_author_response": "接受：副手/selected-slot风险仅追加源级观察，不是确认缺陷或生产修复授权。"
+    },
+    {
+      "index": 9,
+      "Main_limitation_verbatim": "ExplosionStart timing and engine rollback unreviewed; no whole anti-explosion behavior or fake-player immunity guarantee.",
+      "actual_original_author_response": "接受：爆炸时序、引擎回滚和fakeplayer保障不能扩张为通过。"
+    },
+    {
+      "index": 10,
+      "Main_limitation_verbatim": "Dedup comparisons are the named complete owners only, not exhaustive semantic proof across all historical ledgers.",
+      "actual_original_author_response": "接受：去重只覆盖所列完整owner，不声称全历史语义唯一证明。"
+    },
+    {
+      "index": 11,
+      "Main_limitation_verbatim": "An accidental diagnostic projected the whole formal list and clipped; that clipped incidental output is not counted as all-ledger reading. Bounded source/old-owner reading and exact object checks are the actual evidence.",
+      "actual_original_author_response": "接受Main披露：截断全账诊断不作全账阅读信用；实际有界阅读与对象相等才是证据，不归咎候选。"
+    },
+    {
+      "index": 12,
+      "Main_limitation_verbatim": "Initial Main normalization check stripped all trailing newlines instead of joining selected lines; it safely stopped before receipt writing. Corrected to exact join semantics, all11match; this was Main checking error, not an author/source defect.",
+      "actual_original_author_response": "接受Main更正：首次LF检查错误与纠正属于Main检查历史，不改源/hash、不编造作者缺陷。"
+    },
+    {
+      "index": 13,
+      "Main_limitation_verbatim": "No actual hour, native pass, task completion, production, Java, game, display/process query, network, Git, shared-Jar, asset, save or checklist change.",
+      "actual_original_author_response": "接受全部边界：无主动工时/原生通过/任务完成声明，无生产、Java、游戏、显示/进程、网络、Git、Jar、资产、存档或清单变更。"
+    }
+  ],
+  "complete_four_formal_saved_judgments": [
+    {
+      "id": "pnc-native-owner-identity-qualified-permanent-retame-control",
+      "category": "native_owner_control_admission_and_permanent_commit",
+      "semantic_dedup_key": "pnc-native-owner-identity-qualified-permanent-retame-control",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "full_chain_observation": "注册TamableAnimal/Horse→同023原生key/C2S/服务器计时链→AbstractTameableHack.canHack以请求玩家UUID不等原owner为资格→最终onHackFinished服务器停止导航/清目标/设HP20/改ownerUUID/广播7/设tame；客户端Finish调用handleEntityEvent7，HUD用共用时间结果。",
+      "concrete_observation": "直接永久改写归属及同主人资格拒绝政策1，区别Wizardry临时UUID控心/效果到期解除，也不是守卫旧账迁移。null或其他主人均满足不等，不称仅未驯服可用；本override未调用默认alive，但最终服务器tick另查alive。缓存会暂存资格，最终改owner前不重复检查身份；success7在server setTame之前且client finish也调用，无旧新owner结果负载。Horse/Tamable/Cat变体、成功7及共享hack全部合并，不按动物种类/包装加数。",
+      "application_to_boss_immune": "控制免疫覆盖直接归属变更的最终生产点而不只addEffect；缓存准入不代替最终确认，反馈应在明确拒绝后带目标与原因发出。普通阴阳不新增Boss灰字。",
+      "limitations": "主岗完整读取资格/两种完成体及023共用真实链、注册行；实际宠物AI/原版owner同步/双端粒子没运行，不能声称全部生物可控或Boss自然免疫。通用API和原版成功7消费底层只支持0。"
+    },
+    {
+      "id": "mocreatures-native-persisted-foreign-player-owner-name-damage-refusal",
+      "category": "native_final_damage_refusal_persisted_owner_identity",
+      "semantic_dedup_key": "mocreatures-native-persisted-foreign-player-owner-name-damage-refusal",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "full_chain_observation": "实际Fox注册→原生rawTurkey交互→MoCTools.tameWithName容量检查后username写owner并发命名GUI/标tamed→Animal watcher20/Owner NBT（Aquatic21同模板合并）→Fox.attackEntityFrom先调用Animal：enableOwnership且owner非空且source.getEntity Player且username不同即returnfalse，在parent damage和health包之前→Fox不进反击分支；自由/出售卷轴和owner检查之前的OP reset卷轴会清owner撤去资格。允许且tamed时先sendHealth(packet12,entityID,dimension,getHealth)再parent，client当前loaded同ID Living直接setEntityHealth；本模组NetworkMod实际绑定客户端handler。",
+      "concrete_observation": "一个实际持久归属身份保护的最终拒伤政策1，区别普通友伤保护（主人可伤、外部玩家拒伤的反向准入）、PNC同owner拒绝改归属、Goety异主捕获死亡取消。此前Crocodile仅给被抓受害者身份90%拒伤1，父Animal owner明确为未计上下文；本次扩展完整原生owner生产/持久/撤销/最终hurt链才新增，不再计captive。条件不要求getIsTamed，注释tamed非真实谓词；不看UUID/队伍/非玩家/null来源，所以不称全来源无敌。Fox中parent false阻断反击；Animal isNotScared true时parent之后恢复原target/清fleeing与parent结果无关。health是在伤前快照，拒绝分支不发，server对tamed另1/100 resync，所以不声称客户端永久残留旧HP。动物/水生适配、watcher索引、卷轴/来源名、health codec/GUI包装均0额外。",
+      "application_to_boss_immune": "Boss拒控灰字应在明确最终原因分支生成，不以HP快照/伤害false反推原因；包应有目标身份/维度生命周期与限频校验，用户名保护只说明资格机制，不能冒充现代Boss身份设计。普通阴阳不增灰字。",
+      "limitations": "主岗逐个全文读取23个候选引用范围及整个client onPacketData包含方法、原生注册/NetworkMod绑定核对；不声称全文审完Animal/Aquatic两千行或每subclass前置副作用。配置声明/default未缓存，权限/宠物数量内部与命名GUI控件未全读，只作调用支持0；旧FML版本不是1.20.1移植代码。source归属引擎、真实同步/改名迁移/画面文字声音均未运行。"
+    },
+    {
+      "id": "enigmatic-protected-animal-hostility-arbitrates-denial",
+      "category": "native_refusal_feedback_and_anchor",
+      "semantic_dedup_key": "enigmatic-protected-animal-hostility-arbitrates-denial",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "full_chain_observation": "真实Animal受击且来源Player背包有guidebook/受保护判定→先cancel；若animal现target、TargetGoal.targetMob或Brain.ATTACK_TARGET指向该玩家则再setCanceled(false)。",
+      "concrete_observation": "是依真实敌意状态撤销自身拒伤的最终仲裁，不是仅owner/来源tag名单。NeutralMob默认例外又明确Hoglin/Bee/Wolf；不按实体常量加数。Brain读内存捕NullPointerException而非其他错误；撤销可能覆盖更早优先级取消，不能提前发immune后称终态。",
+      "application_to_boss_immune": "灰字要在最终确认拒绝处生成；存在后续反取消时，早期候选理由不代表最终免疫，不新增普通体质灰字需求。",
+      "limitations": "固定commit本地源码全文方法/原生调用上下文静态观察；未启动游戏，不能证明运行时注册资源、网络或观感通过。普通阴阳体质不要求灰字；守卫旧账不计入。"
+    },
+    {
+      "id": "pnc-native-hacked-owner-projectile-spawn-suppression",
+      "category": "native_control_damage_refusal_and_receipt",
+      "semantic_dedup_key": "pnc-native-hacked-owner-projectile-spawn-suppression",
+      "count_unit": "one semantically distinct game implementation site with complete containing methods and call-chain context; wrappers/ports/constant-only variants merged",
+      "full_chain_observation": "真实hacking注册Blaze/Ghast/Shulker并native60tick完成入目标persistent attachment→真实EntityJoinLevel对应projectile owner class和hasPersistentHack→取消生成；Shulker afterTick概率开壳，Blaze完成静音为附随表现。",
+      "concrete_observation": "最终投射物入世界抑制一个实现家族1，三类几乎同构cancel模板合并，不拿实体名/owner类型补3。它拒绝生成而非目标伤害后免疫；不保证所有攻击类型禁用，没针对普通melee。Blaze静音与Shulker开壳不另计模型/动画；finish通知是hacking完成不是每颗弹被拒回执。attachment保存ID并追踪alive清退，但clientInstance全局tracker切世界清理未在此完整证明；无运行网络/观感通过。",
+      "application_to_boss_immune": "应在控制被拒的实际分支一次生产反馈；不能仅收到无投射物或无伤害就猜Boss免疫。",
+      "limitations": "固定93d04cc52714742c4ef747eed82528d0fdbde581；本地Git tree/blob及SHA256源验证，完整关键原生game方法观察。无游戏/正式代码/资产/清单变更；通用网络/粒子几何/平台常量0额外；普通阴阳不新增灰字，守卫旧账0转入。"
+    }
+  ],
+  "complete_four_groups": [
+    {
+      "index": 148,
+      "complete_group": {
+        "family": "batch139-herschel022-024-native-final-control-producers",
+        "credited_chains": [
+          "wizardry-native-direct-mainhand-disarm-admission-before-inventory-mutation",
+          "pnc-native-first-nonempty-slot-disarm-commit-independent-of-drop",
+          "pnc-native-owner-identity-qualified-permanent-retame-control"
+        ],
+        "rationale": "Direct player mainhand drop-before-clear differs from body displacement and PNC Mob first-nonempty clear-independent-of-drop. Permanent owner overwrite with same-owner rejection differs from temporary effect-based mindcontrol. Shared anchoring/hacking and animal/slot variants0."
+      }
+    },
+    {
+      "index": 152,
+      "complete_group": {
+        "family": "batch143-herschel028-nonowner-damage-denial",
+        "credited_chains": [
+          "mocreatures-native-persisted-foreign-player-owner-name-damage-refusal"
+        ],
+        "rationale": "Previously uncredited Animal owner gate now full native tame/persist/release chain. Opposite eligibility to friendlyfire protection: owner allowed, foreign player denied. Animal/Aquatic and packet adapters merged1, captive gate unchanged."
+      }
+    },
+    {
+      "index": 28,
+      "group": {
+        "family": "enigmatic-native-refusal-and-feedback-batch24",
+        "credited_chains": [
+          "enigmatic-native-projectile-impact-deflection-settlement",
+          "enigmatic-deflected-projectile-owner-reentry-window",
+          "enigmatic-deflection-client-correction-target-validation",
+          "enigmatic-lava-immunity-recovering-quota-and-first-cue",
+          "enigmatic-immunity-quota-uuid-state-receiver-boundary",
+          "enigmatic-immunity-quota-native-hud-render-policy",
+          "enigmatic-protected-animal-hostility-arbitrates-denial",
+          "enigmatic-revive-self-delayed-world-ready-feedback"
+        ],
+        "rationale": "8个独立职责：原生弹体偏转、归属回流窗、目标运动纠正校验、可恢复免疫额度、额度UUID收包、原生额度HUD、自身敌意仲裁拒伤、世界就绪延迟反馈；装备概率/源常量/codec/声粒子包装/注释旧实现0。EyeOfNebula失败仍拒伤与已计Rapier家族合并；Etherium静态来源门/减伤0；Poison全局mixin旗标缺本地bootstrap资源证据维持待核0。"
+      }
+    },
+    {
+      "index": 47,
+      "group": {
+        "family": "pnc-native-batch38",
+        "credited_chains": [
+          "pnc-native-pressure-gated-fire-refusal-with-modulo-sound-cue",
+          "pnc-native-fall-resource-budget-total-refusal-versus-partial-mitigation",
+          "pnc-native-drone-suffocation-and-own-fakeplayer-damage-refusal",
+          "pnc-native-spinning-minigun-thorns-event-denial",
+          "pnc-native-persistent-hack-ender-teleport-final-cancellation",
+          "pnc-native-hacked-owner-projectile-spawn-suppression"
+        ],
+        "rationale": "防火资源/回执、摔落预算、Drone自身来源拒绝、动态武器反刺、最终传送拒绝、投射物入世界抑制各1。三种hack弹模板合并1，不转守卫旧账；基础通信/图形/存档包装0。"
+      }
+    }
+  ],
+  "complete_three_sweep_saved_judgments": [
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/sweep-receipt-research/reviews/batch-001.json",
+        "sha256": "62b6745fd0a19888bd20311a98f49bf851b3ff2e77177f1100a285caf95dc65d",
+        "bytes": 15540
+      },
+      "complete_saved_judgment": {
+        "candidate_index": 11,
+        "candidate_id": "a3397dedb2d091ad6470",
+        "decision": "accepted",
+        "observation": "SecurityStation在测试模式hacking菜单关闭时，捕获真实ServerPlayer和站点后tell当前TickTask再openMenu，明确避免同步close/open无限循环。借鉴把事件副作用从当前回调栈延后执行；未见站点拆除或玩家换维度复核，不宣称安全生命周期完整。",
+        "snippet_sha256": "687d748c68d42bbf445f3f322c17eeb04a702ea9d905afee93aa9fc2dce9249e",
+        "reviewed_at": "2026-10-23T08:25:30.940946+08:00"
+      }
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/sweep-receipt-research/reviews/batch-104.json",
+        "sha256": "2e262ebc9ab779632ae783bcb387662ead142121026aa30758b8574080cba25d",
+        "bytes": 6181
+      },
+      "complete_saved_judgment": {
+        "candidate_index": 2752,
+        "candidate_id": "76d8d32f699fd0bc2722",
+        "decision": "accepted",
+        "observation": "全文并补读HackSimulation.tick/initiateNukeVirus/getHackedNeighbour、SecurityStationBlockEntity.handleGUIButtonPress/isPlayerHacking/tryNukeVirus：服务端GUI入口需当前破解菜单且模拟hacker相等并存活；物品先消费，合法网格节点且无pending、冷却0时仅暂存节点。模拟tick在遍历其出边前消费指令，重查已破解邻居、置节点进度、反馈声音并给60tick冷却，失败也清pending。扣物品早于initiate返回且返回未检查，不能把输入受理等同玩法成功；此延后单槽指令避免遍历时增出边，一个闭合链计一条。",
+        "snippet_sha256": "30abad31e98e4f19d21e3de0477e313dc406e78669963dad0f7ba569a06d423d",
+        "reviewed_at": "2026-10-26T19:11:10.953331+08:00"
+      }
+    },
+    {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/sweep-receipt-research/reviews/batch-137.json",
+        "sha256": "04c935484c732fd0c5301d4a367ecf3e743dd45d5d5779b54cd7f2cc94d4cd8b",
+        "bytes": 7533
+      },
+      "complete_saved_judgment": {
+        "candidate_index": 3442,
+        "candidate_id": "799fa237da59c0560adb",
+        "decision": "accepted",
+        "observation": "完整SimulationController及HackSimulation.tick/Node.setHackProgress与SecurityStation.tickCommonPre/initiateHacking/retaliate：每轮先快照wasDone后两模拟tick，第一次完成才通知/报复或addHacker；关界面且player未完成直接把AI目标节点置1，awake决定是否报复，test模式豁免。station/hacker失效早退，控制器后清；retaliate hurt不看返回仍授三个效果。部分节点setProgress只在!wasHacked→hacked发通知避免重复；每8worldtick同步，server结果权威。一次完成边沿与跨tick取消结算的具体游戏小游戏链，11仅关菜单防递归重开属于不同问题，不重复它。",
+        "snippet_sha256": "040dac49ba129e9a7101b338f6f2b5208d850d01fd5e3bd7bdafe189cd3dd2b9",
+        "reviewed_at": "2026-10-26T21:41:28.899791+08:00"
+      }
+    }
+  ],
+  "complete_three_migration_saved_judgments": [
+    {
+      "candidate_id": "649536ca290b672cb8d8",
+      "status": "accepted",
+      "family": "pnc-reinforced-chest-loot-owner-branch",
+      "trigger": "ReinforcedChest.loadAdditional",
+      "input": "typed loot-table string/seed or saved item inventory",
+      "output": "valid table ResourceKey restored and marked changed; invalid resource location clears table/seed; inventory deserialized only when no string loot key",
+      "preservation": "Malformed present loot identifier does not run inventory fallback: this is an observed failure boundary, not called lossless.",
+      "application_limit": "Borrow distinguishing missing target from invalid target and recording failure; do not silently convert missing legacy registry ID into EMPTY.",
+      "supporting_candidates": [],
+      "credit": 1,
+      "evidence": [
+        {
+          "candidate_id": "649536ca290b672cb8d8",
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/ReinforcedChestBlockEntity.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/ReinforcedChestBlockEntity.java",
+          "start_line": 96,
+          "end_line": 112,
+          "method": "loadAdditional",
+          "file_sha256": "24bec71fcbe7beb1a3a849bb17346a581225feb16cff6cdbc6c2a7f4a34f2380",
+          "method_sha256": "69ae3c82d2c33c1625a08c1e049b063d06ff23a9e9afe6c1a2f908fcbacf8313",
+          "structural_fingerprint": "946e66065693721ba036a383273083787fde30d258054a460e5dffcade7e4396",
+          "source_url_or_coordinate": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/ReinforcedChestBlockEntity.java#L96-L112",
+          "context": "@Override\n    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.loadAdditional(tag, provider);\n\n        if (tag.contains(NBT_LOOT_TABLE, Tag.TAG_STRING)) {\n            try {\n                lootTable = ResourceKey.create(Registries.LOOT_TABLE, ResourceLocation.parse(tag.getString(NBT_LOOT_TABLE)));\n                lootTableSeed = tag.getLong(NBT_LOOT_TABLE_SEED);\n                setChanged();\n            } catch (ResourceLocationException e) {\n                lootTable = null;\n                lootTableSeed = 0L;\n            }\n        } else {\n            inventory.deserializeNBT(provider, tag.getCompound(NBT_ITEMS));\n        }\n    }",
+          "parse_has_error": false
+        }
+      ]
+    },
+    {
+      "candidate_id": "6dc4c479523a9611e7ef",
+      "status": "accepted",
+      "family": "pnc-universal-sensor-player-owner-gps-rebind-reader",
+      "trigger": "UniversalSensor.loadAdditional",
+      "input": "items, sensorSetting/text/speed and optional typed-string playerId",
+      "output": "restores item handler, applies sensor setting, parses owner UUID and setupGPSPositions after cargo",
+      "preservation": "Full writer only emits nonnull playerId. Saved location/config is re-bound after real inventory load; not a pure accessor or inventory call with key renamed.",
+      "application_limit": "UUID.fromString unguarded; missing owner leaves old field, not null. setupGPSPositions consumer not fully evaluated; no blanket identity recovery guarantee.",
+      "supporting_candidates": [],
+      "credit": 1,
+      "evidence": [
+        {
+          "candidate_id": "6dc4c479523a9611e7ef",
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/UniversalSensorBlockEntity.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/UniversalSensorBlockEntity.java",
+          "start_line": 278,
+          "end_line": 290,
+          "method": "loadAdditional",
+          "file_sha256": "7c75bd8c3ece4dfa58ecc61408363e76950760c7bab75ad6a65970e4fe4d79da",
+          "method_sha256": "57427806ce56ec8a67e9b46596ee452472b62ebfa457917df559e65e08f19f98",
+          "structural_fingerprint": "7d138a0774e07737f998f92c6226ec9064f435fe9a2f44c611dd1a7af662c4d0",
+          "source_url_or_coordinate": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/UniversalSensorBlockEntity.java#L278-L290",
+          "context": "@Override\n    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.loadAdditional(tag, provider);\n\n        itemHandler.deserializeNBT(provider, tag.getCompound(\"Items\"));\n        setSensorSetting(tag.getString(\"sensorSetting\"));\n        dishSpeed = tag.getFloat(\"dishSpeed\");\n        sensorGuiText = tag.getString(\"sensorText\");\n        if (tag.contains(\"playerId\", Tag.TAG_STRING)) {\n            playerId = UUID.fromString(tag.getString(\"playerId\"));\n        }\n        setupGPSPositions();\n    }",
+          "parse_has_error": false
+        }
+      ]
+    },
+    {
+      "candidate_id": "4bd56b4aa6fade19b3a3",
+      "status": "duplicate",
+      "reason": "Only generic inventory delegation plus reboot timer and derived network validity; no independent migration behavior beyond studied owner readers.",
+      "credit": 0,
+      "evidence": [
+        {
+          "candidate_id": "4bd56b4aa6fade19b3a3",
+          "repo": "TeamPneumatic/pnc-repressurized",
+          "revision": "93d04cc52714742c4ef747eed82528d0fdbde581",
+          "path": "src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/SecurityStationBlockEntity.java",
+          "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/TeamPneumatic__pnc-repressurized/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/SecurityStationBlockEntity.java",
+          "start_line": 324,
+          "end_line": 331,
+          "method": "loadAdditional",
+          "file_sha256": "bc414bae044abdf2cff2f233869a2cbbbed3f1347db3933d4f52ee46bf5d36af",
+          "method_sha256": "3869f666464df5d9673d3928690c45ccc1c59fb14c8d486d5a3a54541a5f865e",
+          "structural_fingerprint": "264902377cc02430a70ecc113b576bd3d90e5f5e0052b1a651e20aebff5645f3",
+          "source_url_or_coordinate": "https://github.com/TeamPneumatic/pnc-repressurized/blob/93d04cc52714742c4ef747eed82528d0fdbde581/src/main/java/me/desht/pneumaticcraft/common/block/entity/utility/SecurityStationBlockEntity.java#L324-L331",
+          "context": "@Override\n    public void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {\n        super.loadAdditional(tag, provider);\n\n        rebootTimer = tag.getInt(\"startupTimer\");\n        inventory.deserializeNBT(provider, tag.getCompound(\"Items\"));\n        checkForNetworkValidity();\n    }",
+          "parse_has_error": false
+        }
+      ]
+    }
+  ],
+  "additional_old_owner_reading_timing": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-119-additional-projectile-and-hostility-complete-owner-context-20261110.json",
+    "sha256": "7d0217201cc0a6a0a78044749e6fc740684e4b1465d7ceb9b6d7a71001e83fc5",
+    "bytes": 6958
+  },
+  "accepted_count_unit": "One complete current-state persisted multistation area authorization/refusal policy, including its support graph/cache/encoding and action-specific refusal requests; not full temporal or event-bus-final lifetime certification.",
+  "additional_offhand_limitation": "The interaction stack may be offhand while packet index still uses inventory.selected. This is a source-level argument mismatch risk, not a proven client corruption or exploitable runtime bug; packet consumer is unreviewed.",
+  "formal_applied_credit": 0,
+  "append_authorized": false,
+  "source_proofs_rerun": false,
+  "old_markers_consumed_again": false,
+  "production_changes": 0
+}

@@ -1,0 +1,92 @@
+{
+  "status": "exactNeoForge-textualpatches-actually-read; not-finalassembled-native-class",
+  "created_utc": "2026-11-09T22:18:46.496659+00:00",
+  "Main_patch_receipt": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program120-neoforge26_3-patch-boundary-20261110.json",
+    "sha256": "62bded26ff2b2db821a9c8435f5d8e0e5e3150130487a32a1dc1aad02d0a920f",
+    "bytes": 10511
+  },
+  "actual_patch_records_read_complete": [
+    {
+      "member": "patches/net/minecraft/world/level/storage/SavedDataStorage.java.patch",
+      "raw_file": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/patches/net/minecraft/world/level/storage/SavedDataStorage.java.patch",
+        "sha256": "5a999df7ee9c35b8e5651969ceaedf452de16ec3968638d9bf6a186eb3ccb2c9",
+        "bytes": 3990
+      },
+      "actual_full_raw_text_read": "--- a/net/minecraft/world/level/storage/SavedDataStorage.java\n+++ b/net/minecraft/world/level/storage/SavedDataStorage.java\n@@ -46,8 +_,17 @@\n     private final Path dataFolder;\n     private CompletableFuture<?> pendingWriteFuture = CompletableFuture.completedFuture(null);\n     private boolean closed;\n+    // Neo: Needed to make level context available to modded saved data\n+    private final net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level;\n \n+    /** @deprecated Neo: Use the version that has a level */\n+    @Deprecated\n     public SavedDataStorage(Path dataFolder, DataFixer fixerUpper, HolderLookup.Provider registries) {\n+        this(null, dataFolder, fixerUpper, registries);\n+    }\n+\n+    public SavedDataStorage(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level, Path dataFolder, DataFixer fixerUpper, HolderLookup.Provider registries) {\n+        this.level = level;\n         this.fixerUpper = fixerUpper;\n         this.dataFolder = dataFolder;\n         this.registries = registries;\n@@ -68,7 +_,7 @@\n             return data;\n         }\n \n-        T newData = (T)type.constructor().get();\n+        T newData = (T)type.factory().create(this.level);\n         this.set(type, newData);\n         return newData;\n     }\n@@ -89,7 +_,7 @@\n             if (Files.exists(file)) {\n                 CompoundTag tag = this.readTagFromDisk(file, type.dataFixType(), SharedConstants.getCurrentVersion().dataVersion().version());\n                 RegistryOps<Tag> ops = this.registries.createSerializationContext(NbtOps.INSTANCE);\n-                return type.codec()\n+                return type.codecFactory().create(this.level)\n                     .parse(ops, tag.get(\"data\"))\n                     .resultOrPartial(error -> LOGGER.error(\"Failed to parse saved data for '{}': {}\", type, error))\n                     .orElse(null);\n@@ -106,7 +_,7 @@\n         data.setDirty();\n     }\n \n-    public CompoundTag readTagFromDisk(Path dataFile, DataFixTypes type, int newVersion) throws IOException {\n+    public CompoundTag readTagFromDisk(Path dataFile, @Nullable DataFixTypes type, int newVersion) throws IOException {\n         try (\n             InputStream in = Files.newInputStream(dataFile);\n             PushbackInputStream inputStream = new PushbackInputStream(new FastBufferedInputStream(in), 2);\n@@ -121,7 +_,15 @@\n             }\n \n             int version = NbtUtils.getDataVersion(tag, 1343);\n+            if (type != null)\n             return type.update(this.fixerUpper, tag, version, newVersion);\n+            else return tag;\n+        } finally {\n+            // Neo: delete any temporary files so that we don't inflate disk space unnecessarily.\n+            this.pendingWriteFuture = this.pendingWriteFuture.thenRunAsync(\n+                () -> net.neoforged.neoforge.common.IOUtilities.tryCleanupTempFiles(this.dataFolder, dataFile.getFileName().toString()),\n+                Util.ioPool()\n+            );\n         }\n     }\n \n@@ -196,7 +_,7 @@\n     }\n \n     private <T extends SavedData> CompoundTag encodeUnchecked(SavedDataType<T> type, SavedData data, RegistryOps<Tag> ops) {\n-        Codec<T> codec = type.codec();\n+        Codec<T> codec = type.codecFactory().create(this.level);\n         CompoundTag tag = new CompoundTag();\n         tag.put(\"data\", codec.encodeStart(ops, (T)data).getOrThrow());\n         NbtUtils.addCurrentDataVersion(tag);\n@@ -208,7 +_,11 @@\n \n         try {\n             FileUtil.createDirectoriesSafe(path.getParent());\n-            NbtIo.writeCompressed(tag, path);\n+            // Neo: ensure parent directories exist if the SavedData's path contains slashes\n+            if (!Files.exists(path)) {\n+                Files.createDirectories(path.getParent());\n+            }\n+            net.neoforged.neoforge.common.IOUtilities.writeNbtCompressed(tag, path);\n         } catch (IOException e) {\n             LOGGER.error(\"Could not save data to {}\", path.getFileName(), e);\n         }\n"
+    },
+    {
+      "member": "patches/net/minecraft/world/level/saveddata/SavedDataType.java.patch",
+      "raw_file": {
+        "path": "/Users/a15356015027/Desktop/dynasty/build/cod4-main-mekanism-version-binding-20261110/neoforge-26.3.0.76/patches/net/minecraft/world/level/saveddata/SavedDataType.java.patch",
+        "sha256": "7c512e339b76a00276c6b38093f93939a27377f7161ba3a5f81ca683dcdedc55",
+        "bytes": 2065
+      },
+      "actual_full_raw_text_read": "--- a/net/minecraft/world/level/saveddata/SavedDataType.java\n+++ b/net/minecraft/world/level/saveddata/SavedDataType.java\n@@ -5,7 +_,33 @@\n import net.minecraft.resources.Identifier;\n import net.minecraft.util.datafix.DataFixTypes;\n \n-public record SavedDataType<T extends SavedData>(Identifier id, Supplier<T> constructor, Codec<T> codec, DataFixTypes dataFixType) {\n+// Neo: We do not have update logic compatible with DFU, several downstream patches from this record are made to support a nullable dataFixType.\n+// Neo: We also have to reintroduce the ability to make level-dependent objects/codecs\n+public record SavedDataType<T extends SavedData>(Identifier id, Factory<T> factory, Factory<Codec<T>> codecFactory, @org.jspecify.annotations.Nullable DataFixTypes dataFixType) {\n+    public SavedDataType(Identifier id, Supplier<T> constructor, Codec<T> codec, @org.jspecify.annotations.Nullable DataFixTypes dataFixType) {\n+        this(id, ignored -> constructor.get(), ignored -> codec, dataFixType);\n+    }\n+\n+    public SavedDataType(Identifier id, Supplier<T> constructor, Codec<T> codec) {\n+        this(id, ignored -> constructor.get(), ignored -> codec, null);\n+    }\n+\n+    public SavedDataType(Identifier id, Factory<T> constructor, Factory<Codec<T>> codec) {\n+        this(id, constructor, codec, null);\n+    }\n+\n+    // Neo: Use the level-sensitive factory\n+    @Deprecated\n+    public Supplier<T> constructor() {\n+        return () -> factory.create(null);\n+    }\n+\n+    // Neo: Use the level-sensitive codecFactory\n+    @Deprecated\n+    public Codec<T> codec() {\n+        return codecFactory.create(null);\n+    }\n+\n     @Override\n     public boolean equals(Object obj) {\n         return obj instanceof SavedDataType<?> type && this.id.equals(type.id);\n@@ -19,5 +_,10 @@\n     @Override\n     public String toString() {\n         return \"SavedDataType[\" + this.id + \"]\";\n+    }\n+\n+    @FunctionalInterface\n+    public interface Factory<T> {\n+        T create(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level);\n     }\n }\n"
+    }
+  ],
+  "actual_userdev_relevant_fields": {
+    "spec": 2,
+    "mcp": "net.neoforged:neoform:26.3-1@zip",
+    "patches": "patches/",
+    "sources": "net.neoforged:neoforge:26.3.0.76:sources",
+    "universal": "net.neoforged:neoforge:26.3.0.76:universal",
+    "binpatches": "patches.lzma",
+    "features": {
+      "noLegacyClasspath": true,
+      "combinedBinaryPatches": true
+    }
+  },
+  "Main_findings_read_complete": [
+    "Official userdev declares neoform26.3-1 and exactNeoForge26.3.0.76 sources/universal artifacts; no installer or tool execution.",
+    "SavedDataStorage patch adds optional ServerLevel construction/context factory+codecFactory, nullable datafix guard, temp cleanup, and IOUtilities compressed-write path. This class is not byte-identical to vanilla storage source.",
+    "SavedDataType patch adds level-sensitive factory/codecFactory with supplier/codec compatibility wrappers and nullable datafix type.",
+    "No textual hunk targets collectDirtyTags dirty-filter or setDirty(false) in these exactSavedDataStoragepatches. This observation is limited to this userdev textual patch, not a verified complete assembled/transformed class."
+  ],
+  "Main_limits_read_complete": [
+    "Main has not applied patches/NeoFormpipeline/binarypatches or compared finalNeoForgeclass. Absence of textual hunk alone does not prove final runtimeequivalence.",
+    "Source bytecode supplied separately from Mojang26.3 and existing localForge26.3 sources remain distinct artifacts. Need actual bound-method evidence for native dirty contract.",
+    "Earlier bulk config print clipped and not claimed complete configreading; relevant7fields reread separately and fullstoragepatch reread unclipped; fulltypepatchactualread.",
+    "No source/reference/newtask credit for an artifact/version/hash/patchcount. No never-save/livebug claim."
+  ],
+  "Main_local_source_boundary": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program120-local-persistence-domain-whole-files-boundary-20261110.json",
+    "sha256": "659fd2df5f380e113ae5ae4d5458e6d30952b4b45322b93eae089f10c2a17e51",
+    "bytes": 68996
+  },
+  "Main_local_findings_read_complete": [
+    "Frequency base stores a protected local dirty flag. setSecurityMode change sets it; base onDeactivate/update both returnfalse and do not bridge that flag to parentSavedData. Equals/hash for security intentionally ignore securityMode, whereas SecurityFrequency syncHash explicitly includes mode/override/trustedCacheHash: synchronization identity is not persistence ownership.",
+    "SecurityFrequency CODEC contains owner/security/override/trusted UUID list; addTrusted/removeTrusted/setOverridden set the frequency dirty flag. It extends Frequency with no onDeactivate/update/tick override, so basefalse behavior applies. This reading alone does not inspect the actual external mutation caller authorization.",
+    "FrequencyLookup extends SavedData and explicitly calls inheritedsetDirty on add/remove/missingfrequencycreation, update/deactivate true, or a TickableFrequency.tick aggregate true. Existing getOrCreate and existing storedvalidateAndUpdate do not unconditionally markthelookupdirty. Unrelated later insertion/removal can incidentally save current member data, so never-save is unsupported.",
+    "Types SECURITY is PUBLIC_ONLY+UUIDidentity+needsTickfalse; QIO is needsTicktrue. ControllerManager registerTickable only includes needsTick types; security is not sent through genericlookup.tickSelf. This is a concrete declared-type distinction, not a QIO port assumption.",
+    "Tile component normal five-tick check only validates when selectedfrequency invalid, otherwise handlesremoved/revoked non-security frequencies. It does not callvalidateAndUpdate on each valid selected Security. setNeedsNotify sets tile needsSave; tickServer invokes tile.setChanged, but this is tile state, not an explicit parent FrequencyLookup.setDirty call in these full files.",
+    "Tile componentserializeFrequency uses IdentitySerializer.codec plusfrequency.getIdentity. Despite nearby comment saying fullfrequencydata, the actual UUID serializer contains onlyowner+securitymode and SecurityFrequency identity emitsPUBLIC mode: it carries neither full trustedlist noroverride. Chunk identity save is not a copy of SecurityFrequency.CODEC.",
+    "Configcard and implicit-component paths operate nonSecurityFrequencies and explicitly exclude Security; componentinvalidate delegates deactivation but baseSecurityonDeactivatefalse remains. No hidden fullsecurity export fallback in the read fullcomponent.",
+    "ServerLoad gets serverdataStorage; createLookup passes a SavedDataType to computeIfAbsent. The original/native dirty contract and exactNeoForgepatch are separate evidence; this local source does not prove finalsave/roundtrip or reproduction of lost settings."
+  ],
+  "Main_local_limits_read_complete": [
+    "This is eight actual fullfiles1364lines newly read, not the authors3195line total, not a whole candidate or formal credit. Earlier438APIheadreading/servicebodies are separately bound and not silently double-counted.",
+    "No fullcurrentGUI/networkmutation/ownerchecks/revocationfeedback/serviceinstantiation/securitycapabilityregistration/ServerLevelsavecaller read in this receipt. No productionbug/never-save/exploit claim.",
+    "OfficialMojang26.3 classCode semantic audit is currently originalBug evidence pending Mainreading; NeoForge userdevtextualpatch independentlyread separately but no finalpatchedclass executed.",
+    "OriginalsevenMekowners/current119 completejudgments must remain intact during anylaterwholecomparison. Localnewfile/line/domain differences do not grant another mechanism.",
+    "Sourcecommit targets26.3/J25, not Dynasty1.20.1 compatibleproduction/nativeacceptance. No productionrepair allowed before relevant1000gate."
+  ],
+  "observations": [
+    "Storage exactpatch changes level factories, nullableDFU/tempcleanup and IOUtilities write path; Type exactpatch preserves compatibility constructor/codec wrappers with level-independent supplied factories. These changes do not textually target dirty-filter/reset methods in this patch member.",
+    "Only exacttextual userdev patches were read. Binary patches/NeoForm pipeline/final class/transformers were not applied or executed; no final NeoForge/native equivalence or bug conclusion.",
+    "Main8fullfiles1364lines belong to Main reading; author3195distinctMek Java lines remain separate overlapping coverage, not added or credited.",
+    "Forgepatch count erratum is12lines, rawpatch/hash valid. Prior immutable audit/handoff106 text13line typo is corrected only by explicit companion erratum."
+  ],
+  "limits": [
+    "No formal credit, native execution, production changes or new append authorization.",
+    "No re-run of old proof/119once script. No network/Java/build/install/patch application/game.",
+    "Actual runtime/full write durability or a confirmed security-persistence defect remains unproven."
+  ],
+  "prior_patch_count_erratum": {
+    "path": "/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/program-feedback-review-20261101/batch-120-Forge-patch-line-count-erratum-20261110.json",
+    "sha256": "850038ee9f822196f840d83952e7c59e50ab5c37080d045d46208e296de1d29b",
+    "bytes": 1038
+  },
+  "formal_credit": 0
+}

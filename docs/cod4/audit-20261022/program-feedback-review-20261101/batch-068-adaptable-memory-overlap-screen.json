@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-03T19:40:07.885409+00:00",
+  "batch": "068",
+  "status": "EXACT_EXISTING_WHOLE_DAMAGE_MEMORY_OWNER_HELD_ZERO",
+  "research_credit": 0,
+  "maximum_pending_credit": 0,
+  "manifest": {
+    "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-005/source-manifest.json",
+    "sha256": "2c56a6e775c4a1c44ff095533dc43d7b5a4f982d06ea4748666e3def0d83cde9"
+  },
+  "provenance": {
+    "repo": "TheIllusiveC4/Champions",
+    "commit": "969139a340fabff771bb6f952d2050b6a76d694d",
+    "git_tree": "ec7d063284cb12a17ee814247a749d0e12a3be8d",
+    "commit_metadata_sha256": "4672cbdb229d2f491e7930f82cf5b064fe0f2b37ed41759f18eca5d3c9ca8901",
+    "tree_metadata_sha256": "77bf92c7a92daa5e21c52df28aae8638a330c7e30b83a72eb86d245f0f6a6d7d"
+  },
+  "source_refs": [
+    {
+      "repo": "TheIllusiveC4/Champions",
+      "commit": "969139a340fabff771bb6f952d2050b6a76d694d",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-005/sources/TheIllusiveC4__Champions/src/main/java/top/theillusivec4/champions/common/affix/AdaptableAffix.java",
+      "upstream_path": "src/main/java/top/theillusivec4/champions/common/affix/AdaptableAffix.java",
+      "sha256": "ddbf7312b8c7ad91c48940f58861c74a0e11100c67f6e7e18d69ca6a5c75191d",
+      "git_blob": "20d1357ad0a4304782ef15b8e676f9ec959ff96f",
+      "start_line": 1,
+      "end_line": 51,
+      "whole_file": true,
+      "range_sha256": "15c5a4139cedfa9b2ba50c5dc3f36c8e007ee6f2b441b1677d10679ecbdd6a3e"
+    },
+    {
+      "repo": "TheIllusiveC4/Champions",
+      "commit": "969139a340fabff771bb6f952d2050b6a76d694d",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-005/sources/TheIllusiveC4__Champions/src/main/java/top/theillusivec4/champions/common/affix/core/AffixData.java",
+      "upstream_path": "src/main/java/top/theillusivec4/champions/common/affix/core/AffixData.java",
+      "sha256": "3bda93ffffdb145be243c68f1d79881b6e146713646738a3a2e86c9cfc707149",
+      "git_blob": "165a51a0f7321f88dbdc24e38d0a165211c0b3be",
+      "start_line": 1,
+      "end_line": 90,
+      "whole_file": true,
+      "range_sha256": "069e3c0d41993f203e0d7cdbfb8be14b7a2417f0d851a5242c4a61bbe9240707"
+    },
+    {
+      "repo": "TheIllusiveC4/Champions",
+      "commit": "969139a340fabff771bb6f952d2050b6a76d694d",
+      "path": "tools/cod4/legacy-migration-acceptance/helpers/halley-migration/batch-005/sources/TheIllusiveC4__Champions/src/main/java/top/theillusivec4/champions/common/ChampionEventsHandler.java",
+      "upstream_path": "src/main/java/top/theillusivec4/champions/common/ChampionEventsHandler.java",
+      "sha256": "c2dfca51c5e6624275231b84d323ff66c8c623f3f9356f77cf36956abc3ae17f",
+      "git_blob": "34a41069840fc9ef7f1198c6f12675f69317763c",
+      "start_line": 169,
+      "end_line": 182,
+      "whole_file": false,
+      "range_sha256": "aefb0166bd1756324f22eec6926f08b49583efcd8164a915c0cd3ecfd400d5af"
+    }
+  ],
+  "read_scope": {
+    "source_ranges": 3,
+    "unique_files": 3,
+    "whole_files": 2,
+    "cited_lines": 155
+  },
+  "complete_nearest_judgment": {
+    "candidate_id": "28be6a664f825b0ccaa0",
+    "status": "accepted",
+    "family": "champions-affix-owned-persistence-conversion-and-damage-memory",
+    "trigger": "敌对活体的 Champion capability 读写 rank/词缀及其私有数据；入世界有 rank 则不重新 spawn；LivingConversion.Post 转交等级/词缀但重跑初始逻辑；伤害事件消费适应性伤害记忆。",
+    "input": "tier 整数，affixes compound 列表含 identifier 字符串和 data compound。另支持根 persistentData.ChampionsData 的 tier 整数或 min/max compound、affixes 字符串列表或 count/values compound 预设。",
+    "output": "未知 tier 退最低配置（空配置退 EMPTY_RANK）；未知词缀跳过。常规加载 rank 存在时保留选择的词缀。转换 copy rank 和 affix 列表、重设成长、onInitialSpawn；未复制旧 server.data。",
+    "preservation": "writer 对每词缀 put(DATA_TAG, compound)，reader 却用 tag.hasUUID(DATA_TAG) 才调用 getCompound，因此按已见正常 writer 格式，词缀私有 compound 数据不满足该 UUID guard，未恢复。AdaptableAffix 的 name/count 真正改变连续同类伤害减免：onHurt 读私有数据、增计数后 saveData，结果下限按 max reduction；所以不是普通展示字段。数据从能力读回失败时默认空 name/count0，rank/词缀仍可存在，入世界只调用 onSpawn，不因私有数据空而重做整个实体 spawn。转换同样不交付私有伤害记忆。 Master: 主责逐条读完38个完整方法；rank/affix恢复、怪物转换与Adaptable实际连续伤害记忆同能力合并1处，初始化/网络/子data支持不另计。不是ScalingHealth难度属性所有者。正常writer data为compound而reader hasUUID检查形成静态类型不匹配；这是一条真实游戏持久实现的具体恢复缺口研究，不称成功fallback或运行复现。转换只复制rank/affix并重新初始化，不携带私有伤害历史。",
+    "application_limit": "固定1.18.x源码仅静态证据，不代表1.20.1可直接移植；hasUUID 为调用点类型检查观察，未执行Minecraft runtime验证。旧能力重复 deserialize 时无 tier/affixes 的分支不清旧对象、data map亦未清；不保证重复读取一致。getData反射可能返回null后调用者未防护。ChampionData 根键未删除，不是一次性旧键迁移；未知词缀遗失且未来保存不保留原快照。未审查所有 affix 初始化，仅 Adaptable damage memory 做消费证明；其余词缀状态不宣称全兼容。 固定上游源码静态审阅，不直接移植跨版本API，不宣称原生运行验证。未读的第三方深层codec与全部affix不在覆盖范围。",
+    "credit": 1
+  },
+  "observations": [
+    "Native server LivingHurt passes initial amount and accumulated newAmount through each affix, then setAmount. Not cancellation or proof of final HP.",
+    "Adaptable compares source message IDs case-insensitively. A changed source writes count0; first repeated same source subtracts zero then increments. Same-type subsequent hits subtract original amount times increment times prior count; lower floor original amount*(1-maxReduction). Writes name/count regardless final mitigation or downstream hurt result.",
+    "AffixData reads/writes private server/client data based on side; reflective constructor failures log and return null, caller not guarded. No per-hit client acknowledgement in these three ranges.",
+    "Complete accepted migration judgment already owns actual Adaptable damage memory, ordinary persistence guard mismatch and conversion loss. No new immunity credit for renaming same mechanism. Previous complete judgment is used for lifecycle observations, lifecycle sources not newly reread here."
+  ],
+  "limitations": [
+    "Bounded overlap screen, not new complete lifecycle candidate; native damage pipeline and all other affixes not expanded.",
+    "Initial oversized ledger output truncated and excluded as reading evidence; exact nine substantive judgment fields subsequently printed in full.",
+    "Other Champions Reflective/Magnetic/Paralyzing and BasicAffix files were read as discovery but are not credited or certified complete chains here. Requiem Penance next lead only."
+  ],
+  "validation": "Only new scoped raw SHA256/gitblob/commit/tree/range bindings checked at seal; no old acceptance verifier or aggregation rerun.",
+  "next_work": "069 Requiem Penance timed body-specific denial, actual entry, mutation, owner-only countdown/FX sync and exit/reload; compare complete remnant migration owner and nearest accepted forced-exit/status policies.",
+  "production_changes": false,
+  "background_changes": false,
+  "shared_jar_changes": false,
+  "network_requests": 0,
+  "game_starts": 0,
+  "master_edits": false
+}

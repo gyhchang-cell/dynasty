@@ -1,0 +1,119 @@
+{
+  "schema": "independent-descriptive-world-read-analysis-delta-review-v1",
+  "status": "BOUNDED_ANALYSIS_DELTA_REVIEW_COMPLETE_NO_NEW_BLOCKING_FINDING",
+  "recorded_at": "2026-11-02T13:35:34.887753+00:00",
+  "reviewer_thread": "01a12516-2eaf-73e2-b615-20f8b422158c",
+  "prior_review": "docs/cod4/audit-20261022/legacy-native-acceptance/independent-analysis-source-review-20261102.json",
+  "prior_review_sha256": "137190a23ce9273866fa86f24e221d9b60e1fa57e455d23181f0c9e7cc56ca3e",
+  "reviewed_sources": {
+    "tools/cod4/legacy-native-acceptance/checks/AnalyzeWorldRead.java": {
+      "sha256": "8223d45e9cf1e60d7cd159c7dad3c3115a6973f4c219743d87d14d0c319760f6",
+      "coverage": "Only delta against prior independently reviewed frozen source; full source read to confirm surrounding scope",
+      "new_file_lines": 118
+    },
+    "tools/cod4/legacy-native-acceptance/checks/AnalysisChecks.java": {
+      "sha256": "2e4bd26d25a99cc98d98e04681593021b874899dbb7e683697a9dcb2d287bc04",
+      "coverage": "Only delta against prior independently reviewed frozen source; full source read to confirm surrounding scope",
+      "new_file_lines": 107
+    }
+  },
+  "source_diffs": {
+    "tools/cod4/legacy-native-acceptance/checks/AnalyzeWorldRead.java": "--- prior-reviewed\n+++ current\n@@ -72,9 +72,12 @@\n             CompoundTag stack = entry.getValue();\n             additions.add(Map.of(\"slot\", entry.getKey(), \"snbt\", stack.toString()));\n-            onlyFirstManual &= stack.getString(\"id\").equals(\"dynasty:dynasty_manual\") && stack.getByte(\"Count\") == 1;\n+            CompoundTag expectedManual = new CompoundTag();\n+            expectedManual.putString(\"id\", \"dynasty:dynasty_manual\"); expectedManual.putByte(\"Count\", (byte) 1);\n+            expectedManual.putByte(\"Slot\", entry.getKey());\n+            onlyFirstManual &= stack.equals(expectedManual);\n             if (stack.getString(\"id\").equals(\"dynasty:dynasty_manual\")) manualCount += stack.getByte(\"Count\");\n         }\n         boolean firstManualExplained = !oldData.contains(\"dynasty_manual_given\")\n-                && newData.contains(\"dynasty_manual_given\", Tag.TAG_BYTE) && newData.getBoolean(\"dynasty_manual_given\")\n+                && newData.contains(\"dynasty_manual_given\", Tag.TAG_BYTE) && newData.getByte(\"dynasty_manual_given\") == 1\n                 && onlyFirstManual && manualCount == 1;\n         Map<String, String> aliases = new LinkedHashMap<>();\n@@ -88,4 +91,10 @@\n         result.put(\"historical_fields\", fields); result.put(\"historical_field_count\", oldData.getAllKeys().size());\n         result.put(\"all_historical_fields_exact\", fieldsEqual); result.put(\"new_field_keys\", newData.getAllKeys().stream().filter(k -> !oldData.contains(k)).sorted().toList());\n+        Map<String, Object> addedFields = new LinkedHashMap<>();\n+        for (String key : newData.getAllKeys().stream().filter(k -> !oldData.contains(k)).sorted().toList()) {\n+            Tag value = newData.get(key);\n+            addedFields.put(key, Map.of(\"native_type_id\", value.getId(), \"snbt\", value.toString(), \"change_explained\", false));\n+        }\n+        result.put(\"new_fields_described_not_automatically_explained\", addedFields);\n         result.put(\"historical_inventory\", stackRows); result.put(\"historical_stack_count\", oldSlots.size());\n         result.put(\"all_historical_stacks_exact_after_expected_quest_alias\", stacksEqual);\n",
+    "tools/cod4/legacy-native-acceptance/checks/AnalysisChecks.java": "--- prior-reviewed\n+++ current\n@@ -48,4 +48,11 @@\n         check(good.get(\"historical_field_count\").equals(4) && good.get(\"historical_stack_count\").equals(12), \"no107-field coverage inflation\");\n         check(Boolean.FALSE.equals(good.get(\"historical_healing_stack_present\")), \"registry alias is not an owned healing stack\");\n+        for (byte bad : new byte[]{2, -1}) {\n+            var malformed = fixture(input);\n+            CompoundTag malformedData = TagParser.parseTag(malformed.get(\"forge_data_snbt\").getAsString());\n+            malformedData.putByte(\"dynasty_manual_given\", bad);\n+            malformed.addProperty(\"forge_data_snbt\", malformedData.toString());\n+            check(Boolean.FALSE.equals(analyze(input, malformed).get(\"first_manual_addition_explained_by_existing_handler\")), \"noncanonical true byte cannot be explained by putBoolean(true)\");\n+        }\n         var changed = fixture(input);\n         CompoundTag data = TagParser.parseTag(changed.get(\"forge_data_snbt\").getAsString());\n@@ -71,4 +78,21 @@\n         changed.addProperty(\"inventory_snbt\", list.toString());\n         check(Boolean.FALSE.equals(analyze(input, changed).get(\"first_manual_addition_explained_by_existing_handler\")), \"unrelated grant not excused\");\n+        for (String extra : new String[]{\"tag\", \"ForgeCaps\"}) {\n+            changed = fixture(input); list = inventory(changed);\n+            for (var t : list) if (((CompoundTag) t).getByte(\"Slot\") == 12) ((CompoundTag) t).put(extra, TagParser.parseTag(\"{unexpected:1b}\"));\n+            changed.addProperty(\"inventory_snbt\", list.toString());\n+            check(Boolean.FALSE.equals(analyze(input, changed).get(\"first_manual_addition_explained_by_existing_handler\")), \"unexplained new manual data not excused: \" + extra);\n+            var artificialInput = input.deepCopy();\n+            var sourcePlayer = artificialInput.getAsJsonObject(\"disk_player\");\n+            var historicalStacks = inventory(sourcePlayer);\n+            for (var t : historicalStacks) if (((CompoundTag) t).getByte(\"Slot\") == 4) ((CompoundTag) t).put(extra, TagParser.parseTag(\"{fixture_only:1b}\"));\n+            sourcePlayer.addProperty(\"inventory_snbt\", historicalStacks.toString());\n+            changed = fixture(artificialInput);\n+            check(Boolean.TRUE.equals(analyze(artificialInput, changed).get(\"all_historical_stacks_exact_after_expected_quest_alias\")), \"synthetic custom book data retained: \" + extra);\n+            list = inventory(changed);\n+            for (var t : list) if (((CompoundTag) t).getByte(\"Slot\") == 4) ((CompoundTag) t).remove(extra);\n+            changed.addProperty(\"inventory_snbt\", list.toString());\n+            check(Boolean.FALSE.equals(analyze(artificialInput, changed).get(\"all_historical_stacks_exact_after_expected_quest_alias\")), \"synthetic lost book data detected: \" + extra);\n+        }\n         for (String key : new String[]{\"forge_data_snbt\", \"inventory_snbt\"}) {\n             var invalid = input.deepCopy(); invalid.getAsJsonObject(\"disk_player\").addProperty(key, key.startsWith(\"forge\") ? \"{}\" : \"[]\");\n"
+  },
+  "analysis_receipt": "docs/cod4/audit-20261022/legacy-native-acceptance/analysis-checks-20261102T132716-002535Z.json",
+  "analysis_receipt_sha256": "c460711b1f1ce5fb6179e1bf8195ea67e48ca6786ac88c5da3d6daf1daf66cd0",
+  "prior_analysis_receipt_sha256": "963097813bc994fd66a89dcb17b8e8d29019b16276892cc1bb55fe05fbf3e026",
+  "closed_findings": [
+    {
+      "prior_priority": "P2",
+      "title": "Noncanonical manual-given byte incorrectly excused by getBoolean",
+      "file": "tools/cod4/legacy-native-acceptance/checks/AnalyzeWorldRead.java",
+      "current_lines": [
+        80,
+        82
+      ],
+      "resolution": "Requires TAG_BYTE and exact getByte==1, so2b and-1b cannot be explained by the putBoolean(true) handler. Current check source loops over both negative fixtures.",
+      "resolved_in_source": true,
+      "resolved_in_recorded_headless_fixtures": true
+    }
+  ],
+  "additional_reviewed_delta": [
+    {
+      "file": "tools/cod4/legacy-native-acceptance/checks/AnalyzeWorldRead.java",
+      "lines": [
+        74,
+        77
+      ],
+      "result": "New manual explanatory check requires full CompoundTag equality to clean id dynasty_manual, Count1b and actual Slot. Extra tag, ForgeCaps, other fields or wrong type/value remain unexplained; count alone cannot excuse them."
+    },
+    {
+      "file": "tools/cod4/legacy-native-acceptance/checks/AnalyzeWorldRead.java",
+      "lines": [
+        93,
+        98
+      ],
+      "result": "Every new root field now reports native_type_id and full SNBT value, with change_explained=false. Known first-manual stack explanation stays a separate narrow boolean; new progression values are not silently excused."
+    },
+    {
+      "file": "tools/cod4/legacy-native-acceptance/checks/AnalysisChecks.java",
+      "lines": [
+        [
+          50,
+          56
+        ],
+        [
+          80,
+          96
+        ]
+      ],
+      "result": "Eight new checks:2 noncanonical byte cases;2 new-manual unexpected-tag/caps cases;2 synthetic old-book custom-data-preserved cases;2 synthetic old-book custom-data-lost cases. Base16 retained, recorded total24."
+    }
+  ],
+  "verified_artifact_bindings": {
+    "current_and_frozen_source_files": 2,
+    "actual_class_hashes": {
+      "com/dynasty/legacyqa/AnalysisChecks.class": "d21c2d4be35318a31267efc1dc361506657ad0815e56724e703f033f44f1b1f6",
+      "com/dynasty/legacyqa/AnalyzeWorldRead.class": "c08b962dfbbe482358c2088de3712efa07274079ec810519f15a54b0e8afa071"
+    },
+    "actual_historical_input_sha256": "24fab4f75478434beea34d092ed831210fa7f4fcc09636ab12c0bdf643bb0e13",
+    "current_wrapper_sha256": "9b2e71f3a14ce0ca3848ac352c478885408e22c4ecb276912160531bb28065d2",
+    "commands_and_checks_log_headless_scope_verified": true,
+    "recorded_analysis_assertions": 24,
+    "recorded_new_assertions": 8,
+    "reviewer_java_assertions_rerun": 0,
+    "same_java_javac_and_786_runtime_library_map_as_prior": true,
+    "unaffected_libraries_rehashed_again": false,
+    "old317_or34_checks_repeated": false
+  },
+  "coverage_limits": [
+    "The actual historical input has4Int fields and12 stacks. The added old-book Tag/ForgeCaps fixtures deliberately modify an artificial copy; they validate comparator loss detection and are not proof that the real historical book contained those fields or that native remapping preserved them.",
+    "New root values are now disclosed, not classified automatically. An unexplained addition is a comparison result requiring investigation, not permission to delete content or a migration-failure conclusion by itself.",
+    "AnalyzeWorldRead native_acceptance/save_reopen_verified/clone_c2s_verified remain false; descriptive analyzer checks never create actual capture, load a world/player/registry or remove checklist tasks.",
+    "Unchanged prior CLI context limitation remains: input/capture file hashes plus QA/session/instance provenance need external actual-analysis receipts; status/UUID/candidate checks alone do not authenticate capture."
+  ],
+  "preflight_checkpoint": {
+    "receipt": "docs/cod4/audit-20261022/legacy-native-acceptance/preflight-existing-java-block-20261102.json",
+    "sha256": "feb37de296c6f7269511dad4bf3c8ff6c7f9c672a388365123b6a77f541fb5c0",
+    "coordinator_recorded_status": "PREFLIGHT_BLOCKED_EXISTING_GAME_OR_UNKNOWN_JAVA_NO_LAUNCH",
+    "recorded_blocker_count": 5,
+    "coordinator_recorded_new_game_starts": 0,
+    "marker_unused_evidence_empty_independently_observed": true,
+    "reviewer_requeried_ps_or_display": false,
+    "interpretation": "Safety preflight blocked before attempt marker/child; no native run result. Existing processes were not attached/stopped. Continue offline; no new runtime readiness granted by this delta review."
+  },
+  "new_blocking_findings": [],
+  "product_task_complete": false,
+  "native_acceptance": false,
+  "save_reopen_verified": false,
+  "clone_c2s_verified": false,
+  "reviewer_java_starts": 0,
+  "reviewer_platform_queries": 0,
+  "network_calls": 0,
+  "production_edits": 0,
+  "asset_edits": 0,
+  "shared_jar_writes": 0,
+  "checklist_deletions": 0,
+  "new_reference_credit": 0,
+  "active_work_hours_credit": 0
+}

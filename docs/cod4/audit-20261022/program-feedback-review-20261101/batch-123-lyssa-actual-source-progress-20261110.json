@@ -1,0 +1,352 @@
+{
+  "status": "actual123-newread-plus-explicit122-reuse-no-credit",
+  "created_utc": "2026-11-09T23:00:47.446028+00:00",
+  "repo": "P3pp3rF1y/Reliquary",
+  "commit": "20de88066c41dcb19e50d1744d3edd3627064629",
+  "source_pins": {
+    "source.json": {
+      "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/source.json",
+      "sha256": "c4d0f2c01ec5331e05762ed4d41be0b1e6b23a3c843acc1593a46276fc586ac5",
+      "bytes": 83384
+    },
+    "tree.json": {
+      "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/tree.json",
+      "sha256": "a313b827ed199c6d58641c476da70624475c5fa8d2f38d47339d2f5466b619f8",
+      "bytes": 486118
+    }
+  },
+  "new_ranges": [
+    {
+      "source": "src/main/java/reliquary/item/RodOfLyssaItem.java",
+      "lines": [
+        1,
+        67
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/RodOfLyssaItem.java",
+        "sha256": "1c5cb0792997a219c8c434cf48ad48feda683004166b99ae121a7d9c24782c37",
+        "bytes": 2558
+      },
+      "git_blob_sha1": "9b6d584c750fd93acfd3f272f64c9feaad37e1c8",
+      "excerpt_sha256": "1c5cb0792997a219c8c434cf48ad48feda683004166b99ae121a7d9c24782c37",
+      "excerpt": "package reliquary.item;\n\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.core.registries.Registries;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.enchantment.Enchantment;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.item.enchantment.Enchantments;\nimport net.minecraft.world.level.Level;\nimport net.neoforged.neoforge.common.ItemAbilities;\nimport net.neoforged.neoforge.common.ItemAbility;\nimport reliquary.entity.LyssaHook;\nimport reliquary.init.ModDataComponents;\n\npublic class RodOfLyssaItem extends ItemBase {\n\tpublic RodOfLyssaItem() {\n\t\tsuper(new Properties().stacksTo(1));\n\t}\n\n\tpublic static int getHookEntityId(ItemStack stack) {\n\t\treturn stack.getOrDefault(ModDataComponents.HOOK_ENTITY_ID, 0);\n\t}\n\n\t@Override\n\tpublic InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {\n\t\tItemStack stack = player.getItemInHand(hand);\n\t\tint entityId = getHookEntityId(stack);\n\t\tif (entityId != 0 && level.getEntity(entityId) instanceof LyssaHook hook) {\n\t\t\tplayer.swing(hand);\n\t\t\thook.handleHookRetraction(stack);\n\t\t\tsetHookEntityId(stack, 0);\n\t\t} else {\n\t\t\tlevel.playSound(null, player.blockPosition(), SoundEvents.ARROW_SHOOT, SoundSource.NEUTRAL, 0.5F, 0.4F / (level.random.nextFloat() * 0.4F + 0.8F));\n\n\t\t\tif (!level.isClientSide) {\n\n\t\t\t\tHolderLookup.RegistryLookup<Enchantment> registrylookup = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT);\n\t\t\t\tint lureLevel = EnchantmentHelper.getEnchantmentLevel(registrylookup.getOrThrow(Enchantments.LURE), player);\n\t\t\t\tint luckOfTheSeaLevel = EnchantmentHelper.getEnchantmentLevel(registrylookup.getOrThrow(Enchantments.LUCK_OF_THE_SEA), player);\n\n\t\t\t\tLyssaHook hook = new LyssaHook(level, player, lureLevel, luckOfTheSeaLevel);\n\t\t\t\tlevel.addFreshEntity(hook);\n\n\t\t\t\tsetHookEntityId(stack, hook.getId());\n\t\t\t}\n\n\t\t\tplayer.swing(hand);\n\t\t}\n\n\t\treturn new InteractionResultHolder<>(InteractionResult.SUCCESS, stack);\n\t}\n\n\tprivate void setHookEntityId(ItemStack stack, int entityId) {\n\t\tstack.set(ModDataComponents.HOOK_ENTITY_ID, entityId);\n\t}\n\n\t@Override\n\tpublic boolean canPerformAction(ItemStack stack, ItemAbility itemAbility) {\n\t\treturn ItemAbilities.DEFAULT_FISHING_ROD_ACTIONS.contains(itemAbility);\n\t}\n}\n",
+      "whole_file": true,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/entity/LyssaHook.java",
+      "lines": [
+        1,
+        250
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/entity/LyssaHook.java",
+        "sha256": "f85eb8fd338151253afffe0be73b47da92fd21f3f5e51a283ad65a593b92ca35",
+        "bytes": 8468
+      },
+      "git_blob_sha1": "6a91450cf3460e63892ba630e66a468ece1955bf",
+      "excerpt_sha256": "f85eb8fd338151253afffe0be73b47da92fd21f3f5e51a283ad65a593b92ca35",
+      "excerpt": "package reliquary.entity;\n\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.tags.FluidTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.FishingHook;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.material.FluidState;\nimport net.minecraft.world.phys.Vec3;\nimport reliquary.init.ModEntities;\nimport reliquary.init.ModItems;\nimport reliquary.reference.Config;\n\nimport java.util.List;\nimport java.util.Optional;\n\npublic class LyssaHook extends FishingHook {\n\tpublic LyssaHook(EntityType<LyssaHook> entityType, Level level) {\n\t\tthis(entityType, level, 0, 0);\n\t}\n\n\tprivate LyssaHook(EntityType<LyssaHook> entityType, Level level, int luck, int lureSpeed) {\n\t\tsuper(entityType, level, luck, lureSpeed);\n\t}\n\n\tpublic LyssaHook(Level level, Player fishingPlayer, int lureSpeed, int luck) {\n\t\tthis(ModEntities.LYSSA_HOOK.get(), level, luck, lureSpeed);\n\t\tsetOwner(fishingPlayer);\n\t\tshoot(fishingPlayer);\n\n\t\t// Reliquary\n\t\tspeedUp();\n\t}\n\n\tprivate void shoot(Player fishingPlayer) {\n\t\tfloat f = fishingPlayer.getXRot();\n\t\tfloat f1 = fishingPlayer.getYRot();\n\t\tfloat f2 = Mth.cos(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);\n\t\tfloat f3 = Mth.sin(-f1 * ((float) Math.PI / 180F) - (float) Math.PI);\n\t\tfloat f4 = -Mth.cos(-f * ((float) Math.PI / 180F));\n\t\tfloat f5 = Mth.sin(-f * ((float) Math.PI / 180F));\n\t\tdouble d0 = fishingPlayer.getX() - f3 * 0.3D;\n\t\tdouble d1 = fishingPlayer.getEyeY();\n\t\tdouble d2 = fishingPlayer.getZ() - f2 * 0.3D;\n\t\tmoveTo(d0, d1, d2, f1, f);\n\t\tVec3 vec3 = new Vec3(-f3, Mth.clamp(-(f5 / f4), -5.0F, 5.0F), -f2);\n\t\tdouble d3 = vec3.length();\n\t\tvec3 = vec3.multiply(0.6D / d3 + 0.5D + random.nextGaussian() * 0.0045D, 0.6D / d3 + 0.5D + random.nextGaussian() * 0.0045D,\n\t\t\t\t0.6D / d3 + 0.5D + random.nextGaussian() * 0.0045D);\n\t\tsetDeltaMovement(vec3);\n\t\tsetYRot((float) (Mth.atan2(vec3.x, vec3.z) * (180F / (float) Math.PI)));\n\t\tsetXRot((float) (Mth.atan2(vec3.y, vec3.horizontalDistance()) * (180F / (float) Math.PI)));\n\t\tyRotO = getYRot();\n\t\txRotO = getXRot();\n\t}\n\n\t@Override\n\tpublic boolean shouldRenderAtSqrDistance(double distance) {\n\t\t// much higher visible range than regular hook\n\t\treturn distance < 16384;\n\t}\n\n\tpublic Optional<Player> getFishingPlayer() {\n\t\tEntity entity = getOwner();\n\t\treturn Optional.ofNullable(entity instanceof Player player ? player : null);\n\t}\n\n\tprivate void speedUp() {\n\t\t// faster speed of the hook except for casting down\n\n\t\tif (getDeltaMovement().y() >= 0) {\n\t\t\tsetDeltaMovement(getDeltaMovement().multiply(2, 2, 2));\n\t\t}\n\t}\n\n\t@Override\n\tpublic void tick() {\n\t\tsuper.tick();\n\n\t\tpullItemEntitiesTowardsHook();\n\t}\n\n\t@Override\n\tprotected boolean shouldStopFishing(Player fishingPlayer) {\n\t\tItemStack itemstack = fishingPlayer.getMainHandItem();\n\t\tItemStack itemstack1 = fishingPlayer.getOffhandItem();\n\t\tboolean flag = itemstack.getItem() == ModItems.ROD_OF_LYSSA.get();\n\t\tboolean flag1 = itemstack1.getItem() == ModItems.ROD_OF_LYSSA.get();\n\t\tif (fishingPlayer.isAlive() && (flag || flag1) && distanceToSqr(fishingPlayer) <= 10240.0D) {\n\t\t\treturn false;\n\t\t} else {\n\t\t\tdiscard();\n\t\t\treturn true;\n\t\t}\n\t}\n\n\tprivate void pullItemEntitiesTowardsHook() {\n\t\tif (isAlive() && getHookedIn() == null) {\n\t\t\tfloat f = 0.0F;\n\t\t\tBlockPos blockpos = blockPosition();\n\n\t\t\tFluidState fluidState = level().getFluidState(blockpos);\n\t\t\tif (fluidState.is(FluidTags.WATER)) {\n\t\t\t\tf = fluidState.getHeight(level(), blockpos);\n\t\t\t}\n\n\t\t\tif (f <= 0F) {\n\t\t\t\tList<ItemEntity> list = level().getEntitiesOfClass(ItemEntity.class, getBoundingBox().expandTowards(getDeltaMovement()).inflate(3.0D));\n\n\t\t\t\tfor (ItemEntity e : list) {\n\t\t\t\t\tVec3 pullVector = new Vec3(getX() - e.getX(), getY() - e.getY(), getZ() - e.getZ()).normalize();\n\t\t\t\t\te.setDeltaMovement(pullVector.multiply(0.4D, 0.4D, 0.4D));\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\tpublic void handleHookRetraction(ItemStack stack) {\n\t\tif (!level().isClientSide) {\n\t\t\tEntity hookedIn = getHookedIn();\n\t\t\tif (hookedIn != null && getFishingPlayer().map(Entity::isCrouching).orElse(false) && canStealFromEntity()) {\n\t\t\t\tstealFromLivingEntity();\n\t\t\t\tdiscard();\n\t\t\t} else {\n\t\t\t\tif (!level().isClientSide && getFishingPlayer().isPresent() && hookedIn != null) {\n\t\t\t\t\tbringInHookedEntity();\n\t\t\t\t\tlevel().broadcastEntityEvent(this, (byte) 31);\n\t\t\t\t\tdiscard();\n\t\t\t\t} else {\n\t\t\t\t\tsuper.retrieve(stack);\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tpullItemEntitiesWithHook();\n\t\t}\n\n\t}\n\n\tprivate void bringInHookedEntity() {\n\t\tEntity hookedIn = getHookedIn();\n\t\tif (hookedIn != null) {\n\t\t\tsuper.pullEntity(hookedIn);\n\t\t}\n\n\t\tif (hookedIn instanceof ItemEntity) {\n\t\t\thookedIn.setDeltaMovement(hookedIn.getDeltaMovement().multiply(4D, 4D, 4D));\n\t\t} else if (hookedIn instanceof LivingEntity) {\n\t\t\thookedIn.setDeltaMovement(hookedIn.getDeltaMovement().multiply(1, 1.5D, 1));\n\t\t}\n\t}\n\n\tprivate boolean canStealFromEntity() {\n\t\tEntity hookedIn = getHookedIn();\n\t\treturn hookedIn instanceof LivingEntity && (Config.COMMON.items.rodOfLyssa.stealFromPlayers.get() || !(hookedIn instanceof Player))\n\t\t\t\t&& Config.COMMON.items.rodOfLyssa.canStealFromEntity(hookedIn);\n\t}\n\n\tprivate void pullItemEntitiesWithHook() {\n\t\tList<ItemEntity> pullingItemsList = level().getEntitiesOfClass(ItemEntity.class,\n\t\t\t\tgetBoundingBox().expandTowards(getDeltaMovement()).inflate(1.0D, 1.0D, 1.0D));\n\n\t\tgetFishingPlayer().ifPresent(p -> {\n\t\t\tfor (ItemEntity e : pullingItemsList) {\n\t\t\t\tdouble d1 = p.getX() - getX();\n\t\t\t\tdouble d3 = p.getY() - getY();\n\t\t\t\tdouble d5 = p.getZ() - getZ();\n\t\t\t\tdouble d7 = Math.sqrt(d1 * d1 + d3 * d3 + d5 * d5);\n\t\t\t\tdouble d9 = 0.1D;\n\t\t\t\te.setDeltaMovement(d1 * d9, d3 * d9 + Math.sqrt(d7) * 0.08D, d5 * d9);\n\t\t\t}\n\t\t});\n\t}\n\n\tprivate void stealFromLivingEntity() {\n\t\tif (!(getHookedIn() instanceof LivingEntity livingEntity)) {\n\t\t\treturn;\n\t\t}\n\t\tEquipmentSlot slotBeingStolenFrom = EquipmentSlot.values()[level().random.nextInt(EquipmentSlot.values().length)];\n\n\t\tItemStack stolenStack = livingEntity.getItemBySlot(slotBeingStolenFrom);\n\t\tif (stolenStack.isEmpty() && Boolean.TRUE.equals(Config.COMMON.items.rodOfLyssa.stealFromVacantSlots.get())) {\n\t\t\tfor (EquipmentSlot slot : EquipmentSlot.values()) {\n\t\t\t\tstolenStack = livingEntity.getItemBySlot(slot);\n\t\t\t\tif (!stolenStack.isEmpty() && canDropFromSlot(livingEntity, slot)) {\n\t\t\t\t\tslotBeingStolenFrom = slot;\n\t\t\t\t\tbreak;\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\n\t\tfloat failProbabilityFactor;\n\n\t\tOptional<Player> p = getFishingPlayer();\n\n\t\tif (p.isEmpty()) {\n\t\t\treturn;\n\t\t}\n\n\t\tPlayer fishingPlayer = p.get();\n\n\t\tif (Boolean.TRUE.equals(Config.COMMON.items.rodOfLyssa.useLeveledFailureRate.get())) {\n\t\t\tfailProbabilityFactor = 1F\n\t\t\t\t\t/ ((float) Math.sqrt(Math.max(1, Math.min(fishingPlayer.experienceLevel, Config.COMMON.items.rodOfLyssa.levelCapForLeveledFormula.get())))\n\t\t\t\t\t\t\t* 2);\n\t\t} else {\n\t\t\tfailProbabilityFactor = Config.COMMON.items.rodOfLyssa.flatStealFailurePercentRate.get() / 100F;\n\t\t}\n\n\t\tif ((random.nextFloat() <= failProbabilityFactor || (stolenStack.isEmpty() && Config.COMMON.items.rodOfLyssa.failStealFromVacantSlots.get()))\n\t\t\t\t&& Boolean.TRUE.equals(Config.COMMON.items.rodOfLyssa.angerOnStealFailure.get())) {\n\t\t\tlivingEntity.hurt(damageSources().playerAttack(fishingPlayer), 0.0F);\n\t\t\treturn;\n\t\t}\n\t\tif (!stolenStack.isEmpty() && level() instanceof ServerLevel serverLevel) {\n\t\t\tint randomItemDamage = level().random.nextInt(3);\n\t\t\tstolenStack.hurtAndBreak(randomItemDamage, serverLevel, livingEntity, e -> {\n\t\t\t});\n\t\t\tif (!stolenStack.isEmpty()) {\n\t\t\t\tItemEntity entityitem = new ItemEntity(level(), getX(), getY(), getZ(), stolenStack);\n\t\t\t\tentityitem.setPickUpDelay(5);\n\t\t\t\tdouble d1 = fishingPlayer.getX() - getX();\n\t\t\t\tdouble d3 = fishingPlayer.getY() - getY();\n\t\t\t\tdouble d5 = fishingPlayer.getZ() - getZ();\n\t\t\t\tdouble d7 = Math.sqrt(d1 * d1 + d3 * d3 + d5 * d5);\n\t\t\t\tdouble d9 = 0.1D;\n\t\t\t\tentityitem.setDeltaMovement(d1 * d9, d3 * d9 + Math.sqrt(d7) * 0.08D, d5 * d9);\n\t\t\t\tlevel().addFreshEntity(entityitem);\n\t\t\t}\n\n\t\t\tlivingEntity.setItemSlot(slotBeingStolenFrom, ItemStack.EMPTY);\n\t\t}\n\t}\n\n\tprivate boolean canDropFromSlot(LivingEntity entity, EquipmentSlot slot) {\n\t\tif (!(entity instanceof Mob mob)) {\n\t\t\treturn true;\n\t\t}\n\n\t\tif (slot.getType() == EquipmentSlot.Type.HAND) {\n\t\t\treturn mob.handDropChances[slot.getIndex()] > -1;\n\t\t} else {\n\t\t\treturn mob.armorDropChances[slot.getIndex()] > -1;\n\t\t}\n\t}\n}\n",
+      "whole_file": true,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        875,
+        932
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "dac0a45c6175b385af925020e0104b1e80898cd73202b400e6b0697f3c12f3b7",
+      "excerpt": "\t\t\tpublic static class RodOfLyssaSettings {\n\t\t\t\tpublic final BooleanValue useLeveledFailureRate;\n\t\t\t\tpublic final IntValue levelCapForLeveledFormula;\n\t\t\t\tpublic final IntValue flatStealFailurePercentRate;\n\t\t\t\tpublic final BooleanValue stealFromVacantSlots;\n\t\t\t\tpublic final BooleanValue failStealFromVacantSlots;\n\t\t\t\tpublic final BooleanValue angerOnStealFailure;\n\t\t\t\tpublic final BooleanValue stealFromPlayers;\n\t\t\t\tprivate static final String ENTITY_NAME_MATCHER = \"[a-z1-9_.-]+:[a-z1-9_/.-]+\";\n\t\t\t\t@SuppressWarnings(\"java:S4968\")\n\t\t\t\t// ? extends String is the type parameter returned from defineList so it can't be just String here\n\t\t\t\tpublic final ModConfigSpec.ConfigValue<List<? extends String>> entityBlockList;\n\t\t\t\t@Nullable\n\t\t\t\tprivate Set<EntityType<?>> blockedEntities = null;\n\n\t\t\t\tRodOfLyssaSettings(ModConfigSpec.Builder builder) {\n\t\t\t\t\tbuilder.comment(\"Rod of Lyssa settings\").translation(translationKey(\"items.rodOfLyssa\")).push(\"rodOfLyssa\");\n\n\t\t\t\t\tuseLeveledFailureRate = builder.comment(\"Whether level influences stealing failure rate of the rod\").define(\"useLeveledFailureRate\", true);\n\n\t\t\t\t\tlevelCapForLeveledFormula = builder.comment(\"The experience level cap after which the failure rate is at a minimum and doesn't get better\")\n\t\t\t\t\t\t\t.defineInRange(\"levelCapForLeveledFormula\", 100, 1, 900);\n\n\t\t\t\t\tflatStealFailurePercentRate = builder.comment(\"The flat failure rate in case failure rate isn't influenced by player's level\")\n\t\t\t\t\t\t\t.defineInRange(\"flatStealFailurePercentRate\", 10, 0, 100);\n\n\t\t\t\t\tstealFromVacantSlots = builder.comment(\n\t\t\t\t\t\t\t\"If set to false it goes through additional 4 accessible slots and looks for items in case the one selected randomly was empty\")\n\t\t\t\t\t\t\t.define(\"stealFromVacantSlots\", true);\n\n\t\t\t\t\tfailStealFromVacantSlots = builder.comment(\"Whether stealing from an empty slot triggers failure even if otherwise it would be successful\")\n\t\t\t\t\t\t\t.define(\"failStealFromVacantSlots\", false);\n\n\t\t\t\t\tangerOnStealFailure = builder.comment(\"Whether entities get angry at player if stealing fails\").define(\"angerOnStealFailure\", true);\n\n\t\t\t\t\tstealFromPlayers = builder.comment(\"Allows switching stealing from player on and off\").define(\"stealFromPlayers\", true);\n\n\t\t\t\t\tentityBlockList = builder.comment(\"List of entities on which lyssa rod doesn't work - full registry name is required here\").defineList(\n\t\t\t\t\t\t\t\"entityBlockList\", new ArrayList<>(), () -> BuiltInRegistries.ENTITY_TYPE.getKey(EntityType.ZOMBIE).toString(),\n\t\t\t\t\t\t\tmapping -> ((String) mapping).matches(ENTITY_NAME_MATCHER));\n\t\t\t\t\tbuilder.pop();\n\t\t\t\t}\n\n\t\t\t\tpublic boolean canStealFromEntity(Entity entity) {\n\t\t\t\t\tif (blockedEntities == null) {\n\t\t\t\t\t\tinitBlockedEntityTypes();\n\t\t\t\t\t}\n\t\t\t\t\treturn !blockedEntities.contains(entity.getType());\n\t\t\t\t}\n\n\t\t\t\tprivate void initBlockedEntityTypes() {\n\t\t\t\t\tblockedEntities = new HashSet<>();\n\t\t\t\t\tfor (var entityName : entityBlockList.get()) {\n\t\t\t\t\t\tBuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(entityName)).ifPresent(blockedEntities::add);\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        214,
+        255
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "d62469f28d6657b599d1f677fdf4b97371f9c1e6af218b3fbbf8dc67167d0136",
+      "excerpt": "\t\t\t\tangelicFeather = new AngelicFeatherSettings(builder);\n\t\t\t\tangelHeartVial = new AngelHeartVialSettings(builder);\n\t\t\t\tdestructionCatalyst = new DestructionCatalystSettings(builder);\n\t\t\t\temperorChalice = new EmperorChaliceSettings(builder);\n\t\t\t\tenderStaff = new EnderStaffSettings(builder);\n\t\t\t\tfortuneCoin = new FortuneCoinSettings(builder);\n\t\t\t\tglacialStaff = new GlacialStaffSettings(builder);\n\t\t\t\thandgun = new HandgunSettings(builder);\n\t\t\t\tharvestRod = new HarvestRodSettings(builder);\n\t\t\t\theroMedallion = new HeroMedallionSettings(builder);\n\t\t\t\ticeMagusRod = new IceMagusRodSettings(builder);\n\t\t\t\tinfernalChalice = new InfernalChaliceSettings(builder);\n\t\t\t\tinfernalClaws = new InfernalClawsSettings(builder);\n\t\t\t\tinfernalTear = new InfernalTearSettings(builder);\n\t\t\t\tkrakenShell = new KrakenShellSettings(builder);\n\t\t\t\tlanternOfParanoia = new LanternOfParanoiaSettings(builder);\n\t\t\t\tmidasTouchstone = new MidasTouchstoneSettings(builder);\n\t\t\t\tmobCharm = new MobCharmSettings(builder);\n\t\t\t\tmobCharmFragment = new MobCharmFragmentSettings(builder);\n\t\t\t\tphoenixDown = new PhoenixDownSettings(builder);\n\t\t\t\tpyromancerStaff = new PyromancerStaffSettings(builder);\n\t\t\t\trendingGale = new RendingGaleSettings(builder);\n\t\t\t\trodOfLyssa = new RodOfLyssaSettings(builder);\n\t\t\t\tseekerShot = new SeekerShotSettings(builder);\n\t\t\t\tsojournerStaff = new SojournerStaffSettings(builder);\n\t\t\t\ttwilightCloak = new TwilightCloakSettings(builder);\n\t\t\t\tvoidTear = new VoidTearSettings(builder);\n\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\n\t\t\tpublic final AlkahestryTomeSettings alkahestryTome;\n\n\t\t\tpublic static class AlkahestryTomeSettings {\n\t\t\t\tpublic final IntValue chargeLimit;\n\n\t\t\t\tAlkahestryTomeSettings(ModConfigSpec.Builder builder) {\n\t\t\t\t\tbuilder.comment(\"Alkahestry Tome settings\").translation(translationKey(\"items.alkahestryTome\")).push(\"alkahestryTome\");\n\n\t\t\t\t\tchargeLimit = builder.comment(\"Charge limit of the tome\").defineInRange(\"chargeLimit\", 1000, 0, ITEM_CAP);\n\n\t\t\t\t\tbuilder.pop();\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModDataComponents.java",
+      "lines": [
+        1,
+        32
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModDataComponents.java",
+        "sha256": "7ae682ccd5ad1fdb959b3bf7c20f722f6fc519a18dd9a6a54c47b24ee33ac3d0",
+        "bytes": 8365
+      },
+      "git_blob_sha1": "bf90ffa8246665ec22bdd957edf8c2ba98b9b0af",
+      "excerpt_sha256": "a99a8297581e541cd6aad904203527f02c93f73a1ae94923dab55d58c49e81d7",
+      "excerpt": "package reliquary.init;\n\nimport com.mojang.serialization.Codec;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.component.DataComponentType;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.network.codec.ByteBufCodecs;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.util.ExtraCodecs;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.neoforge.fluids.SimpleFluidContent;\nimport net.neoforged.neoforge.registries.DeferredRegister;\nimport reliquary.Reliquary;\nimport reliquary.item.*;\nimport reliquary.item.component.OversizedItemContainerContents;\nimport reliquary.util.CodecHelper;\n\nimport java.util.HashSet;\nimport java.util.Map;\nimport java.util.Set;\nimport java.util.function.Supplier;\n\npublic class ModDataComponents {\n\tprivate static final DeferredRegister<DataComponentType<?>> DATA_COMPONENT_TYPES = DeferredRegister.create(BuiltInRegistries.DATA_COMPONENT_TYPE,\n\t\t\tReliquary.MOD_ID);\n\n\tpublic static final Supplier<DataComponentType<ResourceLocation>> ENTITY_NAME = DATA_COMPONENT_TYPES.register(\"entity_name\",\n\t\t\t() -> new DataComponentType.Builder<ResourceLocation>().persistent(ResourceLocation.CODEC).networkSynchronized(ResourceLocation.STREAM_CODEC)\n\t\t\t\t\t.build());\n\n\tpublic static final Supplier<DataComponentType<SimpleFluidContent>> FLUID_CONTENTS = DATA_COMPONENT_TYPES.register(\"fluid_contents\",\n\t\t\t() -> new DataComponentType.Builder<SimpleFluidContent>().persistent(SimpleFluidContent.CODEC).networkSynchronized(SimpleFluidContent.STREAM_CODEC)\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModDataComponents.java",
+      "lines": [
+        102,
+        120
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModDataComponents.java",
+        "sha256": "7ae682ccd5ad1fdb959b3bf7c20f722f6fc519a18dd9a6a54c47b24ee33ac3d0",
+        "bytes": 8365
+      },
+      "git_blob_sha1": "bf90ffa8246665ec22bdd957edf8c2ba98b9b0af",
+      "excerpt_sha256": "b766111d17b6575b786d3a72bf3c63b0fe0f6cfd7af3630d4b21baf7ff036e2c",
+      "excerpt": "\n\tpublic static final Supplier<DataComponentType<RendingGaleItem.Mode>> RENDING_GALE_MODE = DATA_COMPONENT_TYPES.register(\"rending_gale_mode\",\n\t\t\t() -> new DataComponentType.Builder<RendingGaleItem.Mode>().persistent(RendingGaleItem.Mode.CODEC)\n\t\t\t\t\t.networkSynchronized(RendingGaleItem.Mode.STREAM_CODEC).build());\n\n\tpublic static final Supplier<DataComponentType<Integer>> HOOK_ENTITY_ID = DATA_COMPONENT_TYPES.register(\"hook_entity_id\",\n\t\t\t() -> new DataComponentType.Builder<Integer>().persistent(Codec.INT).networkSynchronized(ByteBufCodecs.INT).build());\n\n\tpublic static final Supplier<DataComponentType<Byte>> TORCH_INDEX = DATA_COMPONENT_TYPES.register(\"torch_index\",\n\t\t\t() -> new DataComponentType.Builder<Byte>().persistent(Codec.BYTE).networkSynchronized(ByteBufCodecs.BYTE).build());\n\n\tpublic static final Supplier<DataComponentType<VoidTearItem.Mode>> VOID_TEAR_MODE = DATA_COMPONENT_TYPES.register(\"void_tear_mode\",\n\t\t\t() -> new DataComponentType.Builder<VoidTearItem.Mode>().persistent(VoidTearItem.Mode.CODEC).networkSynchronized(VoidTearItem.Mode.STREAM_CODEC)\n\t\t\t\t\t.build());\n\n\tpublic static void register(IEventBus modBus) {\n\t\tDATA_COMPONENT_TYPES.register(modBus);\n\t}\n}\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModItems.java",
+      "lines": [
+        91,
+        115
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+        "sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+        "bytes": 25304
+      },
+      "git_blob_sha1": "e6de6be1852bcae823167805992a848ea98c7aa1",
+      "excerpt_sha256": "3c00c0a108a14205af97d5cb2fa23c038e317ac777ad8f01754098ace0cef6f3",
+      "excerpt": "\tpublic static final Supplier<ItemBase> GRIP_ASSEMBLY = ITEMS.register(\"grip_assembly\",\n\t\t\t() -> new ItemBase(new Item.Properties().stacksTo(4), Config.COMMON.disable.disableHandgun));\n\tpublic static final Supplier<ItemBase> BARREL_ASSEMBLY = ITEMS.register(\"barrel_assembly\",\n\t\t\t() -> new ItemBase(new Item.Properties().stacksTo(4), Config.COMMON.disable.disableHandgun));\n\tpublic static final Supplier<ItemBase> HAMMER_ASSEMBLY = ITEMS.register(\"hammer_assembly\",\n\t\t\t() -> new ItemBase(new Item.Properties().stacksTo(4), Config.COMMON.disable.disableHandgun));\n\tpublic static final Supplier<HarvestRodItem> HARVEST_ROD = ITEMS.register(\"harvest_rod\", HarvestRodItem::new);\n\tpublic static final Supplier<MobCharmFragmentItem> MOB_CHARM_FRAGMENT = ITEMS.register(\"mob_charm_fragment\", MobCharmFragmentItem::new);\n\tpublic static final Supplier<HeroMedallionItem> HERO_MEDALLION = ITEMS.register(\"hero_medallion\", HeroMedallionItem::new);\n\tpublic static final Supplier<IceMagusRodItem> ICE_MAGUS_ROD = ITEMS.register(\"ice_magus_rod\", IceMagusRodItem::new);\n\tpublic static final Supplier<InfernalChaliceItem> INFERNAL_CHALICE = ITEMS.register(\"infernal_chalice\", InfernalChaliceItem::new);\n\tpublic static final Supplier<InfernalClawsItem> INFERNAL_CLAWS = ITEMS.register(\"infernal_claws\", InfernalClawsItem::new);\n\tpublic static final Supplier<InfernalTearItem> INFERNAL_TEAR = ITEMS.register(\"infernal_tear\", InfernalTearItem::new);\n\tpublic static final Supplier<KrakenShellItem> KRAKEN_SHELL = ITEMS.register(\"kraken_shell\", KrakenShellItem::new);\n\tpublic static final Supplier<MidasTouchstoneItem> MIDAS_TOUCHSTONE = ITEMS.register(\"midas_touchstone\", MidasTouchstoneItem::new);\n\tpublic static final Supplier<PhoenixDownItem> PHOENIX_DOWN = ITEMS.register(\"phoenix_down\", PhoenixDownItem::new);\n\tpublic static final Supplier<PyromancerStaffItem> PYROMANCER_STAFF = ITEMS.register(\"pyromancer_staff\", PyromancerStaffItem::new);\n\tpublic static final Supplier<RendingGaleItem> RENDING_GALE = ITEMS.register(\"rending_gale\", RendingGaleItem::new);\n\tpublic static final Supplier<RodOfLyssaItem> ROD_OF_LYSSA = ITEMS.register(\"rod_of_lyssa\", RodOfLyssaItem::new);\n\tpublic static final Supplier<SojournerStaffItem> SOJOURNER_STAFF = ITEMS.register(\"sojourner_staff\", SojournerStaffItem::new);\n\tpublic static final Supplier<TippedArrowItem> TIPPED_ARROW = ITEMS.register(\"tipped_arrow\", TippedArrowItem::new);\n\tpublic static final Supplier<VoidTearItem> VOID_TEAR = ITEMS.register(\"void_tear\", VoidTearItem::new);\n\tpublic static final Supplier<WitchHatItem> WITCH_HAT = ITEMS.register(\"witch_hat\", WitchHatItem::new);\n\tpublic static final Supplier<WitherlessRoseItem> WITHERLESS_ROSE = ITEMS.register(\"witherless_rose\", WitherlessRoseItem::new);\n\tpublic static final Supplier<ItemBase> EMPTY_POTION_VIAL = ITEMS.register(\"empty_potion_vial\", () -> new ItemBase(Config.COMMON.disable.disablePotions));\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModEntities.java",
+      "lines": [
+        46,
+        66
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModEntities.java",
+        "sha256": "a9e41f03e541f35719a983c31382598d8ba6475ff25897274c50dcbc5ab706e1",
+        "bytes": 5276
+      },
+      "git_blob_sha1": "26259f39596c41aa9285ec26634256670cb102f4",
+      "excerpt_sha256": "a963b1fa89f9a2727b01441f720a5fe996bbe7f76940af5548873614983e9a19",
+      "excerpt": "\tpublic static final Supplier<EntityType<GlowingWater>> GLOWING_WATER = ENTITY_TYPES.register(\"glowing_water\",\n\t\t\t() -> getDefaultSizeEntityType(GlowingWater::new));\n\tpublic static final Supplier<EntityType<HolyHandGrenade>> HOLY_HAND_GRENADE = ENTITY_TYPES.register(\"holy_hand_grenade\",\n\t\t\t() -> getDefaultSizeEntityType(HolyHandGrenade::new));\n\tpublic static final Supplier<EntityType<KrakenSlime>> KRAKEN_SLIME = ENTITY_TYPES.register(\"kraken_slime\",\n\t\t\t() -> getDefaultSizeEntityType(KrakenSlime::new));\n\tpublic static final Supplier<EntityType<LyssaHook>> LYSSA_HOOK = ENTITY_TYPES.register(\"lyssa_hook\", () -> getDefaultSizeEntityType(LyssaHook::new));\n\tpublic static final Supplier<EntityType<TippedArrow>> TIPPED_ARROW = ENTITY_TYPES.register(\"tipped_arrow\",\n\t\t\t() -> getDefaultSizeEntityType(TippedArrow::new));\n\tpublic static final Supplier<EntityType<SpecialSnowball>> SPECIAL_SNOWBALL = ENTITY_TYPES.register(\"special_snowball\",\n\t\t\t() -> getEntityType(SpecialSnowball::new, 0.01F, 0.01F));\n\n\tpublic static final ResourceKey<DamageType> BULLET_DAMAGE_TYPE = ResourceKey.create(Registries.DAMAGE_TYPE, Reliquary.getRL(\"bullet\"));\n\n\tprivate ModEntities() {\n\t}\n\n\tpublic static void registerListeners(IEventBus modBus) {\n\t\tENTITY_TYPES.register(modBus);\n\t}\n\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/item/ItemBase.java",
+      "lines": [
+        1,
+        71
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/item/ItemBase.java",
+        "sha256": "3018f77ccbdb3f91cefa26e6fb115fbad876e161dfe92b6c1af204ef88efde0f",
+        "bytes": 2020
+      },
+      "git_blob_sha1": "e87a7cb54e5c66292c3cc07aa441cf5a3fb99f91",
+      "excerpt_sha256": "3018f77ccbdb3f91cefa26e6fb115fbad876e161dfe92b6c1af204ef88efde0f",
+      "excerpt": "package reliquary.item;\n\nimport net.minecraft.client.gui.screens.Screen;\nimport net.minecraft.core.HolderLookup;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.chat.MutableComponent;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.TooltipFlag;\nimport org.jetbrains.annotations.Nullable;\nimport reliquary.util.TooltipBuilder;\n\nimport java.util.List;\nimport java.util.function.Consumer;\nimport java.util.function.Supplier;\n\npublic class ItemBase extends Item implements ICreativeTabItemGenerator {\n\tprivate final Supplier<Boolean> isDisabled;\n\n\tpublic ItemBase() {\n\t\tthis(new Properties(), () -> false);\n\t}\n\n\tpublic ItemBase(Supplier<Boolean> isDisabled) {\n\t\tthis(new Properties(), isDisabled);\n\t}\n\n\tpublic ItemBase(Properties properties) {\n\t\tthis(properties, () -> false);\n\t}\n\n\tpublic ItemBase(Properties properties, Supplier<Boolean> isDisabled) {\n\t\tsuper(properties);\n\t\tthis.isDisabled = isDisabled;\n\t}\n\n\t@Override\n\tpublic void addCreativeTabItems(Consumer<ItemStack> itemConsumer) {\n\t\tif (Boolean.TRUE.equals(isDisabled.get())) {\n\t\t\treturn;\n\t\t}\n\n\t\titemConsumer.accept(new ItemStack(this));\n\t}\n\n\t@Override\n\tpublic void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {\n\t\tTooltipBuilder tooltipBuilder = TooltipBuilder.of(tooltip, context).itemTooltip(this);\n\n\t\tif (hasMoreInformation(stack)) {\n\t\t\ttooltipBuilder.showMoreInfo();\n\t\t\tif (Screen.hasShiftDown()) {\n\t\t\t\taddMoreInformation(stack, context.registries(), tooltipBuilder);\n\t\t\t}\n\t\t}\n\t}\n\n\t@SuppressWarnings(\"squid:S1172\") // parameter used in overrides\n\tprotected boolean hasMoreInformation(ItemStack stack) {\n\t\treturn false;\n\t}\n\n\tprotected void addMoreInformation(ItemStack stack, @Nullable HolderLookup.Provider registries, TooltipBuilder tooltipBuilder) {\n\t\t// overriden in child classes\n\t}\n\n\t@Override\n\tpublic MutableComponent getName(ItemStack stack) {\n\t\treturn Component.translatable(getDescriptionId(stack));\n\t}\n}\n",
+      "whole_file": true,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        205,
+        244
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "855c4fc4ba5462c6e607bd7d85e32bd506e6ba8acd511de22f9b6b53c1e05024",
+      "excerpt": "\t\t\t\tbuilder.pop();\n\t\t\t}\n\t\t}\n\n\t\tpublic static class ItemSettings {\n\t\t\tItemSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.translation(translationKey(\"items\")).push(\"items\");\n\n\t\t\t\talkahestryTome = new AlkahestryTomeSettings(builder);\n\t\t\t\tangelicFeather = new AngelicFeatherSettings(builder);\n\t\t\t\tangelHeartVial = new AngelHeartVialSettings(builder);\n\t\t\t\tdestructionCatalyst = new DestructionCatalystSettings(builder);\n\t\t\t\temperorChalice = new EmperorChaliceSettings(builder);\n\t\t\t\tenderStaff = new EnderStaffSettings(builder);\n\t\t\t\tfortuneCoin = new FortuneCoinSettings(builder);\n\t\t\t\tglacialStaff = new GlacialStaffSettings(builder);\n\t\t\t\thandgun = new HandgunSettings(builder);\n\t\t\t\tharvestRod = new HarvestRodSettings(builder);\n\t\t\t\theroMedallion = new HeroMedallionSettings(builder);\n\t\t\t\ticeMagusRod = new IceMagusRodSettings(builder);\n\t\t\t\tinfernalChalice = new InfernalChaliceSettings(builder);\n\t\t\t\tinfernalClaws = new InfernalClawsSettings(builder);\n\t\t\t\tinfernalTear = new InfernalTearSettings(builder);\n\t\t\t\tkrakenShell = new KrakenShellSettings(builder);\n\t\t\t\tlanternOfParanoia = new LanternOfParanoiaSettings(builder);\n\t\t\t\tmidasTouchstone = new MidasTouchstoneSettings(builder);\n\t\t\t\tmobCharm = new MobCharmSettings(builder);\n\t\t\t\tmobCharmFragment = new MobCharmFragmentSettings(builder);\n\t\t\t\tphoenixDown = new PhoenixDownSettings(builder);\n\t\t\t\tpyromancerStaff = new PyromancerStaffSettings(builder);\n\t\t\t\trendingGale = new RendingGaleSettings(builder);\n\t\t\t\trodOfLyssa = new RodOfLyssaSettings(builder);\n\t\t\t\tseekerShot = new SeekerShotSettings(builder);\n\t\t\t\tsojournerStaff = new SojournerStaffSettings(builder);\n\t\t\t\ttwilightCloak = new TwilightCloakSettings(builder);\n\t\t\t\tvoidTear = new VoidTearSettings(builder);\n\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModEntities.java",
+      "lines": [
+        67,
+        83
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModEntities.java",
+        "sha256": "a9e41f03e541f35719a983c31382598d8ba6475ff25897274c50dcbc5ab706e1",
+        "bytes": 5276
+      },
+      "git_blob_sha1": "26259f39596c41aa9285ec26634256670cb102f4",
+      "excerpt_sha256": "6db71bec606c16b0f8bb759ecf01cd3804e6f1bd4146b62cf853071731b877bc",
+      "excerpt": "\tprivate static <T extends Entity> EntityType<T> getDefaultSizeEntityType(EntityType.EntityFactory<T> factory) {\n\t\treturn getEntityType(factory, 0.25F, 0.25F);\n\t}\n\n\tprivate static <T extends ShotBase> EntityType<T> getShotEntityType(EntityType.EntityFactory<T> factory) {\n\t\treturn getEntityType(factory, 0.01F, 0.01F);\n\t}\n\n\tprivate static <T extends Entity> EntityType<T> getEntityType(EntityType.EntityFactory<T> factory, float width, float height) {\n\t\treturn getEntityType(factory, width, height, 128);\n\t}\n\n\tprivate static <T extends Entity> EntityType<T> getEntityType(EntityType.EntityFactory<T> factory, float width, float height, int trackingRange) {\n\t\treturn EntityType.Builder.of(factory, MobCategory.MISC).sized(width, height).updateInterval(5).setTrackingRange(trackingRange)\n\t\t\t\t.setShouldReceiveVelocityUpdates(true).build(\"\");\n\t}\n}\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModItems.java",
+      "lines": [
+        275,
+        291
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+        "sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+        "bytes": 25304
+      },
+      "git_blob_sha1": "e6de6be1852bcae823167805992a848ea98c7aa1",
+      "excerpt_sha256": "0a74950ee17012be1651fdaa67a0f208bd038bf3fee2569dee57bbc61e163e74",
+      "excerpt": "\tpublic static void registerListeners(IEventBus modBus) {\n\t\tITEMS.register(modBus);\n\t\tMENU_TYPES.register(modBus);\n\t\tRECIPE_TYPES.register(modBus);\n\t\tRECIPE_SERIALIZERS.register(modBus);\n\t\tCONDITION_CODECS.register(modBus);\n\t\tLOOT_CONDITION_TYPES.register(modBus);\n\t\tLOOT_MODIFIERS.register(modBus);\n\t\tCREATIVE_MODE_TABS.register(modBus);\n\t\tATTACHMENT_TYPES.register(modBus);\n\t\tARMOR_MATERIALS.register(modBus);\n\t\tmodBus.addListener(ModItems::registerCapabilities);\n\t\tNeoForge.EVENT_BUS.addListener(ModItems::onResourceReload);\n\n\t\tif (FMLEnvironment.dist.isClient()) {\n\t\t\tModItemsClient.init(modBus);\n\t\t}\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    },
+    {
+      "source": "src/main/java/reliquary/init/ModItems.java",
+      "lines": [
+        292,
+        299
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/init/ModItems.java",
+        "sha256": "b97d79029a92c87aed4da102a397aec3cebeeed53d5db309b11f4913e2d0ca0b",
+        "bytes": 25304
+      },
+      "git_blob_sha1": "e6de6be1852bcae823167805992a848ea98c7aa1",
+      "excerpt_sha256": "e54eadeea08c3511b4fd2324945ecd98cc70e04fb5982772fc003d9546c4f099",
+      "excerpt": "\t}\n\n\tprivate static void onResourceReload(AddReloadListenerEvent event) {\n\t\tMobCharmRecipe.REGISTERED_RECIPES.clear();\n\t}\n\n\tprivate static void registerCapabilities(RegisterCapabilitiesEvent event) {\n\t\tevent.registerItem(Capabilities.FluidHandler.ITEM, (itemStack, context) -> new FluidHandlerHeroMedallion(itemStack), HERO_MEDALLION.get());\n",
+      "whole_file": false,
+      "reading": "actually-new-123-reading"
+    }
+  ],
+  "new_read_summary": {
+    "ranges": 13,
+    "shown_lines": 667,
+    "distinct_lines": 636,
+    "files": 7,
+    "whole_files": [
+      "src/main/java/reliquary/item/RodOfLyssaItem.java",
+      "src/main/java/reliquary/entity/LyssaHook.java",
+      "src/main/java/reliquary/item/ItemBase.java"
+    ]
+  },
+  "reused122_ranges": [
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1,
+        65
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "27d3d994e84243d5aa90e977adc6f6fd8e1b3bd3769fbe1c002e882ad7116b47",
+      "excerpt": "package reliquary.reference;\n\nimport com.google.common.collect.Lists;\nimport net.minecraft.core.registries.BuiltInRegistries;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.block.Blocks;\nimport net.neoforged.fml.event.config.ModConfigEvent;\nimport net.neoforged.neoforge.common.ModConfigSpec;\nimport net.neoforged.neoforge.common.ModConfigSpec.*;\nimport org.apache.commons.lang3.tuple.Pair;\nimport reliquary.Reliquary;\nimport reliquary.client.gui.hud.HUDPosition;\nimport reliquary.util.potions.PotionMap;\n\nimport javax.annotation.Nullable;\n\nimport java.util.*;\nimport java.util.function.Predicate;\nimport java.util.regex.Pattern;\nimport java.util.stream.Collectors;\nimport java.util.stream.Stream;\n\nimport static reliquary.util.RegistryHelper.getItemRegistryName;\n\n@SuppressWarnings({\"java:S4968\", \"squid:S1192\"}) // ? extends String is the type parameter returned from defineList so it can't be just String here | no issue\n\t\t\t\t\t\t\t\t\t\t\t\t\t// repeating the same string literal as they are independent\npublic class Config {\n\tprivate Config() {\n\t}\n\n\tprivate static final int ITEM_CAP = 9999;\n\tprivate static final Pattern REGISTRY_NAME_PATTERN = Pattern.compile(\"([a-z0-9_.-]+:[a-z0-9_/.-]+)\");\n\tprivate static final Predicate<Object> REGISTRY_NAME_MATCHER = o -> o instanceof String s && REGISTRY_NAME_PATTERN.matcher(s).matches();\n\tprivate static final Predicate<Object> POTION_MAP_ENTRY_MATCHER = o -> o instanceof String s && s.matches(\"[a-z_:0-9]+=[a-z_0-9:.|;]+\");\n\n\tprivate static String translationKey(String path) {\n\t\treturn Reliquary.MOD_ID + \".configuration.\" + path;\n\t}\n\n\tpublic static <T> T getOrDefault(ModConfigSpec.ConfigValue<T> value, ModConfigSpec configSpec) {\n\t\treturn configSpec.isLoaded() ? value.get() : value.getDefault();\n\t}\n\n\t@SuppressWarnings(\"unused\")\n\t// parameter needs to stay for addListener logic to recognize what this method is listening to\n\tpublic static void onFileChange(ModConfigEvent.Reloading configEvent) {\n\t\tCOMMON.items.mobCharm.resetCache();\n\t\tCOMMON.items.sojournerStaff.resetCache();\n\t}\n\n\tpublic static class Client {\n\t\tpublic final HudPos hudPositions;\n\t\tpublic final BooleanValue wailaShiftForInfo;\n\n\t\tpublic static class HudPos {\n\t\t\tpublic final EnumValue<HUDPosition> sojournerStaff;\n\t\t\tpublic final EnumValue<HUDPosition> handgun;\n\t\t\tpublic final EnumValue<HUDPosition> alkahestryTome;\n\t\t\tpublic final EnumValue<HUDPosition> destructionCatalyst;\n\t\t\tpublic final EnumValue<HUDPosition> enderStaff;\n",
+      "whole_file": false,
+      "reading": "actual-122-reading-reused-with-currentbyte-check;not-new123read"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        116,
+        198
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "05e90f11695520b720b1d214e9204afa5c357773361d6b2934d70a9cffcdc66a",
+      "excerpt": "\tpublic static class Common {\n\t\tpublic final DisableSettings disable;\n\t\tpublic final PotionSettings potions;\n\t\tpublic final ItemSettings items;\n\t\tpublic final BlockSettings blocks;\n\t\tpublic final BooleanValue chestLootEnabled;\n\t\tpublic final BooleanValue dropCraftingRecipesEnabled;\n\t\tpublic final BooleanValue mobDropsEnabled;\n\n\t\tpublic static class DisableSettings {\n\t\t\tpublic final BooleanValue disableAlkahestry;\n\t\t\tpublic final BooleanValue disableHandgun;\n\t\t\tpublic final BooleanValue disablePotions;\n\t\t\tpublic final BooleanValue disablePedestal;\n\t\t\tpublic final BooleanValue disablePassivePedestal;\n\t\t\tpublic final BooleanValue disableSpawnEggRecipes;\n\t\t\tpublic final BooleanValue disableCharms;\n\n\t\t\tDisableSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.comment(\"Disable sections of the mod\").translation(translationKey(\"disable\")).push(\"disable\");\n\n\t\t\t\tdisableAlkahestry = builder.comment(\"Disable Alkahestry tome and its recipes\").translation(translationKey(\"disable.alkahestryTome\"))\n\t\t\t\t\t\t.worldRestart().define(\"alkahestryTome\", false);\n\n\t\t\t\tdisableHandgun = builder.comment(\"Disable the HANDGUN, bullets, magazines, and gun parts\").translation(translationKey(\"disable.handgun\"))\n\t\t\t\t\t\t.worldRestart().define(\"handgun\", false);\n\n\t\t\t\tdisablePotions = builder.comment(\"Disable the POTION system including mortar, altar, potions, tipped arrows, and powder\")\n\t\t\t\t\t\t.translation(translationKey(\"disable.potion\")).worldRestart().define(\"potion\", false);\n\n\t\t\t\tdisablePedestal = builder.comment(\"Disable all pedestals\").translation(translationKey(\"disable.pedestal\")).worldRestart().define(\"pedestal\",\n\t\t\t\t\t\tfalse);\n\n\t\t\t\tdisablePassivePedestal = builder.comment(\"Disable all display-only pedestals\").translation(translationKey(\"disable.passivePedestal\"))\n\t\t\t\t\t\t.worldRestart().define(\"passivePedestal\", false);\n\n\t\t\t\tdisableSpawnEggRecipes = builder.comment(\"Disable recipes to craft spawn eggs from fragments\")\n\t\t\t\t\t\t.translation(translationKey(\"disable.disableSpawnEggRecipes\")).worldRestart().define(\"disableSpawnEggRecipes\", false);\n\n\t\t\t\tdisableCharms = builder.comment(\"Disable all charms and their recipes\").translation(translationKey(\"disable.charms\")).worldRestart()\n\t\t\t\t\t\t.define(\"charms\", false);\n\n\t\t\t\tbuilder.pop();\n\t\t\t}\n\t\t}\n\n\t\tCommon(ModConfigSpec.Builder builder) {\n\t\t\tchestLootEnabled = builder\n\t\t\t\t\t.comment(\"Determines whether Reliquary items will be generated in chest loot (mostly mob drops, very rarely some lower level items)\")\n\t\t\t\t\t.worldRestart().define(\"chestLootEnabled\", true);\n\n\t\t\tdropCraftingRecipesEnabled = builder.comment(\"Determines whether Reliquary mob drops have crafting recipes\").define(\"dropCraftingRecipesEnabled\",\n\t\t\t\t\tfalse);\n\n\t\t\tmobDropsEnabled = builder.comment(\n\t\t\t\t\t\"Whether mobs drop the Reliquary mob drops. This won't remove mob drop items from registry and replace them with something else, but allows to turn off the additional drops when mobs are killed by player. If this is turned off the mob drop crafting recipes turned on by the other setting can be used.\")\n\t\t\t\t\t.worldRestart().define(\"mobDropsEnabled\", true);\n\n\t\t\tdisable = new DisableSettings(builder);\n\t\t\tpotions = new PotionSettings(builder);\n\t\t\titems = new ItemSettings(builder);\n\t\t\tblocks = new BlockSettings(builder);\n\t\t}\n\n\t\tpublic static class PotionSettings {\n\t\t\tpublic final ConfigValue<List<? extends String>> potionMap;\n\t\t\tpublic final IntValue maxEffectCount;\n\t\t\tpublic final BooleanValue threeIngredients;\n\t\t\tpublic final BooleanValue differentDurations;\n\t\t\tpublic final BooleanValue redstoneAndGlowstone;\n\n\t\t\tPotionSettings(ModConfigSpec.Builder builder) {\n\t\t\t\tbuilder.comment(\"Potions related settings\").translation(translationKey(\"potions\")).push(\"potions\");\n\n\t\t\t\tpotionMap = builder.comment(\"Map of POTION ingredients and their effects\").defineList(\"potionMap\", PotionMap::getDefaultConfigPotionMap,\n\t\t\t\t\t\t() -> \"minecraft:sugar=speed|3|0;haste|3|0\", POTION_MAP_ENTRY_MATCHER);\n\n\t\t\t\tmaxEffectCount = builder.comment(\"Maximum number of effects a POTION can have to appear in creative tabs / JEI\").defineInRange(\"maxEffectCount\",\n\t\t\t\t\t\t1, 1, 6);\n\n\t\t\t\tthreeIngredients = builder.comment(\"Whether potions that are made out of three base ingredients appear in creative tabs / JEI\")\n\t\t\t\t\t\t.define(\"threeIngredients\", false);\n\n",
+      "whole_file": false,
+      "reading": "actual-122-reading-reused-with-currentbyte-check;not-new123read"
+    },
+    {
+      "source": "src/main/java/reliquary/reference/Config.java",
+      "lines": [
+        1202,
+        1211
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/reference/Config.java",
+        "sha256": "e0a9930dfd295d332984dc4083177d1455a127a48324f9eb8a6bbf9b5dc5075b",
+        "bytes": 55927
+      },
+      "git_blob_sha1": "ed48b75b98af4d2b80d6a5d118adc0e45d184945",
+      "excerpt_sha256": "37b9728ac9e080c4e72ca7431e41c86cbf83f3dbeec8253669b8200a753ee179",
+      "excerpt": "\n\tpublic static final Common COMMON;\n\tpublic static final ModConfigSpec COMMON_SPEC;\n\n\tstatic {\n\t\tfinal Pair<Common, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Common::new);\n\t\tCOMMON_SPEC = specPair.getRight();\n\t\tCOMMON = specPair.getLeft();\n\t}\n}\n",
+      "whole_file": false,
+      "reading": "actual-122-reading-reused-with-currentbyte-check;not-new123read"
+    },
+    {
+      "source": "src/main/java/reliquary/Reliquary.java",
+      "lines": [
+        1,
+        86
+      ],
+      "file": {
+        "path": "tools/cod4/immune-feedback-research/sources/P3pp3rF1y__Reliquary/src/main/java/reliquary/Reliquary.java",
+        "sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+        "bytes": 3178
+      },
+      "git_blob_sha1": "1564c743bda7563d82c610640652a4d80f85abfe",
+      "excerpt_sha256": "944d7884fe9729a88653da80f7d20cfd8a6ca527963a5f175f100b249667ebb3",
+      "excerpt": "package reliquary;\n\nimport net.minecraft.resources.ResourceLocation;\nimport net.neoforged.api.distmarker.Dist;\nimport net.neoforged.bus.api.IEventBus;\nimport net.neoforged.fml.ModContainer;\nimport net.neoforged.fml.ModList;\nimport net.neoforged.fml.common.Mod;\nimport net.neoforged.fml.config.ModConfig;\nimport net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;\nimport net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;\nimport net.neoforged.neoforge.client.gui.ConfigurationScreen;\nimport net.neoforged.neoforge.client.gui.IConfigScreenFactory;\nimport net.neoforged.neoforge.common.NeoForge;\nimport net.neoforged.neoforge.common.NeoForgeMod;\nimport reliquary.client.init.ModParticles;\nimport reliquary.crafting.AlkahestryRecipeRegistry;\nimport reliquary.data.DataGenerators;\nimport reliquary.handler.ClientEventHandler;\nimport reliquary.handler.CommonEventHandler;\nimport reliquary.init.*;\nimport reliquary.item.MobCharmRegistry;\nimport reliquary.reference.Config;\nimport reliquary.util.potions.PotionMap;\n\n@Mod(Reliquary.MOD_ID)\npublic class Reliquary {\n\n\tpublic static final String MOD_ID = \"reliquary\";\n\tprivate static String networkProtocolVersion;\n\n\t@SuppressWarnings(\"java:S1118\") // needs to be public for mod to work\n\tpublic Reliquary(IEventBus modBus, Dist dist, ModContainer container) {\n\t\tnetworkProtocolVersion = container.getModInfo().getVersion().toString();\n\t\tNeoForgeMod.enableMilkFluid();\n\t\tif (dist == Dist.CLIENT && !ModList.get().isLoaded(\"configured\")) {\n\t\t\tcontainer.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);\n\t\t}\n\t\tif (dist == Dist.CLIENT) {\n\t\t\tClientEventHandler.registerHandlers(container);\n\t\t}\n\t\tmodBus.addListener(Reliquary::setup);\n\t\tmodBus.addListener(Reliquary::loadComplete);\n\t\tmodBus.addListener(Config::onFileChange);\n\t\tmodBus.addListener(DataGenerators::gatherData);\n\t\tmodBus.addListener(ModPayloads::registerPackets);\n\n\t\tModFluids.registerHandlers(modBus);\n\t\tModItems.registerListeners(modBus);\n\t\tModBlocks.registerListeners(modBus);\n\t\tModEntities.registerListeners(modBus);\n\t\tModEffects.registerListeners(modBus);\n\t\tModSounds.registerListeners(modBus);\n\t\tModParticles.registerListeners(modBus);\n\t\tModDataComponents.register(modBus);\n\n\t\tcontainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);\n\t\tcontainer.registerConfig(ModConfig.Type.COMMON, Config.COMMON_SPEC);\n\n\t\tIEventBus eventBus = NeoForge.EVENT_BUS;\n\t\tCommonEventHandler.registerEventBusListeners(eventBus);\n\t\teventBus.addListener(MobCharmRegistry::handleAddingFragmentDrops);\n\t\teventBus.addListener(AlkahestryRecipeRegistry::onResourceReload);\n\n\t\tModCompat.initCompats(modBus);\n\t}\n\n\tpublic static void setup(FMLCommonSetupEvent event) {\n\t\tevent.enqueueWork(ModItems::registerDispenseBehaviors);\n\t\tPotionMap.initPotionMap();\n\t\tModItems.registerHandgunMagazines();\n\t\tPedestalItems.init();\n\t}\n\n\tpublic static void loadComplete(FMLLoadCompleteEvent event) {\n\t\tMobCharmRegistry.registerDynamicCharmDefinitions();\n\t}\n\n\tpublic static ResourceLocation getRL(String regName) {\n\t\treturn ResourceLocation.fromNamespaceAndPath(MOD_ID, regName);\n\t}\n\n\tpublic static String getNetworkProtocolVersion() {\n\t\treturn networkProtocolVersion;\n\t}\n}\n",
+      "whole_file": true,
+      "reading": "actual-122-reading-reused-with-currentbyte-check;not-new123read"
+    }
+  ],
+  "reused122_scope": {
+    "ranges": 4,
+    "shown_lines": 244,
+    "distinct_lines": 244,
+    "files": 2,
+    "whole_files": [
+      "src/main/java/reliquary/Reliquary.java"
+    ]
+  },
+  "reused_actual122_progress": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-122-interdiction-actual-source-progress-20261110.json",
+    "sha256": "b13c71c0d620c9a1bdb4fb6b9c3cac2271cf2bf4f331b0632761edc9feb3cc23",
+    "bytes": 41077
+  },
+  "whole_support_union": {
+    "ranges": 17,
+    "shown_lines": 911,
+    "distinct_lines": 880,
+    "files": 8,
+    "whole_files": [
+      "src/main/java/reliquary/item/RodOfLyssaItem.java",
+      "src/main/java/reliquary/entity/LyssaHook.java",
+      "src/main/java/reliquary/item/ItemBase.java",
+      "src/main/java/reliquary/Reliquary.java"
+    ]
+  },
+  "formal_credit": 0,
+  "network_requests": 0,
+  "production_changes": 0,
+  "game_starts": 0
+}

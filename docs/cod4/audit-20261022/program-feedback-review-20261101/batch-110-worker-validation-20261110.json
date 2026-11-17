@@ -1,0 +1,486 @@
+{
+  "schema_version": 1,
+  "created_utc": "2026-11-09T19:11:34.222599+00:00",
+  "batch": 110,
+  "status": "FIRST_NATIVE_SONIC_STATIC_ARCHIVE_RANGE_INTEGRITY_EVIDENCE_NO_FORMAL_CREDIT",
+  "archive": {
+    "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "bytes": 7546864
+  },
+  "source_refs": [
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/warden/SonicBoom.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/warden/SonicBoom.java",
+      "start_line": 1,
+      "end_line": 79,
+      "listed_lines": 79,
+      "whole_file_read": true,
+      "file_sha256": "536e49f44ea45922d618c93c3bb9c3ffdc36254abe3bd488f7dc964aab3b33ca",
+      "raw_range_sha256": "536e49f44ea45922d618c93c3bb9c3ffdc36254abe3bd488f7dc964aab3b33ca",
+      "normalized_LF_join_without_final_LF_sha256": "536e49f44ea45922d618c93c3bb9c3ffdc36254abe3bd488f7dc964aab3b33ca",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior.warden;\n\nimport com.google.common.collect.ImmutableMap;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.Unit;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.behavior.Behavior;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.monster.warden.Warden;\nimport net.minecraft.world.phys.Vec3;\n\npublic class SonicBoom extends Behavior<Warden> {\n   private static final int DISTANCE_XZ = 15;\n   private static final int DISTANCE_Y = 20;\n   private static final double KNOCKBACK_VERTICAL = 0.5D;\n   private static final double KNOCKBACK_HORIZONTAL = 2.5D;\n   public static final int COOLDOWN = 40;\n   private static final int TICKS_BEFORE_PLAYING_SOUND = Mth.ceil(34.0D);\n   private static final int DURATION = Mth.ceil(60.0F);\n\n   public SonicBoom() {\n      super(ImmutableMap.of(MemoryModuleType.ATTACK_TARGET, MemoryStatus.VALUE_PRESENT, MemoryModuleType.SONIC_BOOM_COOLDOWN, MemoryStatus.VALUE_ABSENT, MemoryModuleType.SONIC_BOOM_SOUND_COOLDOWN, MemoryStatus.REGISTERED, MemoryModuleType.SONIC_BOOM_SOUND_DELAY, MemoryStatus.REGISTERED), DURATION);\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_217692_, Warden p_217693_) {\n      return p_217693_.closerThan(p_217693_.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).get(), 15.0D, 20.0D);\n   }\n\n   protected boolean canStillUse(ServerLevel p_217695_, Warden p_217696_, long p_217697_) {\n      return true;\n   }\n\n   protected void start(ServerLevel p_217713_, Warden p_217714_, long p_217715_) {\n      p_217714_.getBrain().setMemoryWithExpiry(MemoryModuleType.ATTACK_COOLING_DOWN, true, (long)DURATION);\n      p_217714_.getBrain().setMemoryWithExpiry(MemoryModuleType.SONIC_BOOM_SOUND_DELAY, Unit.INSTANCE, (long)TICKS_BEFORE_PLAYING_SOUND);\n      p_217713_.broadcastEntityEvent(p_217714_, (byte)62);\n      p_217714_.playSound(SoundEvents.WARDEN_SONIC_CHARGE, 3.0F, 1.0F);\n   }\n\n   protected void tick(ServerLevel p_217724_, Warden p_217725_, long p_217726_) {\n      p_217725_.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).ifPresent((p_289393_) -> {\n         p_217725_.getLookControl().setLookAt(p_289393_.position());\n      });\n      if (!p_217725_.getBrain().hasMemoryValue(MemoryModuleType.SONIC_BOOM_SOUND_DELAY) && !p_217725_.getBrain().hasMemoryValue(MemoryModuleType.SONIC_BOOM_SOUND_COOLDOWN)) {\n         p_217725_.getBrain().setMemoryWithExpiry(MemoryModuleType.SONIC_BOOM_SOUND_COOLDOWN, Unit.INSTANCE, (long)(DURATION - TICKS_BEFORE_PLAYING_SOUND));\n         p_217725_.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).filter(p_217725_::canTargetEntity).filter((p_217707_) -> {\n            return p_217725_.closerThan(p_217707_, 15.0D, 20.0D);\n         }).ifPresent((p_217704_) -> {\n            Vec3 vec3 = p_217725_.position().add(0.0D, (double)1.6F, 0.0D);\n            Vec3 vec31 = p_217704_.getEyePosition().subtract(vec3);\n            Vec3 vec32 = vec31.normalize();\n\n            for(int i = 1; i < Mth.floor(vec31.length()) + 7; ++i) {\n               Vec3 vec33 = vec3.add(vec32.scale((double)i));\n               p_217724_.sendParticles(ParticleTypes.SONIC_BOOM, vec33.x, vec33.y, vec33.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);\n            }\n\n            p_217725_.playSound(SoundEvents.WARDEN_SONIC_BOOM, 3.0F, 1.0F);\n            p_217704_.hurt(p_217724_.damageSources().sonicBoom(p_217725_), 10.0F);\n            double d1 = 0.5D * (1.0D - p_217704_.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));\n            double d0 = 2.5D * (1.0D - p_217704_.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));\n            p_217704_.push(vec32.x() * d0, vec32.y() * d1, vec32.z() * d0);\n         });\n      }\n   }\n\n   protected void stop(ServerLevel p_217732_, Warden p_217733_, long p_217734_) {\n      setCooldown(p_217733_, 40);\n   }\n\n   public static void setCooldown(LivingEntity p_217699_, int p_217700_) {\n      p_217699_.getBrain().setMemoryWithExpiry(MemoryModuleType.SONIC_BOOM_COOLDOWN, Unit.INSTANCE, (long)p_217700_);\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/Behavior.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/Behavior.java",
+      "start_line": 1,
+      "end_line": 102,
+      "listed_lines": 102,
+      "whole_file_read": true,
+      "file_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+      "raw_range_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+      "normalized_LF_join_without_final_LF_sha256": "ec647b66ac426ed46376a0080eb0c2f3836fc607bb071339ea5c0205ff09ba26",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport java.util.Map;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\n\npublic abstract class Behavior<E extends LivingEntity> implements BehaviorControl<E> {\n   public static final int DEFAULT_DURATION = 60;\n   protected final Map<MemoryModuleType<?>, MemoryStatus> entryCondition;\n   private Behavior.Status status = Behavior.Status.STOPPED;\n   private long endTimestamp;\n   private final int minDuration;\n   private final int maxDuration;\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22528_) {\n      this(p_22528_, 60);\n   }\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22530_, int p_22531_) {\n      this(p_22530_, p_22531_, p_22531_);\n   }\n\n   public Behavior(Map<MemoryModuleType<?>, MemoryStatus> p_22533_, int p_22534_, int p_22535_) {\n      this.minDuration = p_22534_;\n      this.maxDuration = p_22535_;\n      this.entryCondition = p_22533_;\n   }\n\n   public Behavior.Status getStatus() {\n      return this.status;\n   }\n\n   public final boolean tryStart(ServerLevel p_22555_, E p_22556_, long p_22557_) {\n      if (this.hasRequiredMemories(p_22556_) && this.checkExtraStartConditions(p_22555_, p_22556_)) {\n         this.status = Behavior.Status.RUNNING;\n         int i = this.minDuration + p_22555_.getRandom().nextInt(this.maxDuration + 1 - this.minDuration);\n         this.endTimestamp = p_22557_ + (long)i;\n         this.start(p_22555_, p_22556_, p_22557_);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   protected void start(ServerLevel p_22540_, E p_22541_, long p_22542_) {\n   }\n\n   public final void tickOrStop(ServerLevel p_22559_, E p_22560_, long p_22561_) {\n      if (!this.timedOut(p_22561_) && this.canStillUse(p_22559_, p_22560_, p_22561_)) {\n         this.tick(p_22559_, p_22560_, p_22561_);\n      } else {\n         this.doStop(p_22559_, p_22560_, p_22561_);\n      }\n\n   }\n\n   protected void tick(ServerLevel p_22551_, E p_22552_, long p_22553_) {\n   }\n\n   public final void doStop(ServerLevel p_22563_, E p_22564_, long p_22565_) {\n      this.status = Behavior.Status.STOPPED;\n      this.stop(p_22563_, p_22564_, p_22565_);\n   }\n\n   protected void stop(ServerLevel p_22548_, E p_22549_, long p_22550_) {\n   }\n\n   protected boolean canStillUse(ServerLevel p_22545_, E p_22546_, long p_22547_) {\n      return false;\n   }\n\n   protected boolean timedOut(long p_22537_) {\n      return p_22537_ > this.endTimestamp;\n   }\n\n   protected boolean checkExtraStartConditions(ServerLevel p_22538_, E p_22539_) {\n      return true;\n   }\n\n   public String debugString() {\n      return this.getClass().getSimpleName();\n   }\n\n   protected boolean hasRequiredMemories(E p_22544_) {\n      for(Map.Entry<MemoryModuleType<?>, MemoryStatus> entry : this.entryCondition.entrySet()) {\n         MemoryModuleType<?> memorymoduletype = entry.getKey();\n         MemoryStatus memorystatus = entry.getValue();\n         if (!p_22544_.getBrain().checkMemory(memorymoduletype, memorystatus)) {\n            return false;\n         }\n      }\n\n      return true;\n   }\n\n   public static enum Status {\n      STOPPED,\n      RUNNING;\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/monster/warden/WardenAi.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/warden/WardenAi.java",
+      "start_line": 1,
+      "end_line": 156,
+      "listed_lines": 156,
+      "whole_file_read": true,
+      "file_sha256": "22dd34c76aca98b73d029738bd96bdebbb7e5fc97653f995b96a74b481084fc8",
+      "raw_range_sha256": "22dd34c76aca98b73d029738bd96bdebbb7e5fc97653f995b96a74b481084fc8",
+      "normalized_LF_join_without_final_LF_sha256": "22dd34c76aca98b73d029738bd96bdebbb7e5fc97653f995b96a74b481084fc8",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.monster.warden;\n\nimport com.google.common.collect.ImmutableList;\nimport com.google.common.collect.ImmutableMap;\nimport com.google.common.collect.ImmutableSet;\nimport com.mojang.datafixers.util.Pair;\nimport com.mojang.serialization.Dynamic;\nimport java.util.List;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.Unit;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.Brain;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.behavior.BehaviorControl;\nimport net.minecraft.world.entity.ai.behavior.BlockPosTracker;\nimport net.minecraft.world.entity.ai.behavior.DoNothing;\nimport net.minecraft.world.entity.ai.behavior.GoToTargetLocation;\nimport net.minecraft.world.entity.ai.behavior.LookAtTargetSink;\nimport net.minecraft.world.entity.ai.behavior.MeleeAttack;\nimport net.minecraft.world.entity.ai.behavior.MoveToTargetSink;\nimport net.minecraft.world.entity.ai.behavior.RandomStroll;\nimport net.minecraft.world.entity.ai.behavior.RunOne;\nimport net.minecraft.world.entity.ai.behavior.SetEntityLookTarget;\nimport net.minecraft.world.entity.ai.behavior.SetWalkTargetFromAttackTargetIfTargetOutOfReach;\nimport net.minecraft.world.entity.ai.behavior.StopAttackingIfTargetInvalid;\nimport net.minecraft.world.entity.ai.behavior.Swim;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.behavior.warden.Digging;\nimport net.minecraft.world.entity.ai.behavior.warden.Emerging;\nimport net.minecraft.world.entity.ai.behavior.warden.ForceUnmount;\nimport net.minecraft.world.entity.ai.behavior.warden.Roar;\nimport net.minecraft.world.entity.ai.behavior.warden.SetRoarTarget;\nimport net.minecraft.world.entity.ai.behavior.warden.SetWardenLookTarget;\nimport net.minecraft.world.entity.ai.behavior.warden.Sniffing;\nimport net.minecraft.world.entity.ai.behavior.warden.SonicBoom;\nimport net.minecraft.world.entity.ai.behavior.warden.TryToSniff;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.MemoryStatus;\nimport net.minecraft.world.entity.ai.sensing.Sensor;\nimport net.minecraft.world.entity.ai.sensing.SensorType;\nimport net.minecraft.world.entity.schedule.Activity;\n\npublic class WardenAi {\n   private static final float SPEED_MULTIPLIER_WHEN_IDLING = 0.5F;\n   private static final float SPEED_MULTIPLIER_WHEN_INVESTIGATING = 0.7F;\n   private static final float SPEED_MULTIPLIER_WHEN_FIGHTING = 1.2F;\n   private static final int MELEE_ATTACK_COOLDOWN = 18;\n   private static final int DIGGING_DURATION = Mth.ceil(100.0F);\n   public static final int EMERGE_DURATION = Mth.ceil(133.59999F);\n   public static final int ROAR_DURATION = Mth.ceil(84.0F);\n   private static final int SNIFFING_DURATION = Mth.ceil(83.2F);\n   public static final int DIGGING_COOLDOWN = 1200;\n   private static final int DISTURBANCE_LOCATION_EXPIRY_TIME = 100;\n   private static final List<SensorType<? extends Sensor<? super Warden>>> SENSOR_TYPES = List.of(SensorType.NEAREST_PLAYERS, SensorType.WARDEN_ENTITY_SENSOR);\n   private static final List<MemoryModuleType<?>> MEMORY_TYPES = List.of(MemoryModuleType.NEAREST_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES, MemoryModuleType.NEAREST_VISIBLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_ATTACKABLE_PLAYER, MemoryModuleType.NEAREST_VISIBLE_NEMESIS, MemoryModuleType.LOOK_TARGET, MemoryModuleType.WALK_TARGET, MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE, MemoryModuleType.PATH, MemoryModuleType.ATTACK_TARGET, MemoryModuleType.ATTACK_COOLING_DOWN, MemoryModuleType.NEAREST_ATTACKABLE, MemoryModuleType.ROAR_TARGET, MemoryModuleType.DISTURBANCE_LOCATION, MemoryModuleType.RECENT_PROJECTILE, MemoryModuleType.IS_SNIFFING, MemoryModuleType.IS_EMERGING, MemoryModuleType.ROAR_SOUND_DELAY, MemoryModuleType.DIG_COOLDOWN, MemoryModuleType.ROAR_SOUND_COOLDOWN, MemoryModuleType.SNIFF_COOLDOWN, MemoryModuleType.TOUCH_COOLDOWN, MemoryModuleType.VIBRATION_COOLDOWN, MemoryModuleType.SONIC_BOOM_COOLDOWN, MemoryModuleType.SONIC_BOOM_SOUND_COOLDOWN, MemoryModuleType.SONIC_BOOM_SOUND_DELAY);\n   private static final BehaviorControl<Warden> DIG_COOLDOWN_SETTER = BehaviorBuilder.create((p_258953_) -> {\n      return p_258953_.group(p_258953_.registered(MemoryModuleType.DIG_COOLDOWN)).apply(p_258953_, (p_258960_) -> {\n         return (p_258956_, p_258957_, p_258958_) -> {\n            if (p_258953_.tryGet(p_258960_).isPresent()) {\n               p_258960_.setWithExpiry(Unit.INSTANCE, 1200L);\n            }\n\n            return true;\n         };\n      });\n   });\n\n   public static void updateActivity(Warden p_219513_) {\n      p_219513_.getBrain().setActiveActivityToFirstValid(ImmutableList.of(Activity.EMERGE, Activity.DIG, Activity.ROAR, Activity.FIGHT, Activity.INVESTIGATE, Activity.SNIFF, Activity.IDLE));\n   }\n\n   protected static Brain<?> makeBrain(Warden p_219521_, Dynamic<?> p_219522_) {\n      Brain.Provider<Warden> provider = Brain.provider(MEMORY_TYPES, SENSOR_TYPES);\n      Brain<Warden> brain = provider.makeBrain(p_219522_);\n      initCoreActivity(brain);\n      initEmergeActivity(brain);\n      initDiggingActivity(brain);\n      initIdleActivity(brain);\n      initRoarActivity(brain);\n      initFightActivity(p_219521_, brain);\n      initInvestigateActivity(brain);\n      initSniffingActivity(brain);\n      brain.setCoreActivities(ImmutableSet.of(Activity.CORE));\n      brain.setDefaultActivity(Activity.IDLE);\n      brain.useDefaultActivity();\n      return brain;\n   }\n\n   private static void initCoreActivity(Brain<Warden> p_219511_) {\n      p_219511_.addActivity(Activity.CORE, 0, ImmutableList.of(new Swim(0.8F), SetWardenLookTarget.create(), new LookAtTargetSink(45, 90), new MoveToTargetSink()));\n   }\n\n   private static void initEmergeActivity(Brain<Warden> p_219527_) {\n      p_219527_.addActivityAndRemoveMemoryWhenStopped(Activity.EMERGE, 5, ImmutableList.of(new Emerging<>(EMERGE_DURATION)), MemoryModuleType.IS_EMERGING);\n   }\n\n   private static void initDiggingActivity(Brain<Warden> p_219532_) {\n      p_219532_.addActivityWithConditions(Activity.DIG, ImmutableList.of(Pair.of(0, new ForceUnmount()), Pair.of(1, new Digging<>(DIGGING_DURATION))), ImmutableSet.of(Pair.of(MemoryModuleType.ROAR_TARGET, MemoryStatus.VALUE_ABSENT), Pair.of(MemoryModuleType.DIG_COOLDOWN, MemoryStatus.VALUE_ABSENT)));\n   }\n\n   private static void initIdleActivity(Brain<Warden> p_219537_) {\n      p_219537_.addActivity(Activity.IDLE, 10, ImmutableList.of(SetRoarTarget.create(Warden::getEntityAngryAt), TryToSniff.create(), new RunOne<>(ImmutableMap.of(MemoryModuleType.IS_SNIFFING, MemoryStatus.VALUE_ABSENT), ImmutableList.of(Pair.of(RandomStroll.stroll(0.5F), 2), Pair.of(new DoNothing(30, 60), 1)))));\n   }\n\n   private static void initInvestigateActivity(Brain<Warden> p_219542_) {\n      p_219542_.addActivityAndRemoveMemoryWhenStopped(Activity.INVESTIGATE, 5, ImmutableList.of(SetRoarTarget.create(Warden::getEntityAngryAt), GoToTargetLocation.create(MemoryModuleType.DISTURBANCE_LOCATION, 2, 0.7F)), MemoryModuleType.DISTURBANCE_LOCATION);\n   }\n\n   private static void initSniffingActivity(Brain<Warden> p_219544_) {\n      p_219544_.addActivityAndRemoveMemoryWhenStopped(Activity.SNIFF, 5, ImmutableList.of(SetRoarTarget.create(Warden::getEntityAngryAt), new Sniffing<>(SNIFFING_DURATION)), MemoryModuleType.IS_SNIFFING);\n   }\n\n   private static void initRoarActivity(Brain<Warden> p_219546_) {\n      p_219546_.addActivityAndRemoveMemoryWhenStopped(Activity.ROAR, 10, ImmutableList.of(new Roar()), MemoryModuleType.ROAR_TARGET);\n   }\n\n   private static void initFightActivity(Warden p_219518_, Brain<Warden> p_219519_) {\n      p_219519_.addActivityAndRemoveMemoryWhenStopped(Activity.FIGHT, 10, ImmutableList.of(DIG_COOLDOWN_SETTER, StopAttackingIfTargetInvalid.<Warden>create((p_219540_) -> {\n         return !p_219518_.getAngerLevel().isAngry() || !p_219518_.canTargetEntity(p_219540_);\n      }, WardenAi::onTargetInvalid, false), SetEntityLookTarget.create((p_219535_) -> {\n         return isTarget(p_219518_, p_219535_);\n      }, (float)p_219518_.getAttributeValue(Attributes.FOLLOW_RANGE)), SetWalkTargetFromAttackTargetIfTargetOutOfReach.create(1.2F), new SonicBoom(), MeleeAttack.create(18)), MemoryModuleType.ATTACK_TARGET);\n   }\n\n   private static boolean isTarget(Warden p_219515_, LivingEntity p_219516_) {\n      return p_219515_.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).filter((p_219509_) -> {\n         return p_219509_ == p_219516_;\n      }).isPresent();\n   }\n\n   private static void onTargetInvalid(Warden p_219529_, LivingEntity p_219530_) {\n      if (!p_219529_.canTargetEntity(p_219530_)) {\n         p_219529_.clearAnger(p_219530_);\n      }\n\n      setDigCooldown(p_219529_);\n   }\n\n   public static void setDigCooldown(LivingEntity p_219506_) {\n      if (p_219506_.getBrain().hasMemoryValue(MemoryModuleType.DIG_COOLDOWN)) {\n         p_219506_.getBrain().setMemoryWithExpiry(MemoryModuleType.DIG_COOLDOWN, Unit.INSTANCE, 1200L);\n      }\n\n   }\n\n   public static void setDisturbanceLocation(Warden p_219524_, BlockPos p_219525_) {\n      if (p_219524_.level().getWorldBorder().isWithinBounds(p_219525_) && !p_219524_.getEntityAngryAt().isPresent() && !p_219524_.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).isPresent()) {\n         setDigCooldown(p_219524_);\n         p_219524_.getBrain().setMemoryWithExpiry(MemoryModuleType.SNIFF_COOLDOWN, Unit.INSTANCE, 100L);\n         p_219524_.getBrain().setMemoryWithExpiry(MemoryModuleType.LOOK_TARGET, new BlockPosTracker(p_219525_), 100L);\n         p_219524_.getBrain().setMemoryWithExpiry(MemoryModuleType.DISTURBANCE_LOCATION, p_219525_, 100L);\n         p_219524_.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);\n      }\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/ExpirableValue.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/ExpirableValue.java",
+      "start_line": 1,
+      "end_line": 64,
+      "listed_lines": 64,
+      "whole_file_read": true,
+      "file_sha256": "b964e1bb4ded51681b722ad6969cb7dea5e426e4f34b3208a80eed6ef9e6ae45",
+      "raw_range_sha256": "b964e1bb4ded51681b722ad6969cb7dea5e426e4f34b3208a80eed6ef9e6ae45",
+      "normalized_LF_join_without_final_LF_sha256": "b964e1bb4ded51681b722ad6969cb7dea5e426e4f34b3208a80eed6ef9e6ae45",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.memory;\n\nimport com.mojang.serialization.Codec;\nimport com.mojang.serialization.codecs.RecordCodecBuilder;\nimport java.util.Optional;\nimport net.minecraft.util.VisibleForDebug;\n\npublic class ExpirableValue<T> {\n   private final T value;\n   private long timeToLive;\n\n   public ExpirableValue(T p_26299_, long p_26300_) {\n      this.value = p_26299_;\n      this.timeToLive = p_26300_;\n   }\n\n   public void tick() {\n      if (this.canExpire()) {\n         --this.timeToLive;\n      }\n\n   }\n\n   public static <T> ExpirableValue<T> of(T p_26310_) {\n      return new ExpirableValue<>(p_26310_, Long.MAX_VALUE);\n   }\n\n   public static <T> ExpirableValue<T> of(T p_26312_, long p_26313_) {\n      return new ExpirableValue<>(p_26312_, p_26313_);\n   }\n\n   public long getTimeToLive() {\n      return this.timeToLive;\n   }\n\n   public T getValue() {\n      return this.value;\n   }\n\n   public boolean hasExpired() {\n      return this.timeToLive <= 0L;\n   }\n\n   public String toString() {\n      return this.value + (this.canExpire() ? \" (ttl: \" + this.timeToLive + \")\" : \"\");\n   }\n\n   @VisibleForDebug\n   public boolean canExpire() {\n      return this.timeToLive != Long.MAX_VALUE;\n   }\n\n   public static <T> Codec<ExpirableValue<T>> codec(Codec<T> p_26305_) {\n      return RecordCodecBuilder.create((p_26308_) -> {\n         return p_26308_.group(p_26305_.fieldOf(\"value\").forGetter((p_148193_) -> {\n            return p_148193_.value;\n         }), Codec.LONG.optionalFieldOf(\"ttl\").forGetter((p_148187_) -> {\n            return p_148187_.canExpire() ? Optional.of(p_148187_.timeToLive) : Optional.empty();\n         })).apply(p_26308_, (p_148189_, p_148190_) -> {\n            return new ExpirableValue<>(p_148189_, p_148190_.orElse(Long.MAX_VALUE));\n         });\n      });\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/StopAttackingIfTargetInvalid.java",
+      "start_line": 1,
+      "end_line": 52,
+      "listed_lines": 52,
+      "whole_file_read": true,
+      "file_sha256": "75adcab9f17d212097dddbd929b80451f93acf6666e5ad7bdad4751a83de8caa",
+      "raw_range_sha256": "75adcab9f17d212097dddbd929b80451f93acf6666e5ad7bdad4751a83de8caa",
+      "normalized_LF_join_without_final_LF_sha256": "75adcab9f17d212097dddbd929b80451f93acf6666e5ad7bdad4751a83de8caa",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport java.util.Optional;\nimport java.util.function.BiConsumer;\nimport java.util.function.Predicate;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\n\npublic class StopAttackingIfTargetInvalid {\n   private static final int TIMEOUT_TO_GET_WITHIN_ATTACK_RANGE = 200;\n\n   public static <E extends Mob> BehaviorControl<E> create(BiConsumer<E, LivingEntity> p_260165_) {\n      return create((p_147988_) -> {\n         return false;\n      }, p_260165_, true);\n   }\n\n   public static <E extends Mob> BehaviorControl<E> create(Predicate<LivingEntity> p_259762_) {\n      return create(p_259762_, (p_217411_, p_217412_) -> {\n      }, true);\n   }\n\n   public static <E extends Mob> BehaviorControl<E> create() {\n      return create((p_147986_) -> {\n         return false;\n      }, (p_217408_, p_217409_) -> {\n      }, true);\n   }\n\n   public static <E extends Mob> BehaviorControl<E> create(Predicate<LivingEntity> p_260357_, BiConsumer<E, LivingEntity> p_259568_, boolean p_260319_) {\n      return BehaviorBuilder.create((p_258801_) -> {\n         return p_258801_.group(p_258801_.present(MemoryModuleType.ATTACK_TARGET), p_258801_.registered(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE)).apply(p_258801_, (p_258787_, p_258788_) -> {\n            return (p_258795_, p_258796_, p_258797_) -> {\n               LivingEntity livingentity = p_258801_.get(p_258787_);\n               if (p_258796_.canAttack(livingentity) && (!p_260319_ || !isTiredOfTryingToReachTarget(p_258796_, p_258801_.tryGet(p_258788_))) && livingentity.isAlive() && livingentity.level() == p_258796_.level() && !p_260357_.test(livingentity)) {\n                  return true;\n               } else {\n                  p_259568_.accept(p_258796_, livingentity);\n                  p_258787_.erase();\n                  return true;\n               }\n            };\n         });\n      });\n   }\n\n   private static boolean isTiredOfTryingToReachTarget(LivingEntity p_259416_, Optional<Long> p_259377_) {\n      return p_259377_.isPresent() && p_259416_.level().getGameTime() - p_259377_.get() > 200L;\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/behavior/MeleeAttack.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/behavior/MeleeAttack.java",
+      "start_line": 1,
+      "end_line": 38,
+      "listed_lines": 38,
+      "whole_file_read": true,
+      "file_sha256": "5de8f21fc1425649ba5b1823c8d5d8469cb9791ecdab3a07ae76f9d39b4c26f4",
+      "raw_range_sha256": "5de8f21fc1425649ba5b1823c8d5d8469cb9791ecdab3a07ae76f9d39b4c26f4",
+      "normalized_LF_join_without_final_LF_sha256": "5de8f21fc1425649ba5b1823c8d5d8469cb9791ecdab3a07ae76f9d39b4c26f4",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "package net.minecraft.world.entity.ai.behavior;\n\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.Mob;\nimport net.minecraft.world.entity.ai.behavior.declarative.BehaviorBuilder;\nimport net.minecraft.world.entity.ai.memory.MemoryModuleType;\nimport net.minecraft.world.entity.ai.memory.NearestVisibleLivingEntities;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ProjectileWeaponItem;\n\npublic class MeleeAttack {\n   public static OneShot<Mob> create(int p_259758_) {\n      return BehaviorBuilder.create((p_258526_) -> {\n         return p_258526_.group(p_258526_.registered(MemoryModuleType.LOOK_TARGET), p_258526_.present(MemoryModuleType.ATTACK_TARGET), p_258526_.absent(MemoryModuleType.ATTACK_COOLING_DOWN), p_258526_.present(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)).apply(p_258526_, (p_258529_, p_258530_, p_258531_, p_258532_) -> {\n            return (p_258539_, p_258540_, p_258541_) -> {\n               LivingEntity livingentity = p_258526_.get(p_258530_);\n               if (!isHoldingUsableProjectileWeapon(p_258540_) && p_258540_.isWithinMeleeAttackRange(livingentity) && p_258526_.<NearestVisibleLivingEntities>get(p_258532_).contains(livingentity)) {\n                  p_258529_.set(new EntityTracker(livingentity, true));\n                  p_258540_.swing(InteractionHand.MAIN_HAND);\n                  p_258540_.doHurtTarget(livingentity);\n                  p_258531_.setWithExpiry(true, (long)p_259758_);\n                  return true;\n               } else {\n                  return false;\n               }\n            };\n         });\n      });\n   }\n\n   private static boolean isHoldingUsableProjectileWeapon(Mob p_23528_) {\n      return p_23528_.isHolding((p_147697_) -> {\n         Item item = p_147697_.getItem();\n         return item instanceof ProjectileWeaponItem && p_23528_.canFireProjectileWeapon((ProjectileWeaponItem)item);\n      });\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/Brain.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/Brain.java",
+      "start_line": 40,
+      "end_line": 59,
+      "listed_lines": 20,
+      "whole_file_read": false,
+      "file_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+      "raw_range_sha256": "f376ac1eb6a5cc8313b23af0cf89cbc894314e7ee01c19832107a0fa9df1ef86",
+      "normalized_LF_join_without_final_LF_sha256": "e837e02bd7c4f9c01631537f7842e0374fb4d5ed635fda66985d3f3bf9fe891c",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "import org.slf4j.Logger;\n\npublic class Brain<E extends LivingEntity> {\n   static final Logger LOGGER = LogUtils.getLogger();\n   private final Supplier<Codec<Brain<E>>> codec;\n   private static final int SCHEDULE_UPDATE_DELAY = 20;\n   private final Map<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> memories = Maps.newHashMap();\n   private final Map<SensorType<? extends Sensor<? super E>>, Sensor<? super E>> sensors = Maps.newLinkedHashMap();\n   private final Map<Integer, Map<Activity, Set<BehaviorControl<? super E>>>> availableBehaviorsByPriority = Maps.newTreeMap();\n   private Schedule schedule = Schedule.EMPTY;\n   private final Map<Activity, Set<Pair<MemoryModuleType<?>, MemoryStatus>>> activityRequirements = Maps.newHashMap();\n   private final Map<Activity, Set<MemoryModuleType<?>>> activityMemoriesToEraseWhenStopped = Maps.newHashMap();\n   private Set<Activity> coreActivities = Sets.newHashSet();\n   private final Set<Activity> activeActivities = Sets.newHashSet();\n   private Activity defaultActivity = Activity.IDLE;\n   private long lastScheduleUpdate = -9999L;\n\n   public static <E extends LivingEntity> Brain.Provider<E> provider(Collection<? extends MemoryModuleType<?>> p_21924_, Collection<? extends SensorType<? extends Sensor<? super E>>> p_21925_) {\n      return new Brain.Provider<>(p_21924_, p_21925_);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/Brain.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/Brain.java",
+      "start_line": 108,
+      "end_line": 130,
+      "listed_lines": 23,
+      "whole_file_read": false,
+      "file_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+      "raw_range_sha256": "75170ce32b2ada6411f352ad55bfbea830f23fb806da5f1f4e458bf9d4de359a",
+      "normalized_LF_join_without_final_LF_sha256": "347bf4aa96cc0fca3215119ecfec739550e73deff5b3d26140453d038be77ecf",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "\n   public Brain(Collection<? extends MemoryModuleType<?>> p_21855_, Collection<? extends SensorType<? extends Sensor<? super E>>> p_21856_, ImmutableList<Brain.MemoryValue<?>> p_21857_, Supplier<Codec<Brain<E>>> p_21858_) {\n      this.codec = p_21858_;\n\n      for(MemoryModuleType<?> memorymoduletype : p_21855_) {\n         this.memories.put(memorymoduletype, Optional.empty());\n      }\n\n      for(SensorType<? extends Sensor<? super E>> sensortype : p_21856_) {\n         this.sensors.put(sensortype, sensortype.create());\n      }\n\n      for(Sensor<? super E> sensor : this.sensors.values()) {\n         for(MemoryModuleType<?> memorymoduletype1 : sensor.requires()) {\n            this.memories.put(memorymoduletype1, Optional.empty());\n         }\n      }\n\n      for(Brain.MemoryValue<?> memoryvalue : p_21857_) {\n         memoryvalue.setMemoryInternal(this);\n      }\n\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/Brain.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/Brain.java",
+      "start_line": 142,
+      "end_line": 219,
+      "listed_lines": 78,
+      "whole_file_read": false,
+      "file_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+      "raw_range_sha256": "894cde15b733572ea76b96970950bfc4899592662d1d17a20ad3b8238d02e729",
+      "normalized_LF_join_without_final_LF_sha256": "19dae35cd840448cd3f1896b2a10ddad00511e33157b81cd15cd0370c3b8e532",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public boolean hasMemoryValue(MemoryModuleType<?> p_21875_) {\n      return this.checkMemory(p_21875_, MemoryStatus.VALUE_PRESENT);\n   }\n\n   public void clearMemories() {\n      this.memories.keySet().forEach((p_276103_) -> {\n         this.memories.put(p_276103_, Optional.empty());\n      });\n   }\n\n   public <U> void eraseMemory(MemoryModuleType<U> p_21937_) {\n      this.setMemory(p_21937_, Optional.empty());\n   }\n\n   public <U> void setMemory(MemoryModuleType<U> p_21880_, @Nullable U p_21881_) {\n      this.setMemory(p_21880_, Optional.ofNullable(p_21881_));\n   }\n\n   public <U> void setMemoryWithExpiry(MemoryModuleType<U> p_21883_, U p_21884_, long p_21885_) {\n      this.setMemoryInternal(p_21883_, Optional.of(ExpirableValue.of(p_21884_, p_21885_)));\n   }\n\n   public <U> void setMemory(MemoryModuleType<U> p_21887_, Optional<? extends U> p_21888_) {\n      this.setMemoryInternal(p_21887_, p_21888_.map(ExpirableValue::of));\n   }\n\n   <U> void setMemoryInternal(MemoryModuleType<U> p_21942_, Optional<? extends ExpirableValue<?>> p_21943_) {\n      if (this.memories.containsKey(p_21942_)) {\n         if (p_21943_.isPresent() && this.isEmptyCollection(p_21943_.get().getValue())) {\n            this.eraseMemory(p_21942_);\n         } else {\n            this.memories.put(p_21942_, p_21943_);\n         }\n      }\n\n   }\n\n   public <U> Optional<U> getMemory(MemoryModuleType<U> p_21953_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_21953_);\n      if (optional == null) {\n         throw new IllegalStateException(\"Unregistered memory fetched: \" + p_21953_);\n      } else {\n         return (Optional<U>)optional.map(ExpirableValue::getValue);\n      }\n   }\n\n   @Nullable\n   public <U> Optional<U> getMemoryInternal(MemoryModuleType<U> p_259344_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_259344_);\n      return optional == null ? null : (Optional<U>)optional.map(ExpirableValue::getValue);\n   }\n\n   public <U> long getTimeUntilExpiry(MemoryModuleType<U> p_147342_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_147342_);\n      return optional.map(ExpirableValue::getTimeToLive).orElse(0L);\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForDebug\n   public Map<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> getMemories() {\n      return this.memories;\n   }\n\n   public <U> boolean isMemoryValue(MemoryModuleType<U> p_21939_, U p_21940_) {\n      return !this.hasMemoryValue(p_21939_) ? false : this.getMemory(p_21939_).filter((p_21922_) -> {\n         return p_21922_.equals(p_21940_);\n      }).isPresent();\n   }\n\n   public boolean checkMemory(MemoryModuleType<?> p_21877_, MemoryStatus p_21878_) {\n      Optional<? extends ExpirableValue<?>> optional = this.memories.get(p_21877_);\n      if (optional == null) {\n         return false;\n      } else {\n         return p_21878_ == MemoryStatus.REGISTERED || p_21878_ == MemoryStatus.VALUE_PRESENT && optional.isPresent() || p_21878_ == MemoryStatus.VALUE_ABSENT && !optional.isPresent();\n      }\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/Brain.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/Brain.java",
+      "start_line": 235,
+      "end_line": 261,
+      "listed_lines": 27,
+      "whole_file_read": false,
+      "file_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+      "raw_range_sha256": "0c13b115aae959a384f42e5c89f00772af09d8ee75729f9c1fccf42e854bd6ab",
+      "normalized_LF_join_without_final_LF_sha256": "f1b2228c802cde03c635d1c0a453dbfabdffbc399dcdcb7ea62448eb28f738a5",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   @VisibleForDebug\n   public Set<Activity> getActiveActivities() {\n      return this.activeActivities;\n   }\n\n   /** @deprecated */\n   @Deprecated\n   @VisibleForDebug\n   public List<BehaviorControl<? super E>> getRunningBehaviors() {\n      List<BehaviorControl<? super E>> list = new ObjectArrayList<>();\n\n      for(Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {\n         for(Set<BehaviorControl<? super E>> set : map.values()) {\n            for(BehaviorControl<? super E> behaviorcontrol : set) {\n               if (behaviorcontrol.getStatus() == Behavior.Status.RUNNING) {\n                  list.add(behaviorcontrol);\n               }\n            }\n         }\n      }\n\n      return list;\n   }\n\n   public void useDefaultActivity() {\n      this.setActiveActivity(this.defaultActivity);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/Brain.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/Brain.java",
+      "start_line": 273,
+      "end_line": 362,
+      "listed_lines": 90,
+      "whole_file_read": false,
+      "file_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+      "raw_range_sha256": "f6a26c664560ecb8e109f4c410e4722206cb2fbd29efa6713a11e9b3f4350784",
+      "normalized_LF_join_without_final_LF_sha256": "595b240ee8b31eda9a39ee3f5d4ab7a2a2667a65e7a2a1ce64324c0cc0cfccab",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public void setActiveActivityIfPossible(Activity p_21890_) {\n      if (this.activityRequirementsAreMet(p_21890_)) {\n         this.setActiveActivity(p_21890_);\n      } else {\n         this.useDefaultActivity();\n      }\n\n   }\n\n   private void setActiveActivity(Activity p_21961_) {\n      if (!this.isActive(p_21961_)) {\n         this.eraseMemoriesForOtherActivitesThan(p_21961_);\n         this.activeActivities.clear();\n         this.activeActivities.addAll(this.coreActivities);\n         this.activeActivities.add(p_21961_);\n      }\n   }\n\n   private void eraseMemoriesForOtherActivitesThan(Activity p_21967_) {\n      for(Activity activity : this.activeActivities) {\n         if (activity != p_21967_) {\n            Set<MemoryModuleType<?>> set = this.activityMemoriesToEraseWhenStopped.get(activity);\n            if (set != null) {\n               for(MemoryModuleType<?> memorymoduletype : set) {\n                  this.eraseMemory(memorymoduletype);\n               }\n            }\n         }\n      }\n\n   }\n\n   public void updateActivityFromSchedule(long p_21863_, long p_21864_) {\n      if (p_21864_ - this.lastScheduleUpdate > 20L) {\n         this.lastScheduleUpdate = p_21864_;\n         Activity activity = this.getSchedule().getActivityAt((int)(p_21863_ % 24000L));\n         if (!this.activeActivities.contains(activity)) {\n            this.setActiveActivityIfPossible(activity);\n         }\n      }\n\n   }\n\n   public void setActiveActivityToFirstValid(List<Activity> p_21927_) {\n      for(Activity activity : p_21927_) {\n         if (this.activityRequirementsAreMet(activity)) {\n            this.setActiveActivity(activity);\n            break;\n         }\n      }\n\n   }\n\n   public void setDefaultActivity(Activity p_21945_) {\n      this.defaultActivity = p_21945_;\n   }\n\n   public void addActivity(Activity p_21892_, int p_21893_, ImmutableList<? extends BehaviorControl<? super E>> p_21894_) {\n      this.addActivity(p_21892_, this.createPriorityPairs(p_21893_, p_21894_));\n   }\n\n   public void addActivityAndRemoveMemoryWhenStopped(Activity p_21896_, int p_21897_, ImmutableList<? extends BehaviorControl<? super E>> p_21898_, MemoryModuleType<?> p_21899_) {\n      Set<Pair<MemoryModuleType<?>, MemoryStatus>> set = ImmutableSet.of(Pair.of(p_21899_, MemoryStatus.VALUE_PRESENT));\n      Set<MemoryModuleType<?>> set1 = ImmutableSet.of(p_21899_);\n      this.addActivityAndRemoveMemoriesWhenStopped(p_21896_, this.createPriorityPairs(p_21897_, p_21898_), set, set1);\n   }\n\n   public void addActivity(Activity p_21901_, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> p_21902_) {\n      this.addActivityAndRemoveMemoriesWhenStopped(p_21901_, p_21902_, ImmutableSet.of(), Sets.newHashSet());\n   }\n\n   public void addActivityWithConditions(Activity p_21904_, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> p_21905_, Set<Pair<MemoryModuleType<?>, MemoryStatus>> p_21906_) {\n      this.addActivityAndRemoveMemoriesWhenStopped(p_21904_, p_21905_, p_21906_, Sets.newHashSet());\n   }\n\n   public void addActivityAndRemoveMemoriesWhenStopped(Activity p_21908_, ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> p_21909_, Set<Pair<MemoryModuleType<?>, MemoryStatus>> p_21910_, Set<MemoryModuleType<?>> p_21911_) {\n      this.activityRequirements.put(p_21908_, p_21910_);\n      if (!p_21911_.isEmpty()) {\n         this.activityMemoriesToEraseWhenStopped.put(p_21908_, p_21911_);\n      }\n\n      for(Pair<Integer, ? extends BehaviorControl<? super E>> pair : p_21909_) {\n         this.availableBehaviorsByPriority.computeIfAbsent(pair.getFirst(), (p_21917_) -> {\n            return Maps.newHashMap();\n         }).computeIfAbsent(p_21908_, (p_21972_) -> {\n            return Sets.newLinkedHashSet();\n         }).add(pair.getSecond());\n      }\n\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/Brain.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/Brain.java",
+      "start_line": 386,
+      "end_line": 479,
+      "listed_lines": 94,
+      "whole_file_read": false,
+      "file_sha256": "5c7929dc00cf152588422e696324bd20fd41a7ae2bd996198e35aa48b94060e5",
+      "raw_range_sha256": "bbe643c2ceb9b54185e4ae0ccd85cb21ac4c1d5e4745344ef0e5ddd65559e7db",
+      "normalized_LF_join_without_final_LF_sha256": "7f4a026c5711bd4dc68bccb899c80722f4d84fb89ea1f15896c9a0bbcc905a87",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public void tick(ServerLevel p_21866_, E p_21867_) {\n      this.forgetOutdatedMemories();\n      this.tickSensors(p_21866_, p_21867_);\n      this.startEachNonRunningBehavior(p_21866_, p_21867_);\n      this.tickEachRunningBehavior(p_21866_, p_21867_);\n   }\n\n   private void tickSensors(ServerLevel p_21950_, E p_21951_) {\n      for(Sensor<? super E> sensor : this.sensors.values()) {\n         sensor.tick(p_21950_, p_21951_);\n      }\n\n   }\n\n   private void forgetOutdatedMemories() {\n      for(Map.Entry<MemoryModuleType<?>, Optional<? extends ExpirableValue<?>>> entry : this.memories.entrySet()) {\n         if (entry.getValue().isPresent()) {\n            ExpirableValue<?> expirablevalue = entry.getValue().get();\n            if (expirablevalue.hasExpired()) {\n               this.eraseMemory(entry.getKey());\n            }\n\n            expirablevalue.tick();\n         }\n      }\n\n   }\n\n   public void stopAll(ServerLevel p_21934_, E p_21935_) {\n      long i = p_21935_.level().getGameTime();\n\n      for(BehaviorControl<? super E> behaviorcontrol : this.getRunningBehaviors()) {\n         behaviorcontrol.doStop(p_21934_, p_21935_, i);\n      }\n\n   }\n\n   private void startEachNonRunningBehavior(ServerLevel p_21958_, E p_21959_) {\n      long i = p_21958_.getGameTime();\n\n      for(Map<Activity, Set<BehaviorControl<? super E>>> map : this.availableBehaviorsByPriority.values()) {\n         for(Map.Entry<Activity, Set<BehaviorControl<? super E>>> entry : map.entrySet()) {\n            Activity activity = entry.getKey();\n            if (this.activeActivities.contains(activity)) {\n               for(BehaviorControl<? super E> behaviorcontrol : entry.getValue()) {\n                  if (behaviorcontrol.getStatus() == Behavior.Status.STOPPED) {\n                     behaviorcontrol.tryStart(p_21958_, p_21959_, i);\n                  }\n               }\n            }\n         }\n      }\n\n   }\n\n   private void tickEachRunningBehavior(ServerLevel p_21964_, E p_21965_) {\n      long i = p_21964_.getGameTime();\n\n      for(BehaviorControl<? super E> behaviorcontrol : this.getRunningBehaviors()) {\n         behaviorcontrol.tickOrStop(p_21964_, p_21965_, i);\n      }\n\n   }\n\n   private boolean activityRequirementsAreMet(Activity p_21970_) {\n      if (!this.activityRequirements.containsKey(p_21970_)) {\n         return false;\n      } else {\n         for(Pair<MemoryModuleType<?>, MemoryStatus> pair : this.activityRequirements.get(p_21970_)) {\n            MemoryModuleType<?> memorymoduletype = pair.getFirst();\n            MemoryStatus memorystatus = pair.getSecond();\n            if (!this.checkMemory(memorymoduletype, memorystatus)) {\n               return false;\n            }\n         }\n\n         return true;\n      }\n   }\n\n   private boolean isEmptyCollection(Object p_21919_) {\n      return p_21919_ instanceof Collection && ((Collection)p_21919_).isEmpty();\n   }\n\n   ImmutableList<? extends Pair<Integer, ? extends BehaviorControl<? super E>>> createPriorityPairs(int p_21860_, ImmutableList<? extends BehaviorControl<? super E>> p_21861_) {\n      int i = p_21860_;\n      ImmutableList.Builder<Pair<Integer, ? extends BehaviorControl<? super E>>> builder = ImmutableList.builder();\n\n      for(BehaviorControl<? super E> behaviorcontrol : p_21861_) {\n         builder.add(Pair.of(i++, behaviorcontrol));\n      }\n\n      return builder.build();\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/monster/warden/Warden.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/warden/Warden.java",
+      "start_line": 195,
+      "end_line": 200,
+      "listed_lines": 6,
+      "whole_file_read": false,
+      "file_sha256": "57355cf26df4a2ba1d8ed2d5bd1455f7801eefeeead4089666e505dcfe46bb7d",
+      "raw_range_sha256": "40a09d833974df322e93afd40043a78f3bf271b19cc70bfeecc0802b33c1dedf",
+      "normalized_LF_join_without_final_LF_sha256": "8323ab789dd54cac035f59d91984e743e3ba5df6605c224d0ae43af625d09692",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public boolean doHurtTarget(Entity p_219472_) {\n      this.level().broadcastEntityEvent(this, (byte)4);\n      this.playSound(SoundEvents.WARDEN_ATTACK_IMPACT, 10.0F, this.getVoicePitch());\n      SonicBoom.setCooldown(this, 40);\n      return super.doHurtTarget(p_219472_);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/monster/warden/Warden.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/warden/Warden.java",
+      "start_line": 254,
+      "end_line": 284,
+      "listed_lines": 31,
+      "whole_file_read": false,
+      "file_sha256": "57355cf26df4a2ba1d8ed2d5bd1455f7801eefeeead4089666e505dcfe46bb7d",
+      "raw_range_sha256": "4542bdede933a12630642471537c7299218d153707857b4fcf19ec731cc18741",
+      "normalized_LF_join_without_final_LF_sha256": "a23fedc28eb04653b5b044a4cda19297ae5474b904f7dc228474150d4c9e8978",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   protected void customServerAiStep() {\n      ServerLevel serverlevel = (ServerLevel)this.level();\n      serverlevel.getProfiler().push(\"wardenBrain\");\n      this.getBrain().tick(serverlevel, this);\n      this.level().getProfiler().pop();\n      super.customServerAiStep();\n      if ((this.tickCount + this.getId()) % 120 == 0) {\n         applyDarknessAround(serverlevel, this.position(), this, 20);\n      }\n\n      if (this.tickCount % 20 == 0) {\n         this.angerManagement.tick(serverlevel, this::canTargetEntity);\n         this.syncClientAngerLevel();\n      }\n\n      WardenAi.updateActivity(this);\n   }\n\n   public void handleEntityEvent(byte p_219360_) {\n      if (p_219360_ == 4) {\n         this.roarAnimationState.stop();\n         this.attackAnimationState.start(this.tickCount);\n      } else if (p_219360_ == 61) {\n         this.tendrilAnimation = 10;\n      } else if (p_219360_ == 62) {\n         this.sonicBoomAnimationState.start(this.tickCount);\n      } else {\n         super.handleEntityEvent(p_219360_);\n      }\n\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/monster/warden/Warden.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/warden/Warden.java",
+      "start_line": 339,
+      "end_line": 345,
+      "listed_lines": 7,
+      "whole_file_read": false,
+      "file_sha256": "57355cf26df4a2ba1d8ed2d5bd1455f7801eefeeead4089666e505dcfe46bb7d",
+      "raw_range_sha256": "847ab176e2916b17c8effca5a5f998104f28faab2817c91e9d456a145bd41a57",
+      "normalized_LF_join_without_final_LF_sha256": "767cba8640668c49fb31709c9186b7b6c9ba0deff945eb190b3301a8599dae91",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   protected Brain<?> makeBrain(Dynamic<?> p_219406_) {\n      return WardenAi.makeBrain(this, p_219406_);\n   }\n\n   public Brain<Warden> getBrain() {\n      return (Brain<Warden>)super.getBrain();\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/monster/warden/Warden.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/warden/Warden.java",
+      "start_line": 361,
+      "end_line": 369,
+      "listed_lines": 9,
+      "whole_file_read": false,
+      "file_sha256": "57355cf26df4a2ba1d8ed2d5bd1455f7801eefeeead4089666e505dcfe46bb7d",
+      "raw_range_sha256": "87bed6e36981d97b3202e9356a8bd4aa3461ebfd220b32e54ec9d82ace7c07a8",
+      "normalized_LF_join_without_final_LF_sha256": "56fc6682699f3a8e09c33fcf9fe369766b10195b41baa57f789d222147fdf0f3",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public boolean canTargetEntity(@Nullable Entity p_219386_) {\n      if (p_219386_ instanceof LivingEntity livingentity) {\n         if (this.level() == p_219386_.level() && EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(p_219386_) && !this.isAlliedTo(p_219386_) && livingentity.getType() != EntityType.ARMOR_STAND && livingentity.getType() != EntityType.WARDEN && !livingentity.isInvulnerable() && !livingentity.isDeadOrDying() && this.level().getWorldBorder().isWithinBounds(livingentity.getBoundingBox())) {\n            return true;\n         }\n      }\n\n      return false;\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/monster/warden/Warden.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/warden/Warden.java",
+      "start_line": 484,
+      "end_line": 489,
+      "listed_lines": 6,
+      "whole_file_read": false,
+      "file_sha256": "57355cf26df4a2ba1d8ed2d5bd1455f7801eefeeead4089666e505dcfe46bb7d",
+      "raw_range_sha256": "09905315b5f7f7b314530d553f6689bfda1279b5e5ccd23e70a7333601f51fd7",
+      "normalized_LF_join_without_final_LF_sha256": "a9e6f7b7ada599c99e6aead467d6b42d31b3bdfe90b0910d50bb021661270d0d",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public void setAttackTarget(LivingEntity p_219460_) {\n      this.getBrain().eraseMemory(MemoryModuleType.ROAR_TARGET);\n      this.getBrain().setMemory(MemoryModuleType.ATTACK_TARGET, p_219460_);\n      this.getBrain().eraseMemory(MemoryModuleType.CANT_REACH_WALK_TARGET_SINCE);\n      SonicBoom.setCooldown(this, 200);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/Entity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+      "start_line": 377,
+      "end_line": 382,
+      "listed_lines": 6,
+      "whole_file_read": false,
+      "file_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "raw_range_sha256": "41ee1c23c42926c9310e5f697710f4167f3a160af415f67daaa6504b55b07043",
+      "normalized_LF_join_without_final_LF_sha256": "ae0c16beb3a70de886d9738d5e17388224dd011ff5df0a34166bbb628ac20978",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public boolean closerThan(Entity p_216993_, double p_216994_, double p_216995_) {\n      double d0 = p_216993_.getX() - this.getX();\n      double d1 = p_216993_.getY() - this.getY();\n      double d2 = p_216993_.getZ() - this.getZ();\n      return Mth.lengthSquared(d0, d2) < Mth.square(p_216994_) && Mth.square(d1) < Mth.square(p_216995_);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/Entity.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+      "start_line": 1465,
+      "end_line": 1468,
+      "listed_lines": 4,
+      "whole_file_read": false,
+      "file_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+      "raw_range_sha256": "592c659aea44b8c3bb5065dd49bb736402f9eb2c673b23406ccb013f82e94f01",
+      "normalized_LF_join_without_final_LF_sha256": "580dce2c8bb915d4c9670bb5163dc2805167f20d74fb7aa30d3779ec6a5c2d85",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public void push(double p_20286_, double p_20287_, double p_20288_) {\n      this.setDeltaMovement(this.getDeltaMovement().add(p_20286_, p_20287_, p_20288_));\n      this.hasImpulse = true;\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/damagesource/DamageSources.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/damagesource/DamageSources.java",
+      "start_line": 239,
+      "end_line": 241,
+      "listed_lines": 3,
+      "whole_file_read": false,
+      "file_sha256": "06b6582513dec5205fce30f684992b4dad54788bf0de21855aa527815b6877ea",
+      "raw_range_sha256": "1ae423dc46f341dc91690838a094b362f5e0215b29a7d98ea66b1fbf661f121e",
+      "normalized_LF_join_without_final_LF_sha256": "3141f9f93b5ee786495839410a2dc3ebea34d9e4a58fdfa267bb490b33643b21",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public DamageSource sonicBoom(Entity p_270401_) {\n      return this.source(DamageTypes.SONIC_BOOM, p_270401_);\n   }\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "start_line": 44,
+      "end_line": 45,
+      "listed_lines": 2,
+      "whole_file_read": false,
+      "file_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "raw_range_sha256": "2109cee74cf1c4312f39a9ea0f8d3315a838fa0dd5def26f69abe09fb0be45cf",
+      "normalized_LF_join_without_final_LF_sha256": "1cec3f745a55fc29f16cdd4a62c4910b0db6581488a94c6b0e83c138b53528f7",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public static final MemoryModuleType<LivingEntity> ATTACK_TARGET = register(\"attack_target\");\n   public static final MemoryModuleType<Boolean> ATTACK_COOLING_DOWN = register(\"attack_cooling_down\");\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "start_line": 116,
+      "end_line": 118,
+      "listed_lines": 3,
+      "whole_file_read": false,
+      "file_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "raw_range_sha256": "7df64897a907c05d46263c9f398118b370d382b39ddb13e4a1c96901a1308d38",
+      "normalized_LF_join_without_final_LF_sha256": "b0c3319fe49b8aa816be676c248e804e676c743b88a918d7509d3f81883ca9de",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public static final MemoryModuleType<Unit> SONIC_BOOM_COOLDOWN = register(\"sonic_boom_cooldown\", Codec.unit(Unit.INSTANCE));\n   public static final MemoryModuleType<Unit> SONIC_BOOM_SOUND_COOLDOWN = register(\"sonic_boom_sound_cooldown\", Codec.unit(Unit.INSTANCE));\n   public static final MemoryModuleType<Unit> SONIC_BOOM_SOUND_DELAY = register(\"sonic_boom_sound_delay\", Codec.unit(Unit.INSTANCE));\n"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/ai/memory/MemoryModuleType.java",
+      "start_line": 138,
+      "end_line": 149,
+      "listed_lines": 12,
+      "whole_file_read": false,
+      "file_sha256": "beb92b700cb6e80a8de119859207a6f67d70d7708dfd443a253cfaedc72708e0",
+      "raw_range_sha256": "cb9011b40de8adec8e29bf81f785a7a30f3725edd9bd90c93a58ceae9b2f4170",
+      "normalized_LF_join_without_final_LF_sha256": "cb9011b40de8adec8e29bf81f785a7a30f3725edd9bd90c93a58ceae9b2f4170",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public Optional<Codec<ExpirableValue<U>>> getCodec() {\n      return this.codec;\n   }\n\n   private static <U> MemoryModuleType<U> register(String p_26391_, Codec<U> p_26392_) {\n      return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, new ResourceLocation(p_26391_), new MemoryModuleType<>(Optional.of(p_26392_)));\n   }\n\n   private static <U> MemoryModuleType<U> register(String p_26389_) {\n      return Registry.register(BuiltInRegistries.MEMORY_MODULE_TYPE, new ResourceLocation(p_26389_), new MemoryModuleType<>(Optional.empty()));\n   }\n}"
+    },
+    {
+      "source_coordinate": "net.minecraftforge:forge:1.20.1-47.4.10_mapped_official_1.20.1:sources",
+      "archive_entry": "net/minecraft/world/entity/EntityType.java",
+      "private_file": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+      "start_line": 279,
+      "end_line": 279,
+      "listed_lines": 1,
+      "whole_file_read": false,
+      "file_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+      "raw_range_sha256": "d1e5ca7dac6b6c3e70c20971f40c66c1e9971bb06478663bf43cbf2ec87ca3e9",
+      "normalized_LF_join_without_final_LF_sha256": "ad0dc098e92094d4faff161bf2ea62f31f822965ce488908794561c1456e2bfe",
+      "raw_equals_archive_entry": true,
+      "raw_excerpt_utf8": "   public static final EntityType<Warden> WARDEN = register(\"warden\", EntityType.Builder.of(Warden::new, MobCategory.MONSTER).sized(0.9F, 2.9F).clientTrackingRange(16).fireImmune());\n"
+    }
+  ],
+  "read_scope": {
+    "ranges": 24,
+    "listed_lines": 913,
+    "unique_source_files": 12,
+    "whole_files": 6,
+    "selected_partial_classes_not_whole": [
+      "Brain",
+      "Warden",
+      "Entity",
+      "DamageSources",
+      "MemoryModuleType",
+      "EntityType"
+    ],
+    "exploratory_reading_not_cited_as_complete": "Checkpoint25ranges981lineoccurrences includesBrain60-100partialcodec exploration andsomeadjacentfields; candidate24ranges913lineoccurrences excludesincomplete/irrelevantcodec andtrimsadjacencies. No completeBraincodec/currentengine IO claim.",
+    "recovery": "MemoryModuleType attempt140-170 stoppedbeforebody becausefile149lines; actual132-149 andEntityType279 subsequentlyreadseparately. No clipped source bodies countedcomplete. EarlierGuardianmetadata clip recoveredbeforeprescreen; no oldsourceproof replay."
+  },
+  "prescreen": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-110-native-sonic-complete-owner-prescreen-20261110.json",
+    "sha256": "f01692b9e83a03b233a558451cc359afaca2a7b6c5a1625658d53d3c7f334d21",
+    "bytes": 93797
+  },
+  "actual_prior_reading_checkpoint": {
+    "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-110-native-sonic-actual-reading-checkpoint-20261110.json",
+    "sha256": "a3aa9e8fd70ec147b9fc6c2ad3f6f0a4732ea73d57327df1909289b020787675",
+    "bytes": 61529
+  },
+  "formal_baseline": {
+    "reviewed.json": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "34e62b1b440bff52e57635d0590d897ea8524cf140603db44262814f7cebdc3a",
+      "bytes": 8316452
+    },
+    "semantic-dedup.json": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+      "sha256": "7bd7d3fa163f8a9def75ba9f86bca92f9cda44e7495e0f4700167878ec648f3e",
+      "bytes": 197979
+    },
+    "progress.json": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "8d978dcbf313fd25095a635a39a538f2b4a18bf9f4ddc167977ad715dfcb9709",
+      "bytes": 631
+    }
+  },
+  "current49_master": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+    "sha256": "70f6e4fc629947aa59f7d54badef38a6fb9e712ad632e42fcb246609580a982a",
+    "bytes": 1503806
+  },
+  "current108_pending_author_plan_context": {
+    "current502_formal_baseline": {
+      "reviewed.json": {
+        "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+        "sha256": "34e62b1b440bff52e57635d0590d897ea8524cf140603db44262814f7cebdc3a",
+        "bytes": 8316452
+      },
+      "semantic-dedup.json": {
+        "path": "docs/cod4/audit-20261022/immune-feedback-research/semantic-dedup.json",
+        "sha256": "7bd7d3fa163f8a9def75ba9f86bca92f9cda44e7495e0f4700167878ec648f3e",
+        "bytes": 197979
+      },
+      "progress.json": {
+        "path": "docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+        "sha256": "8d978dcbf313fd25095a635a39a538f2b4a18bf9f4ddc167977ad715dfcb9709",
+        "bytes": 631
+      }
+    },
+    "current49_master": {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/master-acceptance-ledger.json",
+      "sha256": "70f6e4fc629947aa59f7d54badef38a6fb9e712ad632e42fcb246609580a982a",
+      "bytes": 1503806
+    },
+    "Main108_whole_review_reused0": {
+      "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/coordinator-program108-native-leash-whole-review-20261110.json",
+      "sha256": "497b9b5cdb8d7381b7e26d636dbb9756ae92800ddb5548d74a3e7a7d00c929f6",
+      "bytes": 137126
+    },
+    "Main108_all22_findings_reused0": [
+      "One bounded related native single-holder control lifecycle: player-qualified attachment or world-knot transfer, pending saved holder resolution/absolute entity-age timeout, coupled recipient restriction/AI distance handling and release, material-drop requests and runtime-ID rope presentation. Independently support at most1 whole implementation; no per-helper/species/constant/registry/packet/render credit.",
+      "Main actually read all20 declared source ranges947distinct cited lines from14 pinned native entries, including six whole small declarations. No clipped source output in these three bounded source reads. Source/hash/whole counts are evidence0. Original authors output-unavailable/overrun recovery history preserved, not credited twice.",
+      "Mob.interact first checks isAlive, then current holder==player releases without requiring held LEAD, drop requested only outside creative. Important interaction then actual LEAD and virtual canBeLeashed assigns holder before stack shrink. Base canBeLeashed tests !isLeashed and !Enemy, not Boss/tag/knockback resistance; no own side gate in this attach branch.",
+      "Player.interactOn can be canceled by Forge and spectators returnPASS after optional menu. Creative restores count only for the same hand stack reference if decreased; fallback living-item dispatch uses a copy in creative. Thus source shrink or sidedSuccess is not an accepted survival payment or material conservation receipt.",
+      "LeadItem.useOn FENCES returns sidedSuccess independent of bindPlayerMobs return; nullplayer/client do not bind there. Server binding queries Mob AABB ±7 and transfers only actual current holder==player, lazily creates one knot and emits placement/attach requests. A successful fence interaction can transfer no actor, and transfer does not debit a second lead.",
+      "Knot server interact first transfers nearby player-held mobs; if none it discards itself, creative additionally immediately drops current knot-held links without material drops. Noncreative immediate knot callback does not itself iterate/drop those links; later recipient tick can observe dead holder. The paths are not identical refund timing.",
+      "Knot getOrCreate searches bounded AABB±1 and exact block position then constructs/addFreshEntity without checking Boolean and returns the object. Restore XYZ path calls it without own fence validity check. Logical holder assignment therefore does not itself prove admitted entity, valid support or currently loaded identity. survives tests FENCES later.",
+      "HangingEntity tick uses checkInterval++==100 and resets0, not a fixed100 world/wall ticks guarantee. Entity discard sets removal reason through remove/setRemoved and invokes cap/callback paths; base Entity.isAlive is !isRemoved. Concrete virtual mob/holder predicates and global tick/engine composition are not fully expanded.",
+      "setLeashedTo assigns current holder, clears pending tag, optionally broadcasts on ServerLevel, then stops riding; it does not re-run canBeLeashed. A later successful startRiding drops existing link. External setters/subtype overrides are distinct from the admitted player interaction path.",
+      "dropLeash only acts when holder nonnull, clears holder and pending tag, then server-requested LEAD spawn and optional unlink broadcast. It neither clears delayed client holder ID nor restores previous restriction in its own body. spawnAtLocation return ignored is not guaranteed material delivery or intended-player sameUUID pickup.",
+      "Mob server tick calls virtual tickLeash after super.tick, then every tickCount%5 recalculates MOVE/LOOK from non-Mob controlling passenger and JUMP additionally non-Boat vehicle. One leash release disable can be overwritten by later or same tick ordinary control recomputation. No permanent AI stop or universal control immunity follows.",
+      "Restore first tries present UUID in current ServerLevel and returns on resolution; an unresolved present UUID does not fall back to XYZ because coordinates are else-if. Coordinates create/get knot then assign. Only remaining unresolved branch with absolute entity tickCount>100 requests a lead and clears tag; not100 new retries or a loaded-world timer/refund proof.",
+      "Pathfinder first calls parent restoration/release then requires current nonnull same-level holder. It overwrites restriction center/radius5 before response. Within restriction is strict squared-distance<radius² and clearRestriction explicitly sets -1. The shown release bodies do not restore an older restriction; no permanent stuck/path failure was reproduced.",
+      "Sitting TamableAnimal drops if distance>10 then returns before onLeashDistance and MOVE-disable branch. Other recipients invoke a virtual distance hook, then >10 drops+disablesMOVE, >6 adds signed squared-normalized per-axis delta*.4 and slowfall check; near holder optionally enablesMOVE and requests navigation to max(distance-2,0) at virtual speed. No actual moved-position/arrival receipt.",
+      "Complete GoalSelector full tick stops running goals with disabled flags or failed continuation, cleans locks, arbitrates new goals then ticks running. tickRunningGoals alone checks running/update frequency, not disabled flags. Full WrappedGoal/custom scheduling is not newly audited; registering or changing a flag is not proof of stopping every consumer.",
+      "Link packet writes two fixed int runtime IDs, dest0 for null, no UUID/dimension/epoch/request outcome. Client same-thread handler resolves source in currentlevel and only for Mob sets delayed destination, then drop(false,false) clears existing holder. Getter retries currentlevel target while null+nonzero; no identity correlation or stale-ID prevention established.",
+      "Server pairing warns on removed entity but shown body continues requesting spawn/data/attrs/equipment/passengers and conditional leash link; ordinary set/drop broadcasts are separate requests. No consumed-client acknowledgment/admitted holder/network-order proof follows from source callback calls.",
+      "Whole MobRenderer uses getter result for holder culling and rope; interpolates owner rope endpoint and recipient body offset, requests two24-segment strips with inclusive25 sample endpoints each, color/light interpolation, normal popPose. It does not verify holder-alive/UUID epoch, payment, actual recipient force/navigation or current rendered pixels. No texture/model/UV acceptance.",
+      "Full previous VineLasso four-field decision and full semantic group compared: projectile-earned tag UUID/ID ownership, persistent force, manual/death refund and living attached-anchor remain already owned. Distinct native whole includes built-in oneholder transfer to transient world knot, pending restore-or-expire resource path and interference with restriction/control flags; generic rope/force/cue/timer changes alone would be0.",
+      "Complete EA37Main14findings9limits and EA38Main16findings8limits read as saved decisions: root-anchored multi-actor caravan chain and eligible communal golem query/suppression are different wholes. EA38 fullPathfinder prior support creates no new file credit. Three complete migration non-evidence judgments and own10520/12,10718/12,Milk22/11 contexts reused0; not exhaustive all-ledger source uniqueness.",
+      "Original108 historical prescreen500/228 and supplement assembly before Main107closure remain unchanged. Current502/gap498/230 and ecology49/gap951 verified; independently closed107 plus key-label erratum now additive context. No replay of prior sourceproof/append/markers or addition to migration/ecology.",
+      "Any future Dynasty control immunity/quest integration must discriminate actual refusal vs actual admitted control, accepted material debit and full player/target identity receipts. Preserve existing IDs/rewards/progress; success action/sound/rope/claimed distance is not completed acquisition/control/survival. Applicable1000 still incomplete, no production changes."
+    ],
+    "Main108_all12_limits_reused0": [
+      "At most1 related immunity/control implementation recommendation only; formal/applied0 until actualoriginalauthor full acknowledgment and separately reviewed exact single-append plan. No source study alone grants production.",
+      "Fixed local mapped Forge1.20.1-47.4.10 bytes only, no fresh Git or upstream/currentpack registries/tags/config/listeners/compatibility authentication. No upstream code execution.",
+      "20ranges947distinctlines14entries6whole are bookkeeping0. Mob/Entity/Player/ServerEntity/clienthandler/Hanging/registries are bounded partials, not full engine/state/persistence/network/render audit.",
+      "Complete oldVine fourfields/group, three non-evidence migration decisions, EA37/38 saved Main judgments read; original old source chains not reread. Own105/107/Milk exact full judgments reused0. Current376 semanticfield discovery only selectedhits/metadata, no all-global-source novelty theorem.",
+      "First broad diagnostic accidentally printed unrelated initial reviewed objects and clipped; these unrelated records were not counted as read, inspected or new credit. Only targeted complete selected Vine/group/migration and EA37/38 outputs form this comparison review.",
+      "Base eligibility and virtualdistance/canBeLeashed/subtype/NoAI/scheduler differ. No universal Boss denial/control immunity, exact reset window, permanent restriction defect or guaranteed movement/AI pause reproduced.",
+      "Knot unchecked admission, pending currentlevel resolution and absolute entity-age timeout do not certify valid-world holder, lossless saved-world/clone/reload, exactly100 attempts or material delivery.",
+      "Full ItemStack, spawnAtLocation/admission/interactionevent/listener, WrappedGoal/customgoal/global scheduling, Player server dispatch and tracking/drop/pickup backends not expanded. No native duplicate/loss/stale-ID exploit or repair proof.",
+      "Renderer geometry/culling and ID packet do not certify on-screen identity, refusalcue, holder epoch, two-client movement or acquired paid item. No image/texture/UV/new model research credit.",
+      "Current107delta closure receipt metadata contains label typo229 actual count corrected via separate immutable erratum; no rollback/rewrite. Historical108 supplement saying Mainclosure notyet observed is assembly history, not latest blocker.",
+      "No Java/Gradle/nativegame/server/process/display/audio/brightness/wake/focus/network/Git/production/sharedJar/professionalasset/originalsave/taskdeletion/newchat/automation actions. Existing ecological24/30+9/10/run12false constraints unchanged.",
+      "No quantifiedactivehours or tenhour completion. COD1-6 full scope and cod5 actual absence preserved. Reference recommendation does not complete any checklist game feature."
+    ],
+    "108_frozen_author_confirmation": {
+      "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-108-actual-author-confirmation-20261110.json",
+      "sha256": "50b68f0146448e31f5f59f9b927114b45888385f226f49aca321c382a0bb6866",
+      "bytes": 257735
+    },
+    "108_frozen_exact_plan": {
+      "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-108-formal-append-plan-20261110.json",
+      "sha256": "8da902276464ff092fe872fba8d5d1f0c7f053322fd8d407f152697c0d5c5c6f",
+      "bytes": 597095
+    },
+    "108_state": "Authorconfirmation+plan only, no108appendgrant/marker/proof atthisassembly; max1pending notformal. Native singleholder lifecycle differentfromproposedbrain attackattempt; genericAI/force0.",
+    "105107_Milk_saved_context_reused0": {
+      "path": "docs/cod4/audit-20261022/program-feedback-review-20261101/batch-108-current502-closure-context-supplement-20261110.json",
+      "sha256": "e43830bf6d36e834ca5e7e210bef4540e786ab961c557b8c681d96f1e2254b78",
+      "bytes": 52897
+    },
+    "new_formal_credit": 0,
+    "source_proofs_rerun": false
+  },
+  "credit": 0,
+  "source_execution": false,
+  "old_validators_scripts_rerun": false,
+  "native_acceptance": false
+}
