@@ -1,0 +1,1 @@
+147完成一座直接武器匠铺的全源研究，RS birch weaponsmith1。全部7PNG/32palette/8层/4BE/entities[]、78位置与8context+biome collection实际读。792声明/487存375非air112air/305省略/DV3465。前开放热棚+两炉岩浆/后木围冷室与炉后储凹间，y4连续石顶上后实体木坡帽无阁楼；对比057classic/059Romanian、Swiss/067Bamboo后保守同经典家族，完整研究1但提案0/正式0；请求Main复核此全源0结论。排除105同byteworkshop/067同rolejungle/海床水淹armorer，指纹筛查非计数。141142first144接受只carry0。无Java/游戏/制作/主清单变更。

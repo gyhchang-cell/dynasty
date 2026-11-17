@@ -1,0 +1,1 @@
+165固定Terralith large_house_rework完整三层长屋设计，25×19×18 DV3578，8385存2419非air5966air/165省略，167palette10BE/entities[]/13PNG/19分类层实际读，三原使用层和局部原矩阵已读，不称全原层/8385手读。底家务制作/中书写/顶三床，经北柱双重复转阶串联，东中台门；对064/071/095/079完整旧判断比较，最多1仅NPC01工住交通相关待Main，普通炉非锻炉、选读houses池无该templateentry。158 first164接受仅carry0并解pending，157NPC05保留；无Java/游戏/制作/主清单。

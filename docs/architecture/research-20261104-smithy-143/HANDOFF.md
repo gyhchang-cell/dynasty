@@ -1,0 +1,1 @@
+143 swamp_b_cartographer_and_shepherd_1有限0：10图生成/3实际/7未看，DV3120/82palette/实体1。下carto+loom/内7格west梯上带盖高亭和有spyglass Items箱，同内升工作亭近族；源有compass物品框，绝对/局部坐标完整保留，不冒充中文指南针/获取验收。house权2legacy rigid street_swamp（非140另一屋empty），原packedmud0。142深化141F01完整整屋max1独立pending精确保留，138first141及其他旧接受carry0。无Java/游戏/联网/声音亮度/新制作/主清单操作。

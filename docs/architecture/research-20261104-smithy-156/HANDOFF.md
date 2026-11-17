@@ -1,0 +1,1 @@
+156完整T&T sunflower_plains windmill1，18×26×17 DV3578，全7956=1172非air+6784air，零省略，113palette/26原层/9BE/13掉落实体/16PNG全读。南低石储房+东北内短梯到floor4木平台+高收分空壳中轴/南十字轮，旧012F04围院多层风车塔比较完整保留，最多1仅NPC05待Main。非已坏废村/机器/密道/原生任务。Main153 NPC01接受1完整8findings6limits四比较与七观察等整对象首次156携带，resolved不再pending，后carry0；150first152仅复用0。COD4仍153/gap847，无Java/游戏/制作/主清单。

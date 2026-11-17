@@ -1,0 +1,1 @@
+154 T&Tbadlands_pueblo mason1完整6PNG/37palette/六原层/3BE/entities[]，7×6×9 DV3105/378全记录177非air201air零省略。下两门储室/南低棚、东单跑三底阶上露天切石屋顶，062F01同pueblo下储侧棚/外阶上工作顶最近家族，完整研究1/提案0/正式0。原南场显式air夹泥/黏土不宣称连续地坪。五context实际全文读，house权2legacy/rigid/street_pueblo，村民接taiga池不是已生人，单Jar缺taiga/masonloot不判环境缺。历史指纹全复用153缓存+新增153delta，旧NBT重开0。仅153max1待Main；无Java/游戏/生产/主清单。

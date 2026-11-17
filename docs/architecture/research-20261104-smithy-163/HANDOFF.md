@@ -1,0 +1,1 @@
+163仅精确别名排除：wooded_badlands/side/workshop与105已研究sparse_jungle/side/workshop字节相同，3指纹同；不以不同群系路径重复计建筑。原始解码0、PNG0、完整研究0、提案0。读取新member与alias字节只为机器相等校验，不重跑旧语义/图链。156 first159仅carry0，157NPC05/158NPC01各max1待Main；无Java/游戏/制作/主清单。

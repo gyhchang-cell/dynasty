@@ -1,0 +1,1 @@
+155原记录预筛RSgianttaiga masons_house1：17palette/八层/4BE/entities[]、340存380省略，西三炉与东切石在同一个矩形共同室，两相邻南门通一室，源无内隔/翼/上使用层。对085同室炉切石家族0，明确提前排除；0PNG生成/查看、0完整视觉整屋研究、0提案/正式。六context同153复用，plate63的mossify替换未运行不称红石机关；153max1仅carry待Main。未运行Java/游戏或改生产/主清单。
