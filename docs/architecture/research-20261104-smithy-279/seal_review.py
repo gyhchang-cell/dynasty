@@ -1,0 +1,64 @@
+"""Private source research only. Never run after receipt exists."""
+import json,hashlib,sys
+from pathlib import Path
+from zipfile import ZipFile
+P=Path(__file__).resolve().parent;R=P.parents[2];PRE=P.parent/'research-20261104-smithy-278'
+assert not(P/'RECEIPT.json').exists()
+def read(n):return json.loads((P/n).read_text())
+def put(n,d):(P/n).write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n')
+def bind(p):
+ p=Path(p);b=p.read_bytes();return dict(path=str(p),sha256=hashlib.sha256(b).hexdigest(),bytes=len(b))
+src=read('raw-source-audit.json')['candidates'][0];d=src['nbt_decoded_original'];pal=d['palette'];m={tuple(b['pos']):b for b in d['blocks']}
+obs={
+'layout':'整栋小住宅：南外阶西升，接西窄廊，再由西门进入同一床炉居室；炉在西北、床在东北、箱和唱片机在南。主层floor4/use5，非下层作坊上层卧室。与119低渔革房、140内转阶上阅读、143内梯上亭、145低双工房的旧有限观察作比较；本例独立的室外升高与单居室完整读核，但未证明NPC06炼药用途，HOLD0。',
+'proportion':'9×12×9/DV3120，972声明=972全存储，421非air/551显式air，无省略位。77palette、7BE、1实体。主木室floor4而顶部草饰到y11，12高不是12层；室内没有第二完整生活层。',
+'facade':'spruce_planks51/stripped_spruce_log12/stripped_spruce_wood33与stripped_dark_oak_wood25/dark_oak_planks13构木房体；dark_oak_button12、trapdoor19等形成零碎边饰，不当air。仅门2,5/6,5east/right/closed，无glass材料；单glow_item_frame中的clock是装饰物，不是NPC或指南针交互。',
+'roof':'dark_oak_slab75、dark_oak_stairs10混合低屋盖与阶；mossy_stone_bricks24/mossy_cobble16及相关stairs分布在低地与屋盖边，不可把灰色图全部称石墙。grass_block21、grass13/tallgrass16形成顶草及底小地块，根3不等水面或活体支柱。屋盖没有独立上层平台。',
+'materials_work_storage':'炉3,5,3east/unlit，Items仅Slot1 stick Count7，BurnTime/CookTime/CookTimeTotal0，RecipesUsed{}；不是已点火或熬药。唱片机4,5,6 has_recordfalse/IsPlaying0/RecordStartTick0/TickCount0，没有运行音频。床6,5,2head/6,5,3foot朝北合一床。箱3,6,6north单箱，LootTable kaisyn:village/village_swamp_house seed9116658626134492124；原表3..8次选择clay/water_bucket/wheat/bread/beetroot_seeds/beetroot_soup/emerald/slime_ball/lily_pad，概率非已生成库存。',
+'circulation':'四级外暗橡bottom/west阶6,0,8→5,1,8→4,2,8→3,3,8，上方1/2格皆显式air；第三头顶格分别air/air/button/开启trapdoor，不笼统称全air。2,4,8bottom slab落脚→1,4,8top/east阶→西廊1,4,7..5木板，然后2,5/6,5闭门进入3,5/6,5air。西廊1,6,6为TOP/west/open活板，仍需碰撞核验；未宣称连续安全路线或NPC寻路通过。',
+'ground_support':'八scaffolding位于南外阶/落脚下：x1,z8,y0..3四块；x3,z8,y0..2三块；x5,0,8一块，对应上方阶/落脚，不能写八根整屋木桩。底部另有苔石/苔石阶及草地小块，不补水/地形或声称浮船。入口4,0,8south_up empty finalstructure_void；居民6,4,5up_west pool swamp_boat/villagers finalspruce_planks，未实际生成。精确house选择权2legacy/rigid/empty；root村庄size5/max116/start0/WORLD_SURFACE_WG/beard_thin/expansiontrue；center权1street_swamp处理器不适用当前empty住宅。'
+}
+limits=[
+'整栋原作研究1，有效相关提案0/正式0；原作是小型住宅，未证炼药/药材处理，raised dwelling相似不自动满足NPC06。保留HOLD0，不因不同来源或有炉计新合格信用，不把269有限接受泛化。',
+'9PNG实际全部看，覆盖12原层；77palette及Properties、7BE和1原实体完整读核。52实际probe均唯一；完整972位RLE为机器复核表达，不额外宣称972逐位人工读数。',
+'精确当前house选择条目、居民池、loot全文实际读。houses池其余条目仅保存未全文人工研究；root/center/biome原JSON读核，structure_set、centerNBT、三居民NBT及真实拼接未读。另读同包outpost root/tag/basepool只作非本源上下文0，不能挂它的pillager spawn到住宅。',
+'center的street_swamp原序列water中的packedmud→darkoakplanks，再.3mud/.3smooth_basalt/余cobbled_deepslate；当前house processors empty，且packedmud0，不据此推水上承托或船体漂浮。',
+'frame原局部blockPos6,7,4/pos6.96875,7.5,4.5与nbt.Pos[-78.03125,-51.5,1771.5]/Tile[-79,-52,1771]混存，保留不重新定位；Item clock Count1/Rotation0/Fixed0/Invisible0不是任务NPC或可交易回执。',
+'炉七木棍是真原库存，未点燃；箱loot和seed不等库存，jukebox无唱片未播放，一床不拆二床；无酿造台/cauldron/药材工位，角色、中文、材料制作付款获取和奖励均未验。',
+'外阶下脚手架承托与实际保存状态明确，基底地形、门操作、薄活板碰撞、坠落防护、脚手架更新/承重和NPC路径没有Java/游戏验收。全格分类图非真实材质、半块形状或灯光。',
+'先读并保存119F02/140F02/143F01/145F01全部原case；这些原记录明确bounded未完整，不升级为完整旧参考。嵌套历史只保留、不声称新全文阅读；没有重开旧NBT/PNG。',
+'F01 large_house1与F03 Trek small_house2只材料/BE/palette有界捕获未看图，不算完整研究；F03无炉药台且与旧沼泽住宅家族相关性未证明，保持0；F01基础住宅用途也未证明，不申请计数。',
+'269仅277首次辅助1，Main独立核收1716B原文已读保存，未来复用0；273/275仍待审；COD4153/gap847、NPC累计null。未满适用1000不制作，不改主清单/共享Jar/生产资产，不运行Java游戏网络UI，不改声音亮度，不删任务、不报工时或全部完成。'
+]
+put('manual-review.json',{'batch':279,'id':'F02','status':'WHOLE_DWELLING_NPC06_RELEVANCE_HOLD_ZERO','source':{k:v for k,v in src.items()if k not in ['nbt_decoded_original','material_counts']},'seven_dimensions':obs,'limits':limits,'images_actually_viewed':[bind(p)for p in sorted(P.glob('*.png'))],'new_complete_whole_studies':1,'new_qualifying_proposals_maximum':0,'formal_credit_added':0,'Main_independent_acceptance':False,'bounded_only_ids':['F01','F03']})
+runs=[]
+for y in range(12):
+ for z in range(9):
+  line=[m[(x,y,z)]['state']for x in range(9)];rr=[];start=0
+  for x in range(1,10):
+   if x==9 or line[x]!=line[start]:rr.append([start,x-1,line[start]]);start=x
+  runs.append({'y':y,'z':z,'runs':rr})
+put('full-cell-rle.json',{'size':d['size'],'unknown_count':0,'explicit_air_state':11,'rows':runs,'machine_representation_not_extra_manual_credit':True})
+s=json.loads((PRE/'session.json').read_text());s.update(batch=279,status='WHOLE_DWELLING_NPC06_RELEVANCE_HOLD_ZERO',new_complete_whole_studies=1,new_qualifying_proposals_maximum=0,formal_credit_added=0,first_carry_added=0,old269_carry_added=0,next='继续下一真实相关完整本地源；本279HOLD0，未把有炉住宅算炼药楼；269仅277首次1以后0；273/275仍待Main。');s['research_holds'].append('279F02_SWAMP_BOAT_ELEVATED_SINGLE_DWELLING_RELEVANCE0');s['previous278_receipt']=bind(PRE/'RECEIPT.json');s['Main269_firstcarry_independent']=bind(P/'Main269-firstcarry-independent-original.json');put('session.json',s)
+put('active-checkpoint.json',{'batch':279,'status':s['status'],'session':bind(P/'session.json'),'manual':bind(P/'manual-review.json'),'new_complete_whole_studies':1,'new_qualifying_proposals_maximum':0,'formal_credit_added':0,'first_carry_added':0,'old269_carry_added':0,'269_first_carry_batch':277,'COD4_accepted':153,'COD4_gap':847,'NPC_cumulative':None,'native_acceptance':False,'tasks_deleted':0,'all_tasks_complete':False})
+sys.path.insert(0,str(R/'tools/architecture'));from nbt_read import read as nr
+checks={}
+with ZipFile(src['source_archive'])as z:
+ bb=z.read(src['member']);checks['fixed_NBT_SHA']=hashlib.sha256(bb).hexdigest()==src['nbt_sha256'];checks['fresh_NBT_equal']=nr(bb)==d
+ cs=read('source-context.json')['candidates'][0]['contexts']+read('root-context.json')['contexts']+[read('center-only-processor.json')];checks['all_saved_context_SHA']=all(hashlib.sha256(z.read(c['member'])).hexdigest()==c['sha256']for c in cs)
+checks['archive_SHA']=bind(src['source_archive'])['sha256']==src['source_archive_sha256']
+checks['RLE_equal']=all([v for start,end,v in r['runs']for _ in range(start,end+1)]==[m[(x,r['y'],r['z'])]['state']for x in range(9)]for r in runs)
+checks['keycells_equal']=all(c['state']==m[tuple(c['pos'])]['state']and c['value']==pal[c['state']]for c in read('key-route-cells.json')['cells'])
+protected=[]
+for f in json.loads((PRE/'protected-inputs-current.json').read_text())['files']:
+ old=f['current278'];now=bind(old['path']);protected.append({'previous278':old,'current279':now,'unchanged':old==now,'this_chat_wrote_file':False})
+put('protected-inputs-current.json',{'files':protected,'cod5_missing_not_invented':True,'this_chat_product_writes':0});checks['protected8_unchanged']=all(f['unchanged']for f in protected)
+checks['sealed278_immutable']=all(bind(f['path'])==f for f in json.loads((PRE/'RECEIPT.json').read_text())['files'])
+checks['Main269firstcarry_exact']=bind(P/'Main269-firstcarry-independent-original.json')['sha256']=='d6799525473c77625635583ccdd6ddb0bced5469a6f9011c66ec8a533dd6797c'
+checks['nine_PNG_saved_and_viewed']=len(list(P.glob('*.png')))==9
+checks['consistent_hold_carry0']=s['new_qualifying_proposals_maximum']==s['formal_credit_added']==s['first_carry_added']==s['old269_carry_added']==0 and s['269_first_carry_batch']==277
+assert all(checks.values()),checks
+put('verification.json',{'checks':checks,'all_passed':True,'qualification':'local original binding reproducibility; not Main independent/game review'})
+put('RECEIPT.json',{'batch':279,'status':s['status'],'files':[bind(p)for p in sorted(P.iterdir())if p.is_file()and p.name!='RECEIPT.json'],'checks':checks,'new_complete_whole_studies':1,'new_qualifying_proposals_maximum':0,'formal_credit_added':0,'first_carry_added':0,'old269_carry_added':0,'COD4_accepted':153,'COD4_gap':847,'NPC_cumulative':None,'tasks_deleted':0,'all_tasks_complete':False})
+assert all(bind(f['path'])==f for f in read('RECEIPT.json')['files'])
+print(json.dumps({'receipt':bind(P/'RECEIPT.json'),'manual':bind(P/'manual-review.json'),'bound_files':len(read('RECEIPT.json')['files']),'checks':checks},ensure_ascii=False))

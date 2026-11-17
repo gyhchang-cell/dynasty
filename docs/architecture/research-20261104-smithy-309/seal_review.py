@@ -1,0 +1,55 @@
+import json, hashlib, math
+from pathlib import Path
+P=Path(__file__).resolve().parent;R=P.parents[2]
+assert not(P/'RECEIPT.json').exists()
+def ld(p):return json.loads(Path(p).read_text())
+def put(n,v):(P/n).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+def bind(p):
+ p=Path(p).resolve();b=p.read_bytes();return dict(path=str(p),sha256=hashlib.sha256(b).hexdigest(),bytes=len(b))
+protected=[R/'docs/cod4/audit-20261022'/s for s in ['active-workstreams.json','pending-tasks.json','continuation-20261028/session.json']]+[R/f'docs/architecture/research-20261104-smithy-{n}/RECEIPT.json'for n in [297,298,301,302,304,306,307,308]]+[Path('/Users/a15356015027/Desktop/code x提示词/cod2.txt')]
+before=[bind(p)for p in protected]
+seven=dict(
+ layout='一完整主附相接住宅：长主屋下层开放厅居，上层南两床、西北低桌/坐台、东条形座台/木栅；东内沿north直阶连接。南低附屋通过主屋后部闭门及半阶相接，附屋内三箱，west另有直接入口。床厅/主附屋/两入口/三箱是一整体，附屋不拆第二栋。下层陈设不等经营客栈、茶馆或工坊；无原旅宿招牌/锻造台。',
+ proportion='13×13×20/DV3953，3380声明格=1957保存(1382非air575显air)+1423省略unknown。125palette/20BE/entities[]。13层260行3380状态或unknown索引、8分类PNG/2整高剖和167坐标实际读。主屋floor1/use2；上floor5 top spruce半砖配y6局部bottom半砖及两粉床，局部座台full planks另占位。低附屋floor0/use1，中间bottom oak半阶过渡。主屋两使用层+低附屋，不叫三层楼；4床块合两床，不把长20模板或外檐宽当净室宽。',
+ facade='111cherry log、18stripped spruce log/2wood与144calcite浅墙填充，64oak地板，竹木陈设与石裙/外挑底檐。西2,y2/3,z4/7两cherry闭门，背后3,y2/3,z4是calcite、z7是cherry柱，不能按门名算两个真实可穿门洞；它们中间z5/6保留开放通路。功能spruce门为主附连接7,y2/3,12与附屋west5,y1/2,16。88oak fencegate/40oak fence檐下细构不等88门口/全圈可走阳台。8普通灯、黄红纹三旗/黑骷髅三旗/白底红圆一旗保留作者原语境，没有中文匾额/马头墙或中国文化资格；无外竹林。',
+ roof='主屋沿z高长脊、多道宽檐与南低附屋相接：y6外圈deepslate brick上下半砖大檐，y7内收薄缘，y8/9另一圈檐带围浅墙上室；y10 x4/8两侧深砖底阶、y11 x5/7进一步收至y12 x6,z2..13交替底半砖/端阶/坡阶封脊。南附屋y4 x4..10/z13..19 top深砖半砖檐，y5..6双坡向x7收，y7沿z14..18薄脊/端阶；不是又一可住层。241深砖半砖/86深砖阶/26深砖为全源材频，不拆参考数。屋盖腔无第三层楼面/内梯证据，不证连通街区屋顶、雪载、防雨或实机材质。',
+ materials='南粉床4/5,y6,z10foot→z11head/south，未占；两pots4,6,8west和7,6,4north原payload仅id。附屋三箱：6,1,14east seed-233157790645495924、6,3,14east seed2844171378731474870、8,2,17west seed-9107649750972665483，均trek:village/village_cherry_house且无现存Items。上箱坐6,2,14top closed east活板，顶6,4,14top west spruce阶；另一箱坐8,1,17top closed活板，顶8,3,17top south spruce阶，不能凭箱名声称已能开盖。主屋下烛/白毯/珊瑚扇、竹板/海带块为原陈设，不造黑饭/茶/货物；上西三closed活板低桌，东plank加栅为座台背构，非新墙房。四rail在附屋东侧11,1,z15/17 ascendingwest和10,2,z15/17 eastwest，没有车或完整线路，不叫车站/输送系统。无炉火/工作台/供暖。',
+ circulation='主口0,1,5原jigsaw最终structure_void，上0,y2..4,5unknown；1,1,5bottom oak半砖→2,1,5top半砖→3/4,1,5oak板，上y2..4全显air；两侧闭门背实墙，中央才有连续源air开口。主梯8,2,9→8,3,8→8,4,7→8,5,6四north底oak阶，每阶上两格显air；顶北8,5,5calcite、8,6,5bottom半砖，上y7/8air，转7,5,5top+7,6,5bottom叠半砖是半格过渡，不是全程统一air。主附门7,y2/3,12需开，7,1,13bottom半砖接7,0,14cobble，后屋站面下降；附屋0,1,16接头上2/3unknown，1..4,y1..3,16air，5,y1/2,16闭门，6/7,y1..3,16air。上床脚前4/5,6,9bottom半砖，上y7/8air；高箱前部分无同标高站面、阶顶/薄活板压限高，需原生开盖/碰撞与交互验收，未判可取或源bug。',
+ terrain='126grass/92dirt原低裙、主屋抬高木地和后屋低cobble/西石砖短路随本体保留；y-1与界外未知，不填air、不声称天然落地。四jigsaw=两个west入口最终structure_void，加6,6,z7/8两up_west村民口最终bottom spruce半砖；只标记原池，entities[]不代表已生成住户。五context JSON与304已全文读资源逐对象相同并绑定复用，本栋house22项selectedweight4/single_pool/rigid/empty；root size6/max80/start0/WORLD_SURFACE_WG/beard_thin/expansiontrue，三中心各1，optional cherry_grove。原loot3..8roll十项/random_sequence的vilage原拼写保留，未roll/付费/发奖；中心/街道/终止件NBT和村民池未读未拼，不当生态、任务获取、中文指南针或住居AI验收。')
+limits=[
+ '本批完整原源研究1，最多1个DUN05废弃民居/主附组织及屋盖内交通的广义东亚住宅空间辅助候选；正式信用0，待Main独立整栋语义/用途判断。严格中国/Hui资格0，不把广义辅助改成1000门槛合格。',
+ '六旧整栋249/297/301/304/306/307完整七维实际读并固定绑定，298/302更正保留。与主屋双宽开放口+eastnorth阶+south双床+低三箱附屋的整体组织比较，不以附屋/箱/阶/床数换色单独加建筑。风格/作者相同允许，未证明全历史独立。',
+ 'Main306已验1个有限NPC03林居辅助，其入口unknown/梯盖closed/native未通仍保留；不转给本源无竹林住宅。307只是候选，304 Main是否完整验收未获证，不把旧比较当旧验收。',
+ '全部125Properties/20BE/13原层/167选格/8分类PNG实际读；cube图把半砖/阶/床/薄件变立方，不是原Minecraft模型/纹理/碰撞。1423省略不是air，入口unknown不补白。',
+ '整体whole总数和gap未独立核实，保持null；COD4历史153/缺847不盲加。不达适用1000不生产、不删提示词/镜像/pending/ownership，不声称任务总体完成。',
+ '仅本地Python -B读固定源和写自身309；无Java/Gradle/游戏/网络/UI/声音亮度/唤醒/解锁/焦点/用户实例/存档/共享Jar/专业资产/主清单/session/Git/自动化。']
+put('manual-review.json',dict(batch=309,source=ld(P/'source-binding.json'),counts=ld(P/'source-counts.json'),task_source=bind(Path('/Users/a15356015027/Desktop/code x提示词/cod2.txt')),scope='DUN05民居主附/竖向空间的广义东亚用途辅助，严格中国/Hui0',seven_dimensions=seven,limits=limits,pre_render_family_check=bind(P/'pre-render-family-check.json'),context_reuse=bind(P/'context-reuse.json'),actual_reading=dict(PNGs=['whole.png','cut-03.png','cut-06.png','cut-09.png','layers-00.png','layers-05.png','layers-10.png','sections.png'],images=8,layers=13,rows=260,declared_cells=3380,palette=125,BE=20,entities=0,selected_probes=167,selected_probe_unknown=5,identical_context_bodies_reused_from_prior_actual_reading=5,selected_context_entry_actually_read=True,old_whole_seven_dimensions=[249,297,301,304,306,307],errata=[298,302]),complete_original_spatial_study=True,new_complete_whole_studies=1,auxiliary_reference_proposal_maximum=1,formal_credit_added=0,strict_Chinese_Hui_credit_added=0,whole_scope_total=None,whole_scope_gap=None,applicable_gate_met=False,native_acceptance=False,all_tasks_complete=False,status='HOLD0_PENDING_INDEPENDENT_WHOLE_AND_PURPOSE_REVIEW'))
+d=ld(P/'source-original.json');pal=d['palette'];bs={tuple(b['pos']):b for b in d['blocks']};checks=[]
+def ck(n,v):
+ assert v,n
+ checks.append(dict(check=n,passed=True))
+ck('range3380_stored1957_nonair1382_air575_unknown1423',math.prod(d['size'])==3380 and len(bs)==1957 and sum(pal[b['state']]['Name']=='minecraft:air'for b in bs.values())==575)
+ck('125palette20BE_entities0',len(pal)==125 and sum('nbt'in b for b in bs.values())==20 and d.get('entities')==[])
+plans=ld(P/'all-layers-state-index.json')['layers'];ck('13layers260rows',len(plans)==13 and sum(len(v['rows_z'])for v in plans)==260)
+for ly in plans:
+ for z,row in enumerate(ly['rows_z']):
+  for x,s in enumerate(row.split()):
+   b=bs.get((x,ly['y'],z));assert s==(str(b['state'])if b else'_')
+ck('all3380_state_indices_or_unknown_match_original',True)
+probes=ld(P/'route-probes.json')['probes'];ck('167probes5unknown',len(probes)==167 and sum(v['state']is None for v in probes)==5)
+for v in probes:
+ b=bs.get(tuple(v['pos']));assert v['state']==(pal[b['state']]if b else None) and v['nbt']==(b.get('nbt')if b else None)
+ck('all_full_probe_states_and_BE_match_original',True)
+ck('north_stair_four_steps_and_twohigh_air',all(pal[bs[x,y,z]['state']]['Properties'].get('facing')=='north' and pal[bs[x,y,z]['state']]['Properties'].get('half')=='bottom' and all(pal[bs[x,y+dy,z]['state']]['Name']=='minecraft:air'for dy in [1,2])for x,y,z in [(8,2,9),(8,3,8),(8,4,7),(8,5,6)]))
+ck('flanking_doors_backed_by_solids_not_entry_gaps',all(pal[bs[3,y,4]['state']]['Name']=='minecraft:calcite' and pal[bs[3,y,7]['state']]['Name']=='minecraft:cherry_log'for y in [2,3]) and all(pal[bs[x,y,5]['state']]['Name']=='minecraft:air'for x in [2,3,4]for y in [2,3]))
+ck('two_south_bed_pairs',all(pal[bs[x,6,z]['state']]['Properties'].get('part')==part and pal[bs[x,6,z]['state']]['Properties'].get('facing')=='south'for x in [4,5]for z,part in [(10,'foot'),(11,'head')]))
+ck('three_chests_two_pots_four_jigsaws',sum(pal[b['state']]['Name']=='minecraft:chest'for b in bs.values())==3 and sum(pal[b['state']]['Name']=='minecraft:decorated_pot'for b in bs.values())==2 and sum(pal[b['state']]['Name']=='minecraft:jigsaw'for b in bs.values())==4)
+ck('five_unchanged_contexts_selectedweight4',ld(P/'source-context.json')==ld(R/'docs/architecture/research-20261104-smithy-304/source-context.json') and ld(P/'context-reuse.json')['selected']['weight']==4)
+expected={249:'adb6c5afbd3b70c9c7e11ee2647590862356038b48e4c51290cbc7682a3d229d',297:'910f17d5509272d3ff6b47703424528e86b7a30f88be297b5ab8c12313659e1d',301:'722bf10c8858d8b96544cfe3875780eaf8b4e2ac82aea1abd8c3258029b48b6a',304:'8149908dc871f8c9c6f56fb6de322a218b2cadc7089a67faaedbae1a1678352e',306:'b670387e20bba2639b2a31f46f55c6f0b4f56d299a9f4d77aee80ad4a2f53fa5',307:'16eb1a2a2ecf75944bd097b482f2294ea6ea05098f111d72b8e9b0bd44c72f77'}
+ck('six_old_complete_readings_bindings_unchanged',all(bind(R/f'docs/architecture/research-20261104-smithy-{n}/manual-review.json')['sha256']==h for n,h in expected.items()))
+put('validation.json',dict(checks=checks,boundary='Data consistency only; not independent semantic/native/building credit.'))
+put('active-checkpoint.json',dict(batch=309,status='COMPLETE_MAIN_DWELLING_LOW_ANNEX_SOURCE_ACTUALLY_READ_PENDING_REVIEW',new_complete_whole_studies=1,auxiliary_reference_proposal_maximum=1,formal_credit_added=0,strict_Chinese_Hui_credit_added=0,whole_total=None,whole_gap=None,tasks_deleted=0,manual=bind(P/'manual-review.json'),next='Deliver for independent purpose/whole review; do not split annex/doors/chests or transfer306 qualification. Continue other relevant whole with source-based purpose and complete family comparison, no production under1000.'))
+after=[bind(p)for p in protected];assert before==after
+files=[bind(p)for p in sorted(P.iterdir())if p.is_file()and p.name!='RECEIPT.json']
+put('RECEIPT.json',dict(batch=309,status='SEALED_COMPLETE_MAIN_DWELLING_LOW_ANNEX_STUDY_PENDING_REVIEW',files=files,data_checks=checks,protected_before=before,protected_after=after,protection_boundary='Only seal operation before/after stability, not entire concurrent worktime.',new_complete_whole_studies=1,auxiliary_reference_proposal_maximum=1,formal_credit_added=0,strict_Chinese_Hui_credit_added=0,whole_total=None,whole_gap=None,tasks_deleted=0,applicable_gate_met=False,native_acceptance=False,all_tasks_complete=False))
+print(json.dumps(dict(receipt=bind(P/'RECEIPT.json'),manual=bind(P/'manual-review.json'),files=len(files),data_checks=len(checks),protected_stable=len(after)),ensure_ascii=False))
