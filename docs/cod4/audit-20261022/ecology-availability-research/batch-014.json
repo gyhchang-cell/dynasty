@@ -1,0 +1,496 @@
+{
+  "schema": "ecology-reviewed-proposals-v6",
+  "status": "PENDING_REAL_GENERAL_RECEIPT_ZERO_CREDIT",
+  "records": [
+    {
+      "repo": "AlexModGuy/AlexsCaves",
+      "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+      "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/FerrouslimeEntity.java",
+      "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/FerrouslimeEntity.java",
+      "source_sha256": "3dafc2e892fc31152b6f4c10f82e9f2759ec2f1597f74276d548d2ce3cf0fef4",
+      "git_blob_sha1": "7a39b87d8cb5a64771fa8c32d83dc058d86807f3",
+      "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+      "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+      "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+      "line": 1,
+      "end_line": 435,
+      "excerpt": "package com.github.alexmodguy.alexscaves.server.entity.living;\n\nimport com.github.alexmodguy.alexscaves.AlexsCaves;\nimport com.github.alexmodguy.alexscaves.client.particle.ACParticleRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ACEntityRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.AdvancedPathNavigateNoTeleport;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.MobTarget3DGoal;\nimport com.github.alexmodguy.alexscaves.server.misc.ACSoundRegistry;\nimport com.github.alexmodguy.alexscaves.server.potion.ACEffectRegistry;\nimport com.github.alexthe666.citadel.server.entity.pathfinding.raycoms.AdvancedPathNavigate;\nimport net.minecraft.commands.arguments.EntityAnchorArgument;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.EnumSet;\nimport java.util.HashMap;\nimport java.util.Map;\n\npublic class FerrouslimeEntity extends Monster {\n    private Map<Integer, Vec3> headOffsets = new HashMap<>();\n    public float prevHeadCount = 1;\n    private float prevMergeProgress;\n    private float mergeProgress;\n    private float prevAttackProgress;\n    private float attackProgress;\n    private static final EntityDataAccessor<Integer> HEADS = SynchedEntityData.defineId(FerrouslimeEntity.class, EntityDataSerializers.INT);\n    private static final EntityDataAccessor<Integer> ATTACK_TICK = SynchedEntityData.defineId(FerrouslimeEntity.class, EntityDataSerializers.INT);\n    private int mergeCooldown = 0;\n    private int noMoveTime = 0;\n\n    public FerrouslimeEntity(EntityType<? extends Monster> type, Level level) {\n        super(type, level);\n        this.xpReward = 1;\n        this.moveControl = new MoveController();\n        prevMergeProgress = 5;\n        mergeProgress = 5;\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new MeleeGoal());\n        this.goalSelector.addGoal(2, new FormGoal());\n        this.goalSelector.addGoal(2, new RandomStrollGoal(this, 1.0D, 20));\n        this.goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(3, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new HurtByTargetGoal(this));\n        this.targetSelector.addGoal(2, new MobTarget3DGoal(this, Player.class, true));\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(HEADS, 1);\n        this.entityData.define(ATTACK_TICK, 0);\n    }\n\n    public static AttributeSupplier.Builder createAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.ATTACK_DAMAGE, 2.0D).add(Attributes.MOVEMENT_SPEED, 0.35D).add(Attributes.MAX_HEALTH, 10.0D);\n    }\n\n    public boolean isNoGravity() {\n        return true;\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    protected void dropFromLootTable(DamageSource source, boolean b) {\n        if (this.getHeadCount() <= 1) {\n            super.dropFromLootTable(source, b);\n        }\n    }\n\n    public boolean isFakeEntity() {\n        return this.firstTick;\n    }\n\n    public void tick() {\n        super.tick();\n        this.setYHeadRot(this.getYRot());\n        prevMergeProgress = mergeProgress;\n        prevAttackProgress = attackProgress;\n        if (prevHeadCount != this.getHeadCount()) {\n            refreshDimensions();\n            if (this.mergeProgress < 5.0F) {\n                this.mergeProgress++;\n            } else {\n                this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(Mth.clamp(getHeadCount() * 10, 10, 100));\n                this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(Mth.clamp(getHeadCount() * 2, 2, 10));\n                double d = this.getAttribute(Attributes.MAX_HEALTH).getValue();\n                if(this.getHealth() < d && getHeadCount() > 0){\n                    this.heal((float) Math.ceil(d - this.getHealth()));\n                }\n                prevHeadCount = this.getHeadCount();\n            }\n        }\n        if (this.entityData.get(ATTACK_TICK) > 0) {\n            this.entityData.set(ATTACK_TICK, this.entityData.get(ATTACK_TICK) - 1);\n            if (attackProgress < 5F) {\n                attackProgress++;\n            }\n        } else {\n            LivingEntity target = this.getTarget();\n            if (attackProgress >= 3F && target != null && this.distanceTo(target) < getSlimeSize(1.0F)) {\n                target.hurt(damageSources().mobAttack(this), 4F + getHeadCount() * 2);\n            }\n            if (attackProgress > 0F) {\n                attackProgress--;\n            }\n        }\n        if (level().isClientSide && isAlive()) {\n            float slimeSize = getSlimeSize(1);\n            for (int i = 0; i < Math.ceil(slimeSize); i++) {\n                double particleX = this.getX() + (random.nextDouble() - 0.5F) * (slimeSize + 1.5F);\n                double particleY = this.getY() + (random.nextDouble() - 0.5F) * (slimeSize + 1.5F);\n                double particleZ = this.getZ() + (random.nextDouble() - 0.5F) * (slimeSize + 1.5F);\n                level().addParticle(ACParticleRegistry.FERROUSLIME.get(), particleX, particleY, particleZ, this.getId(), 0, 0);\n            }\n            AlexsCaves.PROXY.playWorldSound(this, (byte) 13);\n        } else {\n            LivingEntity living = this.getTarget();\n            if (living != null && living.isAlive()) {\n                if (this.getDeltaMovement().length() < 0.1) {\n                    noMoveTime++;\n                } else {\n                    noMoveTime = 0;\n                }\n                if (noMoveTime > 40 && mergeCooldown <= 0) {\n                    split(1200);\n                }\n            }\n        }\n        if (mergeCooldown > 0) {\n            mergeCooldown--;\n        }\n    }\n\n    public void remove(Entity.RemovalReason removalReason) {\n        AlexsCaves.PROXY.clearSoundCacheFor(this);\n        if (this.getHeadCount() >= 2 && this.isDeadOrDying()) {\n            int ours = this.getHeadCount() / 2;\n            int theirs = this.getHeadCount() - ours;\n            this.mergeCooldown = 1200;\n            level().addFreshEntity(this.makeSlime(ours, 1200));\n            level().addFreshEntity(this.makeSlime(theirs, 1200));\n        }\n        super.remove(removalReason);\n    }\n\n    public void refreshDimensions() {\n        double d0 = this.getX();\n        double d1 = this.getY();\n        double d2 = this.getZ();\n        super.refreshDimensions();\n        this.setPos(d0, d1, d2);\n    }\n\n    protected float getStandingEyeHeight(Pose p_33614_, EntityDimensions dimensions) {\n        return 0.625F * dimensions.height;\n    }\n\n    public void onSyncedDataUpdated(EntityDataAccessor<?> entityDataAccessor) {\n        super.onSyncedDataUpdated(entityDataAccessor);\n        if (HEADS.equals(entityDataAccessor)) {\n            refreshDimensions();\n            this.setYRot(this.yHeadRot);\n            this.yBodyRot = this.yHeadRot;\n            this.mergeProgress = 0;\n        }\n    }\n\n    public int getHeadCount() {\n        return this.entityData.get(HEADS);\n    }\n\n    public void setHeadCount(int headCount) {\n        this.entityData.set(HEADS, headCount);\n    }\n\n    public float getMergeProgress(float partialTick) {\n        return (this.prevMergeProgress + (mergeProgress - prevMergeProgress) * partialTick) * 0.2F;\n    }\n\n    protected PathNavigation createNavigation(Level level) {\n        return new AdvancedPathNavigateNoTeleport(this, level, AdvancedPathNavigate.MovementType.FLYING);\n    }\n\n    public float getWalkTargetValue(BlockPos pos, LevelReader level) {\n        return level().getBlockState(pos).isAir() ? 10.0F : 0.0F;\n    }\n\n    protected void playStepSound(BlockPos pos, BlockState state) {\n\n    }\n\n    public Vec3 getHeadOffsetPos(int i) {\n        if (i <= 1) {\n            return Vec3.ZERO;\n        } else if (headOffsets.containsKey(i)) {\n            return headOffsets.get(i);\n        } else {\n            Vec3 vec = new Vec3(random.nextFloat() - 0.5F, random.nextFloat() - 0.5F, random.nextFloat() - 0.5F).scale(getSlimeSize(1.0F) * 0.5F);\n            headOffsets.put(i, vec);\n            return vec;\n        }\n    }\n\n    public EntityDimensions getDimensions(Pose p_33597_) {\n        return super.getDimensions(p_33597_).scale(getSlimeSize(1.0F));\n    }\n\n    public float getSlimeSize(float partialTicks) {\n        float smoothHeadCount = getHeadCount() - 1 + getMergeProgress(partialTicks);\n        return Math.min((float) (Math.log(smoothHeadCount) + 1) * 1.2F, 3.2F);\n    }\n\n    public boolean split(int cooldown) {\n        if (this.getHeadCount() >= 2) {\n            int ours = this.getHeadCount() / 2;\n            int theirs = this.getHeadCount() - ours;\n            this.mergeCooldown = 1200;\n            level().addFreshEntity(this.makeSlime(ours, 1200));\n            level().addFreshEntity(this.makeSlime(theirs, 1200));\n            this.remove(RemovalReason.DISCARDED);\n            return true;\n        }\n        return false;\n    }\n\n    private FerrouslimeEntity makeSlime(int heads, int cooldown) {\n        Component component = this.getCustomName();\n        FerrouslimeEntity ferrouslime = ACEntityRegistry.FERROUSLIME.get().create(level());\n        ferrouslime.setPos(this.position());\n        ferrouslime.setHeadCount(heads);\n        ferrouslime.setCustomName(component);\n        ferrouslime.setNoAi(this.isNoAi());\n        ferrouslime.setInvulnerable(this.isInvulnerable());\n        ferrouslime.mergeCooldown = cooldown;\n        ferrouslime.setYRot(this.yHeadRot);\n        ferrouslime.yBodyRot = this.yHeadRot;\n        return ferrouslime;\n    }\n\n    @javax.annotation.Nullable\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficultyIn, MobSpawnType reason, @javax.annotation.Nullable SpawnGroupData spawnDataIn, @javax.annotation.Nullable CompoundTag dataTag) {\n        this.setHeadCount(1 + random.nextInt(2));\n        return super.finalizeSpawn(level, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n    public boolean canCutCorner(BlockPathTypes types) {\n        return true;\n    }\n\n    public float getAttackProgress(float partialTicks) {\n        return (prevAttackProgress + (attackProgress - prevAttackProgress) * partialTicks) * 0.2F;\n    }\n\n    public boolean doHurtTarget(Entity entityIn) {\n        this.entityData.set(ATTACK_TICK, 10);\n        return super.doHurtTarget(entityIn);\n    }\n\n    private boolean canForm() {\n        return this.isAlive() && mergeCooldown <= 0;\n    }\n\n    public int getExperienceReward() {\n        return 2;\n    }\n\n    public boolean canBeAffected(MobEffectInstance effectInstance) {\n        return super.canBeAffected(effectInstance) && effectInstance.getEffect() != ACEffectRegistry.MAGNETIZING.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSource) {\n        return ACSoundRegistry.FERROUSLIME_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return ACSoundRegistry.FERROUSLIME_DEATH.get();\n    }\n\n    class MoveController extends MoveControl {\n        private final Mob parentEntity;\n        private Direction lastSlideDirection;\n        private int slideStop = 0;\n        private int slideFor = 0;\n\n        public MoveController() {\n            super(FerrouslimeEntity.this);\n            this.parentEntity = FerrouslimeEntity.this;\n        }\n\n        public void tick() {\n            if (this.operation == MoveControl.Operation.MOVE_TO) {\n                BlockPos target = BlockPos.containing(this.wantedX, this.wantedY, this.wantedZ);\n                BlockPos centerPos = BlockPos.containing(parentEntity.getX(), parentEntity.getY(0.5F), parentEntity.getZ());\n                BlockPos closest = centerPos;\n                if (slideStop <= 0) {\n                    lastSlideDirection = null;\n                    for (Direction direction : Direction.values()) {\n                        BlockPos check = centerPos.relative(direction);\n                        if (check.distSqr(target) < closest.distSqr(target) && level().getBlockState(check).isAir()) {\n                            lastSlideDirection = direction;\n                        }\n                    }\n                    slideStop = 6;\n                } else {\n                    slideStop--;\n                }\n                Vec3 vector3d = new Vec3(this.wantedX - parentEntity.getX(), this.wantedY - parentEntity.getY(), this.wantedZ - parentEntity.getZ());\n                if (lastSlideDirection != null && !parentEntity.horizontalCollision) {\n                    vector3d = vector3d.multiply(Math.abs(lastSlideDirection.getStepX()), Math.abs(lastSlideDirection.getStepY()), Math.abs(lastSlideDirection.getStepZ()));\n                }\n                double d0 = vector3d.length();\n                double width = parentEntity.getBoundingBox().getSize();\n                LivingEntity attackTarget = parentEntity.getTarget();\n                Vec3 vector3d1 = vector3d.scale(this.speedModifier * 0.25D / d0);\n                if (d0 < 0.5) {\n                    this.operation = Operation.WAIT;\n                } else {\n                    parentEntity.setDeltaMovement(vector3d1);\n                    if (d0 >= width && attackTarget == null) {\n                        parentEntity.setYRot(-((float) Mth.atan2(vector3d1.x, vector3d1.z)) * (180F / (float) Math.PI));\n                        if (FerrouslimeEntity.this.getTarget() != null) {\n                            parentEntity.yBodyRot = parentEntity.getYRot();\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private class MeleeGoal extends Goal {\n        private int cooldown = 0;\n\n        public MeleeGoal() {\n            this.setFlags(EnumSet.of(Flag.MOVE));\n        }\n\n        @Override\n        public boolean canUse() {\n            return FerrouslimeEntity.this.getTarget() != null && FerrouslimeEntity.this.getTarget().isAlive();\n        }\n\n        public void tick() {\n            LivingEntity target = FerrouslimeEntity.this.getTarget();\n            if (target != null && target.isAlive()) {\n                FerrouslimeEntity.this.getNavigation().moveTo(target, 1F);\n                FerrouslimeEntity.this.lookAt(EntityAnchorArgument.Anchor.EYES, target.getEyePosition());\n                if (FerrouslimeEntity.this.distanceTo(target) < 1 + FerrouslimeEntity.this.getSlimeSize(1.0F) && FerrouslimeEntity.this.hasLineOfSight(target) && cooldown == 0) {\n                    FerrouslimeEntity.this.doHurtTarget(target);\n                    cooldown = 10;\n                }\n            }\n            if (cooldown > 0) {\n                cooldown--;\n            }\n        }\n\n        public void stop() {\n            cooldown = 0;\n        }\n    }\n\n    private class FormGoal extends Goal {\n\n        int executionCooldown = 0;\n        FerrouslimeEntity otherslime;\n\n        public FormGoal() {\n            this.setFlags(EnumSet.of(Flag.MOVE));\n        }\n\n        @Override\n        public boolean canUse() {\n            if (!FerrouslimeEntity.this.canForm()) {\n                return false;\n            }\n            if (executionCooldown-- < 0) {\n                executionCooldown = FerrouslimeEntity.this.getTarget() == null ? 100 : 20;\n                FerrouslimeEntity closest = null;\n                for (FerrouslimeEntity slime : FerrouslimeEntity.this.level().getEntitiesOfClass(FerrouslimeEntity.class, FerrouslimeEntity.this.getBoundingBox().inflate(30, 30, 30))) {\n                    if (slime != FerrouslimeEntity.this && slime.canForm() && (closest == null || slime.distanceTo(FerrouslimeEntity.this) < closest.distanceTo(FerrouslimeEntity.this))) {\n                        closest = slime;\n                    }\n                }\n                otherslime = closest;\n                return otherslime != null;\n            }\n            return false;\n        }\n\n        @Override\n        public boolean canContinueToUse() {\n            return otherslime != null && FerrouslimeEntity.this.canForm() && otherslime.canForm() && FerrouslimeEntity.this.distanceTo(otherslime) < 32;\n        }\n\n        public void tick() {\n            FerrouslimeEntity.this.getNavigation().moveTo(otherslime, 1);\n            if (FerrouslimeEntity.this.distanceTo(otherslime) <= 0.5F + (FerrouslimeEntity.this.getBbWidth() + otherslime.getBbWidth()) / 2D && otherslime.canForm()) {\n                FerrouslimeEntity.this.setHeadCount(FerrouslimeEntity.this.getHeadCount() + otherslime.getHeadCount());\n                otherslime.remove(RemovalReason.DISCARDED);\n                FerrouslimeEntity.this.playSound(ACSoundRegistry.FERROUSLIME_COMBINE.get());\n                otherslime = null;\n                FerrouslimeEntity.this.mergeCooldown = 600;\n            }\n        }\n    }\n}",
+      "excerpt_sha256": "641087d44d75b39ec3634a996de2e36370ebe43d73a860637009f4c92a610e4f",
+      "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/FerrouslimeEntity.java#L1-L435",
+      "evidence_kind": "complete_file",
+      "id": "EA-0019",
+      "status": "reviewed_proposed",
+      "proposed_credit": 1,
+      "accepted_credit": 0,
+      "supporting_ranges_credit": 0,
+      "semantic_key": "live-cohort-head-aggregation-and-stall-or-death-triggered-bisection-with-uncommitted-adds",
+      "author_thread_id": "01a16364-cac0-7ca2-a042-a5312781ca34",
+      "general_context_schema": "ferrouslime-cohort-transfer-v1",
+      "chain": [
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/FerrouslimeEntity.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/FerrouslimeEntity.java",
+          "source_sha256": "3dafc2e892fc31152b6f4c10f82e9f2759ec2f1597f74276d548d2ce3cf0fef4",
+          "git_blob_sha1": "7a39b87d8cb5a64771fa8c32d83dc058d86807f3",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 1,
+          "end_line": 435,
+          "excerpt": "package com.github.alexmodguy.alexscaves.server.entity.living;\n\nimport com.github.alexmodguy.alexscaves.AlexsCaves;\nimport com.github.alexmodguy.alexscaves.client.particle.ACParticleRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ACEntityRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.AdvancedPathNavigateNoTeleport;\nimport com.github.alexmodguy.alexscaves.server.entity.ai.MobTarget3DGoal;\nimport com.github.alexmodguy.alexscaves.server.misc.ACSoundRegistry;\nimport com.github.alexmodguy.alexscaves.server.potion.ACEffectRegistry;\nimport com.github.alexthe666.citadel.server.entity.pathfinding.raycoms.AdvancedPathNavigate;\nimport net.minecraft.commands.arguments.EntityAnchorArgument;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.util.Mth;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.control.MoveControl;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.pathfinder.BlockPathTypes;\nimport net.minecraft.world.phys.Vec3;\n\nimport java.util.EnumSet;\nimport java.util.HashMap;\nimport java.util.Map;\n\npublic class FerrouslimeEntity extends Monster {\n    private Map<Integer, Vec3> headOffsets = new HashMap<>();\n    public float prevHeadCount = 1;\n    private float prevMergeProgress;\n    private float mergeProgress;\n    private float prevAttackProgress;\n    private float attackProgress;\n    private static final EntityDataAccessor<Integer> HEADS = SynchedEntityData.defineId(FerrouslimeEntity.class, EntityDataSerializers.INT);\n    private static final EntityDataAccessor<Integer> ATTACK_TICK = SynchedEntityData.defineId(FerrouslimeEntity.class, EntityDataSerializers.INT);\n    private int mergeCooldown = 0;\n    private int noMoveTime = 0;\n\n    public FerrouslimeEntity(EntityType<? extends Monster> type, Level level) {\n        super(type, level);\n        this.xpReward = 1;\n        this.moveControl = new MoveController();\n        prevMergeProgress = 5;\n        mergeProgress = 5;\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(0, new FloatGoal(this));\n        this.goalSelector.addGoal(1, new MeleeGoal());\n        this.goalSelector.addGoal(2, new FormGoal());\n        this.goalSelector.addGoal(2, new RandomStrollGoal(this, 1.0D, 20));\n        this.goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 8.0F));\n        this.goalSelector.addGoal(3, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, new HurtByTargetGoal(this));\n        this.targetSelector.addGoal(2, new MobTarget3DGoal(this, Player.class, true));\n    }\n\n    @Override\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.entityData.define(HEADS, 1);\n        this.entityData.define(ATTACK_TICK, 0);\n    }\n\n    public static AttributeSupplier.Builder createAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.ATTACK_DAMAGE, 2.0D).add(Attributes.MOVEMENT_SPEED, 0.35D).add(Attributes.MAX_HEALTH, 10.0D);\n    }\n\n    public boolean isNoGravity() {\n        return true;\n    }\n\n    protected void checkFallDamage(double y, boolean onGroundIn, BlockState state, BlockPos pos) {\n    }\n\n    protected void dropFromLootTable(DamageSource source, boolean b) {\n        if (this.getHeadCount() <= 1) {\n            super.dropFromLootTable(source, b);\n        }\n    }\n\n    public boolean isFakeEntity() {\n        return this.firstTick;\n    }\n\n    public void tick() {\n        super.tick();\n        this.setYHeadRot(this.getYRot());\n        prevMergeProgress = mergeProgress;\n        prevAttackProgress = attackProgress;\n        if (prevHeadCount != this.getHeadCount()) {\n            refreshDimensions();\n            if (this.mergeProgress < 5.0F) {\n                this.mergeProgress++;\n            } else {\n                this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(Mth.clamp(getHeadCount() * 10, 10, 100));\n                this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(Mth.clamp(getHeadCount() * 2, 2, 10));\n                double d = this.getAttribute(Attributes.MAX_HEALTH).getValue();\n                if(this.getHealth() < d && getHeadCount() > 0){\n                    this.heal((float) Math.ceil(d - this.getHealth()));\n                }\n                prevHeadCount = this.getHeadCount();\n            }\n        }\n        if (this.entityData.get(ATTACK_TICK) > 0) {\n            this.entityData.set(ATTACK_TICK, this.entityData.get(ATTACK_TICK) - 1);\n            if (attackProgress < 5F) {\n                attackProgress++;\n            }\n        } else {\n            LivingEntity target = this.getTarget();\n            if (attackProgress >= 3F && target != null && this.distanceTo(target) < getSlimeSize(1.0F)) {\n                target.hurt(damageSources().mobAttack(this), 4F + getHeadCount() * 2);\n            }\n            if (attackProgress > 0F) {\n                attackProgress--;\n            }\n        }\n        if (level().isClientSide && isAlive()) {\n            float slimeSize = getSlimeSize(1);\n            for (int i = 0; i < Math.ceil(slimeSize); i++) {\n                double particleX = this.getX() + (random.nextDouble() - 0.5F) * (slimeSize + 1.5F);\n                double particleY = this.getY() + (random.nextDouble() - 0.5F) * (slimeSize + 1.5F);\n                double particleZ = this.getZ() + (random.nextDouble() - 0.5F) * (slimeSize + 1.5F);\n                level().addParticle(ACParticleRegistry.FERROUSLIME.get(), particleX, particleY, particleZ, this.getId(), 0, 0);\n            }\n            AlexsCaves.PROXY.playWorldSound(this, (byte) 13);\n        } else {\n            LivingEntity living = this.getTarget();\n            if (living != null && living.isAlive()) {\n                if (this.getDeltaMovement().length() < 0.1) {\n                    noMoveTime++;\n                } else {\n                    noMoveTime = 0;\n                }\n                if (noMoveTime > 40 && mergeCooldown <= 0) {\n                    split(1200);\n                }\n            }\n        }\n        if (mergeCooldown > 0) {\n            mergeCooldown--;\n        }\n    }\n\n    public void remove(Entity.RemovalReason removalReason) {\n        AlexsCaves.PROXY.clearSoundCacheFor(this);\n        if (this.getHeadCount() >= 2 && this.isDeadOrDying()) {\n            int ours = this.getHeadCount() / 2;\n            int theirs = this.getHeadCount() - ours;\n            this.mergeCooldown = 1200;\n            level().addFreshEntity(this.makeSlime(ours, 1200));\n            level().addFreshEntity(this.makeSlime(theirs, 1200));\n        }\n        super.remove(removalReason);\n    }\n\n    public void refreshDimensions() {\n        double d0 = this.getX();\n        double d1 = this.getY();\n        double d2 = this.getZ();\n        super.refreshDimensions();\n        this.setPos(d0, d1, d2);\n    }\n\n    protected float getStandingEyeHeight(Pose p_33614_, EntityDimensions dimensions) {\n        return 0.625F * dimensions.height;\n    }\n\n    public void onSyncedDataUpdated(EntityDataAccessor<?> entityDataAccessor) {\n        super.onSyncedDataUpdated(entityDataAccessor);\n        if (HEADS.equals(entityDataAccessor)) {\n            refreshDimensions();\n            this.setYRot(this.yHeadRot);\n            this.yBodyRot = this.yHeadRot;\n            this.mergeProgress = 0;\n        }\n    }\n\n    public int getHeadCount() {\n        return this.entityData.get(HEADS);\n    }\n\n    public void setHeadCount(int headCount) {\n        this.entityData.set(HEADS, headCount);\n    }\n\n    public float getMergeProgress(float partialTick) {\n        return (this.prevMergeProgress + (mergeProgress - prevMergeProgress) * partialTick) * 0.2F;\n    }\n\n    protected PathNavigation createNavigation(Level level) {\n        return new AdvancedPathNavigateNoTeleport(this, level, AdvancedPathNavigate.MovementType.FLYING);\n    }\n\n    public float getWalkTargetValue(BlockPos pos, LevelReader level) {\n        return level().getBlockState(pos).isAir() ? 10.0F : 0.0F;\n    }\n\n    protected void playStepSound(BlockPos pos, BlockState state) {\n\n    }\n\n    public Vec3 getHeadOffsetPos(int i) {\n        if (i <= 1) {\n            return Vec3.ZERO;\n        } else if (headOffsets.containsKey(i)) {\n            return headOffsets.get(i);\n        } else {\n            Vec3 vec = new Vec3(random.nextFloat() - 0.5F, random.nextFloat() - 0.5F, random.nextFloat() - 0.5F).scale(getSlimeSize(1.0F) * 0.5F);\n            headOffsets.put(i, vec);\n            return vec;\n        }\n    }\n\n    public EntityDimensions getDimensions(Pose p_33597_) {\n        return super.getDimensions(p_33597_).scale(getSlimeSize(1.0F));\n    }\n\n    public float getSlimeSize(float partialTicks) {\n        float smoothHeadCount = getHeadCount() - 1 + getMergeProgress(partialTicks);\n        return Math.min((float) (Math.log(smoothHeadCount) + 1) * 1.2F, 3.2F);\n    }\n\n    public boolean split(int cooldown) {\n        if (this.getHeadCount() >= 2) {\n            int ours = this.getHeadCount() / 2;\n            int theirs = this.getHeadCount() - ours;\n            this.mergeCooldown = 1200;\n            level().addFreshEntity(this.makeSlime(ours, 1200));\n            level().addFreshEntity(this.makeSlime(theirs, 1200));\n            this.remove(RemovalReason.DISCARDED);\n            return true;\n        }\n        return false;\n    }\n\n    private FerrouslimeEntity makeSlime(int heads, int cooldown) {\n        Component component = this.getCustomName();\n        FerrouslimeEntity ferrouslime = ACEntityRegistry.FERROUSLIME.get().create(level());\n        ferrouslime.setPos(this.position());\n        ferrouslime.setHeadCount(heads);\n        ferrouslime.setCustomName(component);\n        ferrouslime.setNoAi(this.isNoAi());\n        ferrouslime.setInvulnerable(this.isInvulnerable());\n        ferrouslime.mergeCooldown = cooldown;\n        ferrouslime.setYRot(this.yHeadRot);\n        ferrouslime.yBodyRot = this.yHeadRot;\n        return ferrouslime;\n    }\n\n    @javax.annotation.Nullable\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficultyIn, MobSpawnType reason, @javax.annotation.Nullable SpawnGroupData spawnDataIn, @javax.annotation.Nullable CompoundTag dataTag) {\n        this.setHeadCount(1 + random.nextInt(2));\n        return super.finalizeSpawn(level, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n    public boolean canCutCorner(BlockPathTypes types) {\n        return true;\n    }\n\n    public float getAttackProgress(float partialTicks) {\n        return (prevAttackProgress + (attackProgress - prevAttackProgress) * partialTicks) * 0.2F;\n    }\n\n    public boolean doHurtTarget(Entity entityIn) {\n        this.entityData.set(ATTACK_TICK, 10);\n        return super.doHurtTarget(entityIn);\n    }\n\n    private boolean canForm() {\n        return this.isAlive() && mergeCooldown <= 0;\n    }\n\n    public int getExperienceReward() {\n        return 2;\n    }\n\n    public boolean canBeAffected(MobEffectInstance effectInstance) {\n        return super.canBeAffected(effectInstance) && effectInstance.getEffect() != ACEffectRegistry.MAGNETIZING.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSource) {\n        return ACSoundRegistry.FERROUSLIME_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return ACSoundRegistry.FERROUSLIME_DEATH.get();\n    }\n\n    class MoveController extends MoveControl {\n        private final Mob parentEntity;\n        private Direction lastSlideDirection;\n        private int slideStop = 0;\n        private int slideFor = 0;\n\n        public MoveController() {\n            super(FerrouslimeEntity.this);\n            this.parentEntity = FerrouslimeEntity.this;\n        }\n\n        public void tick() {\n            if (this.operation == MoveControl.Operation.MOVE_TO) {\n                BlockPos target = BlockPos.containing(this.wantedX, this.wantedY, this.wantedZ);\n                BlockPos centerPos = BlockPos.containing(parentEntity.getX(), parentEntity.getY(0.5F), parentEntity.getZ());\n                BlockPos closest = centerPos;\n                if (slideStop <= 0) {\n                    lastSlideDirection = null;\n                    for (Direction direction : Direction.values()) {\n                        BlockPos check = centerPos.relative(direction);\n                        if (check.distSqr(target) < closest.distSqr(target) && level().getBlockState(check).isAir()) {\n                            lastSlideDirection = direction;\n                        }\n                    }\n                    slideStop = 6;\n                } else {\n                    slideStop--;\n                }\n                Vec3 vector3d = new Vec3(this.wantedX - parentEntity.getX(), this.wantedY - parentEntity.getY(), this.wantedZ - parentEntity.getZ());\n                if (lastSlideDirection != null && !parentEntity.horizontalCollision) {\n                    vector3d = vector3d.multiply(Math.abs(lastSlideDirection.getStepX()), Math.abs(lastSlideDirection.getStepY()), Math.abs(lastSlideDirection.getStepZ()));\n                }\n                double d0 = vector3d.length();\n                double width = parentEntity.getBoundingBox().getSize();\n                LivingEntity attackTarget = parentEntity.getTarget();\n                Vec3 vector3d1 = vector3d.scale(this.speedModifier * 0.25D / d0);\n                if (d0 < 0.5) {\n                    this.operation = Operation.WAIT;\n                } else {\n                    parentEntity.setDeltaMovement(vector3d1);\n                    if (d0 >= width && attackTarget == null) {\n                        parentEntity.setYRot(-((float) Mth.atan2(vector3d1.x, vector3d1.z)) * (180F / (float) Math.PI));\n                        if (FerrouslimeEntity.this.getTarget() != null) {\n                            parentEntity.yBodyRot = parentEntity.getYRot();\n                        }\n                    }\n                }\n            }\n        }\n    }\n\n    private class MeleeGoal extends Goal {\n        private int cooldown = 0;\n\n        public MeleeGoal() {\n            this.setFlags(EnumSet.of(Flag.MOVE));\n        }\n\n        @Override\n        public boolean canUse() {\n            return FerrouslimeEntity.this.getTarget() != null && FerrouslimeEntity.this.getTarget().isAlive();\n        }\n\n        public void tick() {\n            LivingEntity target = FerrouslimeEntity.this.getTarget();\n            if (target != null && target.isAlive()) {\n                FerrouslimeEntity.this.getNavigation().moveTo(target, 1F);\n                FerrouslimeEntity.this.lookAt(EntityAnchorArgument.Anchor.EYES, target.getEyePosition());\n                if (FerrouslimeEntity.this.distanceTo(target) < 1 + FerrouslimeEntity.this.getSlimeSize(1.0F) && FerrouslimeEntity.this.hasLineOfSight(target) && cooldown == 0) {\n                    FerrouslimeEntity.this.doHurtTarget(target);\n                    cooldown = 10;\n                }\n            }\n            if (cooldown > 0) {\n                cooldown--;\n            }\n        }\n\n        public void stop() {\n            cooldown = 0;\n        }\n    }\n\n    private class FormGoal extends Goal {\n\n        int executionCooldown = 0;\n        FerrouslimeEntity otherslime;\n\n        public FormGoal() {\n            this.setFlags(EnumSet.of(Flag.MOVE));\n        }\n\n        @Override\n        public boolean canUse() {\n            if (!FerrouslimeEntity.this.canForm()) {\n                return false;\n            }\n            if (executionCooldown-- < 0) {\n                executionCooldown = FerrouslimeEntity.this.getTarget() == null ? 100 : 20;\n                FerrouslimeEntity closest = null;\n                for (FerrouslimeEntity slime : FerrouslimeEntity.this.level().getEntitiesOfClass(FerrouslimeEntity.class, FerrouslimeEntity.this.getBoundingBox().inflate(30, 30, 30))) {\n                    if (slime != FerrouslimeEntity.this && slime.canForm() && (closest == null || slime.distanceTo(FerrouslimeEntity.this) < closest.distanceTo(FerrouslimeEntity.this))) {\n                        closest = slime;\n                    }\n                }\n                otherslime = closest;\n                return otherslime != null;\n            }\n            return false;\n        }\n\n        @Override\n        public boolean canContinueToUse() {\n            return otherslime != null && FerrouslimeEntity.this.canForm() && otherslime.canForm() && FerrouslimeEntity.this.distanceTo(otherslime) < 32;\n        }\n\n        public void tick() {\n            FerrouslimeEntity.this.getNavigation().moveTo(otherslime, 1);\n            if (FerrouslimeEntity.this.distanceTo(otherslime) <= 0.5F + (FerrouslimeEntity.this.getBbWidth() + otherslime.getBbWidth()) / 2D && otherslime.canForm()) {\n                FerrouslimeEntity.this.setHeadCount(FerrouslimeEntity.this.getHeadCount() + otherslime.getHeadCount());\n                otherslime.remove(RemovalReason.DISCARDED);\n                FerrouslimeEntity.this.playSound(ACSoundRegistry.FERROUSLIME_COMBINE.get());\n                otherslime = null;\n                FerrouslimeEntity.this.mergeCooldown = 600;\n            }\n        }\n    }\n}",
+          "excerpt_sha256": "641087d44d75b39ec3634a996de2e36370ebe43d73a860637009f4c92a610e4f",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/living/FerrouslimeEntity.java#L1-L435",
+          "evidence_kind": "complete_file"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/AlexsCaves.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/AlexsCaves.java",
+          "source_sha256": "77aee4d33d42f17e998cab8130682059508ce9e03ab02072c315f5bb2aef2d6e",
+          "git_blob_sha1": "fd613edf30645040a72494a9ae203a81d097b540",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 92,
+          "end_line": 133,
+          "excerpt": "    public AlexsCaves() {\n        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, COMMON_CONFIG_SPEC, \"alexscaves-general.toml\");\n        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, CLIENT_CONFIG_SPEC, \"alexscaves-client.toml\");\n        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();\n        modEventBus.addListener(this::commonSetup);\n        modEventBus.addListener(this::clientSetup);\n        modEventBus.addListener(this::loadComplete);\n        modEventBus.addListener(this::loadConfig);\n        modEventBus.addListener(this::reloadConfig);\n        modEventBus.addListener(this::registerLayerDefinitions);\n        MinecraftForge.EVENT_BUS.register(this);\n        MinecraftForge.EVENT_BUS.register(new CommonEvents());\n        ACBlockRegistry.DEF_REG.register(modEventBus);\n        ACBlockEntityRegistry.DEF_REG.register(modEventBus);\n        ACItemRegistry.DEF_REG.register(modEventBus);\n        ACParticleRegistry.DEF_REG.register(modEventBus);\n        ACEntityRegistry.DEF_REG.register(modEventBus);\n        ACEntityDataRegistry.DEF_REG.register(modEventBus);\n        ACPOIRegistry.DEF_REG.register(modEventBus);\n        ACFeatureRegistry.DEF_REG.register(modEventBus);\n        ACSurfaceRuleConditionRegistry.DEF_REG.register(modEventBus);\n        ACCarverRegistry.DEF_REG.register(modEventBus);\n        ACSoundRegistry.DEF_REG.register(modEventBus);\n        ACStructureRegistry.DEF_REG.register(modEventBus);\n        ACStructurePieceRegistry.DEF_REG.register(modEventBus);\n        ACStructureProcessorRegistry.DEF_REG.register(modEventBus);\n        ACEnchantmentRegistry.DEF_REG.register(modEventBus);\n        ACEffectRegistry.DEF_REG.register(modEventBus);\n        ACEffectRegistry.POTION_DEF_REG.register(modEventBus);\n        ACMenuRegistry.DEF_REG.register(modEventBus);\n        ACRecipeRegistry.DEF_REG.register(modEventBus);\n        ACRecipeRegistry.TYPE_DEF_REG.register(modEventBus);\n        ACFrogRegistry.DEF_REG.register(modEventBus);\n        ACFluidRegistry.FLUID_TYPE_DEF_REG.register(modEventBus);\n        ACFluidRegistry.FLUID_DEF_REG.register(modEventBus);\n        ACLootTableRegistry.GLOBAL_LOOT_MODIFIER_DEF_REG.register(modEventBus);\n        ACLootTableRegistry.LOOT_FUNCTION_DEF_REG.register(modEventBus);\n        ACCreativeTabRegistry.DEF_REG.register(modEventBus);\n        ACPotPatternRegistry.DEF_REG.register(modEventBus);\n        PROXY.commonInit();\n        ACBiomeRegistry.init();\n    }",
+          "excerpt_sha256": "7bd2f3003077f192df44329bd006708716623718e06550363b528e8b075b0d4a",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/AlexsCaves.java#L92-L133",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+          "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 20,
+          "end_line": 25,
+          "excerpt": "public class ACEntityRegistry {\n\n\n    public static final DeferredRegister<EntityType<?>> DEF_REG = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, AlexsCaves.MODID);\n    public static final MobCategory CAVE_CREATURE = MobCategory.create(\"cave_creature\", \"alexscaves:cave_creature\", 10, true, true, 128);\n    public static final MobCategory DEEP_SEA_CREATURE = MobCategory.create(\"deep_sea_creature\", \"alexscaves:deep_sea_creature\", 20, true, false, 128);",
+          "excerpt_sha256": "e6cdb50ba1ea951c72f6bcca4c2b769f6714fca735e87e246b5cd862fbe9b4ed",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L20-L25",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+          "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 34,
+          "end_line": 34,
+          "excerpt": "    public static final RegistryObject<EntityType<FerrouslimeEntity>> FERROUSLIME = DEF_REG.register(\"ferrouslime\", () -> (EntityType) EntityType.Builder.of(FerrouslimeEntity::new, MobCategory.MONSTER).sized(0.85F, 0.85F).build(\"ferrouslime\"));",
+          "excerpt_sha256": "db1a1957f212d50ac3414ea4dcd08cff751c707b3fb534e5d6b4138864ac0d3f",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L34-L34",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+          "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 110,
+          "end_line": 116,
+          "excerpt": "    @SubscribeEvent\n    public static void initializeAttributes(EntityAttributeCreationEvent event) {\n        event.put(TELETOR.get(), TeletorEntity.createAttributes().build());\n        event.put(MAGNETRON.get(), MagnetronEntity.createAttributes().build());\n        event.put(BOUNDROID.get(), BoundroidEntity.createAttributes().build());\n        event.put(BOUNDROID_WINCH.get(), BoundroidEntity.createAttributes().build());\n        event.put(FERROUSLIME.get(), FerrouslimeEntity.createAttributes().build());",
+          "excerpt_sha256": "124492c4a66934d5346d02815d8a491e6363fe4287220701cebb383febf9fd12",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L110-L116",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+          "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 165,
+          "end_line": 165,
+          "excerpt": "        event.register(FERROUSLIME.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, FerrouslimeEntity::checkMonsterSpawnRules, SpawnPlacementRegisterEvent.Operation.AND);",
+          "excerpt_sha256": "82dda9491b77bbfd427313d858bebce9b54a2131f510a6ee9f4327437209a95e",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L165-L165",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsCaves",
+          "revision": "4718f4287c65b810aecb211789b45f54d405a94d",
+          "path": "src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java",
+          "source_sha256": "76b9a64da9855015c7b0e45a1a5904950e520657684cf163142b585b0fd96876",
+          "git_blob_sha1": "3d9de918cee752dffab06167daa3f261985e98d2",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsCaves/tree.json",
+          "provenance": "Same fixed cached Git tree and original source bytes; no new acquisition credit.",
+          "line": 1,
+          "end_line": 20,
+          "excerpt": "package com.github.alexmodguy.alexscaves.server.entity;\n\nimport com.github.alexmodguy.alexscaves.AlexsCaves;\nimport com.github.alexmodguy.alexscaves.server.block.fluid.ACFluidRegistry;\nimport com.github.alexmodguy.alexscaves.server.entity.item.*;\nimport com.github.alexmodguy.alexscaves.server.entity.living.*;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.MobCategory;\nimport net.minecraft.world.entity.SpawnPlacements;\nimport net.minecraft.world.level.levelgen.Heightmap;\nimport net.minecraftforge.event.entity.EntityAttributeCreationEvent;\nimport net.minecraftforge.event.entity.SpawnPlacementRegisterEvent;\nimport net.minecraftforge.eventbus.api.SubscribeEvent;\nimport net.minecraftforge.fml.common.Mod;\nimport net.minecraftforge.registries.DeferredRegister;\nimport net.minecraftforge.registries.ForgeRegistries;\nimport net.minecraftforge.registries.RegistryObject;\n\n@Mod.EventBusSubscriber(modid = AlexsCaves.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)\npublic class ACEntityRegistry {",
+          "excerpt_sha256": "c27d41e0df2d5cab6df9b9bf752117bc762510dc60ed29d92b05a78e383e803f",
+          "url": "https://github.com/AlexModGuy/AlexsCaves/blob/4718f4287c65b810aecb211789b45f54d405a94d/src/main/java/com/github/alexmodguy/alexscaves/server/entity/ACEntityRegistry.java#L1-L20",
+          "evidence_kind": "supporting_range"
+        }
+      ],
+      "native_auxiliary_artifact": {
+        "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0"
+      },
+      "native_auxiliary_ranges": [
+        {
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            353,
+            356
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "bcee6e6776f297fa92e33e7505d760ca161a35c283699776f86ebd5118b1f114",
+          "prior_expected_sha256": "bcee6e6776f297fa92e33e7505d760ca161a35c283699776f86ebd5118b1f114",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            3348,
+            3368
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "da677ec3a32c0a020ed53400d7ca59776f7f5264346d7379b1730efaa85b8f6b",
+          "prior_expected_sha256": "da677ec3a32c0a020ed53400d7ca59776f7f5264346d7379b1730efaa85b8f6b",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            546,
+            553
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "75059153151fcd87d3173c1991287d2957bb0bd68b3bd1b63a592f166e4ec9e1",
+          "prior_expected_sha256": "75059153151fcd87d3173c1991287d2957bb0bd68b3bd1b63a592f166e4ec9e1",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            1054,
+            1056
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "329cd0dcffec598bf951ca29dca2df352c22a6ba34982fae5ac557841e87d6d0",
+          "prior_expected_sha256": "329cd0dcffec598bf951ca29dca2df352c22a6ba34982fae5ac557841e87d6d0",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            1303,
+            1336
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "b6075fcfc280780ca555c32643962fccc7754caa8f034c00f59c5e0710c73ac2",
+          "prior_expected_sha256": "b6075fcfc280780ca555c32643962fccc7754caa8f034c00f59c5e0710c73ac2",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/ai/goal/Goal.java",
+          "lines": [
+            1,
+            59
+          ],
+          "entry_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+          "raw_excerpt_sha256": "1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f",
+          "prior_expected_sha256": "48a610a5ec27e6237d373b4c54afa0aae3312c22ec861cb9f83ce639267d6db5",
+          "prior_matches_raw": false,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            663,
+            666
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "0eaa34ffb55ca16b2a91ef3007c24f1e19f28f1fd640fe353cbc11e6689eaa89",
+          "prior_expected_sha256": "0eaa34ffb55ca16b2a91ef3007c24f1e19f28f1fd640fe353cbc11e6689eaa89",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            1036,
+            1052
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "ae787b9d68eacbc33fd7e1da3b579ac38e16695e2ef62c2a19f62b2a6f56df89",
+          "prior_expected_sha256": "ae787b9d68eacbc33fd7e1da3b579ac38e16695e2ef62c2a19f62b2a6f56df89",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            1360,
+            1412
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "c8c6d783a7263d898f649a6b84faaeb2300d4d74804eb968d5c0b3448e2b14b1",
+          "prior_expected_sha256": "c8c6d783a7263d898f649a6b84faaeb2300d4d74804eb968d5c0b3448e2b14b1",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            1506,
+            1508
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "c9174f9944b5f76b13190606b3dc0ecb5860bfc9ec6fab79ff7e05a21e9e31f3",
+          "prior_expected_sha256": "c9174f9944b5f76b13190606b3dc0ecb5860bfc9ec6fab79ff7e05a21e9e31f3",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/Mob.java",
+          "lines": [
+            501,
+            504
+          ],
+          "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+          "raw_excerpt_sha256": "d923a3260d0a3a752d111eb1677aad591282788cf547adf62300372515c5ecbb",
+          "prior_expected_sha256": "d923a3260d0a3a752d111eb1677aad591282788cf547adf62300372515c5ecbb",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/level/LevelWriter.java",
+          "lines": [
+            1,
+            30
+          ],
+          "entry_sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+          "raw_excerpt_sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+          "prior_expected_sha256": "91b2a2c64c1961679f662072218d8f7df609176953295c5131c398aaac14f924",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/server/level/ServerLevel.java",
+          "lines": [
+            814,
+            816
+          ],
+          "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+          "raw_excerpt_sha256": "7dfb6807ef9e18033ddd08b52c3bc8b689d437c00006fc3d6f1fd822b5a5fb03",
+          "prior_expected_sha256": "7dfb6807ef9e18033ddd08b52c3bc8b689d437c00006fc3d6f1fd822b5a5fb03",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/server/level/ServerLevel.java",
+          "lines": [
+            855,
+            867
+          ],
+          "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+          "raw_excerpt_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+          "prior_expected_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/EntityType.java",
+          "lines": [
+            524,
+            526
+          ],
+          "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+          "raw_excerpt_sha256": "e32433f74ca7dfeef5e3b4cebe953ef2c383b42bacac3887bc7634f2a9f74f83",
+          "prior_expected_sha256": "e32433f74ca7dfeef5e3b4cebe953ef2c383b42bacac3887bc7634f2a9f74f83",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/level/Level.java",
+          "lines": [
+            73,
+            73
+          ],
+          "entry_sha256": "a88ba79f97447f85f40c1029d34412788b3af3aeb65aabe12cf4a73fa29492d2",
+          "raw_excerpt_sha256": "2d07d836bb0f5d5a164254b44980c851fef2c8b53095b72a96e29b6a03d37ae1",
+          "prior_expected_sha256": "2d07d836bb0f5d5a164254b44980c851fef2c8b53095b72a96e29b6a03d37ae1",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/client/multiplayer/ClientLevel.java",
+          "lines": [
+            92,
+            92
+          ],
+          "entry_sha256": "968686732b75edd2641af5df6e38480927bf11743fdda339cb46c1c01eb68eb9",
+          "raw_excerpt_sha256": "6f5de378fcf9312440e59eccfb0a1e4f5919338133338fe4886eb96b1be079f4",
+          "prior_expected_sha256": "6f5de378fcf9312440e59eccfb0a1e4f5919338133338fe4886eb96b1be079f4",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/level/LevelAccessor.java",
+          "lines": [
+            27,
+            27
+          ],
+          "entry_sha256": "338634920f8eb3cb8a99471cd7a9220b3db30f4417c27bacc32e6e5b8813ae2e",
+          "raw_excerpt_sha256": "6eeb903676ce564b4cdbfdb55cdc0f35742d3e005eb2df49c84a773f6d8c848a",
+          "prior_expected_sha256": "6eeb903676ce564b4cdbfdb55cdc0f35742d3e005eb2df49c84a773f6d8c848a",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/level/CommonLevelAccessor.java",
+          "lines": [
+            14,
+            14
+          ],
+          "entry_sha256": "b427f3e5c4e85f1c08596a35adeabc33e2f2125492eee413c539bb2128b5f764",
+          "raw_excerpt_sha256": "7bc0ab99f469e509e56c2da5a7a22c7b2a43845db98bbad0ca48b3900abf7484",
+          "prior_expected_sha256": "7bc0ab99f469e509e56c2da5a7a22c7b2a43845db98bbad0ca48b3900abf7484",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/level/LevelSimulatedRW.java",
+          "lines": [
+            1,
+            4
+          ],
+          "entry_sha256": "34904e71214795df7f9b1b381a8248a7245f395a8feb4c1ed0417bd4cb86faf8",
+          "raw_excerpt_sha256": "34904e71214795df7f9b1b381a8248a7245f395a8feb4c1ed0417bd4cb86faf8",
+          "prior_expected_sha256": "34904e71214795df7f9b1b381a8248a7245f395a8feb4c1ed0417bd4cb86faf8",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/PathfinderMob.java",
+          "lines": [
+            1,
+            77
+          ],
+          "entry_sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+          "raw_excerpt_sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+          "prior_expected_sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        },
+        {
+          "entry": "net/minecraft/world/entity/monster/Monster.java",
+          "lines": [
+            1,
+            129
+          ],
+          "entry_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+          "raw_excerpt_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+          "prior_expected_sha256": "42fe71484b2214448bf9180279b1076aff57af4a5b70cf2eabcb8ac7b86ca9a7",
+          "prior_matches_raw": true,
+          "coordinator_actually_read": true,
+          "support_credit": 0
+        }
+      ],
+      "observation": [
+        "Fixed registry declares MONSTER factory, ordinary AND spawn placement and attributes; actual constructor registers DeferredRegister, and supplemental mod-bus annotation supports actual bounded subscribers. Complete registerGoals installs priority1 MeleeGoal and priority2 FormGoal with shared MOVE. This does not guarantee both execute or establish loaded biome pool/cap or natural encounters.",
+        "canForm is native isAlive plus mergeCooldown<=0; native alive is !removed&&health>0. Form canUse first checks own canForm, then executionCooldown--<0: initial0 fails/decrements, negative evaluation triggers reset100 without target or20 with target. It searches bounding box inflated30XYZ for nearest other canForm slime. Neither search nor continuation creates a reservation/lock, exact world-period, global census or guaranteed fairness.",
+        "Continuation checks both canForm and distance<32. Form tick navigates, checks threshold .5+(both widths)/2 and other.canForm, then sums heads into self BEFORE donor remove(DISCARDED), sound, reference clear and self600 cooldown. Own canForm/null are not rechecked inside tick itself. If no intervening state change, donor alive excludes death branch at this check; external/reentrant state changes and scheduler guarantee remain unexamined. Merge does not call child add or copy donor HP/UUID/NBT.",
+        "HEADS defaults1 and setter is unclamped. Data update requests refreshDimensions and mergeProgress0; tick after head change advances progress then sets MAX_HEALTH10..100 and ATTACK_DAMAGE2..10 and requests heal toward maximum. Native heal applies Forge hook and only sets health when currentHP>0, clamped by max. Do not infer HP conservation, guaranteed full heal or resurrection. Integer sum overflow/invalid input and callback timing are not audited. Own delayed attack hurt uses4+2*headCount, distinct from clamped attribute; no blanket all-damage<=10 conclusion.",
+        "IMPORTANT actual tick branch is if(clientSide&&isAlive) particles/audio ELSE target/low-velocity logic. ELSE includes all server cases and client not-alive, including removed orhealth0 under native alive definition. It is not an explicit server-only/alive guard. It still needs nonnull living target; magnitude<.1 increments, >=.1 resets noMoveTime; missing/dead target leaves stored counter unchanged. At>40 and mergeCooldown<=0 it calls split(1200). This is velocity sampling, not observed path failure or guaranteed40-tick elapsed time.",
+        "split(int cooldown) uses only heads>=2 as explicit gate: no explicit server/alive/removed check. It computes integer halves, assigns literal1200 to own cooldown, passes literal1200 to two makeSlime calls, attempts each add, then dynamically removes self asDISCARDED and returnstrue on normal return. Parameter cooldown is unused. Positive valid arithmetic totals original heads at request time, not conservation of admitted entities/HP. Failed first add does not suppress second; factory/second-call exceptions can interrupt before own removal. No success receipt/retry/refund/atomicity.",
+        "makeSlime uses registered EntityType.create(Level), which can returnnull for disabled type before factory. Caller dereferences without guard, copies position/customname/noAI/invulnerability/head count/cooldown/yaw/body yaw, and does not copy currentHP/target/persistence/allNBT/parent identity in this shown method. It does not finalizeSpawn or check placement/collision/safe floor. Ordinary finalizeSpawn randomizes heads1or2 on separate path; it is not called by makeSlime. Actual child creation/admission/state safety not proved.",
+        "remove first requests proxy cache clear. Forheads>=2 and health<=0 (native isDeadOrDying), it attempts two halves before super, with no own side/already-removed/reason/cooldown guard. Source composition permits split(dead actor) two attempts then remove two more, or repeated remove calls requesting further children. These are conditional add invocations when prior calls return, not verified four offspring, duplication exploit or lifecycle reachability.",
+        "Actual inherited removal chain includes LivingEntity.remove: Entity.remove/setRemoved/cap invalidation first, then Brain.clearMemories. setRemoved only preserves first stored reason; passenger/callback work still follows on repeated calls. Complete Monster/Pathfinder have no remove overrides; Mob exact symbol inventory found none, not a whole Mob text review. Native tickDeath normal server>=20,!removed gate dynamically calls override; native die respects death hook and !removed&&!dead before death/loot/DYING. Such normal caller guards do not guard arbitrary direct override calls.",
+        "Native LevelWriter default addFreshEntity returnsfalse. Inspected ClientLevel/Level symbol inventory contains no own addFreshEntity, and shown inheritance reaches LevelWriter; this source context warns against equating client request with admitted clones. Full client world/capability/mixin/other-interface lifecycle is not audited. Actual server override returnsfalse for removed entity or failed entityManager add; only true calls onAddedToWorld. Both mod replacement branches ignore results; entityManager/Forge join internals remain external.",
+        "Own dropFromLootTable delegates only heads<=1, not a no-all-rewards gate. Supplemental native dropAllDeathLoot calls table/custom branch under shouldDropLoot+doMobLoot, then separately dropEquipment/dropExperience; capture/drop event can cancel emitted item entities. XP has server/consumed/player/gamerule/event conditions and uses own getExperienceReward2, despite constructor xpReward1. No actual equipment, XP/orb/item emission or material pickup acceptance; merge DISCARDED does not invoke normal player-kill receipt.",
+        "Complete mod class has no additional-save/read override encoding HEADS, mergeCooldown, noMoveTime, progress or headOffsets. Native LivingEntity save prefix visibly includes Health/Attributes, but complete inherited entity save/read/capability/network reconstruction is not reviewed. Therefore only absence of own explicit fields is established, not all state retained/lost, saved default reset or guaranteed cross-mod lifecycle.",
+        "MAGNETIZING exclusion calls parent canBeAffected first; attack staging, offsets/log dimensions, movement controller/client particles/audio cache requests are supporting context and not additional ecology/immunity implementations or visual/gameplay acceptance. Shared rendering/unit counts/branches may not be split into multiple research credits."
+      ],
+      "application": [
+        "EA10 stores complete entity NBT in a block queue and removes a stored item only after checked add success; this chain merges live actors by summed head state and requests uncommitted bisection without a stored queue.",
+        "EA13 feeding/hunger growth replaces a planted infant at a maturity threshold; this has no food/pregnancy/world egg and transfers existing live cohort state through merge/stall/death paths. Generic remove/create/add alone would not qualify as a second mechanism.",
+        "EA14 host-effect expiry emits offspring; EA17 paired feeding reserves mates and commits pregnancy to an egg block/scheduler. This proposed unit is live cohort aggregation with actor-owned transient head/merge state and alternative stall/death bisection. Independent reviewer may merge or reject; head thresholds, two paths, registry and native helpers each support0."
+      ],
+      "limits": [
+        "Independent related-source/semantic review only. Recommend at most1 complete live-cohort aggregation/bisection family conditional on all corrections. accepted_credit/applied_credit/support0; no formal EA/candidate id assigned. Main coordinator alone integrates formal schema/receipt/ledger.",
+        "Actual original reading6 pinned mod ranges across3 files, including whole435 entity and constructor92..133, plus6 native ranges across3 archive entries. Supplemental1 mod header and16 bounded native ranges include complete PathfinderMob/Monster/LevelWriter; large other native/registry classes are not wholly read. Exact symbol inventory is supporting machine evidence, not semantic credit.",
+        "Original Goal excerpt normalization mismatch explicitly recorded. Source/archive identity remains valid, but future strict packaging must use the stated normalized convention or separate actual raw hash; do not silently claim all original raw excerpt hashes match.",
+        "Nearest EA10/13/14/17 substantive decision fields reread; own EA16 and Terrapin complete source judgments reused with current rationale/limits checked. No reread of all old source chains/1000 references or automatic semantic independence by file/species count. Terrapin current formal acceptance not inferred.",
+        "No complete GoalSelector scheduling/contention/caller ordering, Citadel advanced navigation, target goal internals, synched-data callback delivery, Forge cache/sound/render, capabilities/callback entity-manager/Forge join, full world/client/default-interface/mixin composition, malformed head overflow/log dimensions, complete NBT save/reopen or parent death/loot internals beyond stated ranges acceptance.",
+        "No runtime source/upstream/Java/Gradle/game/GUI/server, new network/fetch/retry/process/display action, production/art/texture/model/building/sharedJar/userworld change, checklist deletion, shared aggregator/ledger/validator edit, Git commit/push, schedule or claimed active hours.",
+        "No actual merge/fission/population/head/HP conservation, exactly-once replacement, safe placement, full state/UUID conservation, normal death double-spawn exploit, client-clone effect, natural cap/biome opportunity or material/kill/payment/drop/XP/pickup acceptance. Original Dynasty native gaps unchanged; no production under1000.",
+        "Shared generic create/add/remove, split child counts, alive/death/stall branches, cooldowns, stats, parameters, colors, native/registration/helper/archive/range/defect evidence are all one proposed related family maximum, not extra credits. Source execution never performed; original proposal remains immutable.",
+        "Main actually read complete original435 core/constructor92..133 and proposed binding/native ranges, plus all16 new bounded native ranges and mod registry header. Native symbol inventory is peer supporting evidence, not a main whole-Mob/Entity/Level text reading claim.",
+        "Goal original immutable proposal uses LF-normalized excerpt. Later formal packaging must bind actual raw1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f or explicitly labeled normalized48a610a5ec27e6237d373b4c54afa0aae3312c22ec861cb9f83ce639267d6db5; cannot assert raw original exact.",
+        "Replace with ELSE of clientSide&&isAlive, including server any state and client not-alive; target must still live. No strict own side/alive gate, and request is not admitted client offspring.",
+        "Include actual LivingEntity.remove intermediary: super Entity remove/cap invalidation before Brain.clearMemories. First reason retention is not universal idempotence or subclass guard.",
+        "Original Goal.java entry has no terminalLF. Raw excerpt SHA1472ce5a9da2a95b1dbe881d0c4d614b55a22f72c4bc5f3b0e5dcc73caa54d9f; proposal48a610a5ec27e6237d373b4c54afa0aae3312c22ec861cb9f83ce639267d6db5 equals splitlines/LF-join plus one terminalLF. Entry file/archive hashes valid; disclose normalization or bind corrected raw hash in later formal context. Do not mark original raw excerpt exact.",
+        "Heal is Forge-hooked and requires HP>0; attribute cap is not all staged damage cap. Own table-loot hook does not suppress equipment/XP branches. Added native methods clarify source order, not successful runtime loot.",
+        "Ignored parameter, missing local side/alive/removed gate and repeated override are one mechanism; four calls possible only conditional on direct/dead call path and normal returns, not evidence four admitted offspring or exploitable ordinary runtime."
+      ],
+      "deduplication": "At most1 distinct source family because an existing live actor absorbs another live actor into its head aggregate and later bisects that aggregate via stall or health-death removal, with partial copying and unchecked child admissions. The single unit is cohort representation/reorganization and the noncommitted transfer lifecycle, not another species/death split alone, color/parameter, generic remove/add, two separate branch credits or a proven increase in population. EA10 colony queue success-commit, EA13 growth replacement, EA14 host brood, EA17 world-egg pregnancy, own Terrapin phenotype payload and EA16 alarm latch do not perform this same live-to-live quantitative aggregate/bisection ownership cycle. All native and defect observations support0.",
+      "complete_chain_proposal": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-ferrouslime-cohort-transfer-proposal-20261103.json",
+        "sha256": "c422b5a6ffa94d6c9da58cc1b79bffb1797e0dc9449dc3e42363e938c20f58bb"
+      },
+      "complete_chain_review": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-ferrouslime-cohort-transfer-review-20261103.json",
+        "sha256": "7802f8ddd2878763342397afbd66d6ce532c9bdfed01ab085d25f9054525c751"
+      },
+      "complete_chain_corrections": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-ferrouslime-peer-corrections-20261103.json",
+        "sha256": "b04e3313b8c605088490912c7efe2fedb58c51d98299e2ede3da3b371d7e5199"
+      }
+    }
+  ],
+  "candidate_identifier_invented": false,
+  "publication_scope": "One next actual cohort implementation identifier after actual accepted EA18; staged only."
+}

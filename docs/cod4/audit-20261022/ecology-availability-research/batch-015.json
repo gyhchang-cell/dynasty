@@ -1,0 +1,645 @@
+{
+  "schema": "ecology-reviewed-proposals-v7",
+  "status": "DRAFT_ONLY_EA20_WHOLE_MECHANISM_PENDING_REAL_COORDINATOR_RECEIPT_ZERO_CREDIT",
+  "records": [
+    {
+      "repo": "AlexModGuy/AlexsMobs",
+      "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+      "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityTusklin.java",
+      "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityTusklin.java",
+      "source_sha256": "61c171d144c1e05f00ed2179bc88d8d20bfac76dbf9835aa6dab9e2b6db5f030",
+      "git_blob_sha1": "7b9c8d4445d65355e6ee5fc3b804c66043c7d739",
+      "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+      "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+      "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+      "line": 1,
+      "end_line": 501,
+      "excerpt": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.AlexsMobs;\nimport com.github.alexthe666.alexsmobs.config.AMConfig;\nimport com.github.alexthe666.alexsmobs.entity.ai.*;\nimport com.github.alexthe666.alexsmobs.entity.util.Maths;\nimport com.github.alexthe666.alexsmobs.item.AMItemRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMTagRegistry;\nimport com.github.alexthe666.citadel.animation.Animation;\nimport com.github.alexthe666.citadel.animation.AnimationHandler;\nimport com.github.alexthe666.citadel.animation.IAnimatedEntity;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.animal.Animal;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.monster.hoglin.Hoglin;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.Vec3;\n\nimport javax.annotation.Nullable;\n\npublic class EntityTusklin extends Animal implements IAnimatedEntity {\n\n    public static final Animation ANIMATION_RUT = Animation.create(26);\n    public static final Animation ANIMATION_GORE_L = Animation.create(25);\n    public static final Animation ANIMATION_GORE_R = Animation.create(25);\n    public static final Animation ANIMATION_FLING = Animation.create(15);\n    public static final Animation ANIMATION_BUCK = Animation.create(15);\n    private static final EntityDataAccessor<Boolean> SADDLED = SynchedEntityData.defineId(EntityTusklin.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Integer> PASSIVETICKS = SynchedEntityData.defineId(EntityTusklin.class, EntityDataSerializers.INT);\n    private int animationTick;\n    private Animation currentAnimation;\n    private int ridingTime = 0;\n    private int entityToLaunchId = -1;\n    private int conversionTime = 0;\n\n    protected EntityTusklin(EntityType<? extends Animal> type, Level level) {\n        super(type, level);\n        this.setMaxUpStep(1.1F);\n    }\n\n    public boolean checkSpawnRules(LevelAccessor worldIn, MobSpawnType spawnReasonIn) {\n        return AMEntityRegistry.rollSpawn(AMConfig.tusklinSpawnRolls, this.getRandom(), spawnReasonIn);\n    }\n\n    public static boolean canTusklinSpawn(EntityType<? extends Animal> animal, LevelAccessor worldIn, MobSpawnType reason, BlockPos pos, RandomSource random) {\n        return worldIn.getRawBrightness(pos, 0) > 8 && (worldIn.getBlockState(pos.below()).isSolid() || worldIn.getBlockState(pos.below()).is(AMTagRegistry.TUSKLIN_SPAWNS));\n    }\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 40D).add(Attributes.ATTACK_DAMAGE, 9.0D).add(Attributes.MOVEMENT_SPEED, 0.3F).add(Attributes.KNOCKBACK_RESISTANCE, 0.9F);\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return AMSoundRegistry.TUSKLIN_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return AMSoundRegistry.TUSKLIN_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return AMSoundRegistry.TUSKLIN_HURT.get();\n    }\n\n    protected PathNavigation createNavigation(Level worldIn) {\n        return new AdvancedPathNavigateNoTeleport(this, worldIn, true);\n    }\n\n    public boolean isInNether() {\n        return this.level().dimension() == Level.NETHER && !this.isNoAi();\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(1, new FloatGoal(this));\n        this.goalSelector.addGoal(2, new AnimalAIMeleeNearby(this, 15, 1.25D));\n        this.goalSelector.addGoal(3, new TameableAIRide(this, 2D, false) {\n            @Override\n            public boolean shouldMoveForward() {\n                return true;\n            }\n\n            @Override\n            public boolean shouldMoveBackwards() {\n                return false;\n            }\n        });\n        this.goalSelector.addGoal(4, new AnimalAIPanicBaby(this, 1.25D));\n        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D));\n        this.goalSelector.addGoal(6, new FollowParentGoal(this, 1.1D));\n        this.goalSelector.addGoal(7, new AnimalAIWanderRanged(this, 120, 0.6F, 14, 7));\n        this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 15.0F));\n        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, (new AnimalAIHurtByTargetNotBaby(this)).setAlertOthers());\n        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<Player>(this, Player.class, 100, true, false, this::isAngryAt));\n    }\n\n    public boolean isAngryAt(LivingEntity p_21675_) {\n        return this.canAttack(p_21675_);\n    }\n\n    protected Vec3 getRiddenInput(Player player, Vec3 deltaIn) {\n        return new Vec3(0, 0, 1);\n    }\n    protected void tickRidden(Player player, Vec3 vec3) {\n        super.tickRidden(player, vec3);\n        this.setRot(player.getYRot(), player.getXRot() * 0.25F);\n        this.yRotO = this.yBodyRot = this.yHeadRot = this.getYRot();\n        this.setMaxUpStep(1);\n        this.getNavigation().stop();\n        this.setTarget(null);\n        this.setSprinting(true);\n    }\n\n\n    protected float getRiddenSpeed(Player rider) {\n        return (float)(this.getAttributeValue(Attributes.MOVEMENT_SPEED));\n    }\n    @Nullable\n    public LivingEntity getControllingPassenger() {\n        if (this.isSaddled()) {\n            for (Entity passenger : this.getPassengers()) {\n                if (passenger instanceof Player) {\n                    Player player = (Player) passenger;\n                    return player;\n                }\n            }\n        }\n        return null;\n    }\n\n    @Override\n    public boolean canAttack(LivingEntity entity) {\n        boolean prev = super.canAttack(entity);\n\n        if (entity instanceof Player && (this.getLastHurtByMob() == null || !this.getLastHurtByMob().equals(entity))) {\n            if (this.getPassiveTicks() > 0 || isMushroom(entity.getItemInHand(InteractionHand.MAIN_HAND)) || isMushroom(entity.getItemInHand(InteractionHand.OFF_HAND))) {\n                return false;\n            }\n        }\n        return prev;\n    }\n\n    public boolean doHurtTarget(Entity entityIn) {\n        if (this.getAnimation() == NO_ANIMATION) {\n            final int anim = this.random.nextInt(3);\n            switch (anim) {\n                case 0 -> this.setAnimation(ANIMATION_FLING);\n                case 1 -> this.setAnimation(ANIMATION_GORE_L);\n                case 2 -> this.setAnimation(ANIMATION_GORE_R);\n            }\n        }\n        return true;\n    }\n\n    public void positionRider(Entity passenger, Entity.MoveFunction moveFunc) {\n        if (this.hasPassenger(passenger)) {\n            float radius = 0.4F;\n            if (this.getAnimation() == ANIMATION_GORE_L || this.getAnimation() == ANIMATION_GORE_R) {\n                if (this.getAnimationTick() <= 4) {\n                    radius -= this.getAnimationTick() * 0.1F;\n                } else {\n                    radius -= -0.4F + Math.min(this.getAnimationTick() - 4, 4) * 0.1F;\n                }\n            }\n            if (this.getAnimation() == ANIMATION_BUCK) {\n                if (this.getAnimationTick() < 5) {\n                    radius -= this.getAnimationTick() * 0.1F;\n                } else if (this.getAnimationTick() < 10) {\n                    radius -= 0.4F - (this.getAnimationTick() - 5) * 0.1F;\n                }\n            }\n            final float angle = (Maths.STARTING_ANGLE * this.yBodyRot);\n            final double extraX = radius * Mth.sin(Mth.PI + angle);\n            final double extraZ = radius * Mth.cos(angle);\n            passenger.setPos(this.getX() + extraX, this.getY() + this.getPassengersRidingOffset() + passenger.getMyRidingOffset(), this.getZ() + extraZ);\n        }\n    }\n\n    public double getPassengersRidingOffset() {\n        final float f = this.walkAnimation.position();\n        final float f1 = this.walkAnimation.speed();\n        float f2 = 0;\n        if (this.getAnimation() == ANIMATION_FLING) {\n            if (this.getAnimationTick() <= 3F) {\n                f2 = this.getAnimationTick() * -0.1F;\n            } else {\n                f2 = -0.3F + Mth.clamp(this.getAnimationTick() - 3, 0, 3) * 0.1F;\n            }\n        }\n        if (this.getAnimation() == ANIMATION_BUCK) {\n            if (this.getAnimationTick() < 5) {\n                f2 = (this.getAnimationTick() * 0.2F) * 0.8F;\n            } else if (this.getAnimationTick() < 10) {\n                f2 = (0.8F - (this.getAnimationTick() - 5) * 0.2F) * 0.8F;\n            }\n        }\n        return (double) this.getBbHeight() - 0.3D + (float) (Math.abs(Math.sin(f * 0.7F) * (double) f1 * 0.0625F * 1.6F)) + f2;\n    }\n\n    public InteractionResult mobInteract(Player player, InteractionHand hand) {\n        ItemStack itemstack = player.getItemInHand(hand);\n        Item item = itemstack.getItem();\n        if (item == Items.SADDLE && !this.isSaddled() && !this.isBaby()) {\n            if (!player.isCreative()) {\n                itemstack.shrink(1);\n            }\n            this.setSaddled(true);\n            return InteractionResult.SUCCESS;\n        }\n        if (item == AMItemRegistry.PIGSHOES.get() && this.getShoeStack().isEmpty() && !this.isBaby()) {\n            this.setShoeStack(itemstack.copy());\n            if (!player.isCreative()) {\n                itemstack.shrink(1);\n            }\n            return InteractionResult.SUCCESS;\n        }\n        if (isMushroom(itemstack) && (this.getPassiveTicks() <= 0 || this.getHealth() < this.getMaxHealth())) {\n            if (!player.isCreative()) {\n                itemstack.shrink(1);\n            }\n            this.heal(6);\n            this.setPassiveTicks(this.getPassiveTicks() + 1200);\n            return InteractionResult.SUCCESS;\n        }\n        InteractionResult type = super.mobInteract(player, hand);\n        if (type != InteractionResult.SUCCESS && !isFood(itemstack)) {\n            if (!player.isShiftKeyDown() && !this.isBaby() && this.isSaddled() && this.getAnimation() != ANIMATION_BUCK) {\n                player.startRiding(this);\n                return InteractionResult.SUCCESS;\n            }\n        }\n        return type;\n    }\n\n    public boolean isFood(ItemStack stack) {\n        return stack.is(AMTagRegistry.TUSKLIN_BREEDABLES);\n    }\n\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.getEntityData().define(SADDLED, false);\n        this.getEntityData().define(PASSIVETICKS, 0);\n    }\n\n    public void addAdditionalSaveData(CompoundTag p_31808_) {\n        super.addAdditionalSaveData(p_31808_);\n        if (!this.getShoeStack().isEmpty()) {\n            p_31808_.put(\"ShoeItem\", this.getShoeStack().save(new CompoundTag()));\n        }\n        p_31808_.putInt(\"PassiveTicks\", this.getPassiveTicks());\n\n        p_31808_.putBoolean(\"Saddle\", this.isSaddled());\n    }\n\n    public void readAdditionalSaveData(CompoundTag p_31795_) {\n        super.readAdditionalSaveData(p_31795_);\n        this.setSaddled(p_31795_.getBoolean(\"Saddle\"));\n        this.setPassiveTicks(p_31795_.getInt(\"PassiveTicks\"));\n        CompoundTag compoundtag = p_31795_.getCompound(\"ShoeItem\");\n        if (compoundtag != null && !compoundtag.isEmpty()) {\n            ItemStack itemstack = ItemStack.of(compoundtag);\n            if (itemstack.isEmpty()) {\n                AlexsMobs.LOGGER.warn(\"Unable to load item from: {}\", compoundtag);\n            }\n            this.setShoeStack(itemstack);\n        }\n    }\n\n    public boolean isMushroom(ItemStack stack) {\n        return stack.is(AMTagRegistry.TUSKLIN_FOODSTUFFS);\n    }\n\n    public int getPassiveTicks() {\n        return this.entityData.get(PASSIVETICKS);\n    }\n\n    private void setPassiveTicks(int passiveTicks) {\n        this.entityData.set(PASSIVETICKS, passiveTicks);\n    }\n\n    public boolean isSaddled() {\n        return this.entityData.get(SADDLED);\n    }\n\n    public void setSaddled(boolean saddled) {\n        this.entityData.set(SADDLED, Boolean.valueOf(saddled));\n    }\n\n    protected void dropEquipment() {\n        super.dropEquipment();\n        if (this.isSaddled()) {\n            if (!this.level().isClientSide) {\n                this.spawnAtLocation(Items.SADDLE);\n            }\n        }\n        if (!this.getShoeStack().isEmpty()) {\n            if (!this.level().isClientSide) {\n                this.spawnAtLocation(this.getShoeStack().copy());\n            }\n        }\n        this.setSaddled(false);\n        this.setShoeStack(ItemStack.EMPTY);\n    }\n\n    public ItemStack getShoeStack() {\n        return this.getItemBySlot(EquipmentSlot.FEET);\n    }\n\n    public void setShoeStack(ItemStack shoe) {\n        this.setItemSlot(EquipmentSlot.FEET, shoe);\n    }\n\n    public void tick() {\n        super.tick();\n        if(isInNether()) {\n            conversionTime++;\n            if (conversionTime > 300 && !this.level().isClientSide) {\n                Hoglin hoglin = this.convertTo(EntityType.HOGLIN, false);\n                if(hoglin != null){\n                    hoglin.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));\n                    this.dropEquipment();\n                    level().addFreshEntity(hoglin);\n                    this.remove(RemovalReason.DISCARDED);\n                }\n            }\n        }\n        if (entityToLaunchId != -1 && this.isAlive()) {\n            Entity launch = this.level().getEntity(entityToLaunchId);\n            this.ejectPassengers();\n            entityToLaunchId = -1;\n            if (launch != null && !launch.isPassenger()) {\n                if (launch instanceof LivingEntity) {\n                    launch.setPos(this.getEyePosition().add(0, 1, 0));\n                    float rot = 180F + this.getYRot();\n                    float strength = (float) (getLaunchStrength() * (1.0D - ((LivingEntity) launch).getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)));\n                    float x = Mth.sin(rot * Mth.DEG_TO_RAD);\n                    float z = -Mth.cos(rot * Mth.DEG_TO_RAD);\n                    if (!(strength <= 0.0D)) {\n                        launch.hasImpulse = true;\n                        Vec3 vec3 = this.getDeltaMovement();\n                        Vec3 vec31 = vec3.add((new Vec3(x, 0.0D, z)).normalize().scale(strength));\n                        launch.setDeltaMovement(vec31.x, strength, vec31.z);\n                    }\n                }\n            }\n        }\n        if (this.getAnimation() == ANIMATION_BUCK && this.getAnimationTick() >= 5) {\n            Entity passenger = this.getControllingPassenger();\n            if (passenger instanceof LivingEntity) {\n                entityToLaunchId = passenger.getId();\n            }\n        }\n        if (!this.level().isClientSide) {\n            if (this.isVehicle()) {\n                ridingTime++;\n                if (ridingTime >= this.getMaxRidingTime() && this.getAnimation() != ANIMATION_BUCK) {\n                    this.setAnimation(ANIMATION_BUCK);\n                }\n            } else {\n                ridingTime = 0;\n            }\n            if (this.isAlive() && ridingTime > 0 && this.getDeltaMovement().horizontalDistanceSqr() > 0.1D) {\n                for (Entity entity : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(1.0D))) {\n                    if (!(entity instanceof EntityTusklin) && !entity.isPassengerOfSameVehicle(this)) {\n                        entity.hurt(this.damageSources().mobAttack(this), 4F + random.nextFloat() * 3.0F);\n                        if (entity.onGround()) {\n                            double d0 = entity.getX() - this.getX();\n                            double d1 = entity.getZ() - this.getZ();\n                            double d2 = Math.max(d0 * d0 + d1 * d1, 0.001D);\n                            float f = 0.5F;\n                            entity.push(d0 / d2 * f, f, d1 / d2 * f);\n                        }\n                    }\n                }\n                this.setMaxUpStep(2F);\n            }else{\n                this.setMaxUpStep(1.1F);\n            }\n            if (this.getTarget() != null && this.hasLineOfSight(this.getTarget()) && distanceTo(this.getTarget()) < this.getTarget().getBbWidth() + this.getBbWidth() + 1.8F) {\n                if (this.getAnimation() == ANIMATION_FLING && this.getAnimationTick() == 6) {\n                    this.getTarget().hurt(this.damageSources().mobAttack(this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n                    knockbackTarget(this.getTarget(), 0.9F, 0F);\n                }\n                if ((this.getAnimation() == ANIMATION_GORE_L) && this.getAnimationTick() == 6) {\n                    this.getTarget().hurt(this.damageSources().mobAttack(this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n                    knockbackTarget(this.getTarget(), 0.5F, -90F);\n                }\n                if ((this.getAnimation() == ANIMATION_GORE_R) && this.getAnimationTick() == 6) {\n                    this.getTarget().hurt(this.damageSources().mobAttack(this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n                    knockbackTarget(this.getTarget(), 0.5F, 90F);\n                }\n            }\n        }\n        if (this.getAnimation() == ANIMATION_RUT && this.getAnimationTick() == 23) {\n            if (level().getBlockState(this.blockPosition().below()).is(Blocks.GRASS_BLOCK) && getRandom().nextInt(3) == 0) {\n                if (this.isBaby()) {\n                    if (level().getBlockState(this.blockPosition()).canBeReplaced() && random.nextInt(3) == 0) {\n                        level().setBlockAndUpdate(this.blockPosition(), Blocks.BROWN_MUSHROOM.defaultBlockState());\n                        this.gameEvent(GameEvent.BLOCK_DESTROY);\n                        this.playSound(SoundEvents.CROP_PLANTED, this.getSoundVolume(), this.getVoicePitch());\n                    }\n                }\n                this.level().levelEvent(2001, blockPosition().below(), Block.getId(Blocks.GRASS_BLOCK.defaultBlockState()));\n                this.level().setBlock(blockPosition().below(), Blocks.DIRT.defaultBlockState(), 2);\n                this.heal(5);\n            }\n        }\n        if (!this.level().isClientSide && this.getAnimation() == NO_ANIMATION && getRandom().nextInt(isBaby() ? 140 : 70) == 0 && (this.getLastHurtByMob() == null || this.distanceTo(this.getLastHurtByMob()) > 30)) {\n            if (level().getBlockState(this.blockPosition().below()).is(Blocks.GRASS_BLOCK) && getRandom().nextInt(3) == 0) {\n                this.setAnimation(ANIMATION_RUT);\n            }\n        }\n        AnimationHandler.INSTANCE.updateAnimations(this);\n    }\n\n    private float getLaunchStrength() {\n        return this.getShoeStack().is(AMItemRegistry.PIGSHOES.get()) ? 0.4F : 0.9F;\n    }\n\n    private int getMaxRidingTime() {\n        return this.getShoeStack().is(AMItemRegistry.PIGSHOES.get()) ? 160 : 60;\n    }\n\n    private void knockbackTarget(LivingEntity entity, float strength, float angle) {\n        float rot = getYRot() + angle;\n        if(entity != null){\n            entity.knockback(strength, Mth.sin(rot * Mth.DEG_TO_RAD), -Mth.cos(rot * Mth.DEG_TO_RAD));\n        }\n    }\n\n    @Override\n    public int getAnimationTick() {\n        return animationTick;\n    }\n\n    @Override\n    public void setAnimationTick(int tick) {\n        animationTick = tick;\n    }\n\n    @Override\n    public Animation getAnimation() {\n        return currentAnimation;\n    }\n\n    @Override\n    public void setAnimation(Animation animation) {\n        currentAnimation = animation;\n    }\n\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor worldIn, DifficultyInstance difficultyIn, MobSpawnType reason, @Nullable SpawnGroupData spawnDataIn, @Nullable CompoundTag dataTag) {\n        if (spawnDataIn == null) {\n            spawnDataIn = new AgeableMob.AgeableMobGroupData(0.34F);\n        }\n\n        return super.finalizeSpawn(worldIn, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n\n    @Override\n    public Animation[] getAnimations() {\n        return new Animation[]{ANIMATION_RUT, ANIMATION_GORE_L, ANIMATION_GORE_R, ANIMATION_FLING, ANIMATION_BUCK};\n    }\n\n    @Nullable\n    @Override\n    public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob mob) {\n        return AMEntityRegistry.TUSKLIN.get().create(level());\n    }\n}",
+      "excerpt_sha256": "e2576b806371f89ba9cb8623da7bcdbe2843c11c2b596c8d8c6eb4114c40abc2",
+      "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityTusklin.java#L1-L501",
+      "evidence_kind": "complete_file",
+      "id": "EA-0020",
+      "status": "reviewed_proposed",
+      "proposed_credit": 1,
+      "accepted_credit": 0,
+      "supporting_ranges_credit": 0,
+      "semantic_key": "dimension-exposure-driven-species-conversion-through-precommitted-native-handoff",
+      "author_thread_id": "01a12516-2eaf-73e2-b615-20f8b422158c",
+      "independent_reviewer_thread_id": "01a16364-cac0-7ca2-a042-a5312781ca34",
+      "coordinator_context_schema": "tusklin-precommitted-conversion-v1",
+      "chain": [
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/EntityTusklin.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityTusklin.java",
+          "source_sha256": "61c171d144c1e05f00ed2179bc88d8d20bfac76dbf9835aa6dab9e2b6db5f030",
+          "git_blob_sha1": "7b9c8d4445d65355e6ee5fc3b804c66043c7d739",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 1,
+          "end_line": 501,
+          "excerpt": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.AlexsMobs;\nimport com.github.alexthe666.alexsmobs.config.AMConfig;\nimport com.github.alexthe666.alexsmobs.entity.ai.*;\nimport com.github.alexthe666.alexsmobs.entity.util.Maths;\nimport com.github.alexthe666.alexsmobs.item.AMItemRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMSoundRegistry;\nimport com.github.alexthe666.alexsmobs.misc.AMTagRegistry;\nimport com.github.alexthe666.citadel.animation.Animation;\nimport com.github.alexthe666.citadel.animation.AnimationHandler;\nimport com.github.alexthe666.citadel.animation.IAnimatedEntity;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.syncher.EntityDataAccessor;\nimport net.minecraft.network.syncher.EntityDataSerializers;\nimport net.minecraft.network.syncher.SynchedEntityData;\nimport net.minecraft.server.level.ServerLevel;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.DifficultyInstance;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.damagesource.DamageSource;\nimport net.minecraft.world.effect.MobEffectInstance;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.AttributeSupplier;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;\nimport net.minecraft.world.entity.ai.navigation.PathNavigation;\nimport net.minecraft.world.entity.animal.Animal;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.monster.hoglin.Hoglin;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.ServerLevelAccessor;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.phys.Vec3;\n\nimport javax.annotation.Nullable;\n\npublic class EntityTusklin extends Animal implements IAnimatedEntity {\n\n    public static final Animation ANIMATION_RUT = Animation.create(26);\n    public static final Animation ANIMATION_GORE_L = Animation.create(25);\n    public static final Animation ANIMATION_GORE_R = Animation.create(25);\n    public static final Animation ANIMATION_FLING = Animation.create(15);\n    public static final Animation ANIMATION_BUCK = Animation.create(15);\n    private static final EntityDataAccessor<Boolean> SADDLED = SynchedEntityData.defineId(EntityTusklin.class, EntityDataSerializers.BOOLEAN);\n    private static final EntityDataAccessor<Integer> PASSIVETICKS = SynchedEntityData.defineId(EntityTusklin.class, EntityDataSerializers.INT);\n    private int animationTick;\n    private Animation currentAnimation;\n    private int ridingTime = 0;\n    private int entityToLaunchId = -1;\n    private int conversionTime = 0;\n\n    protected EntityTusklin(EntityType<? extends Animal> type, Level level) {\n        super(type, level);\n        this.setMaxUpStep(1.1F);\n    }\n\n    public boolean checkSpawnRules(LevelAccessor worldIn, MobSpawnType spawnReasonIn) {\n        return AMEntityRegistry.rollSpawn(AMConfig.tusklinSpawnRolls, this.getRandom(), spawnReasonIn);\n    }\n\n    public static boolean canTusklinSpawn(EntityType<? extends Animal> animal, LevelAccessor worldIn, MobSpawnType reason, BlockPos pos, RandomSource random) {\n        return worldIn.getRawBrightness(pos, 0) > 8 && (worldIn.getBlockState(pos.below()).isSolid() || worldIn.getBlockState(pos.below()).is(AMTagRegistry.TUSKLIN_SPAWNS));\n    }\n\n    public static AttributeSupplier.Builder bakeAttributes() {\n        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 40D).add(Attributes.ATTACK_DAMAGE, 9.0D).add(Attributes.MOVEMENT_SPEED, 0.3F).add(Attributes.KNOCKBACK_RESISTANCE, 0.9F);\n    }\n\n    protected SoundEvent getAmbientSound() {\n        return AMSoundRegistry.TUSKLIN_IDLE.get();\n    }\n\n    protected SoundEvent getHurtSound(DamageSource damageSourceIn) {\n        return AMSoundRegistry.TUSKLIN_HURT.get();\n    }\n\n    protected SoundEvent getDeathSound() {\n        return AMSoundRegistry.TUSKLIN_HURT.get();\n    }\n\n    protected PathNavigation createNavigation(Level worldIn) {\n        return new AdvancedPathNavigateNoTeleport(this, worldIn, true);\n    }\n\n    public boolean isInNether() {\n        return this.level().dimension() == Level.NETHER && !this.isNoAi();\n    }\n\n    protected void registerGoals() {\n        this.goalSelector.addGoal(1, new FloatGoal(this));\n        this.goalSelector.addGoal(2, new AnimalAIMeleeNearby(this, 15, 1.25D));\n        this.goalSelector.addGoal(3, new TameableAIRide(this, 2D, false) {\n            @Override\n            public boolean shouldMoveForward() {\n                return true;\n            }\n\n            @Override\n            public boolean shouldMoveBackwards() {\n                return false;\n            }\n        });\n        this.goalSelector.addGoal(4, new AnimalAIPanicBaby(this, 1.25D));\n        this.goalSelector.addGoal(5, new BreedGoal(this, 1.0D));\n        this.goalSelector.addGoal(6, new FollowParentGoal(this, 1.1D));\n        this.goalSelector.addGoal(7, new AnimalAIWanderRanged(this, 120, 0.6F, 14, 7));\n        this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 15.0F));\n        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));\n        this.targetSelector.addGoal(1, (new AnimalAIHurtByTargetNotBaby(this)).setAlertOthers());\n        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<Player>(this, Player.class, 100, true, false, this::isAngryAt));\n    }\n\n    public boolean isAngryAt(LivingEntity p_21675_) {\n        return this.canAttack(p_21675_);\n    }\n\n    protected Vec3 getRiddenInput(Player player, Vec3 deltaIn) {\n        return new Vec3(0, 0, 1);\n    }\n    protected void tickRidden(Player player, Vec3 vec3) {\n        super.tickRidden(player, vec3);\n        this.setRot(player.getYRot(), player.getXRot() * 0.25F);\n        this.yRotO = this.yBodyRot = this.yHeadRot = this.getYRot();\n        this.setMaxUpStep(1);\n        this.getNavigation().stop();\n        this.setTarget(null);\n        this.setSprinting(true);\n    }\n\n\n    protected float getRiddenSpeed(Player rider) {\n        return (float)(this.getAttributeValue(Attributes.MOVEMENT_SPEED));\n    }\n    @Nullable\n    public LivingEntity getControllingPassenger() {\n        if (this.isSaddled()) {\n            for (Entity passenger : this.getPassengers()) {\n                if (passenger instanceof Player) {\n                    Player player = (Player) passenger;\n                    return player;\n                }\n            }\n        }\n        return null;\n    }\n\n    @Override\n    public boolean canAttack(LivingEntity entity) {\n        boolean prev = super.canAttack(entity);\n\n        if (entity instanceof Player && (this.getLastHurtByMob() == null || !this.getLastHurtByMob().equals(entity))) {\n            if (this.getPassiveTicks() > 0 || isMushroom(entity.getItemInHand(InteractionHand.MAIN_HAND)) || isMushroom(entity.getItemInHand(InteractionHand.OFF_HAND))) {\n                return false;\n            }\n        }\n        return prev;\n    }\n\n    public boolean doHurtTarget(Entity entityIn) {\n        if (this.getAnimation() == NO_ANIMATION) {\n            final int anim = this.random.nextInt(3);\n            switch (anim) {\n                case 0 -> this.setAnimation(ANIMATION_FLING);\n                case 1 -> this.setAnimation(ANIMATION_GORE_L);\n                case 2 -> this.setAnimation(ANIMATION_GORE_R);\n            }\n        }\n        return true;\n    }\n\n    public void positionRider(Entity passenger, Entity.MoveFunction moveFunc) {\n        if (this.hasPassenger(passenger)) {\n            float radius = 0.4F;\n            if (this.getAnimation() == ANIMATION_GORE_L || this.getAnimation() == ANIMATION_GORE_R) {\n                if (this.getAnimationTick() <= 4) {\n                    radius -= this.getAnimationTick() * 0.1F;\n                } else {\n                    radius -= -0.4F + Math.min(this.getAnimationTick() - 4, 4) * 0.1F;\n                }\n            }\n            if (this.getAnimation() == ANIMATION_BUCK) {\n                if (this.getAnimationTick() < 5) {\n                    radius -= this.getAnimationTick() * 0.1F;\n                } else if (this.getAnimationTick() < 10) {\n                    radius -= 0.4F - (this.getAnimationTick() - 5) * 0.1F;\n                }\n            }\n            final float angle = (Maths.STARTING_ANGLE * this.yBodyRot);\n            final double extraX = radius * Mth.sin(Mth.PI + angle);\n            final double extraZ = radius * Mth.cos(angle);\n            passenger.setPos(this.getX() + extraX, this.getY() + this.getPassengersRidingOffset() + passenger.getMyRidingOffset(), this.getZ() + extraZ);\n        }\n    }\n\n    public double getPassengersRidingOffset() {\n        final float f = this.walkAnimation.position();\n        final float f1 = this.walkAnimation.speed();\n        float f2 = 0;\n        if (this.getAnimation() == ANIMATION_FLING) {\n            if (this.getAnimationTick() <= 3F) {\n                f2 = this.getAnimationTick() * -0.1F;\n            } else {\n                f2 = -0.3F + Mth.clamp(this.getAnimationTick() - 3, 0, 3) * 0.1F;\n            }\n        }\n        if (this.getAnimation() == ANIMATION_BUCK) {\n            if (this.getAnimationTick() < 5) {\n                f2 = (this.getAnimationTick() * 0.2F) * 0.8F;\n            } else if (this.getAnimationTick() < 10) {\n                f2 = (0.8F - (this.getAnimationTick() - 5) * 0.2F) * 0.8F;\n            }\n        }\n        return (double) this.getBbHeight() - 0.3D + (float) (Math.abs(Math.sin(f * 0.7F) * (double) f1 * 0.0625F * 1.6F)) + f2;\n    }\n\n    public InteractionResult mobInteract(Player player, InteractionHand hand) {\n        ItemStack itemstack = player.getItemInHand(hand);\n        Item item = itemstack.getItem();\n        if (item == Items.SADDLE && !this.isSaddled() && !this.isBaby()) {\n            if (!player.isCreative()) {\n                itemstack.shrink(1);\n            }\n            this.setSaddled(true);\n            return InteractionResult.SUCCESS;\n        }\n        if (item == AMItemRegistry.PIGSHOES.get() && this.getShoeStack().isEmpty() && !this.isBaby()) {\n            this.setShoeStack(itemstack.copy());\n            if (!player.isCreative()) {\n                itemstack.shrink(1);\n            }\n            return InteractionResult.SUCCESS;\n        }\n        if (isMushroom(itemstack) && (this.getPassiveTicks() <= 0 || this.getHealth() < this.getMaxHealth())) {\n            if (!player.isCreative()) {\n                itemstack.shrink(1);\n            }\n            this.heal(6);\n            this.setPassiveTicks(this.getPassiveTicks() + 1200);\n            return InteractionResult.SUCCESS;\n        }\n        InteractionResult type = super.mobInteract(player, hand);\n        if (type != InteractionResult.SUCCESS && !isFood(itemstack)) {\n            if (!player.isShiftKeyDown() && !this.isBaby() && this.isSaddled() && this.getAnimation() != ANIMATION_BUCK) {\n                player.startRiding(this);\n                return InteractionResult.SUCCESS;\n            }\n        }\n        return type;\n    }\n\n    public boolean isFood(ItemStack stack) {\n        return stack.is(AMTagRegistry.TUSKLIN_BREEDABLES);\n    }\n\n    protected void defineSynchedData() {\n        super.defineSynchedData();\n        this.getEntityData().define(SADDLED, false);\n        this.getEntityData().define(PASSIVETICKS, 0);\n    }\n\n    public void addAdditionalSaveData(CompoundTag p_31808_) {\n        super.addAdditionalSaveData(p_31808_);\n        if (!this.getShoeStack().isEmpty()) {\n            p_31808_.put(\"ShoeItem\", this.getShoeStack().save(new CompoundTag()));\n        }\n        p_31808_.putInt(\"PassiveTicks\", this.getPassiveTicks());\n\n        p_31808_.putBoolean(\"Saddle\", this.isSaddled());\n    }\n\n    public void readAdditionalSaveData(CompoundTag p_31795_) {\n        super.readAdditionalSaveData(p_31795_);\n        this.setSaddled(p_31795_.getBoolean(\"Saddle\"));\n        this.setPassiveTicks(p_31795_.getInt(\"PassiveTicks\"));\n        CompoundTag compoundtag = p_31795_.getCompound(\"ShoeItem\");\n        if (compoundtag != null && !compoundtag.isEmpty()) {\n            ItemStack itemstack = ItemStack.of(compoundtag);\n            if (itemstack.isEmpty()) {\n                AlexsMobs.LOGGER.warn(\"Unable to load item from: {}\", compoundtag);\n            }\n            this.setShoeStack(itemstack);\n        }\n    }\n\n    public boolean isMushroom(ItemStack stack) {\n        return stack.is(AMTagRegistry.TUSKLIN_FOODSTUFFS);\n    }\n\n    public int getPassiveTicks() {\n        return this.entityData.get(PASSIVETICKS);\n    }\n\n    private void setPassiveTicks(int passiveTicks) {\n        this.entityData.set(PASSIVETICKS, passiveTicks);\n    }\n\n    public boolean isSaddled() {\n        return this.entityData.get(SADDLED);\n    }\n\n    public void setSaddled(boolean saddled) {\n        this.entityData.set(SADDLED, Boolean.valueOf(saddled));\n    }\n\n    protected void dropEquipment() {\n        super.dropEquipment();\n        if (this.isSaddled()) {\n            if (!this.level().isClientSide) {\n                this.spawnAtLocation(Items.SADDLE);\n            }\n        }\n        if (!this.getShoeStack().isEmpty()) {\n            if (!this.level().isClientSide) {\n                this.spawnAtLocation(this.getShoeStack().copy());\n            }\n        }\n        this.setSaddled(false);\n        this.setShoeStack(ItemStack.EMPTY);\n    }\n\n    public ItemStack getShoeStack() {\n        return this.getItemBySlot(EquipmentSlot.FEET);\n    }\n\n    public void setShoeStack(ItemStack shoe) {\n        this.setItemSlot(EquipmentSlot.FEET, shoe);\n    }\n\n    public void tick() {\n        super.tick();\n        if(isInNether()) {\n            conversionTime++;\n            if (conversionTime > 300 && !this.level().isClientSide) {\n                Hoglin hoglin = this.convertTo(EntityType.HOGLIN, false);\n                if(hoglin != null){\n                    hoglin.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 200, 0));\n                    this.dropEquipment();\n                    level().addFreshEntity(hoglin);\n                    this.remove(RemovalReason.DISCARDED);\n                }\n            }\n        }\n        if (entityToLaunchId != -1 && this.isAlive()) {\n            Entity launch = this.level().getEntity(entityToLaunchId);\n            this.ejectPassengers();\n            entityToLaunchId = -1;\n            if (launch != null && !launch.isPassenger()) {\n                if (launch instanceof LivingEntity) {\n                    launch.setPos(this.getEyePosition().add(0, 1, 0));\n                    float rot = 180F + this.getYRot();\n                    float strength = (float) (getLaunchStrength() * (1.0D - ((LivingEntity) launch).getAttributeValue(Attributes.KNOCKBACK_RESISTANCE)));\n                    float x = Mth.sin(rot * Mth.DEG_TO_RAD);\n                    float z = -Mth.cos(rot * Mth.DEG_TO_RAD);\n                    if (!(strength <= 0.0D)) {\n                        launch.hasImpulse = true;\n                        Vec3 vec3 = this.getDeltaMovement();\n                        Vec3 vec31 = vec3.add((new Vec3(x, 0.0D, z)).normalize().scale(strength));\n                        launch.setDeltaMovement(vec31.x, strength, vec31.z);\n                    }\n                }\n            }\n        }\n        if (this.getAnimation() == ANIMATION_BUCK && this.getAnimationTick() >= 5) {\n            Entity passenger = this.getControllingPassenger();\n            if (passenger instanceof LivingEntity) {\n                entityToLaunchId = passenger.getId();\n            }\n        }\n        if (!this.level().isClientSide) {\n            if (this.isVehicle()) {\n                ridingTime++;\n                if (ridingTime >= this.getMaxRidingTime() && this.getAnimation() != ANIMATION_BUCK) {\n                    this.setAnimation(ANIMATION_BUCK);\n                }\n            } else {\n                ridingTime = 0;\n            }\n            if (this.isAlive() && ridingTime > 0 && this.getDeltaMovement().horizontalDistanceSqr() > 0.1D) {\n                for (Entity entity : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(1.0D))) {\n                    if (!(entity instanceof EntityTusklin) && !entity.isPassengerOfSameVehicle(this)) {\n                        entity.hurt(this.damageSources().mobAttack(this), 4F + random.nextFloat() * 3.0F);\n                        if (entity.onGround()) {\n                            double d0 = entity.getX() - this.getX();\n                            double d1 = entity.getZ() - this.getZ();\n                            double d2 = Math.max(d0 * d0 + d1 * d1, 0.001D);\n                            float f = 0.5F;\n                            entity.push(d0 / d2 * f, f, d1 / d2 * f);\n                        }\n                    }\n                }\n                this.setMaxUpStep(2F);\n            }else{\n                this.setMaxUpStep(1.1F);\n            }\n            if (this.getTarget() != null && this.hasLineOfSight(this.getTarget()) && distanceTo(this.getTarget()) < this.getTarget().getBbWidth() + this.getBbWidth() + 1.8F) {\n                if (this.getAnimation() == ANIMATION_FLING && this.getAnimationTick() == 6) {\n                    this.getTarget().hurt(this.damageSources().mobAttack(this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n                    knockbackTarget(this.getTarget(), 0.9F, 0F);\n                }\n                if ((this.getAnimation() == ANIMATION_GORE_L) && this.getAnimationTick() == 6) {\n                    this.getTarget().hurt(this.damageSources().mobAttack(this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n                    knockbackTarget(this.getTarget(), 0.5F, -90F);\n                }\n                if ((this.getAnimation() == ANIMATION_GORE_R) && this.getAnimationTick() == 6) {\n                    this.getTarget().hurt(this.damageSources().mobAttack(this), (float) this.getAttributeValue(Attributes.ATTACK_DAMAGE));\n                    knockbackTarget(this.getTarget(), 0.5F, 90F);\n                }\n            }\n        }\n        if (this.getAnimation() == ANIMATION_RUT && this.getAnimationTick() == 23) {\n            if (level().getBlockState(this.blockPosition().below()).is(Blocks.GRASS_BLOCK) && getRandom().nextInt(3) == 0) {\n                if (this.isBaby()) {\n                    if (level().getBlockState(this.blockPosition()).canBeReplaced() && random.nextInt(3) == 0) {\n                        level().setBlockAndUpdate(this.blockPosition(), Blocks.BROWN_MUSHROOM.defaultBlockState());\n                        this.gameEvent(GameEvent.BLOCK_DESTROY);\n                        this.playSound(SoundEvents.CROP_PLANTED, this.getSoundVolume(), this.getVoicePitch());\n                    }\n                }\n                this.level().levelEvent(2001, blockPosition().below(), Block.getId(Blocks.GRASS_BLOCK.defaultBlockState()));\n                this.level().setBlock(blockPosition().below(), Blocks.DIRT.defaultBlockState(), 2);\n                this.heal(5);\n            }\n        }\n        if (!this.level().isClientSide && this.getAnimation() == NO_ANIMATION && getRandom().nextInt(isBaby() ? 140 : 70) == 0 && (this.getLastHurtByMob() == null || this.distanceTo(this.getLastHurtByMob()) > 30)) {\n            if (level().getBlockState(this.blockPosition().below()).is(Blocks.GRASS_BLOCK) && getRandom().nextInt(3) == 0) {\n                this.setAnimation(ANIMATION_RUT);\n            }\n        }\n        AnimationHandler.INSTANCE.updateAnimations(this);\n    }\n\n    private float getLaunchStrength() {\n        return this.getShoeStack().is(AMItemRegistry.PIGSHOES.get()) ? 0.4F : 0.9F;\n    }\n\n    private int getMaxRidingTime() {\n        return this.getShoeStack().is(AMItemRegistry.PIGSHOES.get()) ? 160 : 60;\n    }\n\n    private void knockbackTarget(LivingEntity entity, float strength, float angle) {\n        float rot = getYRot() + angle;\n        if(entity != null){\n            entity.knockback(strength, Mth.sin(rot * Mth.DEG_TO_RAD), -Mth.cos(rot * Mth.DEG_TO_RAD));\n        }\n    }\n\n    @Override\n    public int getAnimationTick() {\n        return animationTick;\n    }\n\n    @Override\n    public void setAnimationTick(int tick) {\n        animationTick = tick;\n    }\n\n    @Override\n    public Animation getAnimation() {\n        return currentAnimation;\n    }\n\n    @Override\n    public void setAnimation(Animation animation) {\n        currentAnimation = animation;\n    }\n\n    public SpawnGroupData finalizeSpawn(ServerLevelAccessor worldIn, DifficultyInstance difficultyIn, MobSpawnType reason, @Nullable SpawnGroupData spawnDataIn, @Nullable CompoundTag dataTag) {\n        if (spawnDataIn == null) {\n            spawnDataIn = new AgeableMob.AgeableMobGroupData(0.34F);\n        }\n\n        return super.finalizeSpawn(worldIn, difficultyIn, reason, spawnDataIn, dataTag);\n    }\n\n\n    @Override\n    public Animation[] getAnimations() {\n        return new Animation[]{ANIMATION_RUT, ANIMATION_GORE_L, ANIMATION_GORE_R, ANIMATION_FLING, ANIMATION_BUCK};\n    }\n\n    @Nullable\n    @Override\n    public AgeableMob getBreedOffspring(ServerLevel level, AgeableMob mob) {\n        return AMEntityRegistry.TUSKLIN.get().create(level());\n    }\n}",
+          "excerpt_sha256": "e2576b806371f89ba9cb8623da7bcdbe2843c11c2b596c8d8c6eb4114c40abc2",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/EntityTusklin.java#L1-L501",
+          "evidence_kind": "complete_file"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/AlexsMobs.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/AlexsMobs.java",
+          "source_sha256": "c17c9cb9965964dc8f59a6334a1a65a3fd5b97da21f4b0e4fec6b68b6735673e",
+          "git_blob_sha1": "6a67eede7ed85f8335776a75e23780e86f4d2e8d",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 75,
+          "end_line": 90,
+          "excerpt": "    public AlexsMobs() {\n        IEventBus modBusEvent = FMLJavaModLoadingContext.get().getModEventBus();\n        modBusEvent.addListener(this::setup);\n        modBusEvent.addListener(this::setupClient);\n        modBusEvent.addListener(this::onModConfigEvent);\n        modBusEvent.addListener(this::setupEntityModelLayers);\n        final ModLoadingContext modLoadingContext = ModLoadingContext.get();\n        AMBlockRegistry.DEF_REG.register(modBusEvent);\n        AMEntityRegistry.DEF_REG.register(modBusEvent);\n        AMItemRegistry.DEF_REG.register(modBusEvent);\n        AMTileEntityRegistry.DEF_REG.register(modBusEvent);\n        AMPointOfInterestRegistry.DEF_REG.register(modBusEvent);\n        AMFeatureRegistry.DEF_REG.register(modBusEvent);\n        AMSoundRegistry.DEF_REG.register(modBusEvent);\n        AMParticleRegistry.DEF_REG.register(modBusEvent);\n        AMPaintingRegistry.DEF_REG.register(modBusEvent);",
+          "excerpt_sha256": "755d731204e4e1865bd2e1d97a91a7320a860aad06cad58dbd8043d89dcd97ca",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/AlexsMobs.java#L75-L90",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 1,
+          "end_line": 31,
+          "excerpt": "package com.github.alexthe666.alexsmobs.entity;\n\nimport com.github.alexthe666.alexsmobs.AlexsMobs;\nimport com.google.common.base.Predicates;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.tags.TagKey;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.animal.Animal;\nimport net.minecraft.world.entity.animal.WaterAnimal;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.level.LevelReader;\nimport net.minecraft.world.level.NaturalSpawner;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.levelgen.Heightmap;\nimport net.minecraft.world.level.material.FluidState;\nimport net.minecraftforge.event.entity.EntityAttributeCreationEvent;\nimport net.minecraftforge.eventbus.api.SubscribeEvent;\nimport net.minecraftforge.fml.common.Mod;\nimport net.minecraftforge.registries.DeferredRegister;\nimport net.minecraftforge.registries.ForgeRegistries;\nimport net.minecraftforge.registries.RegistryObject;\n\nimport java.util.function.Predicate;\n\n@Mod.EventBusSubscriber(modid = AlexsMobs.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)\npublic class AMEntityRegistry {\n\n    public static final DeferredRegister<EntityType<?>> DEF_REG = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, AlexsMobs.MODID);",
+          "excerpt_sha256": "fabfcb68f2a6c9c7469a616c0a49f0060947dbc6bdc1f71222181f81946616a2",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L1-L31",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 104,
+          "end_line": 104,
+          "excerpt": "    public static final RegistryObject<EntityType<EntityTusklin>> TUSKLIN = DEF_REG.register(\"tusklin\", () -> registerEntity(EntityType.Builder.of(EntityTusklin::new, MobCategory.CREATURE).sized(2.2F, 1.9F).immuneTo(Blocks.POWDER_SNOW).setTrackingRange(10), \"tusklin\"));",
+          "excerpt_sha256": "7b6cda2b1ae39af807137389c259b6eda30e8f9be8c0c17de3479bc1939d6deb",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L104-L104",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 149,
+          "end_line": 156,
+          "excerpt": "    private static EntityType registerEntity(EntityType.Builder builder, String entityName) {\n        return builder.build(entityName);\n    }\n\n    @SubscribeEvent\n    public static void initializeAttributes(EntityAttributeCreationEvent event) {\n        SpawnPlacements.Type spawnsOnLeaves = SpawnPlacements.Type.create(\"am_leaves\", AMEntityRegistry::createLeavesSpawnPlacement);\n        SpawnPlacements.register(GRIZZLY_BEAR.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Animal::checkAnimalSpawnRules);",
+          "excerpt_sha256": "439c13b1f5a530735f823cf2bd029fd41184751e74d1c597847b9c61a626368f",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L149-L156",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 209,
+          "end_line": 209,
+          "excerpt": "        SpawnPlacements.register(TUSKLIN.get(), SpawnPlacements.Type.ON_GROUND, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EntityTusklin::canTusklinSpawn);",
+          "excerpt_sha256": "46786eb262cb992d51ba7e333132550e111675f422095f2880580acc495af8dd",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L209-L209",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 301,
+          "end_line": 301,
+          "excerpt": "        event.put(TUSKLIN.get(), EntityTusklin.bakeAttributes().build());",
+          "excerpt_sha256": "dfcaa86b53e20628cc5df7add8faf9bc09cbc91dc8c39fcf8cd16891fd086b41",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L301-L301",
+          "evidence_kind": "supporting_range"
+        },
+        {
+          "repo": "AlexModGuy/AlexsMobs",
+          "revision": "09755dade2cfbdf14839e026d3af446f9d3ff843",
+          "path": "src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_local": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java",
+          "source_sha256": "9bbcd38c1dc04d100226b0464db6c9fdadf49959ee05ebcad99a5b5ba1058f52",
+          "git_blob_sha1": "a88edf42cabd97f5a3176f996d0f992cde982c1b",
+          "source_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/source.json",
+          "tree_metadata": "tools/cod4/ecology-availability-research/sources/AlexModGuy__AlexsMobs/tree.json",
+          "provenance": "Exact existing local fixed09755 Git bytes; no fetching or new source credit.",
+          "line": 357,
+          "end_line": 363,
+          "excerpt": "    public static boolean rollSpawn(int rolls, RandomSource random, MobSpawnType reason){\n        if(reason == MobSpawnType.SPAWNER){\n            return true;\n        }else{\n            return rolls <= 0 || random.nextInt(rolls) == 0;\n        }\n    }",
+          "excerpt_sha256": "176579a389aaf84924ca27198eccd884b0faec2f5434a28cd8f3315f5924070e",
+          "url": "https://github.com/AlexModGuy/AlexsMobs/blob/09755dade2cfbdf14839e026d3af446f9d3ff843/src/main/java/com/github/alexthe666/alexsmobs/entity/AMEntityRegistry.java#L357-L363",
+          "evidence_kind": "supporting_range"
+        }
+      ],
+      "native_auxiliary_artifact": {
+        "source_archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "extracted_source_root": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10",
+        "source_identity_not_executed_runtime": true
+      },
+      "native_auxiliary_ranges": [
+        {
+          "index": 0,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+          "entry": "net/minecraft/world/entity/Mob.java",
+          "lines": [
+            1204,
+            1249
+          ],
+          "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+          "raw_excerpt_sha256": "2a151df860156fc8e005e1337d8d5ede91a7a9b17bac8eb13948ccaeda27e6e1",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete native convertTo consumer",
+          "support_credit": 0
+        },
+        {
+          "index": 1,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+          "entry": "net/minecraft/world/entity/Mob.java",
+          "lines": [
+            1350,
+            1353
+          ],
+          "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+          "raw_excerpt_sha256": "f126f1f90598565aa4e762165a709ae64d2722152b9bc6cbf624e9ccf0eaa387",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete noAI setter",
+          "support_credit": 0
+        },
+        {
+          "index": 2,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Mob.java",
+          "entry": "net/minecraft/world/entity/Mob.java",
+          "lines": [
+            1365,
+            1367
+          ],
+          "entry_sha256": "7da79af8b34daaa03b52562d463295fb571711a855f6ce5e9c5b9e5c3f90c7d1",
+          "raw_excerpt_sha256": "1f904c81921ec59d54884d51826d1480e55a26e9fe73a05cd028c13d1b21ec20",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete noAI getter",
+          "support_credit": 0
+        },
+        {
+          "index": 3,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/AgeableMob.java",
+          "entry": "net/minecraft/world/entity/AgeableMob.java",
+          "lines": [
+            1,
+            199
+          ],
+          "entry_sha256": "1763954548ece265e23db30c1f19d03249daa75d87aab252d73c481b0d8e7973",
+          "raw_excerpt_sha256": "1763954548ece265e23db30c1f19d03249daa75d87aab252d73c481b0d8e7973",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete age/baby parent class",
+          "support_credit": 0
+        },
+        {
+          "index": 4,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/monster/hoglin/Hoglin.java",
+          "entry": "net/minecraft/world/entity/monster/hoglin/Hoglin.java",
+          "lines": [
+            1,
+            330
+          ],
+          "entry_sha256": "0dd73cfd8aaf30e6c17f47cb3cad768dbd5f64e5f41d8b909be90db42959017a",
+          "raw_excerpt_sha256": "0dd73cfd8aaf30e6c17f47cb3cad768dbd5f64e5f41d8b909be90db42959017a",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete immediate converted class; further Zoglin body not reviewed",
+          "support_credit": 0
+        },
+        {
+          "index": 5,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+          "entry": "net/minecraft/world/entity/EntityType.java",
+          "lines": [
+            215,
+            215
+          ],
+          "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+          "raw_excerpt_sha256": "5eda2d1b60dac99553a8f0207e4b85e69a84e863c288359014327aabdbbb1181",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "actual HOGLIN factory/category registration",
+          "support_credit": 0
+        },
+        {
+          "index": 6,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/EntityType.java",
+          "entry": "net/minecraft/world/entity/EntityType.java",
+          "lines": [
+            524,
+            526
+          ],
+          "entry_sha256": "446fc764bd01039dba0ef59bca8531e02686c353df41fe709fa2c57069cf65b8",
+          "raw_excerpt_sha256": "e32433f74ca7dfeef5e3b4cebe953ef2c383b42bacac3887bc7634f2a9f74f83",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete enabled-type create consumer",
+          "support_credit": 0
+        },
+        {
+          "index": 7,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+          "entry": "net/minecraft/server/level/ServerLevel.java",
+          "lines": [
+            174,
+            174
+          ],
+          "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+          "raw_excerpt_sha256": "05488c3c5cf911e4b095a3d56c306841849caeeb673ba6e3305991f03999ca34",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "actual entity manager field type",
+          "support_credit": 0
+        },
+        {
+          "index": 8,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+          "entry": "net/minecraft/server/level/ServerLevel.java",
+          "lines": [
+            208,
+            208
+          ],
+          "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+          "raw_excerpt_sha256": "3833431e657c6214813afa22fb76c2a1b3f670b22e40bdd4421e4d08d957bf40",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "actual entity manager construction",
+          "support_credit": 0
+        },
+        {
+          "index": 9,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+          "entry": "net/minecraft/server/level/ServerLevel.java",
+          "lines": [
+            814,
+            816
+          ],
+          "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+          "raw_excerpt_sha256": "7dfb6807ef9e18033ddd08b52c3bc8b689d437c00006fc3d6f1fd822b5a5fb03",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete addFreshEntity dispatch",
+          "support_credit": 0
+        },
+        {
+          "index": 10,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/server/level/ServerLevel.java",
+          "entry": "net/minecraft/server/level/ServerLevel.java",
+          "lines": [
+            855,
+            867
+          ],
+          "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+          "raw_excerpt_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete server addEntity result/removed gate",
+          "support_credit": 0
+        },
+        {
+          "index": 11,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+          "entry": "net/minecraft/world/level/entity/PersistentEntitySectionManager.java",
+          "lines": [
+            1,
+            109
+          ],
+          "entry_sha256": "45b64c31252785cab6462360b1b1f61d256a9cdb76c9bada08878807a0493814",
+          "raw_excerpt_sha256": "aec6d5e7e84ab258519678b6c2bde9fa1e9e0460915cc3296afdd463357d5a03",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "bounded manager construction plus complete add/UUID/event consumers",
+          "support_credit": 0
+        },
+        {
+          "index": 12,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/ForgeEventFactory.java",
+          "entry": "net/minecraftforge/event/ForgeEventFactory.java",
+          "lines": [
+            836,
+            844
+          ],
+          "entry_sha256": "2a2eb81e7969bea314bb4ce2c0b7a5444b21cdd80771869cdf26ee0393d40396",
+          "raw_excerpt_sha256": "744fe3245c3c5f2c254d09979c9e6aab7b3019895ae9247a1ab0e617b86bffc7",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete conversion Pre/Post publishing methods",
+          "support_credit": 0
+        },
+        {
+          "index": 13,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraftforge/event/entity/living/LivingConversionEvent.java",
+          "entry": "net/minecraftforge/event/entity/living/LivingConversionEvent.java",
+          "lines": [
+            1,
+            94
+          ],
+          "entry_sha256": "bf608e4498d0b2c2629c8271e3f2289dbdc73337e97d0ab0aab8349c4c66e225",
+          "raw_excerpt_sha256": "bf608e4498d0b2c2629c8271e3f2289dbdc73337e97d0ab0aab8349c4c66e225",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete conversion event payload/cancel/timer definitions",
+          "support_credit": 0
+        },
+        {
+          "index": 14,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            1380,
+            1381
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "044aa68ea2ca4f46a106cd80499443b2d2104617e090487bc115df0e51d784ab",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete empty inherited dropEquipment",
+          "support_credit": 0
+        },
+        {
+          "index": 15,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+          "entry": "net/minecraft/world/entity/LivingEntity.java",
+          "lines": [
+            663,
+            666
+          ],
+          "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+          "raw_excerpt_sha256": "0eaa34ffb55ca16b2a91ef3007c24f1e19f28f1fd640fe353cbc11e6689eaa89",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete remove intermediary",
+          "support_credit": 0
+        },
+        {
+          "index": 16,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            331,
+            333
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "ade4809d60e859037c6bfbb399944e86fa1f72281e29b59b6549d3b29c689898",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete discard consumer",
+          "support_credit": 0
+        },
+        {
+          "index": 17,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            353,
+            356
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "bcee6e6776f297fa92e33e7505d760ca161a35c283699776f86ebd5118b1f114",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete remove/cap invalidation consumer",
+          "support_credit": 0
+        },
+        {
+          "index": 18,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            1804,
+            1833
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "1307d7e52b8ef3bea0897400a1034ede4b6112a193dc698224ec03d2e52949c0",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete spawnAtLocation overloads and item-add/capture sink",
+          "support_credit": 0
+        },
+        {
+          "index": 19,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            2438,
+            2440
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "a52a3c741258beb7e42d25e9ffc496f5e2c5b7b46ec98f29dee44ccd7622fe74",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete copyPosition consumer",
+          "support_credit": 0
+        },
+        {
+          "index": 20,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java",
+          "entry": "net/minecraft/world/entity/Entity.java",
+          "lines": [
+            3348,
+            3368
+          ],
+          "entry_sha256": "cc8ec362854b0c6c30f38d67d41fe0ccb32023f8bcfa6e09c8c7eaea13cf23a8",
+          "raw_excerpt_sha256": "da677ec3a32c0a020ed53400d7ca59776f7f5264346d7379b1730efaa85b8f6b",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "complete isRemoved/removalReason/setRemoved consumers",
+          "support_credit": 0
+        },
+        {
+          "index": 21,
+          "source_kind": "native_forge_archive",
+          "source_local": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/animal/Animal.java",
+          "entry": "net/minecraft/world/entity/animal/Animal.java",
+          "lines": [
+            33,
+            33
+          ],
+          "entry_sha256": "f174e271b99801449073c369cfa8794ee384d986fe9b761d040b7312206c78c9",
+          "raw_excerpt_sha256": "2813bd1079d2c54e6562eb79ed2b9ad7dc8da2e97f1e97c0552a00d1fe15a521",
+          "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+          "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+          "archive_entry_exact": true,
+          "actual_text_read": true,
+          "read_role": "actual immediate parent declaration only",
+          "support_credit": 0
+        }
+      ],
+      "reused_native_support": {
+        "prior_review": {
+          "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-ferrouslime-cohort-transfer-review-20261103.json",
+          "sha256": "7802f8ddd2878763342397afbd66d6ce532c9bdfed01ab085d25f9054525c751"
+        },
+        "entry": "net/minecraft/world/entity/PathfinderMob.java",
+        "lines": [
+          1,
+          77
+        ],
+        "entry_sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+        "raw_excerpt_sha256": "f5b757c08ebe4c0813064a261f0425d2db803af2e91a7a2aa9fd6e9eb01e7839",
+        "archive_entry_exact": true,
+        "read_reused_not_reread": true,
+        "support_credit": 0
+      },
+      "observation": [
+        "Actual fixed AlexsMobs registry/constructor wires Tusklin CREATURE factory, attribute subscriber and ordinary placement; core501-line class was read completely. Natural biome deployment/tags/spawn-roll loaded config and parent acquisition are not established. Ordinary spawn predicates and standard breeding are supporting context only.",
+        "Own isInNether is exact Level.NETHER dimension-key identity AND !isNoAi, not an arbitrary piglinSafe dimension type. tick calls super first then increments conversionTime in both sides whenever this condition holds, but the conversion call is guarded server-side and strictly >300. Initial0 implies301 qualifying invocations under uninterrupted normal execution, not guaranteed301 world ticks or an exact wall time.",
+        "The complete class has no counter else reset and no own NBT encode/reset for conversionTime. Leaving the Nether or noAI true pauses that in-memory counter; it is cumulative across eligible episodes in the same object. Fresh reconstruction initializes0, while invoking the shown readAdditionalSaveData on an existing object does not itself explicitly clear it. Full save/portal object recreation/mixin/capability lifecycle is unexpanded.",
+        "On eligible server branch Tusklin calls inherited convertTo(HOGLIN,false). Native Mob.convertTo returnsnull if old actor removed or factory disabled/returnsnull. There is no own HP/alive gate beyond these local checks, no explicit collision/checkSpawnRules/finalizeSpawn in the shown conversion path; direct-dead-call reachability is not proven.",
+        "Native convertTo copies position/yaw/pitch, baby boolean, noAI, optional custom name/visibility, explicit persistence-required flag and invulnerability. It does not copy full NBT/UUID/HP/love/passiveTicks/saddle/custom cooldowns. Its false equipment parameter skips the equipment/canPickUpLoot transfer branch. Ageable.setBaby maps to age-24000 or0, so boolean stage is preserved but exact age is not; full state conservation is not inferred.",
+        "Crucial consumer order: native convertTo calls level.addFreshEntity(newActor) and ignores boolean, transfers old actor own vehicle membership when isPassenger via unchecked startRiding, then discards old actor and returns newActor. Thus return nonnull does not mean admitted success, and caller already runs after old removal on normal return. Old passengers are not transferred by this method; Entity.setRemoved requests passenger dismount. Neither riding success nor post-callback state conservation is proven.",
+        "Only after nonnull conversion returns does Tusklin request CONFUSION200, invoke own dropEquipment, call addFreshEntity with the SAME returned Hoglin object a second time and remove old Tusklin DISCARDED again. No result checks or rollback. Continuing tick after these calls is visible in complete class, not a proven second population or an ordinary-life exploit.",
+        "Server addFreshEntity dispatches to PersistentEntitySectionManager. It posts EntityJoinLevelEvent before known-UUID insertion; canceled post returnsfalse. Successful first add reserves UUID before callbacks/tracking. If that UUID remains registered and no intervening listener/mutation changes state, second same-instance submission is rejected by knownUuids.add, not a second newborn. If first was canceled with no UUID insertion, the second can be a later attempt on the same object. Actual listeners, callback effects, UUID mutation, section storage failure/reentrancy and loaded-state outcomes remain untested.",
+        "Own dropEquipment delegates to empty LivingEntity.dropEquipment through shown no-override parent inventory, then on server requests saddle and shoe ItemEntity drops and clears saddle/shoes regardless add outcome. Conversion false does not run normal death custom-loot/XP/equipment branch. Entity.spawnAtLocation may capture drops or invoke unchecked item add and return object; no material/pickup reward or successful recovery follows from that request. Other equipment is not explicitly copied or dropped by the shown conversion branch.",
+        "Native discard invokes virtual remove(DISCARDED); LivingEntity.remove invokes Entity.remove/setRemoved/cap invalidation then Brain.clearMemories. First stored reason is retained but passenger/callback work can still be requested on repeat. No death/kill receipt, inherited callback atomicity or universal idempotence follows from the caller repeated remove.",
+        "The actual resulting Hoglin has a distinct native policy: inside customServerAiStep, isConverting tests !dimensionType.piglinSafe, !immune and !noAI; qualifying calls increment timeInOverworld and >300 consult cancellable Forge Pre with timer consumer before finishConversion. False condition resets timer only when that AI method executes. Complete Hoglin NBT writes TimeInOverworld/immune/cannotBeHunted, unlike Tusklin own unsaved exposure field. Do not infer Level.NETHER always has a particular loaded piglinSafe value, or noAI always executes/reset this AI method.",
+        "Hoglin finishConversion calls same native convertTo(ZOGLIN,true), requests confusion after nonnull and publishes Post. The true branch copies-and-clears equipment and drop chances, unlike first-leg false. Pre publication returns !post and permits timer setter; Post is notification, not add success. This downstream policy is bounded support for the first mod conversion unit, not a second source implementation, complete Zoglin-body/Brain/engine scheduler review or observed subsequent Zoglin birth.",
+        "All registration, ordinary breeding, rider/attack/grass/mushroom/animation, native methods, error/duplicate-submit observations and downstream second policy are merged support0. The proposed single unit is environmental cumulative exposure driving a heterogeneous live actor handoff through an engine API that already submits/removes, with a mismatched caller-owned equipment/post-add phase; no production change or natural cap remedy is claimed.",
+        "Tusklin is a registered CREATURE whose complete tick accumulates conversionTime whenever exact Level.NETHER key and !noAI hold, including client increments but server-only conversion call. It uses >300; leaving dimension or noAI pauses this same-object counter because there is no else reset. Own extra-save/read omits timer; does not prove full cross-dimension/reload semantics or exact301 world ticks.",
+        "Complete Mob.convertTo consumer, not method name inference: null iff old removed or target factory null; selected copy of pose/baby/noAI/name/persistence/invulnerability. false equipment flag skips loot/equipment transfer. It then requests new add without checking return, transfers old actor own vehicle if passenger, discards old and returns. This is already a precommitted live handoff before mod caller resumes, not simple entity construction.",
+        "Ageable boolean baby copy normalizes age to-24000 or0, rather than preserving age. Neither current HP, full NBT/UUID, exact age, love, passive state nor saddle/shoes are explicitly copied by shown contract. Vehicle riding is attempted after add; old passengers are not transferred in shown consumer and Entity.setRemoved requests their dismount. External hooks/callbacks/serialization remain outside scope.",
+        "Tusklin nonnull-return phase requests confusion200, invokes own equipment drop (saddle and FEET shoe) and clears those fields, submits exactly same returned Hoglin again, then repeats old remove. Direct callback effects, current creature status and actual item admission/pickup not established. dropEquipment inherited dispatch and removal declarations checked without claiming full parent files.",
+        "Server add routes through PersistentEntitySectionManager, whose EntityJoinLevelEvent precedes known-UUID insertion. Under retained UUID and no external mutation, first admitted entity makes second same-instance add fail knownUuids.add; no second-born object. First-canceled/no-reserved-UUID can allow a second attempt. Event side effects may happen twice, but listeners/reentrancy/callback/UUID changes not audited. add results ignored in both native and caller stages; return is not durable success.",
+        "First Tusklin conversion directly calls Mob.convertTo and shows no caller Conversion Pre/Post publication, unlike complete Hoglin customServerAiStep which tests !dimensionType.piglinSafe/!immune/!noAI, uses reset-on-false timer and cancellable Pre(timer setter), then Post after nonnull convert. EntityJoinLevelEvent still independently can veto admission. This is a static source contract distinction, not a universal cancellation bypass or native runtime exploit.",
+        "Hoglin own TimeInOverworld is serialized and true-equipment convert branch can copyAndClear slots to Zoglin. Full Hoglin body and event definitions were read as downstream support; HoglinAi/Brain scheduler/Zoglin body and complete second lifecycle not expanded. Never another ecology/native Minecraft credit.",
+        "Closest EA13 is a planted/paid-food hunger-plateau maturation whose caller creates adult/adds/discards directly; current whole policy is environment/noAI accumulated exposure plus selected native replacement ownership and post-handoff equipment phase. Distinction depends on this complete state/owner contract, not species name, integer threshold, duplicated submission defect, category or helper counts. EA10 storage successful-release queue, EA11 rider expiry, EA14 hosted brood, EA16 external alarm attempt and EA19 quantitative donor aggregation differ in lifecycle ownership. At most one whole mechanism.",
+        "Native request and callback ordering does not prove entity or item conservation, safe placement, current cap permission, actual natural parent acquisition, exact timing, death/kill/loot/XP, same-UUID pickup, world survival or any Dynasty gameplay behavior. No gameplay checklist entry can be removed for this research."
+      ],
+      "application": [
+        "Future Dynasty ecology evidence should distinguish environmental exposure, requested conversion, engine precommitted old disposal, actual admitted replacement, equipment release and actual pickup. A nonnull conversion return or second add call is not population or reward proof.",
+        "A future implementation would need one clear owner for add/remove/state transfer, stable actual actor identity, conditional admission/retry and material receipts. Current1000-gate is unmet, so no production conversion/cap/category/probability/persistence change authorized."
+      ],
+      "limits": [
+        "At most1 proposed complete mod-related first-leg conversion family, pending independent whole-chain semantic review; accepted/applied credit0. No new EA/candidate identifier, formal batch/receipt/validator/master or checklist change.",
+        "Old18 decisions compared in substantive observation/application/limits/dedup fields. EA17/18/19 own actual earlier readings reused at unchanged batch bytes; no claim of18 renewed complete upstream source-chain readings or1000 references. Native Hoglin/Zoglin leg remains supporting context, never another mod credit.",
+        "Only Tusklin whole501, Ageable whole199, Hoglin whole330 and LivingConversionEvent whole94 are complete-text scopes here. Other large mod/native registries, Mob/LivingEntity/Entity/ServerLevel/ForgeEventFactory/PersistentEntitySectionManager are explicitly bounded. Symbol inventories are machine support, not full-class semantic reading; PathfinderMob77 uses prior immutable actual reading.",
+        "No game/Java/Gradle/server/GUI/network/source download/retry/process/display/sound/brightness/wake/focus/world/asset/sharedJar/Git/automation action, no active-hours claim. Only this immutable proposal is written.",
+        "No actual natural deployment, parent acquisition, biome/merged tag/config, ordinary breeding, dimension travel, scheduler/noAI behavior, 301tick timing, save/reopen/counter persistence, accepted conversion, exactly-once species replacement or cross-dimension live state/UUID conservation proved.",
+        "Engine EntityType creation/selected convertTo/add/event/UUID consumer read as stated, but not all constructor Brain/attribute/capability, event bus internals/listeners, section callback/tracking/storage, loading/unloading, full save/portal transfer or concurrent/reentrant lifecycle. Exception and callback paths may interrupt order; same UUID no-second-add conclusion is conditional on retained UUID and no external state changes.",
+        "No runtime birth/kill/material/drop/XP/payment/pickup/cap/performance/1000-gate acceptance. Core convert return or visual confusion/item feedback is not success. No ordinary death duplication exploit or guaranteed total equipment loss/recovery inference.",
+        "Novelty must be judged for whole exposure/native-handoff/equipment ownership lifecycle, not just another species/threshold or a duplicated add bug. If independent reviewer finds environmental conversion semantically merged with EA13 mature replacement, hold0 rather than split helper/native branches.",
+        "Native Hoglin follow-on is not complete second live cycle: full Hoglin source and Pre/Post definitions read, but AI engine scheduling/HoglinAi behaviors/Zoglin complete downstream body or end-to-end runtime not expanded. No second transition credited.",
+        "Bind immutable original proposal and this actual independent review; do not fabricate reviewer receipt or copy another role.",
+        "At most1 whole family in new draft formal package. No ledger/count change before exact staged validator/source/batch independently reviewed.",
+        "Validate all8mod/22native exact raw source identities, including line endings; missing inputs reject0.",
+        "Replay all18 existing accepted objects unchanged. Reject malformed source, omitted core consumer/native ranges, mismatched semantic key/author/reviewer, duplicates and conflicts. Synthetic cases0 research.",
+        "No production/ecology cap/category/probability/assets/Jar/game/world/task changes. Native gaps and1000 requirements remain."
+      ],
+      "deduplication": "One whole environmental live-species conversion/engine-handoff integration proposed, not another generic unchecked add/create/remove, offspring branch/species/threshold or native source credit. Closest EA13/18/19 differences explicitly compared; maximum1 remains subject to an actual independent semantic reader.",
+      "complete_chain_proposal": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/reviewer-tusklin-dimension-conversion-proposal-20261103.json",
+        "sha256": "359b7068a6019fb34bb3fbdc6eb5c74724a7ef0fdc6e637ec370db37c617443c"
+      },
+      "complete_chain_review": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/coordinator-tusklin-dimension-conversion-review-20261103.json",
+        "sha256": "9448d57e957c1baf6fba4e4a4be485dcf1fb21a1e843add253b2443dd0ad599a"
+      }
+    }
+  ],
+  "candidate_identifier_invented": false,
+  "publication_scope": "Next actual identifier afterEA19 only; one whole mod first-leg conversion, all native/downstream support0. No formal batch or receipt published."
+}

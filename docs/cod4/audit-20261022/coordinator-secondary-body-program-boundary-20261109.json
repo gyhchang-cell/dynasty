@@ -1,0 +1,263 @@
+{
+  "recorded_at": "2026-11-09T14:03:19.777875+00:00",
+  "status": "READ_ONLY_LOCAL_PROGRAM_INTERFACE_SUPPORT_AFTER_MODEL_SECOND502",
+  "failed_recovered_turn": "01a1c065-b924-7091-aba2-cec67ffe7c58",
+  "provider_recoveries": 1,
+  "further_recovery": false,
+  "actual_Main_source_ranges": [
+    {
+      "path": "src/main/java/com/dynasty/client/Cod3NpcRenderer.java",
+      "sha256": "e735ec85b07451ea4331cc5d475c5162988804587347d09912aa078213c9673e",
+      "lines": [
+        1,
+        25
+      ],
+      "range_sha256": "e735ec85b07451ea4331cc5d475c5162988804587347d09912aa078213c9673e",
+      "excerpt": "package com.dynasty.client;\n\nimport com.dynasty.Dynasty;\nimport com.dynasty.cod3.*;\nimport net.minecraft.client.renderer.entity.EntityRendererProvider;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.client.event.EntityRenderersEvent;\nimport net.minecraftforge.eventbus.api.SubscribeEvent;\nimport net.minecraftforge.fml.common.Mod;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.renderer.GeoEntityRenderer;\n\npublic final class Cod3NpcRenderer extends GeoEntityRenderer<DynastyNpcEntity> {\n    public Cod3NpcRenderer(EntityRendererProvider.Context context){super(context,new Model());shadowRadius=.4f;}\n    private static final class Model extends GeoModel<DynastyNpcEntity> {\n        public ResourceLocation getModelResource(DynastyNpcEntity e){return new ResourceLocation(Dynasty.MODID,\"geo/npc/\"+e.role+\".geo.json\");}\n        public ResourceLocation getTextureResource(DynastyNpcEntity e){return new ResourceLocation(Dynasty.MODID,\"textures/entity/npc/\"+e.role+\".png\");}\n        public ResourceLocation getAnimationResource(DynastyNpcEntity e){return new ResourceLocation(Dynasty.MODID,\"animations/npc/\"+e.role+\".animation.json\");}\n    }\n    @Mod.EventBusSubscriber(modid=Dynasty.MODID,bus=Mod.EventBusSubscriber.Bus.MOD,value=Dist.CLIENT)\n    public static final class Registration {\n        @SubscribeEvent public static void register(EntityRenderersEvent.RegisterRenderers e){for(var type:NpcContent.NPCS.values())e.registerEntityRenderer(type.get(),Cod3NpcRenderer::new);}\n    }\n}\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/cod3/DynastyNpcEntity.java",
+      "sha256": "dd0fcc59b738fe8070e5f1d2384589f5da8b2f24fd885efa46bcdadb4e013cc9",
+      "lines": [
+        1,
+        140
+      ],
+      "range_sha256": "dd0fcc59b738fe8070e5f1d2384589f5da8b2f24fd885efa46bcdadb4e013cc9",
+      "excerpt": "package com.dynasty.cod3;\n\nimport com.dynasty.Dynasty;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.network.syncher.*;\nimport net.minecraft.world.*;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.*;\nimport net.minecraft.world.entity.ai.goal.*;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraft.world.entity.npc.AbstractVillager;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.*;\nimport net.minecraft.world.item.trading.MerchantOffer;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.phys.Vec3;\nimport net.minecraftforge.registries.ForgeRegistries;\n\n/** Fifteen identities share weather/danger logic, but keep their own anatomy and work gestures. */\npublic final class DynastyNpcEntity extends AbstractVillager implements software.bernie.geckolib.animatable.GeoEntity {\n    public enum State {IDLE,WALK,TURN,TALK,WORK,REACT,RAIN,NIGHT,DANGER,PLAYER_NEAR,PLAYER_HOLDS_SPECIAL}\n    private static final EntityDataAccessor<Integer> STATE=SynchedEntityData.defineId(DynastyNpcEntity.class,EntityDataSerializers.INT);\n    public final String role;\n    private final software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache animationCache=software.bernie.geckolib.util.GeckoLibUtil.createInstanceCache(this);\n    @Override public software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache getAnimatableInstanceCache(){return animationCache;}\n    @Override public void registerControllers(software.bernie.geckolib.core.animation.AnimatableManager.ControllerRegistrar controllers){\n        controllers.add(new software.bernie.geckolib.core.animation.AnimationController<>(this,\"npc\",5,event->{\n            event.getController().setAnimation(software.bernie.geckolib.core.animation.RawAnimation.begin().thenLoop(\"animation.npc.\"+state().name().toLowerCase(java.util.Locale.ROOT)));\n            return software.bernie.geckolib.core.object.PlayState.CONTINUE;\n        }));\n    }\n    @Override public net.minecraft.world.entity.AgeableMob getBreedOffspring(net.minecraft.server.level.ServerLevel level,net.minecraft.world.entity.AgeableMob other){return null;}\n    private BlockPos home;\n    private long talkingUntil;\n    public boolean worldChanged(){\n        if(!(level() instanceof net.minecraft.server.level.ServerLevel server))return false;\n        String flag=switch(role){case \"lao_chen\",\"mo_jizi\"->\"world_02\";case \"han_chong\"->\"world_01\";case \"qingxuanzi\"->\"world_08\";case \"baibao_jin\",\"cao_chengfu\"->\"world_09\";case \"a_ji\"->\"world_04\";case \"hei_po\",\"xiaoyuanzi\"->\"world_03\";case \"chu_nongyu\",\"yan_chifeng\"->\"world_07\";case \"ba_tu\"->\"world_06\";default->\"world_10\";};\n        return Cod3WorldState.get(server).unlocked(flag);\n    }\n    public DynastyNpcEntity(EntityType<? extends DynastyNpcEntity> type,Level level,String role){super(type,level);this.role=role;setPersistenceRequired();}\n    public static AttributeSupplier.Builder attributes(){return createMobAttributes().add(Attributes.MAX_HEALTH,40).add(Attributes.MOVEMENT_SPEED,.24).add(Attributes.FOLLOW_RANGE,24);}\n    @Override protected void defineSynchedData(){super.defineSynchedData();entityData.define(STATE,0);}\n    public State state(){return State.values()[Math.floorMod(entityData.get(STATE),State.values().length)];}\n    public BlockPos home(){return home==null?blockPosition():home;}\n    public void home(BlockPos pos){home=pos.immutable();restrictTo(home,12);}\n    @Override protected void registerGoals(){\n        goalSelector.addGoal(0,new FloatGoal(this));goalSelector.addGoal(1,new AvoidEntityGoal<>(this,Monster.class,10,1,1.25));\n        goalSelector.addGoal(3,new MoveTowardsRestrictionGoal(this,.8));goalSelector.addGoal(6,new RandomStrollGoal(this,.6,120));\n        goalSelector.addGoal(8,new LookAtPlayerGoal(this,Player.class,6));goalSelector.addGoal(9,new RandomLookAroundGoal(this));\n    }\n    @Override public boolean hurt(net.minecraft.world.damagesource.DamageSource source,float amount){\n        if(java.util.Set.of(\"lao_chen\",\"han_chong\",\"qingxuanzi\",\"hei_po\",\"xiaoyuanzi\",\"huang_laohan\").contains(role))return false;\n        boolean hurt=super.hurt(source,amount);if(hurt)getPersistentData().putLong(\"cod3_react_until\",level().getGameTime()+40);return hurt;\n    }\n    @Override public void tick(){\n        super.tick();if(level().isClientSide)return;\n        var customer=getTradingPlayer();\n        if(customer!=null&&(!customer.isAlive()||customer.isSpectator()||customer.level()!=level()||customer.distanceToSqr(this)>36\n                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!(customer instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(sp,this))\n                ||com.dynasty.expansion.SmallInteractions.isPoisonTea(this)&&(!(customer instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.poisonTeaContext(sp,this))))setTradingPlayer(null);\n        if(tickCount%20!=0)return;\n        ensureContentTrades();\n        State next;\n        Player near=level().getNearestPlayer(this,6);\n        if(level().getGameTime()<getPersistentData().getLong(\"cod3_react_until\"))next=State.REACT;\n        else if(level().getGameTime()<talkingUntil||isTrading())next=State.TALK;\n        else if(!level().getEntitiesOfClass(Monster.class,getBoundingBox().inflate(10),Mob::isAlive).isEmpty())next=State.DANGER;\n        else if(level().isRainingAt(blockPosition())){next=State.RAIN;getNavigation().moveTo(home().getX()+.5,home().getY(),home().getZ()+.5,1);}\n        else if(level().isNight()){next=State.NIGHT;if(distanceToSqr(Vec3.atCenterOf(home()))>9)getNavigation().moveTo(home().getX()+.5,home().getY(),home().getZ()+.5,.8);}\n        else if(near!=null){var id=ForgeRegistries.ITEMS.getKey(near.getMainHandItem().getItem());next=id!=null&&id.getNamespace().equals(Dynasty.MODID)&&id.getPath().matches(\".*(token|seal|scale|feather|qinglong_dao|tianzi_sword).*\")?State.PLAYER_HOLDS_SPECIAL:State.PLAYER_NEAR;getLookControl().setLookAt(near,25,25);}\n        else if(state()==State.PLAYER_NEAR||state()==State.PLAYER_HOLDS_SPECIAL){next=State.TURN;getLookControl().setLookAt(home().getX()+.5,home().getY()+1,home().getZ()+.5);}\n        else if(getNavigation().isDone())next=level().getGameTime()%200<140?State.WORK:State.IDLE;\n        else next=State.WALK;\n        entityData.set(STATE,next.ordinal());\n        if(worldChanged()&&!getPersistentData().getBoolean(\"cod3_changed_trade\")){\n            Item reward=item(switch(role){case \"lao_chen\",\"mo_jizi\"->\"blueprint\";case \"han_chong\"->\"refined_steel\";case \"baibao_jin\"->\"silver_ingot\";case \"hei_po\",\"xiaoyuanzi\"->\"healing_salve\";default->\"tea\";});\n            if(reward!=null&&reward!=Items.AIR)getOffers().add(new MerchantOffer(new ItemStack(item(\"copper_coin\"),12),new ItemStack(reward),8,1,.05f));\n            getPersistentData().putBoolean(\"cod3_changed_trade\",true);\n        }\n    }\n    @Override public InteractionResult mobInteract(Player p,InteractionHand hand){\n        if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;\n        if(p instanceof net.minecraft.server.level.ServerPlayer sp){\n            beginConversation(p);\n            if(p.isShiftKeyDown()||!trade(sp))NpcDialogue.open(sp,this);\n        }\n        return InteractionResult.sidedSuccess(level().isClientSide);\n    }\n    public void beginConversation(Player p){talkingUntil=level().getGameTime()+80;getNavigation().stop();getLookControl().setLookAt(p,30,30);}\n    public boolean trade(net.minecraft.server.level.ServerPlayer p){\n        if(!canTrade(p))return false;\n        if(role.equals(\"huang_laohan\")&&level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))com.dynasty.DynastyAdvancements.award(p,\"entered_dragon_palace\");\n        return NpcTrading.open(p,this,0);\n    }\n    public boolean canTrade(Player p){\n        if(p.level()!=level()||!p.isAlive()||p.isSpectator()||!isAlive()||p.distanceToSqr(this)>36\n                ||getTradingPlayer()!=null&&getTradingPlayer()!=p\n                ||com.dynasty.expansion.SmallInteractions.isGhostBoat(this)&&(!(p instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.ghostBoatContext(sp,this)\n                ||!com.dynasty.expansion.EquipmentBehaviors.saved(sp).getBoolean(\"site_ghost_market_boat_talked\"))\n                ||com.dynasty.expansion.SmallInteractions.isPoisonTea(this)&&(!(p instanceof net.minecraft.server.level.ServerPlayer sp)||!com.dynasty.expansion.SmallInteractions.poisonTeaContext(sp,this)))return false;\n        return true;\n    }\n    /** Upgrade native merchant offers in place, retaining their stock and NBT on old saves. */\n    public void ensureContentTrades(){\n        if(level().isClientSide)return;\n        switch(role){\n            case \"baibao_jin\"->buy(\"fox_pelt\",2,6);\n            case \"ba_tu\"->buy(\"wolf_fang\",2,5);\n            case \"hei_po\"->{\n                exchange(\"python_gall\",1,\"healing_salve\",2,8);\n                exchange(\"locust_dust\",2,\"healing_salve\",1,8);\n                var gu=com.dynasty.expansion.MaterialBrews.gu();\n                var gall=new ItemStack(item(\"python_gall\"));var dust=new ItemStack(item(\"locust_dust\"),2);\n                if(getOffers().stream().noneMatch(o->ItemStack.isSameItemSameTags(o.getBaseCostA(),gall)&&o.getBaseCostA().getCount()==1\n                    &&ItemStack.isSameItemSameTags(o.getCostB(),dust)&&o.getCostB().getCount()==2&&ItemStack.isSameItemSameTags(o.getResult(),gu)))\n                    getOffers().add(new MerchantOffer(gall,dust,gu,8,0,0));\n            }\n            case \"huang_laohan\"->{\n                buy(\"crab_shell\",2,6);buy(\"kappa_scale\",2,8);\n                if(level().dimension().equals(com.dynasty.block.DynastyPortalBlock.DRAGON_PALACE))exchange(\"copper_coin\",48,\"sea_pearl\",1,8);\n            }\n        }\n    }\n    private void buy(String material,int count,int coins){exchange(material,count,\"copper_coin\",coins,16);}\n    private void exchange(String from,int amount,String to,int result,int stock){\n        Item input=item(from),output=item(to);if(input==null||output==null||input==Items.AIR||output==Items.AIR)return;\n        if(getOffers().stream().anyMatch(o->o.getBaseCostA().is(input)&&o.getBaseCostA().getCount()==amount&&o.getResult().is(output)))return;\n        getOffers().add(new MerchantOffer(new ItemStack(input,amount),new ItemStack(output,result),stock,0,0));\n    }\n    private Item item(String name){return ForgeRegistries.ITEMS.getValue(new net.minecraft.resources.ResourceLocation(\"dynasty\",name));}\n    @Override protected void updateTrades(){\n        String[] goods=switch(role){case \"lao_chen\"->new String[]{\"blueprint\",\"refined_steel\"};case \"han_chong\"->new String[]{\"mu_mao\",\"bamboo_slip\"};case \"baibao_jin\"->new String[]{\"tea\",\"silk\",\"jade\"};case \"hei_po\",\"xiaoyuanzi\"->new String[]{\"healing_salve\",\"tea\"};default->new String[]{\"tea\"};};\n        for(int i=0;i<goods.length;i++){Item reward=item(goods[i]);if(reward!=null&&reward!=Items.AIR)getOffers().add(new MerchantOffer(new ItemStack(item(\"copper_coin\"),8+i*4),new ItemStack(reward),8,1,.05f));}\n    }\n    @Override protected void rewardTradeXp(MerchantOffer offer){if(level() instanceof net.minecraft.server.level.ServerLevel l)ExperienceOrb.award(l,position(),1);}\n    @Override public void addAdditionalSaveData(CompoundTag n){super.addAdditionalSaveData(n);n.putLong(\"Home\",home().asLong());n.putString(\"Faction\",role);}\n    @Override public void readAdditionalSaveData(CompoundTag n){super.readAdditionalSaveData(n);if(n.contains(\"Home\"))home(BlockPos.of(n.getLong(\"Home\")));}\n}\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionClient.java",
+      "sha256": "379c3355d2d52a815c7da6bf195f7163f52993f0291d03bc77eba39bb5f8f9f9",
+      "lines": [
+        1,
+        58
+      ],
+      "range_sha256": "0d8a38948d1eecc6d627baa2122350f18a81fe937026560a9f65e1f67d3d2caf",
+      "excerpt": "package com.dynasty.expansion;\n\nimport net.minecraft.client.Minecraft;\nimport net.minecraft.client.renderer.entity.EntityRendererProvider;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.client.event.EntityRenderersEvent;\nimport net.minecraftforge.eventbus.api.SubscribeEvent;\nimport net.minecraftforge.fml.common.Mod;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.renderer.GeoEntityRenderer;\n\n@Mod.EventBusSubscriber(modid=\"dynasty\",bus=Mod.EventBusSubscriber.Bus.MOD,value=Dist.CLIENT)\npublic final class ExpansionClient {\n    @SubscribeEvent public static void renderers(EntityRenderersEvent.RegisterRenderers event) {\n        SecondaryMobs.TYPES.values().forEach(t->event.registerEntityRenderer(t.get(),Renderer::new));\n        event.registerEntityRenderer(SecondaryMobs.PROJECTILE.get(),SecondaryProjectileRenderer::new);\n        event.registerEntityRenderer(SecondaryMobs.SHRIMP.get(),Renderer::new);\n    }\n    @SubscribeEvent public static void setup(net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent event) {\n        event.enqueueWork(()-> {\n            for(var item:java.util.List.of(ExpansionContent.REPEATING,ExpansionContent.SIEGE)) {\n                net.minecraft.client.renderer.item.ItemProperties.register(item.get(),new ResourceLocation(\"pull\"),(s,l,e,seed)->e!=null && e.getUseItem()==s && !net.minecraft.world.item.CrossbowItem.isCharged(s)?Math.min(1F,(s.getUseDuration()-e.getUseItemRemainingTicks())/(float)net.minecraft.world.item.CrossbowItem.getChargeDuration(s)):0F);\n                net.minecraft.client.renderer.item.ItemProperties.register(item.get(),new ResourceLocation(\"pulling\"),(s,l,e,seed)->e!=null && e.getUseItem()==s && e.isUsingItem() && !net.minecraft.world.item.CrossbowItem.isCharged(s)?1F:0F);\n                net.minecraft.client.renderer.item.ItemProperties.register(item.get(),new ResourceLocation(\"charged\"),(s,l,e,seed)->net.minecraft.world.item.CrossbowItem.isCharged(s)?1:0);\n            }\n        });\n    }\n    private static final class Model extends GeoModel<SecondaryMob> {\n        private static final java.util.Set<String> DEDICATED_ATLASES=java.util.Set.of(\n                \"river_imp\",\"tree_spirit\",\"shrimp_soldier\",\"carp_spirit\",\"snail_maiden\",\"lantern_ghost\",\"stone_sprite\",\n                \"crab_soldier\",\"corpse_beetle\",\"venom_scorpion\",\"clockwork_rat\",\"gray_wolf\",\"wild_boar\",\"golden_leopard\",\"red_fox\",\n                \"gray_falcon\",\"jingwei_bird\",\"wooden_magpie\",\"bat_demon\",\"giant_python\",\"stone_worm\",\"locust_swarm\",\n                \"drowning_ghost\",\"paper_money_ghost\",\"wandering_spirit\",\"bandit_thug\",\"night_watchman\",\"herb_picker\",\n                \"famished_refugee\",\"swindler\",\"paper_cut_child\");\n        @Override public ResourceLocation getModelResource(SecondaryMob m) {return new ResourceLocation(\"dynasty\",\"geo/secondary/\"+m.spec.id()+\".geo.json\");}\n        @Override public ResourceLocation getAnimationResource(SecondaryMob m) {return new ResourceLocation(\"dynasty\",\"animations/secondary/\"+m.spec.id()+\".animation.json\");}\n        @Override public ResourceLocation getTextureResource(SecondaryMob m) {\n            if(DEDICATED_ATLASES.contains(m.spec.id()))\n                return new ResourceLocation(\"dynasty\",\"textures/entity/secondary/\"+m.spec.id()+\".png\");\n            String atlas=switch(m.spec.family()) {case \"human\"->m.spec.id().equals(\"bandit_thug\")?\"assassin\":\"minister\";case \"water\"->\"merfolk\";case \"fly\"->m.spec.id().equals(\"wooden_magpie\")?\"terracotta_warrior\":\"phoenix\";case \"ghost\"->\"soul_soldier\";default->m.spec.id().equals(\"red_fox\")?\"nine_tailed_fox\":\"nian_beast\";};\n            return new ResourceLocation(\"dynasty\",\"textures/entity/\"+atlas+\".png\");\n        }\n    }\n    private static final class Renderer extends GeoEntityRenderer<SecondaryMob> {\n        Renderer(EntityRendererProvider.Context ctx) {super(ctx,new Model());shadowRadius=.45F;}\n        @Override public net.minecraft.client.renderer.RenderType getRenderType(SecondaryMob mob,ResourceLocation texture,net.minecraft.client.renderer.MultiBufferSource buffers,float partial){\n            return mob.spec.family().equals(\"ghost\")?net.minecraft.client.renderer.RenderType.entityTranslucent(texture):super.getRenderType(mob,texture,buffers,partial);\n        }\n        @Override public software.bernie.geckolib.core.object.Color getRenderColor(SecondaryMob mob,float partial,int light){\n            return mob.spec.id().equals(\"wandering_spirit\")?software.bernie.geckolib.core.object.Color.ofRGBA(190,217,230,155):super.getRenderColor(mob,partial,light);\n        }\n    }\n    private static long budgetTick=-1;private static int emitted;\n    public static void feedback(CombatFeedback p) {\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMobs.java",
+      "sha256": "04d7e3c61a4a386adfc34cd221c8a4a29cd4689d5b4ab9fd0f0ee14671bbd385",
+      "lines": [
+        1,
+        70
+      ],
+      "range_sha256": "04d7e3c61a4a386adfc34cd221c8a4a29cd4689d5b4ab9fd0f0ee14671bbd385",
+      "excerpt": "package com.dynasty.expansion;\n\nimport com.dynasty.Dynasty;\nimport net.minecraft.world.entity.*;\nimport net.minecraft.world.entity.ai.attributes.Attributes;\nimport net.minecraft.world.entity.monster.Monster;\nimport net.minecraftforge.registries.*;\nimport net.minecraftforge.common.ForgeSpawnEggItem;\nimport net.minecraft.world.item.Item;\nimport net.minecraftforge.event.entity.EntityAttributeCreationEvent;\nimport net.minecraftforge.eventbus.api.IEventBus;\nimport java.util.*;\n\npublic final class SecondaryMobs {\n    public record Spec(String id,String family,double health,double damage,double speed,double armor,float width,float height,boolean neutral,boolean flying,boolean aquatic) { }\n    public static final List<Spec> SPECS=List.of(\n        new Spec(\"famished_refugee\",\"human\",40.0,60.0,0.22,0.0,0.6F,1.8F,true,false,false),\n        new Spec(\"bandit_thug\",\"human\",80.0,200.0,0.28,6.0,0.6F,1.8F,false,false,false),\n        new Spec(\"night_watchman\",\"human\",90.0,160.0,0.25,8.0,0.6F,1.8F,true,false,false),\n        new Spec(\"swindler\",\"human\",50.0,80.0,0.24,0.0,0.6F,1.8F,true,false,false),\n        new Spec(\"herb_picker\",\"human\",60.0,70.0,0.24,0.0,0.6F,1.8F,true,false,false),\n        new Spec(\"red_fox\",\"beast\",70.0,150.0,0.34,4.0,0.9F,0.85F,false,false,false),\n        new Spec(\"gray_wolf\",\"beast\",90.0,180.0,0.32,6.0,0.9F,0.85F,false,false,false),\n        new Spec(\"wild_boar\",\"beast\",120.0,220.0,0.3,8.0,0.9F,0.85F,false,false,false),\n        new Spec(\"giant_python\",\"beast\",140.0,240.0,0.26,10.0,1.4F,0.55F,false,false,false),\n        new Spec(\"golden_leopard\",\"beast\",110.0,260.0,0.4,6.0,0.9F,0.85F,false,false,false),\n        new Spec(\"tree_spirit\",\"beast\",160.0,260.0,0.22,14.0,1.2F,2.2F,false,false,false),\n        new Spec(\"stone_sprite\",\"beast\",180.0,240.0,0.2,18.0,0.9F,0.85F,false,false,false),\n        new Spec(\"lantern_ghost\",\"ghost\",80.0,180.0,0.28,2.0,0.65F,1.5F,false,true,false),\n        new Spec(\"paper_cut_child\",\"human\",60.0,120.0,0.3,0.0,0.6F,1.8F,false,false,false),\n        new Spec(\"river_imp\",\"water\",90.0,180.0,0.26,6.0,0.8F,1.1F,false,false,true),\n        new Spec(\"drowning_ghost\",\"water\",100.0,200.0,0.24,4.0,0.8F,1.1F,false,false,true),\n        new Spec(\"carp_spirit\",\"water\",80.0,160.0,0.28,4.0,0.8F,1.1F,false,false,true),\n        new Spec(\"snail_maiden\",\"water\",70.0,70.0,0.2,6.0,0.8F,1.1F,true,false,true),\n        new Spec(\"crab_soldier\",\"water\",130.0,220.0,0.24,16.0,0.8F,1.1F,false,false,true),\n        new Spec(\"bat_demon\",\"fly\",70.0,160.0,0.34,2.0,0.7F,0.6F,false,true,false),\n        new Spec(\"jingwei_bird\",\"fly\",40.0,60.0,0.36,0.0,0.7F,0.6F,true,true,false),\n        new Spec(\"gray_falcon\",\"fly\",60.0,140.0,0.42,2.0,0.7F,0.6F,false,true,false),\n        new Spec(\"locust_swarm\",\"fly\",50.0,80.0,0.3,0.0,1.3F,1.1F,false,true,false),\n        new Spec(\"corpse_beetle\",\"bug\",60.0,140.0,0.26,8.0,0.9F,0.5F,false,false,false),\n        new Spec(\"venom_scorpion\",\"bug\",110.0,200.0,0.26,10.0,0.9F,0.5F,false,false,false),\n        new Spec(\"stone_worm\",\"bug\",160.0,240.0,0.2,14.0,1.4F,0.55F,false,false,false),\n        new Spec(\"paper_money_ghost\",\"ghost\",60.0,120.0,0.26,0.0,0.65F,1.5F,false,true,false),\n        new Spec(\"wandering_spirit\",\"ghost\",70.0,140.0,0.24,0.0,0.65F,1.5F,false,true,false),\n        new Spec(\"wooden_magpie\",\"fly\",80.0,150.0,0.32,8.0,0.7F,0.6F,false,true,false),\n        new Spec(\"clockwork_rat\",\"beast\",60.0,100.0,0.34,6.0,0.6F,0.45F,false,false,false));\n    public static final DeferredRegister<EntityType<?>> ENTITIES=DeferredRegister.create(ForgeRegistries.ENTITY_TYPES,Dynasty.MODID);\n    public static final RegistryObject<EntityType<SecondaryProjectile>> PROJECTILE=ENTITIES.register(\"secondary_skill_projectile\",()->\n        EntityType.Builder.<SecondaryProjectile>of(SecondaryProjectile::new,MobCategory.MISC).sized(.3F,.3F).clientTrackingRange(6).updateInterval(1).build(\"secondary_skill_projectile\"));\n    private static final Spec SHRIMP_SPEC=new Spec(\"shrimp_soldier\",\"water\",120,180,.26,12,.65F,1.25F,false,false,true);\n    public static final RegistryObject<EntityType<SecondaryMob>> SHRIMP=ENTITIES.register(\"shrimp_soldier\",()->\n        EntityType.Builder.<SecondaryMob>of((type,level)->new SecondaryMob.Hostile(type,level,SHRIMP_SPEC),MobCategory.MISC)\n            .sized(SHRIMP_SPEC.width(),SHRIMP_SPEC.height()).clientTrackingRange(8).updateInterval(3).build(\"shrimp_soldier\"));\n    public static final Map<String,RegistryObject<EntityType<SecondaryMob>>> TYPES=new LinkedHashMap<>();\n    static {\n        for(var spec:SPECS) {\n            var type=ENTITIES.register(spec.id(),()->EntityType.Builder.<SecondaryMob>of((t,l)->spec.neutral()?new SecondaryMob(t,l,spec):new SecondaryMob.Hostile(t,l,spec),spec.neutral()?MobCategory.CREATURE:MobCategory.MONSTER).sized(spec.width(),spec.height()).clientTrackingRange(8).updateInterval(3).build(spec.id()));\n            TYPES.put(spec.id(),type);\n            int[] palette=com.dynasty.item.DynastyEggPalette.colors(spec.id());\n            ExpansionContent.ITEMS.register(spec.id()+\"_spawn_egg\",()->new ForgeSpawnEggItem(type,palette[0],palette[1],new Item.Properties()));\n        }\n    }\n    public static void bootstrap(IEventBus bus) {\n        ENTITIES.register(bus);\n        bus.addListener((EntityAttributeCreationEvent e)->SPECS.forEach(s->e.put(TYPES.get(s.id()).get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,s.health()).add(Attributes.ATTACK_DAMAGE,s.damage()).add(Attributes.MOVEMENT_SPEED,s.speed()).add(Attributes.ARMOR,s.armor()).add(Attributes.FOLLOW_RANGE,16).add(Attributes.FLYING_SPEED,s.speed()).add(Attributes.KNOCKBACK_RESISTANCE,s.id().equals(\"paper_cut_child\")?1:0).build())));\n        bus.addListener((EntityAttributeCreationEvent e)->e.put(SHRIMP.get(),Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH,SHRIMP_SPEC.health())\n            .add(Attributes.ATTACK_DAMAGE,SHRIMP_SPEC.damage()).add(Attributes.MOVEMENT_SPEED,SHRIMP_SPEC.speed()).add(Attributes.ARMOR,SHRIMP_SPEC.armor()).add(Attributes.FOLLOW_RANGE,16).build()));\n    }\n    private SecondaryMobs() { }\n}\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMob.java",
+      "sha256": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "lines": [
+        25,
+        74
+      ],
+      "range_sha256": "fe3507166ac4dbf3e0bade18d36759962cee6f1423d4af0adc49d401ffd12f55",
+      "excerpt": "/** One small goal set per mob. No boss bar, global manager, or per-insect entities. */\npublic class SecondaryMob extends PathfinderMob implements GeoEntity {\n    public static final class Hostile extends SecondaryMob implements Enemy {\n        public Hostile(EntityType<? extends SecondaryMob> type,Level level,SecondaryMobs.Spec spec){super(type,level,spec);}\n    }\n    private static final EntityDataAccessor<Integer> STATE=SynchedEntityData.defineId(SecondaryMob.class,EntityDataSerializers.INT);\n    public final SecondaryMobs.Spec spec;\n    private final AnimatableInstanceCache cache=GeckoLibUtil.createInstanceCache(this);\n    final SecondaryCombatActions combatActions=new SecondaryCombatActions(this);\n    private static final java.util.List<String> SKILL_ANIMATIONS=java.util.List.of(\"pounce\",\"coil\",\"stalk\",\"dive\",\"circle\",\"burrow\",\"eruption\",\"pinch\",\"sting\",\"possession\",\"return_water\",\"side_charge\");\n    private int specialCooldown, fleeTicks, shellTicks, animationTicks;\n    private int deceptionStage, hardenTicks, rollingTicks;\n    private int waterDragTicks;\n    private long waterDragReady;\n    private int projectileWindup;\n    private java.util.UUID pendingProjectile;\n    private java.util.UUID draggedTarget;\n    private net.minecraft.core.BlockPos waterAnchor,cropFleeOrigin;\n    public static final int CROP_FLEE_TICKS=120;\n    public boolean cropPest(){return java.util.Set.of(\"locust_swarm\",\"corpse_beetle\",\"venom_scorpion\").contains(spec.id());}\n    public boolean repelFromCrop(net.minecraft.core.BlockPos origin){\n        if(level().isClientSide||!isAlive()||isNoAi()||!cropPest()||getPersistentData().hasUUID(\"cod4Summoner\")||cropFleeOrigin!=null&&fleeTicks>0\n            ||distanceToSqr(Vec3.atCenterOf(origin))>64)return false;\n        cropFleeOrigin=origin.immutable();fleeTicks=CROP_FLEE_TICKS;setTarget(null);combatActions.reset();getNavigation().stop();animate(3,CROP_FLEE_TICKS);return true;\n    }\n    private java.util.UUID customer;\n    private static final java.util.UUID HARDENING=java.util.UUID.nameUUIDFromBytes(\"dynasty:stone_sprite_hardening\".getBytes(java.nio.charset.StandardCharsets.UTF_8));\n    private boolean friendly;\n    private ItemStack stolen=ItemStack.EMPTY;\n    public SecondaryMob(EntityType<? extends SecondaryMob> type,Level level,SecondaryMobs.Spec spec) {\n        super(type,level);this.spec=spec;\n        if(spec.flying()) { moveControl=new FlyingMoveControl(this,20,true);navigation=new FlyingPathNavigation(this,level);setNoGravity(true); }\n        if(spec.aquatic()) { moveControl=new SmoothSwimmingMoveControl(this,85,10,.1F,.5F,false);navigation=new WaterBoundPathNavigation(this,level); }\n        goalSelector.addGoal(0,new FloatGoal(this));\n        goalSelector.addGoal(1,new Goal(){\n            {setFlags(java.util.EnumSet.of(Flag.MOVE,Flag.LOOK));}\n            @Override public boolean canUse(){return rollingTicks>0;}\n            @Override public void tick(){getNavigation().stop();}\n        });\n        goalSelector.addGoal(1,new Goal() {\n            { setFlags(java.util.EnumSet.of(Flag.MOVE,Flag.LOOK)); }\n            private int nextMove;\n            @Override public boolean canUse() { return fleeTicks>0; }\n            @Override public void start(){nextMove=0;}\n            @Override public void tick() {\n                if(cropFleeOrigin!=null){\n                    if(tickCount<nextMove)return;nextMove=tickCount+10;\n                    Vec3 away=position().subtract(Vec3.atCenterOf(cropFleeOrigin)).multiply(1,0,1).normalize();\n                    if(away.lengthSqr()<.01)away=new Vec3(1,0,0);\n                    getNavigation().moveTo(getX()+away.x*8,getY(),getZ()+away.z*8,1.4);return;\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMob.java",
+      "sha256": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "lines": [
+        107,
+        113
+      ],
+      "range_sha256": "664f601c3643f8bcd0749ceda2dc282f61b067d7606c1dc240f12338c109767a",
+      "excerpt": "        xpReward=spec.neutral()?0:2;\n    }\n    @Override protected void registerGoals() { /* spec is assigned after the vanilla constructor */ }\n    @Override protected void defineSynchedData() { super.defineSynchedData();entityData.define(STATE,0); }\n    public String animation() { int state=entityData.get(STATE);if(state>=7&&state<7+SKILL_ANIMATIONS.size())return SKILL_ANIMATIONS.get(state-7);return switch(state) { case 1->\"wander\";case 2->\"hunt\";case 3->\"flee\";case 4->\"attack\";case 5->\"special\";case 6->\"evade\";default->\"idle\"; }; }\n    void skillAnimation(String name){int index=SKILL_ANIMATIONS.indexOf(name);animate(index<0?name.equals(\"evade\")?6:5:index+7,12);}\n    private void animate(int state,int ticks) { entityData.set(STATE,state);animationTicks=ticks; }\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMob.java",
+      "sha256": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "lines": [
+        136,
+        152
+      ],
+      "range_sha256": "5282f3d0aa04bc25a45a08e84910df0933774a9480bb58cb5d402040dc8bc1a8",
+      "excerpt": "    @Override public void aiStep() {\n        // Revoke stale lease targets before native goals can navigate or swing.\n        if(!level().isClientSide && isAlive() && getPersistentData().hasUUID(\"cod4Summoner\")){\n            SummonedGuard.tick(this);\n            if(!isAlive())return;\n        }\n        super.aiStep();\n        if(level().isClientSide || !isAlive()) return;\n        if(specialCooldown>0)specialCooldown--;\n        if(fleeTicks>0)fleeTicks--;if(fleeTicks==0)cropFleeOrigin=null;\n        if(shellTicks>0)shellTicks--;\n        if(hardenTicks>0 && --hardenTicks==0)getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ARMOR).removeModifier(HARDENING);\n        if(animationTicks>0)animationTicks--;else entityData.set(STATE,fleeTicks>0?3:getTarget()!=null?2:getDeltaMovement().horizontalDistanceSqr()>.001?1:0);\n        if(spec.id().equals(\"swindler\") && deceptionStage<3){setTarget(null);getNavigation().stop();animate(5,2);}\n        if(friendly || spec.id().equals(\"famished_refugee\") || spec.id().equals(\"herb_picker\") || spec.id().equals(\"snail_maiden\"))setTarget(null);\n        tickWaterDrag();\n        tickRangedSkill();\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMob.java",
+      "sha256": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "lines": [
+        298,
+        350
+      ],
+      "range_sha256": "d3d9e89a842985b96a12a662aa6c85a42a54883aab32ca6856cdee7ca654d380",
+      "excerpt": "    @Override public boolean hurt(DamageSource source,float amount) {\n        if(shellTicks>0 && !source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY))return false;\n        if(spec!=null && spec.id().equals(\"snail_maiden\")) {shellTicks=40;animate(5,40);}\n        boolean result=super.hurt(source,amount);\n        if(result&&source.getEntity() instanceof LivingEntity attacker)combatActions.evade(attacker);\n        if(result && spec!=null && (spec.neutral() || getHealth()<getMaxHealth()*.25F)) {fleeTicks=80;animate(3,30);}\n        if(result && spec!=null && spec.id().equals(\"swindler\")){deceptionStage=3;fleeTicks=200;animate(3,200);if(source.getEntity() instanceof Player p)customer=p.getUUID();}\n        return result;\n    }\n    @Override protected InteractionResult mobInteract(Player p,InteractionHand hand) {\n        ItemStack stack=p.getItemInHand(hand);\n        if(spec.id().equals(\"wooden_magpie\")&&stack.is(ExpansionContent.item(\"qimen_cable\"))){\n            if(hand!=InteractionHand.MAIN_HAND||!isAlive()||!p.isAlive()||p.isSpectator()||p.level()!=level()||distanceToSqr(p)>16)return InteractionResult.PASS;\n            if(getHealth()>=getMaxHealth())return InteractionResult.PASS;\n            if(!level().isClientSide){heal(20);if(!p.getAbilities().instabuild)stack.shrink(1);animate(5,12);tell(p,\"magpie_repaired\");}\n            return InteractionResult.sidedSuccess(level().isClientSide);\n        }\n        if(spec.id().equals(\"swindler\"))return swindle(p,hand);\n        if(spec.id().equals(\"famished_refugee\") && stack.isEdible() && !friendly) {\n            if(!level().isClientSide){friendly=true;fleeTicks=0;setTarget(null);heal(10);if(!p.getAbilities().instabuild)stack.shrink(1);}\n            return InteractionResult.sidedSuccess(level().isClientSide);\n        }\n        if(spec.id().equals(\"herb_picker\") && stack.is(ExpansionContent.item(\"copper_coin\")) && specialCooldown==0) {\n            if(!level().isClientSide){if(!p.getAbilities().instabuild)stack.shrink(1);\n                    ItemStack herbs=new ItemStack(com.dynasty.DynastyItems.TEA.get(),2);\n                    if(!p.getInventory().add(herbs))p.drop(herbs,false);\n                    p.displayClientMessage(net.minecraft.network.chat.Component.translatable(\"message.dynasty.cod4.herbs\"),true);\n                specialCooldown=200;}\n            return InteractionResult.sidedSuccess(level().isClientSide);\n        }\n        return super.mobInteract(p,hand);\n    }\n    private InteractionResult swindle(Player p,InteractionHand hand){\n        if(hand!=InteractionHand.MAIN_HAND)return InteractionResult.PASS;\n        if(level().isClientSide)return InteractionResult.SUCCESS;\n        ItemStack held=p.getItemInHand(hand);\n        if(deceptionStage==0){deceptionStage=1;animate(5,2);tell(p,\"swindler_injured\");return InteractionResult.CONSUME;}\n        if(deceptionStage==1 && held.is(ExpansionContent.item(\"copper_coin\"))){\n            customer=p.getUUID();deceptionStage=2;\n            if(!p.getAbilities().instabuild)stolen=held.split(1);\n            var fake=new ItemStack(Items.DEAD_BUSH);fake.getOrCreateTag().putUUID(\"cod4Swindler\",getUUID());\n            fake.setHoverName(net.minecraft.network.chat.Component.translatable(\"item.dynasty.cod4.false_medicine\"));\n            if(!p.getInventory().add(fake))p.drop(fake,false);\n            tell(p,\"swindler_suspect\");return InteractionResult.CONSUME;\n        }\n        if(deceptionStage==2 && p.isShiftKeyDown() && p.getUUID().equals(customer) && held.is(Items.DEAD_BUSH)\n                && held.hasTag() && held.getTag().hasUUID(\"cod4Swindler\") && held.getTag().getUUID(\"cod4Swindler\").equals(getUUID())){\n            deceptionStage=3;fleeTicks=200;setTarget(null);getNavigation().stop();animate(3,200);\n            tell(p,\"swindler_exposed\");return InteractionResult.CONSUME;\n        }\n        tell(p,deceptionStage==1?\"swindler_injured\":deceptionStage==2?\"swindler_suspect\":\"swindler_exposed\");\n        return InteractionResult.CONSUME;\n    }\n"
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/SecondaryMob.java",
+      "sha256": "53c7c824aa539c8e8af52c941d292ff1fd146d76b948cb854a2aec73d82d7cb1",
+      "lines": [
+        358,
+        358
+      ],
+      "range_sha256": "698e63cfe1b2cacfa401d8f9f4a4559f29b92c3fbe1bbb9c5a3f4835360fb01e",
+      "excerpt": "    @Override public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {controllers.add(new AnimationController<>(this,\"body\",4,state->state.setAndContinue(RawAnimation.begin().thenLoop(animation()))));}\n"
+    }
+  ],
+  "prior_body_diagnostic_reused": {
+    "path": "docs/art/bestiary-v43/body-joints-20261102/receipt.json",
+    "sha256": "9613b8f3ead5802fcef74e54da1b58b27f081ef48be4fb0fb171c842458c11d2"
+  },
+  "prior_body_findings_read_this_turn": [
+    "192/180 remain the authored full embedded model totals. Accounting subtraction is not a runtime optimisation.",
+    "Swindler anatomy114 + garments30 + headwear12 + held36 =192; body with worn garments/headwear156.",
+    "Herb picker anatomy114 + straps12 + hat12 + basket24 + sickle18 =180; body with straps/hat138.",
+    "Zuwu156 includes60 authored weapon quads; equivalent body+worn comparison is96, not156. No unique neutral profession baseline is declared.",
+    "Both current bodies have19 anatomical cubes and segmented elbows/knees, not the accepted standard six-cube Steve construction. Preserve current approved art; any redesign remains gated.",
+    "No wrist/hand direct animation channels. Shoulder rotation carries the hand; right elbow animates attack/special. This is not evidence of an immobile hand.",
+    "Swindler special is the same arm/chest gesture as the generic special template while source selects special before exposure. Identity/gesture match needs visual and runtime acceptance, not a new damage change.",
+    "All19 clips are declared loop=true. Derived attack aliases are not19 independent reviewed actions. Non-combatant reachability must not be inferred from file presence."
+  ],
+  "prior_body_baselines_read_this_turn": [
+    {
+      "id": "zuwu_daoshou",
+      "role": "soldier",
+      "scale": 0.98,
+      "all_embedded_quads": 156,
+      "anatomical_quads": 36,
+      "held_embedded_quads": 60,
+      "carried_embedded_quads": 0,
+      "body_and_worn_quads": 96,
+      "held_parts": [
+        "blade",
+        "blade_collar",
+        "blade_point",
+        "blade_ridge",
+        "blade_tip",
+        "ring_bottom",
+        "ring_left",
+        "ring_right",
+        "sword_guard",
+        "weapon_shaft"
+      ],
+      "carried_parts": [],
+      "limits": "Candidate only, not unique accepted profession baseline; external ItemStack/layer quads excluded."
+    },
+    {
+      "id": "juma_changqiangbing",
+      "role": "spear",
+      "scale": 1,
+      "all_embedded_quads": 150,
+      "anatomical_quads": 36,
+      "held_embedded_quads": 12,
+      "carried_embedded_quads": 0,
+      "body_and_worn_quads": 138,
+      "held_parts": [
+        "spear_tip",
+        "weapon_shaft"
+      ],
+      "carried_parts": [],
+      "limits": "Candidate only, not unique accepted profession baseline; external ItemStack/layer quads excluded."
+    },
+    {
+      "id": "liannu_zhenzu",
+      "role": "crossbow",
+      "scale": 0.96,
+      "all_embedded_quads": 114,
+      "anatomical_quads": 36,
+      "held_embedded_quads": 0,
+      "carried_embedded_quads": 24,
+      "body_and_worn_quads": 90,
+      "held_parts": [],
+      "carried_parts": [
+        "arrow_0",
+        "arrow_1",
+        "arrow_2",
+        "quiver"
+      ],
+      "limits": "Candidate only, not unique accepted profession baseline; external ItemStack/layer quads excluded."
+    },
+    {
+      "id": "fufa_jijiu",
+      "role": "priest",
+      "scale": 1.02,
+      "all_embedded_quads": 108,
+      "anatomical_quads": 36,
+      "held_embedded_quads": 6,
+      "carried_embedded_quads": 6,
+      "body_and_worn_quads": 96,
+      "held_parts": [
+        "held_talisman"
+      ],
+      "carried_parts": [
+        "talisman_bundle"
+      ],
+      "limits": "Candidate only, not unique accepted profession baseline; external ItemStack/layer quads excluded."
+    },
+    {
+      "id": "tiesuo_chihou",
+      "role": "scout",
+      "scale": 0.96,
+      "all_embedded_quads": 144,
+      "anatomical_quads": 36,
+      "held_embedded_quads": 54,
+      "carried_embedded_quads": 12,
+      "body_and_worn_quads": 78,
+      "held_parts": [
+        "blade",
+        "blade_collar",
+        "blade_point",
+        "blade_ridge",
+        "blade_tip",
+        "hook_shoulder",
+        "pommel",
+        "sword_guard",
+        "weapon_shaft"
+      ],
+      "carried_parts": [
+        "chain_coil",
+        "small_pouch"
+      ],
+      "limits": "Candidate only, not unique accepted profession baseline; external ItemStack/layer quads excluded."
+    },
+    {
+      "id": "kuijun_sishi",
+      "role": "powder",
+      "scale": 0.96,
+      "all_embedded_quads": 126,
+      "anatomical_quads": 36,
+      "held_embedded_quads": 48,
+      "carried_embedded_quads": 6,
+      "body_and_worn_quads": 72,
+      "held_parts": [
+        "blade",
+        "blade_collar",
+        "blade_point",
+        "blade_ridge",
+        "blade_tip",
+        "pommel",
+        "sword_guard",
+        "weapon_shaft"
+      ],
+      "carried_parts": [
+        "powder_pack"
+      ],
+      "limits": "Candidate only, not unique accepted profession baseline; external ItemStack/layer quads excluded."
+    }
+  ],
+  "findings": [
+    "COD3 role NPC renderer/controller paths and SecondaryMob swindler/herb_picker paths are separate: do not transfer animation.npc enum states or body/prop counts between them.",
+    "Secondary dedicated resources use spec.id under geo/secondary,animations/secondary,textures/entity/secondary. The declared local Renderer has no own held-item layer; inherited GeckoLib behavior was not traced.",
+    "Secondary body controller uses animation() with idle/wander/hunt/flee/attack/special/evade or indexed skill names; server animationTicks and swindler deception state affect reachability. Clip presence is not proof every NPC reaches a combat clip.",
+    "Herb-picker existing copper-coin interaction consumes one unless creative, attempts two actual TEA in inventory or player drop, then cooldown200. Sickle/basket mesh names establish no new registered item or acquisition node.",
+    "Swindler existing fake medicine is DEAD_BUSH tagged cod4Swindler actor UUID; paid customer, deception stage and later held actor tag participate in exposure. Preserve actor/customer linkage and original IDs; animation/renamed item alone is not a new payment or acquisition receipt."
+  ],
+  "specialty_boundary": "Body/bones/animation/mount interfaces remain model owner; held/accessory object artwork/UV remain texture owner; Main program support and eventual quest acceptance only.",
+  "limits": [
+    "Python serial matrix/linear-track diagnostic only: no GeckoLib controller blending, easing, look override, game tick interpolation or renderer root pose reconstructed.",
+    "Shared-point agreement does not prove all-surface contact, absence of intersections, foot placement or support; foot motion needs actual client inspection.",
+    "Wireframe diagnostic omits garments/props only in evidence rendering. No production geometry, atlas, UV, animation or accessory changed.",
+    "Declared quads are not visible GPU triangles or measured frame time; external equipped ItemStacks/render layers excluded from both columns.",
+    "1000 applicable different semantic references not established by this local QA; zero research credit. No fixes generated.",
+    "No current native bake, game,20-mob performance, acquisition/quest acceptance, checklist deletion, shared JAR install or push.",
+    "No new PNG, geometry, UV, animation authoring or rendering. Prior diagnostic reused, not rerun. Local source study adds0 external semantic reference and0 native or task acceptance.",
+    "No claim that the herb inventory/drop attempt is same ItemEntity pickup proof or that current on-screen pose/foot contact/performance passed."
+  ],
+  "external_research_credit": 0,
+  "production_changes": 0,
+  "checklist_deletions": 0,
+  "game_starts": 0,
+  "hours_claimed": null
+}

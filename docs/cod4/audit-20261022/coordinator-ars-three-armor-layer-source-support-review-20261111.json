@@ -1,0 +1,556 @@
+{
+  "recorded_at": "2026-11-11T13:37:10.605884+00:00",
+  "status": "MAIN_ARS_THREE_LAYER_PAGES_AND_SOURCE_ROUTING_SUPPORT_REVIEW_ONLY_GECKO_GEOMETRY_NOT_ACCEPTED",
+  "repository": "https://github.com/baileyholl/Ars-Nouveau",
+  "commit": "2c74064bc753600d9b6600f102f8163e2d6764dd",
+  "actual_main_images": [
+    {
+      "path": "docs/art/armor-ars-reference-20261111/sorcerer-native-layers-page.png",
+      "sha256": "17abf97c372b9762856082ddbfc572c05929055d86111816c70f5515d15a61af",
+      "bytes": 16727
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/arcanist-native-layers-page.png",
+      "sha256": "af8f39e75560ab5b0d202a44974f2f864450e0acff3023abbdf88b379cca9e26",
+      "bytes": 19181
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/battlemage-native-layers-page.png",
+      "sha256": "3d35b174c0ffb1363c7b95d1a7c31214710b7a411fed379132a13787174934c7",
+      "bytes": 17847
+    }
+  ],
+  "actual_Main_java_ranges": [
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/common/armor/AnimatedMagicArmor.java",
+      "sha256": "2ddbb188f5fc456d1da9811ce659a201ee00765b12e9a269d5c2987ee04ee637",
+      "bytes": 8539,
+      "start": 1,
+      "end": 189,
+      "whole_file_read": true,
+      "actual_excerpt": "package com.hollingsworth.arsnouveau.common.armor;\n\nimport com.google.common.collect.ImmutableMultimap;\nimport com.google.common.collect.Multimap;\nimport com.hollingsworth.arsnouveau.ArsNouveau;\nimport com.hollingsworth.arsnouveau.api.client.IVariantColorProvider;\nimport com.hollingsworth.arsnouveau.api.mana.IManaEquipment;\nimport com.hollingsworth.arsnouveau.api.perk.*;\nimport com.hollingsworth.arsnouveau.api.registry.PerkRegistry;\nimport com.hollingsworth.arsnouveau.api.util.PerkUtil;\nimport com.hollingsworth.arsnouveau.client.renderer.item.ArmorRenderer;\nimport com.hollingsworth.arsnouveau.client.renderer.tile.GenericModel;\nimport com.hollingsworth.arsnouveau.common.crafting.recipes.IDyeable;\nimport com.hollingsworth.arsnouveau.common.perk.RepairingPerk;\nimport com.hollingsworth.arsnouveau.setup.registry.ItemsRegistry;\nimport net.minecraft.ChatFormatting;\nimport net.minecraft.client.model.HumanoidModel;\nimport net.minecraft.network.chat.Component;\nimport net.minecraft.resources.ResourceLocation;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EquipmentSlot;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.ai.attributes.Attribute;\nimport net.minecraft.world.entity.ai.attributes.AttributeModifier;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.*;\nimport net.minecraft.world.level.Level;\nimport net.minecraftforge.api.distmarker.Dist;\nimport net.minecraftforge.api.distmarker.OnlyIn;\nimport net.minecraftforge.client.extensions.common.IClientItemExtensions;\nimport org.jetbrains.annotations.NotNull;\nimport org.jetbrains.annotations.Nullable;\nimport software.bernie.geckolib.animatable.GeoItem;\nimport software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;\nimport software.bernie.geckolib.core.animation.AnimatableManager;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.renderer.GeoArmorRenderer;\nimport software.bernie.geckolib.util.GeckoLibUtil;\n\nimport java.util.List;\nimport java.util.UUID;\nimport java.util.function.Consumer;\n\npublic class AnimatedMagicArmor extends ArmorItem implements IManaEquipment, IDyeable, GeoItem, IVariantColorProvider<ItemStack> {\n    public GeoModel<AnimatedMagicArmor> model;\n\n    public AnimatedMagicArmor(ArmorMaterial materialIn, ArmorItem.Type slot, Properties builder, GeoModel<AnimatedMagicArmor> model) {\n        super(materialIn, slot, builder);\n        this.model = model;\n    }\n\n    public AnimatedMagicArmor(ArmorMaterial materialIn, ArmorItem.Type slot, GeoModel<AnimatedMagicArmor> model) {\n        this(materialIn, slot, ItemsRegistry.defaultItemProperties().stacksTo(1), model);\n    }\n\n    public static AnimatedMagicArmor light(ArmorItem.Type slot) {\n        return new AnimatedMagicArmor(Materials.LIGHT, slot, new GenericModel<AnimatedMagicArmor>(\"light_armor\", \"item/light_armor\").withEmptyAnim());\n    }\n\n    public static AnimatedMagicArmor medium(ArmorItem.Type slot) {\n        return new AnimatedMagicArmor(Materials.MEDIUM, slot, new GenericModel<AnimatedMagicArmor>(\"medium_armor\", \"item/medium_armor\").withEmptyAnim());\n    }\n\n    public static AnimatedMagicArmor heavy(ArmorItem.Type slot) {\n        return new AnimatedMagicArmor(Materials.HEAVY, slot, new GenericModel<AnimatedMagicArmor>(\"heavy_armor\", \"item/heavy_armor\").withEmptyAnim());\n    }\n\n    @Override\n    public void registerControllers(AnimatableManager.ControllerRegistrar data) {\n    }\n\n    @Override\n    public void onArmorTick(ItemStack stack, Level world, Player player) {\n        if (world.isClientSide())\n            return;\n        RepairingPerk.attemptRepair(stack, player);\n        IPerkHolder<ItemStack> perkHolder = PerkUtil.getPerkHolder(stack);\n        if (perkHolder == null)\n            return;\n        for (PerkInstance instance : perkHolder.getPerkInstances()) {\n            if (instance.getPerk() instanceof ITickablePerk tickablePerk) {\n                tickablePerk.tick(stack, world, player, instance);\n            }\n        }\n    }\n\n    @Override\n    public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlot pEquipmentSlot, ItemStack stack) {\n        ImmutableMultimap.Builder<Attribute, AttributeModifier> attributes = new ImmutableMultimap.Builder<>();\n        attributes.putAll(super.getDefaultAttributeModifiers(pEquipmentSlot));\n        if (this.type.getSlot() == pEquipmentSlot) {\n            UUID uuid = ARMOR_MODIFIER_UUID_PER_TYPE.get(type);\n            IPerkHolder<ItemStack> perkHolder = PerkUtil.getPerkHolder(stack);\n            if (perkHolder != null) {\n                attributes.put(PerkAttributes.MAX_MANA.get(), new AttributeModifier(uuid, \"max_mana_armor\", 30 * (perkHolder.getTier() + 1), AttributeModifier.Operation.ADDITION));\n                attributes.put(PerkAttributes.MANA_REGEN_BONUS.get(), new AttributeModifier(uuid, \"mana_regen_armor\", perkHolder.getTier() + 1, AttributeModifier.Operation.ADDITION));\n                for (PerkInstance perkInstance : perkHolder.getPerkInstances()) {\n                    IPerk perk = perkInstance.getPerk();\n                    attributes.putAll(perk.getModifiers(this.type.getSlot(), stack, perkInstance.getSlot().value));\n                }\n\n            }\n        }\n        return attributes.build();\n    }\n\n    @Override\n    @OnlyIn(Dist.CLIENT)\n    public void appendHoverText(ItemStack stack, Level world, List<Component> tooltip, TooltipFlag flag) {\n        super.appendHoverText(stack, world, tooltip, flag);\n        IPerkProvider<ItemStack> perkProvider = PerkRegistry.getPerkProvider(stack.getItem());\n        if (perkProvider != null) {\n            if (perkProvider.getPerkHolder(stack) instanceof ArmorPerkHolder armorPerkHolder) {\n                tooltip.add(Component.translatable(\"ars_nouveau.tier\", armorPerkHolder.getTier() + 1).withStyle(ChatFormatting.GOLD));\n            }\n            perkProvider.getPerkHolder(stack).appendPerkTooltip(tooltip, stack);\n        }\n    }\n\n    @Override\n    public void onDye(ItemStack stack, DyeColor dyeColor) {\n        IPerkHolder<ItemStack> perkHolder = PerkUtil.getPerkHolder(stack);\n        if (perkHolder instanceof ArmorPerkHolder armorPerkHolder) {\n            armorPerkHolder.setColor(dyeColor.getName());\n        }\n    }\n\n    @Override\n    public boolean makesPiglinsNeutral(ItemStack stack, LivingEntity wearer) {\n        return true;\n    }\n\n    AnimatableInstanceCache factory = GeckoLibUtil.createInstanceCache(this);\n\n    @Override\n    public AnimatableInstanceCache getAnimatableInstanceCache() {\n        return factory;\n    }\n\n    @Override\n    public void initializeClient(Consumer<IClientItemExtensions> consumer) {\n        super.initializeClient(consumer);\n        consumer.accept(new IClientItemExtensions() {\n            private GeoArmorRenderer<?> renderer;\n\n            @Override\n            public @NotNull HumanoidModel<?> getHumanoidArmorModel(LivingEntity livingEntity, ItemStack itemStack,\n                                                                   EquipmentSlot equipmentSlot, HumanoidModel<?> original) {\n                if(renderer == null){\n                    renderer = new ArmorRenderer(getArmorModel());\n                }\n                renderer.prepForRender(livingEntity, itemStack, equipmentSlot, original);\n                return this.renderer;\n            }\n        });\n    }\n\n    public GeoModel<AnimatedMagicArmor> getArmorModel() {\n        return model;\n    }\n\n    /*\n     * Needed to avoid file not found errors since Geckolib doesn't redirect to the correct texture\n     */\n    @Override\n    public @Nullable String getArmorTexture(ItemStack stack, Entity entity, EquipmentSlot slot, String type) {\n        GenericModel<AnimatedMagicArmor> genericModel = (GenericModel<AnimatedMagicArmor>) model;\n        return new ResourceLocation(ArsNouveau.MODID, \"textures/\" + genericModel.textPathRoot + \"/\" + genericModel.name + \"_\" + this.getColor(stack) + \".png\").toString();\n    }\n\n    @Override\n    public void setColor(String color, ItemStack armor) {\n\n    }\n\n    @Override\n    public String getColor(ItemStack object) {\n        IPerkHolder<ItemStack> perkHolder = PerkUtil.getPerkHolder(object);\n        if(!(perkHolder instanceof ArmorPerkHolder data)){\n            return \"purple\";\n        }\n        return data.getColor() == null || data.getColor().isEmpty() ? \"purple\" : data.getColor();\n    }\n\n    //needed to exclude armors that can't be upgraded via recipe from jei info\n    public int getMinTier() {\n        return 0;\n    }\n}"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/ArmorRenderer.java",
+      "sha256": "d5299dca44ad59445a583bd5170e6f6085b8317bfaff4b33198199a5cd375923",
+      "bytes": 2966,
+      "start": 1,
+      "end": 52,
+      "whole_file_read": true,
+      "actual_excerpt": "package com.hollingsworth.arsnouveau.client.renderer.item;\n\nimport com.hollingsworth.arsnouveau.ArsNouveau;\nimport com.hollingsworth.arsnouveau.client.renderer.tile.GenericModel;\nimport com.hollingsworth.arsnouveau.common.armor.AnimatedMagicArmor;\nimport com.mojang.blaze3d.vertex.PoseStack;\nimport com.mojang.blaze3d.vertex.VertexConsumer;\nimport net.minecraft.client.renderer.MultiBufferSource;\nimport net.minecraft.client.renderer.RenderType;\nimport net.minecraft.resources.ResourceLocation;\nimport software.bernie.geckolib.cache.object.BakedGeoModel;\nimport software.bernie.geckolib.cache.object.GeoBone;\nimport software.bernie.geckolib.model.GeoModel;\nimport software.bernie.geckolib.renderer.GeoArmorRenderer;\n\nimport java.util.Optional;\n\npublic class ArmorRenderer extends GeoArmorRenderer<AnimatedMagicArmor> {\n\n    public ArmorRenderer(GeoModel<AnimatedMagicArmor> modelProvider) {\n        super(modelProvider);\n    }\n\n    @Override\n    public void renderRecursively(PoseStack poseStack, AnimatedMagicArmor animatable, GeoBone bone, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, boolean isReRender, float partialTick, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {\n        if(bone.getName().equalsIgnoreCase(\"armorRightArmSlim\") || bone.getName().equalsIgnoreCase(\"armorLeftArmSlim\")){\n            bone.setHidden(true);\n        }\n        super.renderRecursively(poseStack, animatable, bone, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, red, green, blue, alpha);\n    }\n\n    @Override\n    public void actuallyRender(PoseStack poseStack, AnimatedMagicArmor animatable, BakedGeoModel model, RenderType renderType, MultiBufferSource bufferSource, VertexConsumer buffer, boolean isReRender, float partialTick, int packedLight, int packedOverlay, float red, float green, float blue, float alpha) {\n        Optional<GeoBone> slimRight = model.getBone(\"armorRightArmSlim\");\n        Optional<GeoBone> slimLeft = model.getBone(\"armorLeftArmSlim\");\n        slimRight.ifPresent(geoBone -> geoBone.setHidden(true));\n        slimLeft.ifPresent(geoBone -> geoBone.setHidden(true));\n        model.getBone(\"armorRightArmSlim\").ifPresent(geoBone -> geoBone.setHidden(true));\n        model.getBone(\"armorLeftArmSlim\").ifPresent(geoBone -> geoBone.setHidden(true));\n        super.actuallyRender(poseStack, animatable, model, renderType, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay, red, green, blue, alpha);\n    }\n\n\n    @Override\n    public ResourceLocation getTextureLocation(AnimatedMagicArmor instance) {\n        if(model instanceof GenericModel<AnimatedMagicArmor> genericModel){\n            return new ResourceLocation(ArsNouveau.MODID, \"textures/\" + genericModel.textPathRoot + \"/\" + genericModel.name + \"_\" + instance.getColor(getCurrentStack()) + \".png\");\n        }\n\n        return super.getTextureLocation(instance);\n    }\n}"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/GenericModel.java",
+      "sha256": "107624aab8086f9707a174981e0115cf6d9f3a3fd6ddbfb8f358e44e3a92b89b",
+      "bytes": 1691,
+      "start": 1,
+      "end": 50,
+      "whole_file_read": true,
+      "actual_excerpt": "package com.hollingsworth.arsnouveau.client.renderer.tile;\n\nimport com.hollingsworth.arsnouveau.ArsNouveau;\nimport net.minecraft.resources.ResourceLocation;\nimport software.bernie.geckolib.core.animatable.GeoAnimatable;\nimport software.bernie.geckolib.model.GeoModel;\n\n\npublic class GenericModel<T extends GeoAnimatable> extends GeoModel<T> {\n    public String path;\n\n    public ResourceLocation modelLocation;\n    public ResourceLocation textLoc;\n    public ResourceLocation animationLoc;\n    public String textPathRoot = \"block\";\n    public String name;\n\n    public GenericModel(String name) {\n        this.modelLocation = new ResourceLocation(ArsNouveau.MODID, \"geo/\" + name + \".geo.json\");\n        this.textLoc = new ResourceLocation(ArsNouveau.MODID, \"textures/\" + textPathRoot + \"/\" + name + \".png\");\n        this.animationLoc = new ResourceLocation(ArsNouveau.MODID, \"animations/\" + name + \"_animations.json\");\n        this.name = name;\n    }\n\n    public GenericModel(String name, String textPath) {\n        this(name);\n        this.textPathRoot = textPath;\n        this.textLoc = new ResourceLocation(ArsNouveau.MODID, \"textures/\" + textPathRoot + \"/\" + name + \".png\");\n    }\n\n    public GenericModel withEmptyAnim(){\n        this.animationLoc = new ResourceLocation(ArsNouveau.MODID, \"animations/empty.json\");\n        return this;\n    }\n\n    @Override\n    public ResourceLocation getModelResource(T GeoAnimatable) {\n        return modelLocation;\n    }\n\n    @Override\n    public ResourceLocation getTextureResource(T GeoAnimatable) {\n        return textLoc;\n    }\n\n    @Override\n    public ResourceLocation getAnimationResource(T GeoAnimatable) {\n        return animationLoc;\n    }\n}"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/client/registry/ClientHandler.java",
+      "sha256": "e3a281bae24432cc0c169bc677c1054f4a522345d0fc2c9de80cd0da6fd99c5e",
+      "bytes": 21750,
+      "start": 219,
+      "end": 337,
+      "whole_file_read": false,
+      "actual_excerpt": "        });\n    }\n\n    @SubscribeEvent\n    public static void initBlockColors(final RegisterColorHandlersEvent.Block event) {\n        event.register((state, reader, pos, tIndex) ->\n                reader != null && pos != null && reader.getBlockEntity(pos) instanceof PotionJarTile jarTile\n                        ? jarTile.getColor()\n                        : -1, BlockRegistry.POTION_JAR.get());\n\n        event.register((state, reader, pos, tIndex) ->\n                reader != null && pos != null && reader.getBlockEntity(pos) instanceof PotionMelderTile melderTile\n                        ? melderTile.getColor()\n                        : -1, BlockRegistry.POTION_MELDER.get());\n\n        event.register((state, reader, pos, tIndex) ->\n                reader != null && pos != null && reader.getBlockEntity(pos) instanceof MageBlockTile mageBlockTile\n                        ? mageBlockTile.color.getColor() : -1, BlockRegistry.MAGE_BLOCK.get());\n    }\n\n    @SubscribeEvent\n    public static void initItemColors(final RegisterColorHandlersEvent.Item event) {\n        event.register((stack, color) -> color > 0 ? -1 : colorFromFlask(stack),\n                ItemsRegistry.POTION_FLASK);\n\n        event.register((stack, color) -> color > 0 ? -1 : colorFromFlask(stack),\n                ItemsRegistry.POTION_FLASK_EXTEND_TIME);\n\n        event.register((stack, color) -> color > 0 ? -1 : colorFromFlask(stack),\n                ItemsRegistry.POTION_FLASK_AMPLIFY);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        new ParticleColor(200, 0, 200).getColor(),\n                ForgeRegistries.ITEMS.getValue(new ResourceLocation(ArsNouveau.MODID, LibBlockNames.POTION_MELDER_BLOCK)));\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.SORCERER_ROBES);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.SORCERER_BOOTS);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.SORCERER_HOOD);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.SORCERER_LEGGINGS);\n\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.ARCANIST_ROBES);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.ARCANIST_BOOTS);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.ARCANIST_HOOD);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.ARCANIST_LEGGINGS);\n\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.BATTLEMAGE_ROBES);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.BATTLEMAGE_BOOTS);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.BATTLEMAGE_HOOD);\n\n        event.register((stack, color) -> color > 0 ? -1 :\n                        colorFromArmor(stack),\n                ItemsRegistry.BATTLEMAGE_LEGGINGS);\n\n        event.register((stack, color) -> {\n            if (color == 1 && stack.getItem() instanceof ICasterTool i) {\n                return i.getSpellCaster(stack).getColor().getColor();\n            }\n            return -1;\n\n        }, ItemsRegistry.SPELL_PARCHMENT);\n\n        event.register((stack, color) -> {\n            if (color > 0 || !stack.hasTag()) {\n                return -1;\n            }\n            CompoundTag blockTag = stack.getOrCreateTag().getCompound(\"BlockEntityTag\");\n            if (blockTag.contains(\"potionData\")) {\n                PotionData data = PotionData.fromTag(blockTag.getCompound(\"potionData\"));\n                return PotionUtils.getColor(data.fullEffects());\n            }\n            return -1;\n        }, BlockRegistry.POTION_JAR);\n\n    }\n\n    public static int colorFromArmor(ItemStack stack) {\n        IPerkHolder<ItemStack> holder = PerkUtil.getPerkHolder(stack);\n        if (!(holder instanceof ArmorPerkHolder armorPerkHolder))\n            return DyeColor.PURPLE.getTextColor();\n        return DyeColor.byName(armorPerkHolder.getColor(), DyeColor.PURPLE).getTextColor();\n    }\n\n    public static int colorFromFlask(ItemStack stack) {\n        PotionFlask.FlaskData data = new PotionFlask.FlaskData(stack);\n        return data.getPotion().getPotion() == Potions.EMPTY ? -1 : PotionUtils.getColor(data.getPotion().asPotionStack());\n    }\n}"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/setup/registry/ItemsRegistry.java",
+      "sha256": "c9ca0b713009d38188ba7e09e302dafcde11896063c2de822afd2f665789a836",
+      "bytes": 24305,
+      "start": 185,
+      "end": 211,
+      "whole_file_read": false,
+      "actual_excerpt": "    public static final RegistryWrapper<ShapersFocus> SHAPERS_FOCUS = register(LibItemNames.SHAPERS_FOCUS, () -> new ShapersFocus(defaultItemProperties().stacksTo(1)));\n    public static final RegistryWrapper<ModItem> SOURCE_BERRY_PIE = register(LibItemNames.SOURCE_BERRY_PIE, () -> new ModItem(defaultItemProperties().food(SOURCE_PIE_FOOD)).withTooltip(Component.translatable(\"tooltip.ars_nouveau.source_food\")));\n    public static final RegistryWrapper<ModItem> SOURCE_BERRY_ROLL = register(LibItemNames.SOURCE_BERRY_ROLL, () -> new ModItem(defaultItemProperties().food(SOURCE_ROLL_FOOD)).withTooltip(Component.translatable(\"tooltip.ars_nouveau.source_food\")));\n    public static final RegistryWrapper<EnchantersMirror> ENCHANTERS_MIRROR = register(LibItemNames.ENCHANTERS_MIRROR, () -> new EnchantersMirror(defaultItemProperties().stacksTo(1)));\n    public static final RegistryWrapper<AnimatedMagicArmor> SORCERER_BOOTS = register(LibItemNames.SORCERER_BOOTS, () -> AnimatedMagicArmor.light(ArmorItem.Type.BOOTS));\n    public static final RegistryWrapper<AnimatedMagicArmor> SORCERER_LEGGINGS = register(LibItemNames.SORCERER_LEGGINGS, () -> AnimatedMagicArmor.light(ArmorItem.Type.LEGGINGS));\n    public static final RegistryWrapper<AnimatedMagicArmor> SORCERER_ROBES = register(LibItemNames.SORCERER_ROBES, () -> AnimatedMagicArmor.light(ArmorItem.Type.CHESTPLATE));\n    public static final RegistryWrapper<AnimatedMagicArmor> SORCERER_HOOD = register(LibItemNames.SORCERER_HOOD, () -> AnimatedMagicArmor.light(ArmorItem.Type.HELMET));\n    public static final RegistryWrapper<AnimatedMagicArmor> ARCANIST_BOOTS = register(LibItemNames.ARCANIST_BOOTS, () -> AnimatedMagicArmor.medium(ArmorItem.Type.BOOTS));\n    public static final RegistryWrapper<AnimatedMagicArmor> ARCANIST_LEGGINGS = register(LibItemNames.ARCANIST_LEGGINGS, () -> AnimatedMagicArmor.medium(ArmorItem.Type.LEGGINGS));\n    public static final RegistryWrapper<AnimatedMagicArmor> ARCANIST_ROBES = register(LibItemNames.ARCANIST_ROBES, () -> AnimatedMagicArmor.medium(ArmorItem.Type.CHESTPLATE));\n    public static final RegistryWrapper<AnimatedMagicArmor> ARCANIST_HOOD = register(LibItemNames.ARCANIST_HOOD, () -> AnimatedMagicArmor.medium(ArmorItem.Type.HELMET));\n    public static final RegistryWrapper<AnimatedMagicArmor> BATTLEMAGE_BOOTS = register(LibItemNames.BATTLEMAGE_BOOTS, () -> AnimatedMagicArmor.heavy(ArmorItem.Type.BOOTS));\n    public static final RegistryWrapper<AnimatedMagicArmor> BATTLEMAGE_LEGGINGS = register(LibItemNames.BATTLEMAGE_LEGGINGS, () -> AnimatedMagicArmor.heavy(ArmorItem.Type.LEGGINGS));\n    public static final RegistryWrapper<AnimatedMagicArmor> BATTLEMAGE_ROBES = register(LibItemNames.BATTLEMAGE_ROBES, () -> AnimatedMagicArmor.heavy(ArmorItem.Type.CHESTPLATE));\n    public static final RegistryWrapper<AnimatedMagicArmor> BATTLEMAGE_HOOD = register(LibItemNames.BATTLEMAGE_HOOD, () -> AnimatedMagicArmor.heavy(ArmorItem.Type.HELMET));\n    public static final RegistryWrapper<DowsingRod> DOWSING_ROD = register(LibItemNames.DOWSING_ROD, DowsingRod::new);\n    public static final RegistryWrapper<ModItem> ABJURATION_ESSENCE = register(LibItemNames.ABJURATION_ESSENCE, () -> new ModItem().withTooltip(Component.translatable(\"tooltip.ars_nouveau.essences\")));\n    public static final RegistryWrapper<ModItem> CONJURATION_ESSENCE = register(LibItemNames.CONJURATION_ESSENCE, () -> new ModItem().withTooltip(Component.translatable(\"tooltip.ars_nouveau.essences\")));\n    public static final RegistryWrapper<ModItem> AIR_ESSENCE = register(LibItemNames.AIR_ESSENCE, () -> new ModItem().withTooltip(Component.translatable(\"tooltip.ars_nouveau.essences\")));\n    public static final RegistryWrapper<EarthEssence> EARTH_ESSENCE = register(LibItemNames.EARTH_ESSENCE, EarthEssence::new);\n    public static final RegistryWrapper<FireEssence> FIRE_ESSENCE = register(LibItemNames.FIRE_ESSENCE, FireEssence::new);\n    public static final RegistryWrapper<ManipulationEssence> MANIPULATION_ESSENCE = register(LibItemNames.MANIPULATION_ESSENCE, ManipulationEssence::new);\n    public static final RegistryWrapper<ModItem> WATER_ESSENCE = register(LibItemNames.WATER_ESSENCE, () -> new ModItem().withTooltip(Component.translatable(\"tooltip.ars_nouveau.essences\")));\n    public static final RegistryWrapper<AmethystGolemCharm> AMETHYST_GOLEM_CHARM = register(LibItemNames.AMETHYST_GOLEM_CHARM, AmethystGolemCharm::new);\n    public static final RegistryWrapper<AnnotatedCodex> ANNOTATED_CODEX = register(LibItemNames.ANNOTATED_CODEX, AnnotatedCodex::new);\n    public static final RegistryWrapper<ScryerScroll> SCRYER_SCROLL = register(LibItemNames.SCRYER_SCROLL, ScryerScroll::new);"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/common/lib/LibItemNames.java",
+      "sha256": "984eb9a14a175204469b89c061740781d8a2f2917eec8f7e97268acbf85a9627",
+      "bytes": 6997,
+      "start": 85,
+      "end": 113,
+      "whole_file_read": false,
+      "actual_excerpt": "    public static final String SOURCE_BERRY_ROLL = \"source_berry_roll\";\n    public static final String SOURCE_BERRY_PIE = \"source_berry_pie\";\n    public static final String ENCHANTERS_MIRROR = \"enchanters_mirror\";\n\n    public static final String SORCERER_BOOTS = \"sorcerer_boots\";\n    public static final String SORCERER_LEGGINGS = \"sorcerer_leggings\";\n    public static final String SORCERER_ROBES = \"sorcerer_robes\";\n    public static final String SORCERER_HOOD = \"sorcerer_hood\";\n\n    public static final String ARCANIST_BOOTS = \"arcanist_boots\";\n    public static final String ARCANIST_LEGGINGS = \"arcanist_leggings\";\n    public static final String ARCANIST_ROBES = \"arcanist_robes\";\n    public static final String ARCANIST_HOOD = \"arcanist_hood\";\n\n    public static final String BATTLEMAGE_BOOTS = \"battlemage_boots\";\n    public static final String BATTLEMAGE_LEGGINGS = \"battlemage_leggings\";\n    public static final String BATTLEMAGE_ROBES = \"battlemage_robes\";\n    public static final String BATTLEMAGE_HOOD = \"battlemage_hood\";\n\n    public static final String ABJURATION_ESSENCE = \"abjuration_essence\";\n    public static final String CONJURATION_ESSENCE = \"conjuration_essence\";\n    public static final String AIR_ESSENCE = \"air_essence\";\n    public static final String EARTH_ESSENCE = \"earth_essence\";\n    public static final String FIRE_ESSENCE = \"fire_essence\";\n    public static final String MANIPULATION_ESSENCE = \"manipulation_essence\";\n    public static final String WATER_ESSENCE = \"water_essence\";\n    public static final String AMETHYST_GOLEM_CHARM = \"amethyst_golem_charm\";\n\n    public static final String DOWSING_ROD = \"dowsing_rod\";"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/DyeColor-1.20.1.java",
+      "sha256": "847be9f885639f7513e2e156ea3f190a27f67f86a47bf90b9e56582295ec6edd",
+      "bytes": 4472,
+      "start": 14,
+      "end": 53,
+      "whole_file_read": false,
+      "actual_excerpt": "   WHITE(0, \"white\", 16383998, MapColor.SNOW, 15790320, 16777215),\n   ORANGE(1, \"orange\", 16351261, MapColor.COLOR_ORANGE, 15435844, 16738335),\n   MAGENTA(2, \"magenta\", 13061821, MapColor.COLOR_MAGENTA, 12801229, 16711935),\n   LIGHT_BLUE(3, \"light_blue\", 3847130, MapColor.COLOR_LIGHT_BLUE, 6719955, 10141901),\n   YELLOW(4, \"yellow\", 16701501, MapColor.COLOR_YELLOW, 14602026, 16776960),\n   LIME(5, \"lime\", 8439583, MapColor.COLOR_LIGHT_GREEN, 4312372, 12582656),\n   PINK(6, \"pink\", 15961002, MapColor.COLOR_PINK, 14188952, 16738740),\n   GRAY(7, \"gray\", 4673362, MapColor.COLOR_GRAY, 4408131, 8421504),\n   LIGHT_GRAY(8, \"light_gray\", 10329495, MapColor.COLOR_LIGHT_GRAY, 11250603, 13882323),\n   CYAN(9, \"cyan\", 1481884, MapColor.COLOR_CYAN, 2651799, 65535),\n   PURPLE(10, \"purple\", 8991416, MapColor.COLOR_PURPLE, 8073150, 10494192),\n   BLUE(11, \"blue\", 3949738, MapColor.COLOR_BLUE, 2437522, 255),\n   BROWN(12, \"brown\", 8606770, MapColor.COLOR_BROWN, 5320730, 9127187),\n   GREEN(13, \"green\", 6192150, MapColor.COLOR_GREEN, 3887386, 65280),\n   RED(14, \"red\", 11546150, MapColor.COLOR_RED, 11743532, 16711680),\n   BLACK(15, \"black\", 1908001, MapColor.COLOR_BLACK, 1973019, 0);\n\n   private static final IntFunction<DyeColor> BY_ID = ByIdMap.continuous(DyeColor::getId, values(), ByIdMap.OutOfBoundsStrategy.ZERO);\n   private static final Int2ObjectOpenHashMap<DyeColor> BY_FIREWORK_COLOR = new Int2ObjectOpenHashMap<>(Arrays.stream(values()).collect(Collectors.toMap((p_41064_) -> {\n      return p_41064_.fireworkColor;\n   }, (p_41056_) -> {\n      return p_41056_;\n   })));\n   public static final StringRepresentable.EnumCodec<DyeColor> CODEC = StringRepresentable.fromEnum(DyeColor::values);\n   private final int id;\n   private final String name;\n   private final MapColor mapColor;\n   private final float[] textureDiffuseColors;\n   private final int fireworkColor;\n   private final net.minecraft.tags.TagKey<Item> tag;\n   private final int textColor;\n\n   private DyeColor(int p_41046_, String p_41047_, int p_41048_, MapColor p_285297_, int p_41050_, int p_41051_) {\n      this.id = p_41046_;\n      this.name = p_41047_;\n      this.mapColor = p_285297_;\n      this.textColor = p_41051_;\n      int i = (p_41048_ & 16711680) >> 16;\n      int j = (p_41048_ & '\\uff00') >> 8;\n      int k = (p_41048_ & 255) >> 0;"
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/DyeColor-1.20.1.java",
+      "sha256": "847be9f885639f7513e2e156ea3f190a27f67f86a47bf90b9e56582295ec6edd",
+      "bytes": 4472,
+      "start": 76,
+      "end": 82,
+      "whole_file_read": false,
+      "actual_excerpt": "      return this.fireworkColor;\n   }\n\n   public int getTextColor() {\n      return this.textColor;\n   }\n"
+    }
+  ],
+  "actual_Main_complete_item_model_files": [
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_boots.json",
+      "sha256": "dadf3ecc68ba8212d94584b2651e09743fabbde6827178634037685c899f3ab7",
+      "bytes": 135
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_hood.json",
+      "sha256": "ca1676295cba99592fea3d62eb8f3e0601f128866e8596d362ed9fd3192066dc",
+      "bytes": 202
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_leggings.json",
+      "sha256": "ef58dc81683b516c6aea483e0f87ccf3667886421691132e3830c6a2b97acd04",
+      "bytes": 134
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_robes.json",
+      "sha256": "9ba76622046c7db445adb5e321fa6cb1d305dce86d832fcaccf27e87f0e0306d",
+      "bytes": 203
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_boots.json",
+      "sha256": "ba7352d3952f011d81461fbeff02e0b65088a70752603ce72f8da8795965025e",
+      "bytes": 128
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_hood.json",
+      "sha256": "9b80e784c537ea105379bf9c6f5dd2646325a3e58f3774c02ca5e653be6ad495",
+      "bytes": 193
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_leggings.json",
+      "sha256": "a72c6f5fe45351a8a6438ca062d687ec2a99328ff885feaa190418d812641afc",
+      "bytes": 203
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_robes.json",
+      "sha256": "ece1428cd5e6bbcd3dce530ba05bbcc16f88a31bee3ad4e2dca8279388c56c2b",
+      "bytes": 201
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_boots.json",
+      "sha256": "123520eebd38c91f96d15b0391eceddbb0ec19697a8c90b376dce9d9439f2851",
+      "bytes": 130
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_hood.json",
+      "sha256": "ee1e615117b5becb0604da1796457f34bcf520ee634109c545b2dde36ff0c9f1",
+      "bytes": 193
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_leggings.json",
+      "sha256": "a8b018cffc5aa4d9482fce93502e3b51f30d9cbdc6939ebb4c4de2e3bea860ca",
+      "bytes": 130
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_robes.json",
+      "sha256": "43ab492b838b0f19ea26a26748d1e39f4b33ca1bd072def8eae702580a0270c2",
+      "bytes": 189
+    }
+  ],
+  "all54_source_byte_bindings_verified": [
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/client/registry/ClientHandler.java",
+      "sha256": "e3a281bae24432cc0c169bc677c1054f4a522345d0fc2c9de80cd0da6fd99c5e",
+      "bytes": 21750
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/client/renderer/item/ArmorRenderer.java",
+      "sha256": "d5299dca44ad59445a583bd5170e6f6085b8317bfaff4b33198199a5cd375923",
+      "bytes": 2966
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/client/renderer/tile/GenericModel.java",
+      "sha256": "107624aab8086f9707a174981e0115cf6d9f3a3fd6ddbfb8f358e44e3a92b89b",
+      "bytes": 1691
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/common/armor/AnimatedMagicArmor.java",
+      "sha256": "2ddbb188f5fc456d1da9811ce659a201ee00765b12e9a269d5c2987ee04ee637",
+      "bytes": 8539
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/common/armor/Materials.java",
+      "sha256": "6aada6f360d5eb2b5b79e8c2527135e015b633b4045b022a8bfde520899f818a",
+      "bytes": 3114
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/common/datagen/ItemModelGenerator.java",
+      "sha256": "386036148d65ecd150c732016d9efb6effd2d8b91c65552d6368dbedc86758ab",
+      "bytes": 11004
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/common/lib/LibItemNames.java",
+      "sha256": "984eb9a14a175204469b89c061740781d8a2f2917eec8f7e97268acbf85a9627",
+      "bytes": 6997
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/setup/registry/ItemsRegistry.java",
+      "sha256": "c9ca0b713009d38188ba7e09e302dafcde11896063c2de822afd2f665789a836",
+      "bytes": 24305
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/java/com/hollingsworth/arsnouveau/setup/registry/RegistryHelper.java",
+      "sha256": "874bf63bd50084fcf0a73e06a342e405f2ad2a1fddfae91d89091d22ad08c3ca",
+      "bytes": 1066
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/geo/heavy_armor.geo.json",
+      "sha256": "cce46ac6798805982633470fc80b3195288a04baa09ad9cf6d0607e91e1c9bfb",
+      "bytes": 3921
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/geo/light_armor.geo.json",
+      "sha256": "e218c2b4f3c8ebecb2082800be2b8587eb12a49cdd98b2d1ec2e6d9e56ad51a3",
+      "bytes": 10095
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/geo/medium_armor.geo.json",
+      "sha256": "cdbe12d35188a790210dd792acee40f3ce9baf80fa8a2a4df78d1a60378101b8",
+      "bytes": 12876
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_boots.json",
+      "sha256": "dadf3ecc68ba8212d94584b2651e09743fabbde6827178634037685c899f3ab7",
+      "bytes": 135
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_hood.json",
+      "sha256": "ca1676295cba99592fea3d62eb8f3e0601f128866e8596d362ed9fd3192066dc",
+      "bytes": 202
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_leggings.json",
+      "sha256": "ef58dc81683b516c6aea483e0f87ccf3667886421691132e3830c6a2b97acd04",
+      "bytes": 134
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/arcanist_robes.json",
+      "sha256": "9ba76622046c7db445adb5e321fa6cb1d305dce86d832fcaccf27e87f0e0306d",
+      "bytes": 203
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_boots.json",
+      "sha256": "ba7352d3952f011d81461fbeff02e0b65088a70752603ce72f8da8795965025e",
+      "bytes": 128
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_hood.json",
+      "sha256": "9b80e784c537ea105379bf9c6f5dd2646325a3e58f3774c02ca5e653be6ad495",
+      "bytes": 193
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_leggings.json",
+      "sha256": "a72c6f5fe45351a8a6438ca062d687ec2a99328ff885feaa190418d812641afc",
+      "bytes": 203
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/battlemage_robes.json",
+      "sha256": "ece1428cd5e6bbcd3dce530ba05bbcc16f88a31bee3ad4e2dca8279388c56c2b",
+      "bytes": 201
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_boots.json",
+      "sha256": "123520eebd38c91f96d15b0391eceddbb0ec19697a8c90b376dce9d9439f2851",
+      "bytes": 130
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_hood.json",
+      "sha256": "ee1e615117b5becb0604da1796457f34bcf520ee634109c545b2dde36ff0c9f1",
+      "bytes": 193
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_leggings.json",
+      "sha256": "a8b018cffc5aa4d9482fce93502e3b51f30d9cbdc6939ebb4c4de2e3bea860ca",
+      "bytes": 130
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/models/item/sorcerer_robes.json",
+      "sha256": "43ab492b838b0f19ea26a26748d1e39f4b33ca1bd072def8eae702580a0270c2",
+      "bytes": 189
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_boots_tint.png",
+      "sha256": "0d003bfcfdb2949dd8ce8aa4a4208cd085500e967c1dea07c4f91000a2908dd1",
+      "bytes": 237
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_cowl_gold.png",
+      "sha256": "4bdcb30c69ee6c4c24a96ee03e093e485624f5d4c5aa08e1661075ad78b9fd0e",
+      "bytes": 166
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_cowl_tint.png",
+      "sha256": "ac1594dd79b501ace4bfc99f1224bb243285a2ac60e2ab727f202cf0f44b8679",
+      "bytes": 232
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_gambeson_gold.png",
+      "sha256": "543d9d98cb40bcfad87bec51baebc260f699309ad23182fffb121a2ba39d56c8",
+      "bytes": 116
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_gambeson_tint.png",
+      "sha256": "8d585bbe3bf77eae4c1bcc17ce7bb181bbb20ed49e498eb3e80c8e58ff017f67",
+      "bytes": 418
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_legguards_gold.png",
+      "sha256": "b8837283683013af60376382a85f65b8d35ab2b2d1f14aadd5f7b3b10cf183d2",
+      "bytes": 164
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_legguards_tint.png",
+      "sha256": "9bed155c0287924183e8f858ada244579125541b99fdad33485395ff5659d796",
+      "bytes": 295
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/heavy_armor_blue.png",
+      "sha256": "4d8230b3b67e85d13baf4715bda40660605bcc1422820f152f61989b71c893d5",
+      "bytes": 2155
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/heavy_armor_light_blue.png",
+      "sha256": "718bb9dbbf6a838d5a1cedb81bd0d51de0cbf5cd7833aee2e960479c05589648",
+      "bytes": 2136
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/heavy_armor_purple.png",
+      "sha256": "3edd76a808c45cc872803c4abfbaaedd0a2745365ba1aff35952e0b86c0d0903",
+      "bytes": 2187
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/light_armor.png",
+      "sha256": "06f190c1c35f3abcde7f0b193760838adb0710fae055f2586ba98e2295950b4e",
+      "bytes": 1809
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/light_armor_blue.png",
+      "sha256": "1f19e4bebb0ee7bee9a266f217e8178564cf666fcb6712eeb9459db445c086ce",
+      "bytes": 1931
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/light_armor_light_blue.png",
+      "sha256": "d3bae047f61febf2e38f279069d458fc88b729ceb1781e635d85e9c594ce67d7",
+      "bytes": 1936
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/light_armor_purple.png",
+      "sha256": "bd559454d0ea0a7a61456e08c9a229eada79eaa09b165d38942b6a83767876f8",
+      "bytes": 1927
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_collar_gold.png",
+      "sha256": "d4d7650d52428adbd3e556709bf331768d78a6d685308d01aa761e18ff2f980e",
+      "bytes": 145
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_collar_tint.png",
+      "sha256": "7a200f5f070de7b3e2d4e1c41a8ebc87c25709babf5ed45118581d68163f59c4",
+      "bytes": 281
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_footpads_tint.png",
+      "sha256": "14aea449b392cd8f072165c49b118ae5b2ed5b3f6842baf65772273c49979ea8",
+      "bytes": 182
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_leggings_tint.png",
+      "sha256": "0812f636caaf11893d9f610f787d5c5ef99dee8e13487d61817a663d60d7da58",
+      "bytes": 299
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_wrap_gold.png",
+      "sha256": "90bed30d35dc7c9a6e74ca1aeed1713f0792e020ad334ee2720868cf87ba2057",
+      "bytes": 152
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_wrap_tint.png",
+      "sha256": "f7b3de00cb29912345b20b41805ab50fc918f48daef9386344156e326b0fb5ab",
+      "bytes": 401
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_hat_gold.png",
+      "sha256": "73f69aa2e752bdb555016c9322bcdf364d85f214957daabbfb1d48e9f24d87d3",
+      "bytes": 156
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_hat_tint.png",
+      "sha256": "d040da096e83034e92fbe760c25e5dd969fd8e9c07b7171d31661a2498b5e8d6",
+      "bytes": 287
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_pants_tint.png",
+      "sha256": "71552b7f9ff993e92d1b78d2c8f17c5a9065b5488fd237d85839e58c9074c48b",
+      "bytes": 374
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_robes_gold.png",
+      "sha256": "1df6e84c4fa1034450c422506fb04af31755b509b8de379b0fda031519d7af95",
+      "bytes": 154
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_robes_tint.png",
+      "sha256": "0c5e11e49057fd17d2fa2a76141db55f89f4cc57e96cce564d8650172c6d1599",
+      "bytes": 483
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_treads_tint.png",
+      "sha256": "3ef9dc2a05c15c05152dd3334e88e2b126329a615f107e37c6411f1066e69ea3",
+      "bytes": 280
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/medium_armor.png",
+      "sha256": "5104dd6b6ad74df4db7a3ff86b594f32831da5231a8e43b4ae8adcab418af15d",
+      "bytes": 3448
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/medium_armor_blue.png",
+      "sha256": "96a516a27a6e929c121ffbb9a5097c2134b12fbcdb944d42293cc6bf56a79817",
+      "bytes": 3450
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/medium_armor_light_blue.png",
+      "sha256": "e06a6559741def42903f95c41410616eaf09bf4756f908bb5a9bf6a37a30443d",
+      "bytes": 3433
+    },
+    {
+      "path": "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/medium_armor_purple.png",
+      "sha256": "5104dd6b6ad74df4db7a3ff86b594f32831da5231a8e43b4ae8adcab418af15d",
+      "bytes": 3448
+    }
+  ],
+  "cached_tree": {
+    "path": "docs/art/armor-ars-reference-20261111/tree.json",
+    "sha256": "59ce8f33908914599af0e345a0ef78b5f2f821eb3a49eea438c207820133ca5e",
+    "bytes": 1788916
+  },
+  "independent_commit_to_root_tree_proof": false,
+  "native_DyeColor_archive_exact": {
+    "archive": "/Users/a15356015027/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "archive_sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "entry": "net/minecraft/world/item/DyeColor.java",
+    "local": "DyeColor-1.20.1.java",
+    "sha256": "847be9f885639f7513e2e156ea3f190a27f67f86a47bf90b9e56582295ec6edd"
+  },
+  "Main_findings": [
+    "原生分层页面三张已逐张实际查看：sorcerer低领/短上衣/小扣件，arcanist折尖帽/长直襟/暗色中开口，battlemage紧凑兜帽/斜胸带/双髋金角；这是研究合成页和默认UV图集，不是Dynasty新稿或实机穿戴。",
+    "12个完整物品模型JSON分别指向三组；七个layer1金饰层与其余layer0染色层必须区分。紫色不能直接乘所有金色层，靴子和部分腿图只有layer0。",
+    "ClientHandler254..302对12件颜色索引>0返回-1，只index0调用colorFromArmor；DyeColor.PURPLE第六参数10494192经过textColor/getTextColor得到0xA020F0。不是其textureDiffuseColors基础RGB。",
+    "AnimatedMagicArmor.light/medium/heavy分别绑定各自GenericModel几何和item/light_armor等目录，withEmptyAnim指向empty.json；空registerControllers不提供新的动态动作证据。",
+    "物品颜色函数以DyeColor.byName(保存色名,PURPLE)解析未知名回退；穿戴的getColor只回退非ArmorPerkHolder/null/空字符串，非空未知名原样加入纹理路径。onDye使用标准getName、setColor方法体为空，未读其他赋值器；不能声称实际存档存在坏值或出现故障。",
+    "initializeClient缓存ArmorRenderer并每次prepForRender，getArmorTexture和ArmorRenderer.getTextureLocation均使用当前stack的getColor选预着色图集。图标层乘色不等同穿戴图集shader乘色。",
+    "ArmorRenderer.renderRecursively用equalsIgnoreCase隐藏两个slim骨，actuallyRender又用精确getBone查找；例如不同大小写骨名需要保留两条源码路径，不能只凭精确getBone未命中推定slim可见。父renderer实际骨可见/槽位/镜像/膨胀/旋转烘焙还没独立读。",
+    "原图中的浅灰/白色UV区域和灰度tint不是可一概清除的背景；页面灰底为研究展示。只借鉴粗像素大色块与布/金边节奏，不复制资产；不同颜色、十二部位、19图标层和三页面不新增独立完整设计信用。"
+  ],
+  "Main_limits": [
+    "Main实际看三张分层研究页，包含19原生图标层和3默认图集；未逐张另开22原PNG，不把页面或图层作为22个设计。",
+    "Main读3完整Java及边界片段合计513行、12完整物品JSON；未读完整三geo或61cube声明，也没重跑study/verify/renderer。",
+    "54文件Gitblob/size/SHA是字节来源核查，不是54实现阅读。branch1.20绑定commit2c74064...，cachedtree顶sha同commit；缺独立commit→actualrootTree证据，不能把tree顶标签宣称独立根树证明。",
+    "未知色名的两条路径差异只是当前源码边界，不代表实际漏洞或产品修复需求。",
+    "Gecko原生烘焙/槽位显示/三维五视角、实际行走潜行穿戴仍待独立证据，未获本机游戏信用。",
+    "652名称/638盔甲/215保守组仅作者当前分类统计，独立有效完整设计累计仍null/gatefalse；本轮新增有效设计0。",
+    "仅Main只读核查，未改生产纹理、UV、图标、专业源或任务；已认可资产保持。"
+  ],
+  "original_author_semantic_review_preserved": {
+    "scope": "D37 三套完整部位的默认图标/原生图集与源码声明阅读；Gecko几何烘焙及穿戴待验",
+    "pages_actually_viewed": [
+      {
+        "case_key": "ars_nouveau:sorcerer",
+        "path": "sorcerer-native-layers-page.png",
+        "sha256": "17abf97c372b9762856082ddbfc572c05929055d86111816c70f5515d15a61af",
+        "native_images": [
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_collar_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_collar_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_wrap_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_wrap_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_leggings_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/sorcerers_footpads_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/light_armor/light_armor_purple.png"
+        ],
+        "raw_icon_layers_and_default_atlas_actually_viewed": true,
+        "game_capture": false
+      },
+      {
+        "case_key": "ars_nouveau:arcanist",
+        "path": "arcanist-native-layers-page.png",
+        "sha256": "af8f39e75560ab5b0d202a44974f2f864450e0acff3023abbdf88b379cca9e26",
+        "native_images": [
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_hat_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_hat_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_robes_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_robes_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_pants_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/arcanists_treads_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/medium_armor/medium_armor_purple.png"
+        ],
+        "raw_icon_layers_and_default_atlas_actually_viewed": true,
+        "game_capture": false
+      },
+      {
+        "case_key": "ars_nouveau:battlemage",
+        "path": "battlemage-native-layers-page.png",
+        "sha256": "3d35b174c0ffb1363c7b95d1a7c31214710b7a411fed379132a13787174934c7",
+        "native_images": [
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_cowl_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_cowl_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_gambeson_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_gambeson_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_legguards_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_legguards_gold.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/battlemages_boots_tint.png",
+          "docs/art/armor-ars-reference-20261111/source/src/main/resources/assets/ars_nouveau/textures/item/heavy_armor/heavy_armor_purple.png"
+        ],
+        "raw_icon_layers_and_default_atlas_actually_viewed": true,
+        "game_capture": false
+      }
+    ],
+    "observations": [
+      {
+        "case_key": "ars_nouveau:sorcerer",
+        "semantic_group": "cultist_belted_cloth",
+        "observation": "低矮宽领、短包裹上衣、两侧金扣和短直靴。大块紫布以有限深浅分出折边；白色衣料是主体材质，不能因白底清理而删掉。"
+      },
+      {
+        "case_key": "ars_nouveau:arcanist",
+        "semantic_group": "wizard_hat_robe_variants",
+        "observation": "折弯尖帽与金带、长袍两条直襟和中间暗色开口，裤腰与短靴紧凑。128图集服务多层帽与实际UV，不把分辨率当精致程度。"
+      },
+      {
+        "case_key": "ars_nouveau:battlemage",
+        "semantic_group": "cultist_belted_cloth",
+        "observation": "紧凑方兜帽、短胸片斜带和金扣、腿甲髋部金角、直筒靴。用大暗紫区域保留盔甲辨识，不堆密雕花。"
+      }
+    ],
+    "deduplication": [
+      "12部位归三套名称；19图标层不是19设计；染色变体不计新设计",
+      "轻甲与重甲保守并入既有束带布甲组，中甲并入既有尖帽法袍组；不增加学习组或有效独立设计信用"
+    ],
+    "source_bounds": [
+      "默认紫色RGB160,32,240仅乘layer0，金色layer1保持源RGBA",
+      "ArmorRenderer按不区分大小写隐藏两个slim手臂骨；不把重复手臂当设计",
+      "镜像/inflate/旋转立方体未按Gecko原生烘焙闭合，不用忽略这些参数的软件模型作证"
+    ],
+    "new_names": 3,
+    "new_conservative_learning_groups": 0,
+    "new_validated_independent_design_credit": 0,
+    "reference_gate_met": false,
+    "production_changes": 0,
+    "game_acceptance": false
+  },
+  "maximum_new_independent_design_credit": 0,
+  "formal_design_gate_satisfied": false,
+  "native_worn_acceptance": false,
+  "production_changes": 0,
+  "game_starts": 0,
+  "checklist_deletions": 0,
+  "hours_claimed": null
+}

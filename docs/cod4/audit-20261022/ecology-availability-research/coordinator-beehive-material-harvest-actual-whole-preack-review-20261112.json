@@ -1,0 +1,1079 @@
+{
+  "schema": "Main-actual-beehive-whole-source-material-custody-review-v1",
+  "recorded_at": "2026-11-11T20:16:45.843786+00:00",
+  "decision": "AT_MOST_ONE_RELATED_WHOLE_PENDING_AUTHOR_SUBSTANTIVE_ACK_OR_MERGE0",
+  "author_candidate": {
+    "path": "build/cod4-ecology-beehive-material-harvest-source-reading-v1-20261112/whole-policy-candidate.json",
+    "sha256": "681c7c8ae5702d8fd023eb375adee91ae8639164cf76b8f4138d0acb811f0d6c",
+    "bytes": 14078
+  },
+  "author_whole_source": {
+    "path": "build/cod4-ecology-beehive-material-harvest-source-reading-v1-20261112/whole-source-reading.json",
+    "sha256": "36aaeb3f85a874890cafc817d9a4c1a8913a3ce4762d2db648e5b24e6d313458",
+    "bytes": 61074
+  },
+  "complete_comparison": {
+    "path": "build/cod4-ecology-beehive-material-harvest-source-reading-v1-20261112/bounded-whole-comparisons.json",
+    "sha256": "59599722f38825f2092d3931acf45dd128f4ceb87b13640704dca582acb07085",
+    "bytes": 55367
+  },
+  "actual_Main_source_coverage": {
+    "source_entries": 15,
+    "ranges": 22,
+    "unique_lines": 1040,
+    "whole_files": 5,
+    "raw_base_tags": 3,
+    "source_count_credit": 0
+  },
+  "actual_Main_source_ranges": [
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/BeehiveBlock.java",
+      "local_source": null,
+      "source_sha256": "6392a6c1b876f588055a45d0b0e59dddf45df8e04f3a92a8b3817fad30c2a0ad",
+      "source_bytes": 14841,
+      "lines": [
+        1,
+        295
+      ],
+      "raw_utf8_keepends": "package net.minecraft.world.level.block;\n\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.core.particles.ParticleTypes;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.util.Mth;\nimport net.minecraft.util.RandomSource;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.animal.Bee;\nimport net.minecraft.world.entity.boss.wither.WitherBoss;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.item.PrimedTnt;\nimport net.minecraft.world.entity.monster.Creeper;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.entity.projectile.WitherSkull;\nimport net.minecraft.world.entity.vehicle.MinecartTNT;\nimport net.minecraft.world.item.BlockItem;\nimport net.minecraft.world.item.Item;\nimport net.minecraft.world.item.ItemStack;\nimport net.minecraft.world.item.Items;\nimport net.minecraft.world.item.context.BlockPlaceContext;\nimport net.minecraft.world.item.enchantment.EnchantmentHelper;\nimport net.minecraft.world.item.enchantment.Enchantments;\nimport net.minecraft.world.level.GameRules;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.LevelAccessor;\nimport net.minecraft.world.level.block.entity.BeehiveBlockEntity;\nimport net.minecraft.world.level.block.entity.BlockEntity;\nimport net.minecraft.world.level.block.entity.BlockEntityTicker;\nimport net.minecraft.world.level.block.entity.BlockEntityType;\nimport net.minecraft.world.level.block.state.BlockBehaviour;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.block.state.StateDefinition;\nimport net.minecraft.world.level.block.state.properties.BlockStateProperties;\nimport net.minecraft.world.level.block.state.properties.DirectionProperty;\nimport net.minecraft.world.level.block.state.properties.IntegerProperty;\nimport net.minecraft.world.level.gameevent.GameEvent;\nimport net.minecraft.world.level.storage.loot.LootParams;\nimport net.minecraft.world.level.storage.loot.parameters.LootContextParams;\nimport net.minecraft.world.phys.AABB;\nimport net.minecraft.world.phys.BlockHitResult;\nimport net.minecraft.world.phys.shapes.VoxelShape;\n\npublic class BeehiveBlock extends BaseEntityBlock {\n   public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;\n   public static final IntegerProperty HONEY_LEVEL = BlockStateProperties.LEVEL_HONEY;\n   public static final int MAX_HONEY_LEVELS = 5;\n   private static final int SHEARED_HONEYCOMB_COUNT = 3;\n\n   public BeehiveBlock(BlockBehaviour.Properties p_49568_) {\n      super(p_49568_);\n      this.registerDefaultState(this.stateDefinition.any().setValue(HONEY_LEVEL, Integer.valueOf(0)).setValue(FACING, Direction.NORTH));\n   }\n\n   public boolean hasAnalogOutputSignal(BlockState p_49618_) {\n      return true;\n   }\n\n   public int getAnalogOutputSignal(BlockState p_49620_, Level p_49621_, BlockPos p_49622_) {\n      return p_49620_.getValue(HONEY_LEVEL);\n   }\n   // Forge: Fixed MC-227255 Beehives and bee nests do not rotate/mirror correctly in structure blocks\n   @Override public BlockState rotate(BlockState blockState, net.minecraft.world.level.block.Rotation rotation) { return blockState.setValue(FACING, rotation.rotate(blockState.getValue(FACING))); }\n   @Override public BlockState mirror(BlockState blockState, net.minecraft.world.level.block.Mirror mirror) { return blockState.rotate(mirror.getRotation(blockState.getValue(FACING))); }\n\n   public void playerDestroy(Level p_49584_, Player p_49585_, BlockPos p_49586_, BlockState p_49587_, @Nullable BlockEntity p_49588_, ItemStack p_49589_) {\n      super.playerDestroy(p_49584_, p_49585_, p_49586_, p_49587_, p_49588_, p_49589_);\n      if (!p_49584_.isClientSide && p_49588_ instanceof BeehiveBlockEntity beehiveblockentity) {\n         if (EnchantmentHelper.getItemEnchantmentLevel(Enchantments.SILK_TOUCH, p_49589_) == 0) {\n            beehiveblockentity.emptyAllLivingFromHive(p_49585_, p_49587_, BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);\n            p_49584_.updateNeighbourForOutputSignal(p_49586_, this);\n            this.angerNearbyBees(p_49584_, p_49586_);\n         }\n\n         CriteriaTriggers.BEE_NEST_DESTROYED.trigger((ServerPlayer)p_49585_, p_49587_, p_49589_, beehiveblockentity.getOccupantCount());\n      }\n\n   }\n\n   private void angerNearbyBees(Level p_49650_, BlockPos p_49651_) {\n      List<Bee> list = p_49650_.getEntitiesOfClass(Bee.class, (new AABB(p_49651_)).inflate(8.0D, 6.0D, 8.0D));\n      if (!list.isEmpty()) {\n         List<Player> list1 = p_49650_.getEntitiesOfClass(Player.class, (new AABB(p_49651_)).inflate(8.0D, 6.0D, 8.0D));\n         if (list1.isEmpty()) return; //Forge: Prevent Error when no players are around.\n         int i = list1.size();\n\n         for(Bee bee : list) {\n            if (bee.getTarget() == null) {\n               bee.setTarget(list1.get(p_49650_.random.nextInt(i)));\n            }\n         }\n      }\n\n   }\n\n   public static void dropHoneycomb(Level p_49601_, BlockPos p_49602_) {\n      popResource(p_49601_, p_49602_, new ItemStack(Items.HONEYCOMB, 3));\n   }\n\n   public InteractionResult use(BlockState p_49624_, Level p_49625_, BlockPos p_49626_, Player p_49627_, InteractionHand p_49628_, BlockHitResult p_49629_) {\n      ItemStack itemstack = p_49627_.getItemInHand(p_49628_);\n      int i = p_49624_.getValue(HONEY_LEVEL);\n      boolean flag = false;\n      if (i >= 5) {\n         Item item = itemstack.getItem();\n         if (itemstack.canPerformAction(net.minecraftforge.common.ToolActions.SHEARS_HARVEST)) {\n            p_49625_.playSound(p_49627_, p_49627_.getX(), p_49627_.getY(), p_49627_.getZ(), SoundEvents.BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);\n            dropHoneycomb(p_49625_, p_49626_);\n            itemstack.hurtAndBreak(1, p_49627_, (p_49571_) -> {\n               p_49571_.broadcastBreakEvent(p_49628_);\n            });\n            flag = true;\n            p_49625_.gameEvent(p_49627_, GameEvent.SHEAR, p_49626_);\n         } else if (itemstack.is(Items.GLASS_BOTTLE)) {\n            itemstack.shrink(1);\n            p_49625_.playSound(p_49627_, p_49627_.getX(), p_49627_.getY(), p_49627_.getZ(), SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0F, 1.0F);\n            if (itemstack.isEmpty()) {\n               p_49627_.setItemInHand(p_49628_, new ItemStack(Items.HONEY_BOTTLE));\n            } else if (!p_49627_.getInventory().add(new ItemStack(Items.HONEY_BOTTLE))) {\n               p_49627_.drop(new ItemStack(Items.HONEY_BOTTLE), false);\n            }\n\n            flag = true;\n            p_49625_.gameEvent(p_49627_, GameEvent.FLUID_PICKUP, p_49626_);\n         }\n\n         if (!p_49625_.isClientSide() && flag) {\n            p_49627_.awardStat(Stats.ITEM_USED.get(item));\n         }\n      }\n\n      if (flag) {\n         if (!CampfireBlock.isSmokeyPos(p_49625_, p_49626_)) {\n            if (this.hiveContainsBees(p_49625_, p_49626_)) {\n               this.angerNearbyBees(p_49625_, p_49626_);\n            }\n\n            this.releaseBeesAndResetHoneyLevel(p_49625_, p_49624_, p_49626_, p_49627_, BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);\n         } else {\n            this.resetHoneyLevel(p_49625_, p_49624_, p_49626_);\n         }\n\n         return InteractionResult.sidedSuccess(p_49625_.isClientSide);\n      } else {\n         return super.use(p_49624_, p_49625_, p_49626_, p_49627_, p_49628_, p_49629_);\n      }\n   }\n\n   private boolean hiveContainsBees(Level p_49655_, BlockPos p_49656_) {\n      BlockEntity blockentity = p_49655_.getBlockEntity(p_49656_);\n      if (blockentity instanceof BeehiveBlockEntity beehiveblockentity) {\n         return !beehiveblockentity.isEmpty();\n      } else {\n         return false;\n      }\n   }\n\n   public void releaseBeesAndResetHoneyLevel(Level p_49595_, BlockState p_49596_, BlockPos p_49597_, @Nullable Player p_49598_, BeehiveBlockEntity.BeeReleaseStatus p_49599_) {\n      this.resetHoneyLevel(p_49595_, p_49596_, p_49597_);\n      BlockEntity blockentity = p_49595_.getBlockEntity(p_49597_);\n      if (blockentity instanceof BeehiveBlockEntity beehiveblockentity) {\n         beehiveblockentity.emptyAllLivingFromHive(p_49598_, p_49596_, p_49599_);\n      }\n\n   }\n\n   public void resetHoneyLevel(Level p_49591_, BlockState p_49592_, BlockPos p_49593_) {\n      p_49591_.setBlock(p_49593_, p_49592_.setValue(HONEY_LEVEL, Integer.valueOf(0)), 3);\n   }\n\n   public void animateTick(BlockState p_220773_, Level p_220774_, BlockPos p_220775_, RandomSource p_220776_) {\n      if (p_220773_.getValue(HONEY_LEVEL) >= 5) {\n         for(int i = 0; i < p_220776_.nextInt(1) + 1; ++i) {\n            this.trySpawnDripParticles(p_220774_, p_220775_, p_220773_);\n         }\n      }\n\n   }\n\n   private void trySpawnDripParticles(Level p_49604_, BlockPos p_49605_, BlockState p_49606_) {\n      if (p_49606_.getFluidState().isEmpty() && !(p_49604_.random.nextFloat() < 0.3F)) {\n         VoxelShape voxelshape = p_49606_.getCollisionShape(p_49604_, p_49605_);\n         double d0 = voxelshape.max(Direction.Axis.Y);\n         if (d0 >= 1.0D && !p_49606_.is(BlockTags.IMPERMEABLE)) {\n            double d1 = voxelshape.min(Direction.Axis.Y);\n            if (d1 > 0.0D) {\n               this.spawnParticle(p_49604_, p_49605_, voxelshape, (double)p_49605_.getY() + d1 - 0.05D);\n            } else {\n               BlockPos blockpos = p_49605_.below();\n               BlockState blockstate = p_49604_.getBlockState(blockpos);\n               VoxelShape voxelshape1 = blockstate.getCollisionShape(p_49604_, blockpos);\n               double d2 = voxelshape1.max(Direction.Axis.Y);\n               if ((d2 < 1.0D || !blockstate.isCollisionShapeFullBlock(p_49604_, blockpos)) && blockstate.getFluidState().isEmpty()) {\n                  this.spawnParticle(p_49604_, p_49605_, voxelshape, (double)p_49605_.getY() - 0.05D);\n               }\n            }\n         }\n\n      }\n   }\n\n   private void spawnParticle(Level p_49613_, BlockPos p_49614_, VoxelShape p_49615_, double p_49616_) {\n      this.spawnFluidParticle(p_49613_, (double)p_49614_.getX() + p_49615_.min(Direction.Axis.X), (double)p_49614_.getX() + p_49615_.max(Direction.Axis.X), (double)p_49614_.getZ() + p_49615_.min(Direction.Axis.Z), (double)p_49614_.getZ() + p_49615_.max(Direction.Axis.Z), p_49616_);\n   }\n\n   private void spawnFluidParticle(Level p_49577_, double p_49578_, double p_49579_, double p_49580_, double p_49581_, double p_49582_) {\n      p_49577_.addParticle(ParticleTypes.DRIPPING_HONEY, Mth.lerp(p_49577_.random.nextDouble(), p_49578_, p_49579_), p_49582_, Mth.lerp(p_49577_.random.nextDouble(), p_49580_, p_49581_), 0.0D, 0.0D, 0.0D);\n   }\n\n   public BlockState getStateForPlacement(BlockPlaceContext p_49573_) {\n      return this.defaultBlockState().setValue(FACING, p_49573_.getHorizontalDirection().getOpposite());\n   }\n\n   protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> p_49646_) {\n      p_49646_.add(HONEY_LEVEL, FACING);\n   }\n\n   public RenderShape getRenderShape(BlockState p_49653_) {\n      return RenderShape.MODEL;\n   }\n\n   @Nullable\n   public BlockEntity newBlockEntity(BlockPos p_152184_, BlockState p_152185_) {\n      return new BeehiveBlockEntity(p_152184_, p_152185_);\n   }\n\n   @Nullable\n   public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level p_152180_, BlockState p_152181_, BlockEntityType<T> p_152182_) {\n      return p_152180_.isClientSide ? null : createTickerHelper(p_152182_, BlockEntityType.BEEHIVE, BeehiveBlockEntity::serverTick);\n   }\n\n   public void playerWillDestroy(Level p_49608_, BlockPos p_49609_, BlockState p_49610_, Player p_49611_) {\n      if (!p_49608_.isClientSide && p_49611_.isCreative() && p_49608_.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS)) {\n         BlockEntity blockentity = p_49608_.getBlockEntity(p_49609_);\n         if (blockentity instanceof BeehiveBlockEntity) {\n            BeehiveBlockEntity beehiveblockentity = (BeehiveBlockEntity)blockentity;\n            ItemStack itemstack = new ItemStack(this);\n            int i = p_49610_.getValue(HONEY_LEVEL);\n            boolean flag = !beehiveblockentity.isEmpty();\n            if (flag || i > 0) {\n               if (flag) {\n                  CompoundTag compoundtag = new CompoundTag();\n                  compoundtag.put(\"Bees\", beehiveblockentity.writeBees());\n                  BlockItem.setBlockEntityData(itemstack, BlockEntityType.BEEHIVE, compoundtag);\n               }\n\n               CompoundTag compoundtag1 = new CompoundTag();\n               compoundtag1.putInt(\"honey_level\", i);\n               itemstack.addTagElement(\"BlockStateTag\", compoundtag1);\n               ItemEntity itementity = new ItemEntity(p_49608_, (double)p_49609_.getX(), (double)p_49609_.getY(), (double)p_49609_.getZ(), itemstack);\n               itementity.setDefaultPickUpDelay();\n               p_49608_.addFreshEntity(itementity);\n            }\n         }\n      }\n\n      super.playerWillDestroy(p_49608_, p_49609_, p_49610_, p_49611_);\n   }\n\n   public List<ItemStack> getDrops(BlockState p_49636_, LootParams.Builder p_287581_) {\n      Entity entity = p_287581_.getOptionalParameter(LootContextParams.THIS_ENTITY);\n      if (entity instanceof PrimedTnt || entity instanceof Creeper || entity instanceof WitherSkull || entity instanceof WitherBoss || entity instanceof MinecartTNT) {\n         BlockEntity blockentity = p_287581_.getOptionalParameter(LootContextParams.BLOCK_ENTITY);\n         if (blockentity instanceof BeehiveBlockEntity) {\n            BeehiveBlockEntity beehiveblockentity = (BeehiveBlockEntity)blockentity;\n            beehiveblockentity.emptyAllLivingFromHive((Player)null, p_49636_, BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);\n         }\n      }\n\n      return super.getDrops(p_49636_, p_287581_);\n   }\n\n   public BlockState updateShape(BlockState p_49639_, Direction p_49640_, BlockState p_49641_, LevelAccessor p_49642_, BlockPos p_49643_, BlockPos p_49644_) {\n      if (p_49642_.getBlockState(p_49644_).getBlock() instanceof FireBlock) {\n         BlockEntity blockentity = p_49642_.getBlockEntity(p_49643_);\n         if (blockentity instanceof BeehiveBlockEntity) {\n            BeehiveBlockEntity beehiveblockentity = (BeehiveBlockEntity)blockentity;\n            beehiveblockentity.emptyAllLivingFromHive((Player)null, p_49639_, BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);\n         }\n      }\n\n      return super.updateShape(p_49639_, p_49640_, p_49641_, p_49642_, p_49643_, p_49644_);\n   }\n}\n",
+      "raw_sha256": "6392a6c1b876f588055a45d0b0e59dddf45df8e04f3a92a8b3817fad30c2a0ad",
+      "whole_file_actually_read": true
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/entity/BeehiveBlockEntity.java",
+      "local_source": null,
+      "source_sha256": "76889fe9e2945af819f5ced6333eff8988c6caa9c096952fcdec0367f3a951d8",
+      "source_bytes": 14384,
+      "lines": [
+        1,
+        342
+      ],
+      "raw_utf8_keepends": "package net.minecraft.world.level.block.entity;\n\nimport com.google.common.collect.Lists;\nimport java.util.Arrays;\nimport java.util.Iterator;\nimport java.util.List;\nimport javax.annotation.Nullable;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.core.Direction;\nimport net.minecraft.nbt.CompoundTag;\nimport net.minecraft.nbt.ListTag;\nimport net.minecraft.nbt.NbtUtils;\nimport net.minecraft.network.protocol.game.DebugPackets;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.sounds.SoundSource;\nimport net.minecraft.tags.BlockTags;\nimport net.minecraft.tags.EntityTypeTags;\nimport net.minecraft.util.VisibleForDebug;\nimport net.minecraft.world.entity.Entity;\nimport net.minecraft.world.entity.EntityType;\nimport net.minecraft.world.entity.animal.Bee;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.BeehiveBlock;\nimport net.minecraft.world.level.block.CampfireBlock;\nimport net.minecraft.world.level.block.FireBlock;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class BeehiveBlockEntity extends BlockEntity {\n   public static final String TAG_FLOWER_POS = \"FlowerPos\";\n   public static final String MIN_OCCUPATION_TICKS = \"MinOccupationTicks\";\n   public static final String ENTITY_DATA = \"EntityData\";\n   public static final String TICKS_IN_HIVE = \"TicksInHive\";\n   public static final String HAS_NECTAR = \"HasNectar\";\n   public static final String BEES = \"Bees\";\n   private static final List<String> IGNORED_BEE_TAGS = Arrays.asList(\"Air\", \"ArmorDropChances\", \"ArmorItems\", \"Brain\", \"CanPickUpLoot\", \"DeathTime\", \"FallDistance\", \"FallFlying\", \"Fire\", \"HandDropChances\", \"HandItems\", \"HurtByTimestamp\", \"HurtTime\", \"LeftHanded\", \"Motion\", \"NoGravity\", \"OnGround\", \"PortalCooldown\", \"Pos\", \"Rotation\", \"CannotEnterHiveTicks\", \"TicksSincePollination\", \"CropsGrownSincePollination\", \"HivePos\", \"Passengers\", \"Leash\", \"UUID\");\n   public static final int MAX_OCCUPANTS = 3;\n   private static final int MIN_TICKS_BEFORE_REENTERING_HIVE = 400;\n   private static final int MIN_OCCUPATION_TICKS_NECTAR = 2400;\n   public static final int MIN_OCCUPATION_TICKS_NECTARLESS = 600;\n   private final List<BeehiveBlockEntity.BeeData> stored = Lists.newArrayList();\n   @Nullable\n   private BlockPos savedFlowerPos;\n\n   public BeehiveBlockEntity(BlockPos p_155134_, BlockState p_155135_) {\n      super(BlockEntityType.BEEHIVE, p_155134_, p_155135_);\n   }\n\n   public void setChanged() {\n      if (this.isFireNearby()) {\n         this.emptyAllLivingFromHive((Player)null, this.level.getBlockState(this.getBlockPos()), BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);\n      }\n\n      super.setChanged();\n   }\n\n   public boolean isFireNearby() {\n      if (this.level == null) {\n         return false;\n      } else {\n         for(BlockPos blockpos : BlockPos.betweenClosed(this.worldPosition.offset(-1, -1, -1), this.worldPosition.offset(1, 1, 1))) {\n            if (this.level.getBlockState(blockpos).getBlock() instanceof FireBlock) {\n               return true;\n            }\n         }\n\n         return false;\n      }\n   }\n\n   public boolean isEmpty() {\n      return this.stored.isEmpty();\n   }\n\n   public boolean isFull() {\n      return this.stored.size() == 3;\n   }\n\n   public void emptyAllLivingFromHive(@Nullable Player p_58749_, BlockState p_58750_, BeehiveBlockEntity.BeeReleaseStatus p_58751_) {\n      List<Entity> list = this.releaseAllOccupants(p_58750_, p_58751_);\n      if (p_58749_ != null) {\n         for(Entity entity : list) {\n            if (entity instanceof Bee) {\n               Bee bee = (Bee)entity;\n               if (p_58749_.position().distanceToSqr(entity.position()) <= 16.0D) {\n                  if (!this.isSedated()) {\n                     bee.setTarget(p_58749_);\n                  } else {\n                     bee.setStayOutOfHiveCountdown(400);\n                  }\n               }\n            }\n         }\n      }\n\n   }\n\n   private List<Entity> releaseAllOccupants(BlockState p_58760_, BeehiveBlockEntity.BeeReleaseStatus p_58761_) {\n      List<Entity> list = Lists.newArrayList();\n      this.stored.removeIf((p_272556_) -> {\n         return releaseOccupant(this.level, this.worldPosition, p_58760_, p_272556_, list, p_58761_, this.savedFlowerPos);\n      });\n      if (!list.isEmpty()) {\n         super.setChanged();\n      }\n\n      return list;\n   }\n\n   public void addOccupant(Entity p_58742_, boolean p_58743_) {\n      this.addOccupantWithPresetTicks(p_58742_, p_58743_, 0);\n   }\n\n   @VisibleForDebug\n   public int getOccupantCount() {\n      return this.stored.size();\n   }\n\n   public static int getHoneyLevel(BlockState p_58753_) {\n      return p_58753_.getValue(BeehiveBlock.HONEY_LEVEL);\n   }\n\n   @VisibleForDebug\n   public boolean isSedated() {\n      return CampfireBlock.isSmokeyPos(this.level, this.getBlockPos());\n   }\n\n   public void addOccupantWithPresetTicks(Entity p_58745_, boolean p_58746_, int p_58747_) {\n      if (this.stored.size() < 3) {\n         p_58745_.stopRiding();\n         p_58745_.ejectPassengers();\n         CompoundTag compoundtag = new CompoundTag();\n         p_58745_.save(compoundtag);\n         this.storeBee(compoundtag, p_58747_, p_58746_);\n         if (this.level != null) {\n            if (p_58745_ instanceof Bee) {\n               Bee bee = (Bee)p_58745_;\n               if (bee.hasSavedFlowerPos() && (!this.hasSavedFlowerPos() || this.level.random.nextBoolean())) {\n                  this.savedFlowerPos = bee.getSavedFlowerPos();\n               }\n            }\n\n            BlockPos blockpos = this.getBlockPos();\n            this.level.playSound((Player)null, (double)blockpos.getX(), (double)blockpos.getY(), (double)blockpos.getZ(), SoundEvents.BEEHIVE_ENTER, SoundSource.BLOCKS, 1.0F, 1.0F);\n            this.level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(p_58745_, this.getBlockState()));\n         }\n\n         p_58745_.discard();\n         super.setChanged();\n      }\n   }\n\n   public void storeBee(CompoundTag p_155158_, int p_155159_, boolean p_155160_) {\n      this.stored.add(new BeehiveBlockEntity.BeeData(p_155158_, p_155159_, p_155160_ ? 2400 : 600));\n   }\n\n   private static boolean releaseOccupant(Level p_155137_, BlockPos p_155138_, BlockState p_155139_, BeehiveBlockEntity.BeeData p_155140_, @Nullable List<Entity> p_155141_, BeehiveBlockEntity.BeeReleaseStatus p_155142_, @Nullable BlockPos p_155143_) {\n      if ((p_155137_.isNight() || p_155137_.isRaining()) && p_155142_ != BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY) {\n         return false;\n      } else {\n         CompoundTag compoundtag = p_155140_.entityData.copy();\n         removeIgnoredBeeTags(compoundtag);\n         compoundtag.put(\"HivePos\", NbtUtils.writeBlockPos(p_155138_));\n         compoundtag.putBoolean(\"NoGravity\", true);\n         Direction direction = p_155139_.getValue(BeehiveBlock.FACING);\n         BlockPos blockpos = p_155138_.relative(direction);\n         boolean flag = !p_155137_.getBlockState(blockpos).getCollisionShape(p_155137_, blockpos).isEmpty();\n         if (flag && p_155142_ != BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY) {\n            return false;\n         } else {\n            Entity entity = EntityType.loadEntityRecursive(compoundtag, p_155137_, (p_58740_) -> {\n               return p_58740_;\n            });\n            if (entity != null) {\n               if (!entity.getType().is(EntityTypeTags.BEEHIVE_INHABITORS)) {\n                  return false;\n               } else {\n                  if (entity instanceof Bee) {\n                     Bee bee = (Bee)entity;\n                     if (p_155143_ != null && !bee.hasSavedFlowerPos() && p_155137_.random.nextFloat() < 0.9F) {\n                        bee.setSavedFlowerPos(p_155143_);\n                     }\n\n                     if (p_155142_ == BeehiveBlockEntity.BeeReleaseStatus.HONEY_DELIVERED) {\n                        bee.dropOffNectar();\n                        if (p_155139_.is(BlockTags.BEEHIVES, (p_202037_) -> {\n                           return p_202037_.hasProperty(BeehiveBlock.HONEY_LEVEL);\n                        })) {\n                           int i = getHoneyLevel(p_155139_);\n                           if (i < 5) {\n                              int j = p_155137_.random.nextInt(100) == 0 ? 2 : 1;\n                              if (i + j > 5) {\n                                 --j;\n                              }\n\n                              p_155137_.setBlockAndUpdate(p_155138_, p_155139_.setValue(BeehiveBlock.HONEY_LEVEL, Integer.valueOf(i + j)));\n                           }\n                        }\n                     }\n\n                     setBeeReleaseData(p_155140_.ticksInHive, bee);\n                     if (p_155141_ != null) {\n                        p_155141_.add(bee);\n                     }\n\n                     float f = entity.getBbWidth();\n                     double d3 = flag ? 0.0D : 0.55D + (double)(f / 2.0F);\n                     double d0 = (double)p_155138_.getX() + 0.5D + d3 * (double)direction.getStepX();\n                     double d1 = (double)p_155138_.getY() + 0.5D - (double)(entity.getBbHeight() / 2.0F);\n                     double d2 = (double)p_155138_.getZ() + 0.5D + d3 * (double)direction.getStepZ();\n                     entity.moveTo(d0, d1, d2, entity.getYRot(), entity.getXRot());\n                  }\n\n                  p_155137_.playSound((Player)null, p_155138_, SoundEvents.BEEHIVE_EXIT, SoundSource.BLOCKS, 1.0F, 1.0F);\n                  p_155137_.gameEvent(GameEvent.BLOCK_CHANGE, p_155138_, GameEvent.Context.of(entity, p_155137_.getBlockState(p_155138_)));\n                  return p_155137_.addFreshEntity(entity);\n               }\n            } else {\n               return false;\n            }\n         }\n      }\n   }\n\n   static void removeIgnoredBeeTags(CompoundTag p_155162_) {\n      for(String s : IGNORED_BEE_TAGS) {\n         p_155162_.remove(s);\n      }\n\n   }\n\n   private static void setBeeReleaseData(int p_58737_, Bee p_58738_) {\n      int i = p_58738_.getAge();\n      if (i < 0) {\n         p_58738_.setAge(Math.min(0, i + p_58737_));\n      } else if (i > 0) {\n         p_58738_.setAge(Math.max(0, i - p_58737_));\n      }\n\n      p_58738_.setInLoveTime(Math.max(0, p_58738_.getInLoveTime() - p_58737_));\n   }\n\n   private boolean hasSavedFlowerPos() {\n      return this.savedFlowerPos != null;\n   }\n\n   private static void tickOccupants(Level p_155150_, BlockPos p_155151_, BlockState p_155152_, List<BeehiveBlockEntity.BeeData> p_155153_, @Nullable BlockPos p_155154_) {\n      boolean flag = false;\n\n      BeehiveBlockEntity.BeeData beehiveblockentity$beedata;\n      for(Iterator<BeehiveBlockEntity.BeeData> iterator = p_155153_.iterator(); iterator.hasNext(); ++beehiveblockentity$beedata.ticksInHive) {\n         beehiveblockentity$beedata = iterator.next();\n         if (beehiveblockentity$beedata.ticksInHive > beehiveblockentity$beedata.minOccupationTicks) {\n            BeehiveBlockEntity.BeeReleaseStatus beehiveblockentity$beereleasestatus = beehiveblockentity$beedata.entityData.getBoolean(\"HasNectar\") ? BeehiveBlockEntity.BeeReleaseStatus.HONEY_DELIVERED : BeehiveBlockEntity.BeeReleaseStatus.BEE_RELEASED;\n            if (releaseOccupant(p_155150_, p_155151_, p_155152_, beehiveblockentity$beedata, (List<Entity>)null, beehiveblockentity$beereleasestatus, p_155154_)) {\n               flag = true;\n               iterator.remove();\n            }\n         }\n      }\n\n      if (flag) {\n         setChanged(p_155150_, p_155151_, p_155152_);\n      }\n\n   }\n\n   public static void serverTick(Level p_155145_, BlockPos p_155146_, BlockState p_155147_, BeehiveBlockEntity p_155148_) {\n      tickOccupants(p_155145_, p_155146_, p_155147_, p_155148_.stored, p_155148_.savedFlowerPos);\n      if (!p_155148_.stored.isEmpty() && p_155145_.getRandom().nextDouble() < 0.005D) {\n         double d0 = (double)p_155146_.getX() + 0.5D;\n         double d1 = (double)p_155146_.getY();\n         double d2 = (double)p_155146_.getZ() + 0.5D;\n         p_155145_.playSound((Player)null, d0, d1, d2, SoundEvents.BEEHIVE_WORK, SoundSource.BLOCKS, 1.0F, 1.0F);\n      }\n\n      DebugPackets.sendHiveInfo(p_155145_, p_155146_, p_155147_, p_155148_);\n   }\n\n   public void load(CompoundTag p_155156_) {\n      super.load(p_155156_);\n      this.stored.clear();\n      ListTag listtag = p_155156_.getList(\"Bees\", 10);\n\n      for(int i = 0; i < listtag.size(); ++i) {\n         CompoundTag compoundtag = listtag.getCompound(i);\n         BeehiveBlockEntity.BeeData beehiveblockentity$beedata = new BeehiveBlockEntity.BeeData(compoundtag.getCompound(\"EntityData\"), compoundtag.getInt(\"TicksInHive\"), compoundtag.getInt(\"MinOccupationTicks\"));\n         this.stored.add(beehiveblockentity$beedata);\n      }\n\n      this.savedFlowerPos = null;\n      if (p_155156_.contains(\"FlowerPos\")) {\n         this.savedFlowerPos = NbtUtils.readBlockPos(p_155156_.getCompound(\"FlowerPos\"));\n      }\n\n   }\n\n   protected void saveAdditional(CompoundTag p_187467_) {\n      super.saveAdditional(p_187467_);\n      p_187467_.put(\"Bees\", this.writeBees());\n      if (this.hasSavedFlowerPos()) {\n         p_187467_.put(\"FlowerPos\", NbtUtils.writeBlockPos(this.savedFlowerPos));\n      }\n\n   }\n\n   public ListTag writeBees() {\n      ListTag listtag = new ListTag();\n\n      for(BeehiveBlockEntity.BeeData beehiveblockentity$beedata : this.stored) {\n         CompoundTag compoundtag = beehiveblockentity$beedata.entityData.copy();\n         compoundtag.remove(\"UUID\");\n         CompoundTag compoundtag1 = new CompoundTag();\n         compoundtag1.put(\"EntityData\", compoundtag);\n         compoundtag1.putInt(\"TicksInHive\", beehiveblockentity$beedata.ticksInHive);\n         compoundtag1.putInt(\"MinOccupationTicks\", beehiveblockentity$beedata.minOccupationTicks);\n         listtag.add(compoundtag1);\n      }\n\n      return listtag;\n   }\n\n   static class BeeData {\n      final CompoundTag entityData;\n      int ticksInHive;\n      final int minOccupationTicks;\n\n      BeeData(CompoundTag p_58786_, int p_58787_, int p_58788_) {\n         BeehiveBlockEntity.removeIgnoredBeeTags(p_58786_);\n         this.entityData = p_58786_;\n         this.ticksInHive = p_58787_;\n         this.minOccupationTicks = p_58788_;\n      }\n   }\n\n   public static enum BeeReleaseStatus {\n      HONEY_DELIVERED,\n      BEE_RELEASED,\n      EMERGENCY;\n   }\n}",
+      "raw_sha256": "76889fe9e2945af819f5ced6333eff8988c6caa9c096952fcdec0367f3a951d8",
+      "whole_file_actually_read": true
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/HoneyBottleItem.java",
+      "local_source": null,
+      "source_sha256": "f158c35871ecf63bf56a1c741d92e9787684a0276ca7928da7a4a296aa2b3f6a",
+      "source_bytes": 2157,
+      "lines": [
+        1,
+        67
+      ],
+      "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.sounds.SoundEvent;\nimport net.minecraft.sounds.SoundEvents;\nimport net.minecraft.stats.Stats;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.effect.MobEffects;\nimport net.minecraft.world.entity.LivingEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\n\npublic class HoneyBottleItem extends Item {\n   private static final int DRINK_DURATION = 40;\n\n   public HoneyBottleItem(Item.Properties p_41346_) {\n      super(p_41346_);\n   }\n\n   public ItemStack finishUsingItem(ItemStack p_41348_, Level p_41349_, LivingEntity p_41350_) {\n      super.finishUsingItem(p_41348_, p_41349_, p_41350_);\n      if (p_41350_ instanceof ServerPlayer serverplayer) {\n         CriteriaTriggers.CONSUME_ITEM.trigger(serverplayer, p_41348_);\n         serverplayer.awardStat(Stats.ITEM_USED.get(this));\n      }\n\n      if (!p_41349_.isClientSide) {\n         p_41350_.removeEffect(MobEffects.POISON);\n      }\n\n      if (p_41348_.isEmpty()) {\n         return new ItemStack(Items.GLASS_BOTTLE);\n      } else {\n         if (p_41350_ instanceof Player && !((Player)p_41350_).getAbilities().instabuild) {\n            ItemStack itemstack = new ItemStack(Items.GLASS_BOTTLE);\n            Player player = (Player)p_41350_;\n            if (!player.getInventory().add(itemstack)) {\n               player.drop(itemstack, false);\n            }\n         }\n\n         return p_41348_;\n      }\n   }\n\n   public int getUseDuration(ItemStack p_41360_) {\n      return 40;\n   }\n\n   public UseAnim getUseAnimation(ItemStack p_41358_) {\n      return UseAnim.DRINK;\n   }\n\n   public SoundEvent getDrinkingSound() {\n      return SoundEvents.HONEY_DRINK;\n   }\n\n   public SoundEvent getEatingSound() {\n      return SoundEvents.HONEY_DRINK;\n   }\n\n   public InteractionResultHolder<ItemStack> use(Level p_41352_, Player p_41353_, InteractionHand p_41354_) {\n      return ItemUtils.startUsingInstantly(p_41352_, p_41353_, p_41354_);\n   }\n}",
+      "raw_sha256": "f158c35871ecf63bf56a1c741d92e9787684a0276ca7928da7a4a296aa2b3f6a",
+      "whole_file_actually_read": true
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/HoneycombItem.java",
+      "local_source": null,
+      "source_sha256": "ef1d09958b47e9dfba0abe1809194d9d1c62c94c7c7218a11959be05aca0c77e",
+      "source_bytes": 3920,
+      "lines": [
+        1,
+        71
+      ],
+      "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport com.google.common.base.Suppliers;\nimport com.google.common.collect.BiMap;\nimport com.google.common.collect.ImmutableBiMap;\nimport java.util.Optional;\nimport java.util.function.Supplier;\nimport net.minecraft.advancements.CriteriaTriggers;\nimport net.minecraft.core.BlockPos;\nimport net.minecraft.server.level.ServerPlayer;\nimport net.minecraft.world.InteractionResult;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.item.context.UseOnContext;\nimport net.minecraft.world.level.Level;\nimport net.minecraft.world.level.block.Block;\nimport net.minecraft.world.level.block.Blocks;\nimport net.minecraft.world.level.block.entity.SignBlockEntity;\nimport net.minecraft.world.level.block.entity.SignText;\nimport net.minecraft.world.level.block.state.BlockState;\nimport net.minecraft.world.level.gameevent.GameEvent;\n\npublic class HoneycombItem extends Item implements SignApplicator {\n   public static final Supplier<BiMap<Block, Block>> WAXABLES = Suppliers.memoize(() -> {\n      return ImmutableBiMap.<Block, Block>builder().put(Blocks.COPPER_BLOCK, Blocks.WAXED_COPPER_BLOCK).put(Blocks.EXPOSED_COPPER, Blocks.WAXED_EXPOSED_COPPER).put(Blocks.WEATHERED_COPPER, Blocks.WAXED_WEATHERED_COPPER).put(Blocks.OXIDIZED_COPPER, Blocks.WAXED_OXIDIZED_COPPER).put(Blocks.CUT_COPPER, Blocks.WAXED_CUT_COPPER).put(Blocks.EXPOSED_CUT_COPPER, Blocks.WAXED_EXPOSED_CUT_COPPER).put(Blocks.WEATHERED_CUT_COPPER, Blocks.WAXED_WEATHERED_CUT_COPPER).put(Blocks.OXIDIZED_CUT_COPPER, Blocks.WAXED_OXIDIZED_CUT_COPPER).put(Blocks.CUT_COPPER_SLAB, Blocks.WAXED_CUT_COPPER_SLAB).put(Blocks.EXPOSED_CUT_COPPER_SLAB, Blocks.WAXED_EXPOSED_CUT_COPPER_SLAB).put(Blocks.WEATHERED_CUT_COPPER_SLAB, Blocks.WAXED_WEATHERED_CUT_COPPER_SLAB).put(Blocks.OXIDIZED_CUT_COPPER_SLAB, Blocks.WAXED_OXIDIZED_CUT_COPPER_SLAB).put(Blocks.CUT_COPPER_STAIRS, Blocks.WAXED_CUT_COPPER_STAIRS).put(Blocks.EXPOSED_CUT_COPPER_STAIRS, Blocks.WAXED_EXPOSED_CUT_COPPER_STAIRS).put(Blocks.WEATHERED_CUT_COPPER_STAIRS, Blocks.WAXED_WEATHERED_CUT_COPPER_STAIRS).put(Blocks.OXIDIZED_CUT_COPPER_STAIRS, Blocks.WAXED_OXIDIZED_CUT_COPPER_STAIRS).build();\n   });\n   public static final Supplier<BiMap<Block, Block>> WAX_OFF_BY_BLOCK = Suppliers.memoize(() -> {\n      return WAXABLES.get().inverse();\n   });\n\n   public HoneycombItem(Item.Properties p_150867_) {\n      super(p_150867_);\n   }\n\n   public InteractionResult useOn(UseOnContext p_150869_) {\n      Level level = p_150869_.getLevel();\n      BlockPos blockpos = p_150869_.getClickedPos();\n      BlockState blockstate = level.getBlockState(blockpos);\n      return getWaxed(blockstate).map((p_238251_) -> {\n         Player player = p_150869_.getPlayer();\n         ItemStack itemstack = p_150869_.getItemInHand();\n         if (player instanceof ServerPlayer) {\n            CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger((ServerPlayer)player, blockpos, itemstack);\n         }\n\n         itemstack.shrink(1);\n         level.setBlock(blockpos, p_238251_, 11);\n         level.gameEvent(GameEvent.BLOCK_CHANGE, blockpos, GameEvent.Context.of(player, p_238251_));\n         level.levelEvent(player, 3003, blockpos, 0);\n         return InteractionResult.sidedSuccess(level.isClientSide);\n      }).orElse(InteractionResult.PASS);\n   }\n\n   public static Optional<BlockState> getWaxed(BlockState p_150879_) {\n      return Optional.ofNullable(WAXABLES.get().get(p_150879_.getBlock())).map((p_150877_) -> {\n         return p_150877_.withPropertiesOf(p_150879_);\n      });\n   }\n\n   public boolean tryApplyToSign(Level p_277838_, SignBlockEntity p_277988_, boolean p_277394_, Player p_277816_) {\n      if (p_277988_.setWaxed(true)) {\n         p_277838_.levelEvent((Player)null, 3003, p_277988_.getBlockPos(), 0);\n         return true;\n      } else {\n         return false;\n      }\n   }\n\n   public boolean canApplyToSign(SignText p_277550_, Player p_277640_) {\n      return true;\n   }\n}",
+      "raw_sha256": "ef1d09958b47e9dfba0abe1809194d9d1c62c94c7c7218a11959be05aca0c77e",
+      "whole_file_actually_read": true
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/CampfireBlock.java",
+      "local_source": null,
+      "source_sha256": "9552bb8163620823736770156b7f33a4277df6e3e5455a34e254092a67632797",
+      "source_bytes": 13227,
+      "lines": [
+        54,
+        54
+      ],
+      "raw_utf8_keepends": "   private static final VoxelShape VIRTUAL_FENCE_POST = Block.box(6.0D, 0.0D, 6.0D, 10.0D, 16.0D, 10.0D);\n",
+      "raw_sha256": "ab5d1dd5efa8330df48498b6bc6c48056407df688f10986b74b5f66aece11807",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/CampfireBlock.java",
+      "local_source": null,
+      "source_sha256": "9552bb8163620823736770156b7f33a4277df6e3e5455a34e254092a67632797",
+      "source_bytes": 13227,
+      "lines": [
+        198,
+        218
+      ],
+      "raw_utf8_keepends": "   public static boolean isSmokeyPos(Level p_51249_, BlockPos p_51250_) {\n      for(int i = 1; i <= 5; ++i) {\n         BlockPos blockpos = p_51250_.below(i);\n         BlockState blockstate = p_51249_.getBlockState(blockpos);\n         if (isLitCampfire(blockstate)) {\n            return true;\n         }\n\n         boolean flag = Shapes.joinIsNotEmpty(VIRTUAL_FENCE_POST, blockstate.getCollisionShape(p_51249_, blockpos, CollisionContext.empty()), BooleanOp.AND); // FORGE: Fix MC-201374\n         if (flag) {\n            BlockState blockstate1 = p_51249_.getBlockState(blockpos.below());\n            return isLitCampfire(blockstate1);\n         }\n      }\n\n      return false;\n   }\n\n   public static boolean isLitCampfire(BlockState p_51320_) {\n      return p_51320_.hasProperty(LIT) && p_51320_.is(BlockTags.CAMPFIRES) && p_51320_.getValue(LIT);\n   }\n",
+      "raw_sha256": "c682ff4ccd27bb1e68f575afecad95f9c8e660f1a5ecff7dc06fa87ed68d1cb7",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "local_source": null,
+      "source_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "source_bytes": 27752,
+      "lines": [
+        294,
+        302
+      ],
+      "raw_utf8_keepends": "   public static void popResource(Level p_49841_, BlockPos p_49842_, ItemStack p_49843_) {\n      double d0 = (double)EntityType.ITEM.getHeight() / 2.0D;\n      double d1 = (double)p_49842_.getX() + 0.5D + Mth.nextDouble(p_49841_.random, -0.25D, 0.25D);\n      double d2 = (double)p_49842_.getY() + 0.5D + Mth.nextDouble(p_49841_.random, -0.25D, 0.25D) - d0;\n      double d3 = (double)p_49842_.getZ() + 0.5D + Mth.nextDouble(p_49841_.random, -0.25D, 0.25D);\n      popResource(p_49841_, () -> {\n         return new ItemEntity(p_49841_, d1, d2, d3, p_49843_);\n      }, p_49843_);\n   }\n",
+      "raw_sha256": "37c128282ee92eaef8839262941ea53c03147836edb843495c0ea80907258532",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/Block.java",
+      "local_source": null,
+      "source_sha256": "441d582e4dc3d22ff2289b54f9e1c10f7fc5a3c94422f047fbbefea8bec63b08",
+      "source_bytes": 27752,
+      "lines": [
+        321,
+        327
+      ],
+      "raw_utf8_keepends": "   private static void popResource(Level p_152441_, Supplier<ItemEntity> p_152442_, ItemStack p_152443_) {\n      if (!p_152441_.isClientSide && !p_152443_.isEmpty() && p_152441_.getGameRules().getBoolean(GameRules.RULE_DOBLOCKDROPS) && !p_152441_.restoringBlockSnapshots) {\n         ItemEntity itementity = p_152442_.get();\n         itementity.setDefaultPickUpDelay();\n         p_152441_.addFreshEntity(itementity);\n      }\n   }\n",
+      "raw_sha256": "7838616b622453a2949e0ce430bd2bbcb308ee69aa8d54ce1deee4a22e0a78ed",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "local_source": null,
+      "source_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "source_bytes": 131153,
+      "lines": [
+        974,
+        987
+      ],
+      "raw_utf8_keepends": "   public MobEffectInstance removeEffectNoUpdate(@Nullable MobEffect p_21164_) {\n      return this.activeEffects.remove(p_21164_);\n   }\n\n   public boolean removeEffect(MobEffect p_21196_) {\n      if (net.minecraftforge.common.MinecraftForge.EVENT_BUS.post(new net.minecraftforge.event.entity.living.MobEffectEvent.Remove(this, p_21196_))) return false;\n      MobEffectInstance mobeffectinstance = this.removeEffectNoUpdate(p_21196_);\n      if (mobeffectinstance != null) {\n         this.onEffectRemoved(mobeffectinstance);\n         return true;\n      } else {\n         return false;\n      }\n   }\n",
+      "raw_sha256": "ee60ccadaabe9e158734493a65eca314bfae1ad6f38c9fb07021c4e6eef62817",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/Items.java",
+      "local_source": null,
+      "source_sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+      "source_bytes": 142779,
+      "lines": [
+        1191,
+        1191
+      ],
+      "raw_utf8_keepends": "   public static final Item HONEYCOMB = registerItem(\"honeycomb\", new HoneycombItem(new Item.Properties()));\n",
+      "raw_sha256": "7c67112cb7867ff1dcd0daa250887680100c789af0a44befdcdc93b59b1e0f14",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/Items.java",
+      "local_source": null,
+      "source_sha256": "fb8a94f843595f72089ce7035cbd87a9f6cb68ce93586087605ff39553a4a8b4",
+      "source_bytes": 142779,
+      "lines": [
+        1194,
+        1194
+      ],
+      "raw_utf8_keepends": "   public static final Item HONEY_BOTTLE = registerItem(\"honey_bottle\", new HoneyBottleItem((new Item.Properties()).craftRemainder(GLASS_BOTTLE).food(Foods.HONEY_BOTTLE).stacksTo(16)));\n",
+      "raw_sha256": "160deeb14c912825cc3212fb5e198e07759f2a5f924f85105dbd9e3008534408",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/food/Foods.java",
+      "local_source": null,
+      "source_sha256": "3f04cfbdf847e55a53af6a43f64b268c353b2ec90aaa3dad8ae408e311bbea1e",
+      "source_bytes": 6066,
+      "lines": [
+        29,
+        29
+      ],
+      "raw_utf8_keepends": "   public static final FoodProperties HONEY_BOTTLE = (new FoodProperties.Builder()).nutrition(6).saturationMod(0.1F).build();\n",
+      "raw_sha256": "b6b822eaa21611641662b5fded0588e9bd11fe09b7b5c2da4e08f1bebfeedc8e",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/level/block/state/properties/BlockStateProperties.java",
+      "local_source": null,
+      "source_sha256": "24b297765ac9891a1d22621b39c2eedd2880d55535fad3bac38b873b2db81864",
+      "source_bytes": 12007,
+      "lines": [
+        102,
+        102
+      ],
+      "raw_utf8_keepends": "   public static final IntegerProperty LEVEL_HONEY = IntegerProperty.create(\"honey_level\", 0, 5);\n",
+      "raw_sha256": "8e404c0187aa88dfb853338daf3d6fb2cb5d483a037fffe574c34c0505934f84",
+      "whole_file_actually_read": false
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/ItemUtils.java",
+      "local_source": null,
+      "source_sha256": "7d34ab010a4c985d545e3642bfa74c727b533b0f4db85a5ef20a09a58b008995",
+      "source_bytes": 1833,
+      "lines": [
+        1,
+        53
+      ],
+      "raw_utf8_keepends": "package net.minecraft.world.item;\n\nimport java.util.stream.Stream;\nimport net.minecraft.world.InteractionHand;\nimport net.minecraft.world.InteractionResultHolder;\nimport net.minecraft.world.entity.item.ItemEntity;\nimport net.minecraft.world.entity.player.Player;\nimport net.minecraft.world.level.Level;\n\npublic class ItemUtils {\n   public static InteractionResultHolder<ItemStack> startUsingInstantly(Level p_150960_, Player p_150961_, InteractionHand p_150962_) {\n      p_150961_.startUsingItem(p_150962_);\n      return InteractionResultHolder.consume(p_150961_.getItemInHand(p_150962_));\n   }\n\n   public static ItemStack createFilledResult(ItemStack p_41818_, Player p_41819_, ItemStack p_41820_, boolean p_41821_) {\n      boolean flag = p_41819_.getAbilities().instabuild;\n      if (p_41821_ && flag) {\n         if (!p_41819_.getInventory().contains(p_41820_)) {\n            p_41819_.getInventory().add(p_41820_);\n         }\n\n         return p_41818_;\n      } else {\n         if (!flag) {\n            p_41818_.shrink(1);\n         }\n\n         if (p_41818_.isEmpty()) {\n            return p_41820_;\n         } else {\n            if (!p_41819_.getInventory().add(p_41820_)) {\n               p_41819_.drop(p_41820_, false);\n            }\n\n            return p_41818_;\n         }\n      }\n   }\n\n   public static ItemStack createFilledResult(ItemStack p_41814_, Player p_41815_, ItemStack p_41816_) {\n      return createFilledResult(p_41814_, p_41815_, p_41816_, true);\n   }\n\n   public static void onContainerDestroyed(ItemEntity p_150953_, Stream<ItemStack> p_150954_) {\n      Level level = p_150953_.level();\n      if (!level.isClientSide) {\n         p_150954_.forEach((p_289504_) -> {\n            level.addFreshEntity(new ItemEntity(level, p_150953_.getX(), p_150953_.getY(), p_150953_.getZ(), p_289504_));\n         });\n      }\n   }\n}",
+      "raw_sha256": "7d34ab010a4c985d545e3642bfa74c727b533b0f4db85a5ef20a09a58b008995",
+      "whole_file_actually_read": true,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-mooshroom-paid-flower-next-stew-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "7e4dccd378b40e9533955d476e66f4ca24811e06ceb9c0c103d1c7eba05ce247",
+          "bytes": 67119
+        },
+        "entry": "net/minecraft/world/item/ItemUtils.java",
+        "lines": [
+          1,
+          53
+        ],
+        "entry_sha256": "7d34ab010a4c985d545e3642bfa74c727b533b0f4db85a5ef20a09a58b008995",
+        "raw_excerpt_sha256": "7d34ab010a4c985d545e3642bfa74c727b533b0f4db85a5ef20a09a58b008995",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/item/Item.java",
+      "local_source": null,
+      "source_sha256": "7acea0f9dcac2a301141e5584a9a3f35d7c7480c9ad93cfb974f39307cd30909",
+      "source_bytes": 15835,
+      "lines": [
+        139,
+        155
+      ],
+      "raw_utf8_keepends": "   public InteractionResultHolder<ItemStack> use(Level p_41432_, Player p_41433_, InteractionHand p_41434_) {\n      ItemStack itemstack = p_41433_.getItemInHand(p_41434_);\n      if (itemstack.isEdible()) {\n         if (p_41433_.canEat(itemstack.getFoodProperties(p_41433_).canAlwaysEat())) {\n            p_41433_.startUsingItem(p_41434_);\n            return InteractionResultHolder.consume(itemstack);\n         } else {\n            return InteractionResultHolder.fail(itemstack);\n         }\n      } else {\n         return InteractionResultHolder.pass(p_41433_.getItemInHand(p_41434_));\n      }\n   }\n\n   public ItemStack finishUsingItem(ItemStack p_41409_, Level p_41410_, LivingEntity p_41411_) {\n      return this.isEdible() ? p_41411_.eat(p_41410_, p_41409_) : p_41409_;\n   }\n",
+      "raw_sha256": "384aff22f6b3cd0f133ebd282c2fc63a4f05d70b2f5f8961d1005d1a1ae5c30f",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-mooshroom-paid-flower-next-stew-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "7e4dccd378b40e9533955d476e66f4ca24811e06ceb9c0c103d1c7eba05ce247",
+          "bytes": 67119
+        },
+        "entry": "net/minecraft/world/item/Item.java",
+        "lines": [
+          139,
+          155
+        ],
+        "entry_sha256": "7acea0f9dcac2a301141e5584a9a3f35d7c7480c9ad93cfb974f39307cd30909",
+        "raw_excerpt_sha256": "384aff22f6b3cd0f133ebd282c2fc63a4f05d70b2f5f8961d1005d1a1ae5c30f",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/entity/LivingEntity.java",
+      "local_source": null,
+      "source_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "source_bytes": 131153,
+      "lines": [
+        3273,
+        3297
+      ],
+      "raw_utf8_keepends": "   public ItemStack eat(Level p_21067_, ItemStack p_21068_) {\n      if (p_21068_.isEdible()) {\n         p_21067_.playSound((Player)null, this.getX(), this.getY(), this.getZ(), this.getEatingSound(p_21068_), SoundSource.NEUTRAL, 1.0F, 1.0F + (p_21067_.random.nextFloat() - p_21067_.random.nextFloat()) * 0.4F);\n         this.addEatEffect(p_21068_, p_21067_, this);\n         if (!(this instanceof Player) || !((Player)this).getAbilities().instabuild) {\n            p_21068_.shrink(1);\n         }\n\n         this.gameEvent(GameEvent.EAT);\n      }\n\n      return p_21068_;\n   }\n\n   private void addEatEffect(ItemStack p_21064_, Level p_21065_, LivingEntity p_21066_) {\n      Item item = p_21064_.getItem();\n      if (item.isEdible()) {\n         for(Pair<MobEffectInstance, Float> pair : p_21064_.getFoodProperties(this).getEffects()) {\n            if (!p_21065_.isClientSide && pair.getFirst() != null && p_21065_.random.nextFloat() < pair.getSecond()) {\n               p_21066_.addEffect(new MobEffectInstance(pair.getFirst()));\n            }\n         }\n      }\n\n   }\n",
+      "raw_sha256": "7b3f997380f0219c2c7ecc26f8cbe1c6be6d0ef763966b3c058b8b2622785edb",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-mooshroom-paid-flower-next-stew-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "7e4dccd378b40e9533955d476e66f4ca24811e06ceb9c0c103d1c7eba05ce247",
+          "bytes": 67119
+        },
+        "entry": "net/minecraft/world/entity/LivingEntity.java",
+        "lines": [
+          3273,
+          3297
+        ],
+        "entry_sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+        "raw_excerpt_sha256": "7b3f997380f0219c2c7ecc26f8cbe1c6be6d0ef763966b3c058b8b2622785edb",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/entity/player/Player.java",
+      "local_source": null,
+      "source_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+      "source_bytes": 84201,
+      "lines": [
+        2001,
+        2010
+      ],
+      "raw_utf8_keepends": "   public ItemStack eat(Level p_36185_, ItemStack p_36186_) {\n      this.getFoodData().eat(p_36186_.getItem(), p_36186_, this);\n      this.awardStat(Stats.ITEM_USED.get(p_36186_.getItem()));\n      p_36185_.playSound((Player)null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 0.5F, p_36185_.random.nextFloat() * 0.1F + 0.9F);\n      if (this instanceof ServerPlayer) {\n         CriteriaTriggers.CONSUME_ITEM.trigger((ServerPlayer)this, p_36186_);\n      }\n\n      return super.eat(p_36185_, p_36186_);\n   }\n",
+      "raw_sha256": "5aacaa209ee94e4ea76e6c03e75b95be009d876b55ec0721d72831987d494eac",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-mooshroom-paid-flower-next-stew-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "7e4dccd378b40e9533955d476e66f4ca24811e06ceb9c0c103d1c7eba05ce247",
+          "bytes": 67119
+        },
+        "entry": "net/minecraft/world/entity/player/Player.java",
+        "lines": [
+          2001,
+          2010
+        ],
+        "entry_sha256": "972e79883d8ab43dd395c4441d9255dcb8e2a3c755877407d775015556ac2d39",
+        "raw_excerpt_sha256": "5aacaa209ee94e4ea76e6c03e75b95be009d876b55ec0721d72831987d494eac",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/entity/item/ItemEntity.java",
+      "local_source": null,
+      "source_sha256": "f3c60fa5b8fae64556b5fe31dff59bb1c34fd13d222fe23328f3eda8660c1144",
+      "source_bytes": 16217,
+      "lines": [
+        33,
+        92
+      ],
+      "raw_utf8_keepends": "   private static final EntityDataAccessor<ItemStack> DATA_ITEM = SynchedEntityData.defineId(ItemEntity.class, EntityDataSerializers.ITEM_STACK);\n   private static final int LIFETIME = 6000;\n   private static final int INFINITE_PICKUP_DELAY = 32767;\n   private static final int INFINITE_LIFETIME = -32768;\n   private int age;\n   private int pickupDelay;\n   private int health = 5;\n   @Nullable\n   private UUID thrower;\n   @Nullable\n   private UUID target;\n   public final float bobOffs;\n   /**\n    * The maximum age of this EntityItem.  The item is expired once this is reached.\n    */\n   public int lifespan = ItemEntity.LIFETIME;\n\n   public ItemEntity(EntityType<? extends ItemEntity> p_31991_, Level p_31992_) {\n      super(p_31991_, p_31992_);\n      this.bobOffs = this.random.nextFloat() * (float)Math.PI * 2.0F;\n      this.setYRot(this.random.nextFloat() * 360.0F);\n   }\n\n   public ItemEntity(Level p_32001_, double p_32002_, double p_32003_, double p_32004_, ItemStack p_32005_) {\n      this(p_32001_, p_32002_, p_32003_, p_32004_, p_32005_, p_32001_.random.nextDouble() * 0.2D - 0.1D, 0.2D, p_32001_.random.nextDouble() * 0.2D - 0.1D);\n   }\n\n   public ItemEntity(Level p_149663_, double p_149664_, double p_149665_, double p_149666_, ItemStack p_149667_, double p_149668_, double p_149669_, double p_149670_) {\n      this(EntityType.ITEM, p_149663_);\n      this.setPos(p_149664_, p_149665_, p_149666_);\n      this.setDeltaMovement(p_149668_, p_149669_, p_149670_);\n      this.setItem(p_149667_);\n      this.lifespan = (p_149667_.getItem() == null ? ItemEntity.LIFETIME : p_149667_.getEntityLifespan(p_149663_));\n   }\n\n   private ItemEntity(ItemEntity p_31994_) {\n      super(p_31994_.getType(), p_31994_.level());\n      this.setItem(p_31994_.getItem().copy());\n      this.copyPosition(p_31994_);\n      this.age = p_31994_.age;\n      this.bobOffs = p_31994_.bobOffs;\n      this.lifespan = p_31994_.lifespan;\n   }\n\n   public boolean dampensVibrations() {\n      return this.getItem().is(ItemTags.DAMPENS_VIBRATIONS);\n   }\n\n   @Nullable\n   public Entity getOwner() {\n      if (this.thrower != null) {\n         Level level = this.level();\n         if (level instanceof ServerLevel) {\n            ServerLevel serverlevel = (ServerLevel)level;\n            return serverlevel.getEntity(this.thrower);\n         }\n      }\n\n      return null;\n   }\n",
+      "raw_sha256": "2a7ded4d0f05235ac31a0a4879c46db5586bc514d38c85f166fa177e67a8fbbb",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-chicken-eligible-production-clock-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "9895f55b6ff221741a9f33a02b97317870a5745b5719521a8db5e8dfe6d357b9",
+          "bytes": 29616
+        },
+        "entry": "net/minecraft/world/entity/item/ItemEntity.java",
+        "lines": [
+          33,
+          92
+        ],
+        "entry_sha256": "f3c60fa5b8fae64556b5fe31dff59bb1c34fd13d222fe23328f3eda8660c1144",
+        "raw_excerpt_sha256": "2a7ded4d0f05235ac31a0a4879c46db5586bc514d38c85f166fa177e67a8fbbb",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/entity/item/ItemEntity.java",
+      "local_source": null,
+      "source_sha256": "f3c60fa5b8fae64556b5fe31dff59bb1c34fd13d222fe23328f3eda8660c1144",
+      "source_bytes": 16217,
+      "lines": [
+        343,
+        367
+      ],
+      "raw_utf8_keepends": "   public void playerTouch(Player p_32040_) {\n      if (!this.level().isClientSide) {\n         if (this.pickupDelay > 0) return;\n         ItemStack itemstack = this.getItem();\n         Item item = itemstack.getItem();\n         int i = itemstack.getCount();\n         int hook = net.minecraftforge.event.ForgeEventFactory.onItemPickup(this, p_32040_);\n         if (hook < 0) return;\n         ItemStack copy = itemstack.copy();\n         if (this.pickupDelay == 0 && (this.target == null || this.target.equals(p_32040_.getUUID())) && (hook == 1 || i <= 0 || p_32040_.getInventory().add(itemstack))) {\n            i = copy.getCount() - itemstack.getCount();\n            copy.setCount(i);\n            net.minecraftforge.event.ForgeEventFactory.firePlayerItemPickupEvent(p_32040_, this, copy);\n            p_32040_.take(this, i);\n            if (itemstack.isEmpty()) {\n               this.discard();\n               itemstack.setCount(i);\n            }\n\n            p_32040_.awardStat(Stats.ITEM_PICKED_UP.get(item), i);\n            p_32040_.onItemPickup(this);\n         }\n\n      }\n   }\n",
+      "raw_sha256": "8a58dbfe6e4b2c5030f8239be4851a55ee72d7e453fadb45f4d9cfecbe6cab88",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-chicken-eligible-production-clock-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "9895f55b6ff221741a9f33a02b97317870a5745b5719521a8db5e8dfe6d357b9",
+          "bytes": 29616
+        },
+        "entry": "net/minecraft/world/entity/item/ItemEntity.java",
+        "lines": [
+          343,
+          367
+        ],
+        "entry_sha256": "f3c60fa5b8fae64556b5fe31dff59bb1c34fd13d222fe23328f3eda8660c1144",
+        "raw_excerpt_sha256": "8a58dbfe6e4b2c5030f8239be4851a55ee72d7e453fadb45f4d9cfecbe6cab88",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/world/entity/item/ItemEntity.java",
+      "local_source": null,
+      "source_sha256": "f3c60fa5b8fae64556b5fe31dff59bb1c34fd13d222fe23328f3eda8660c1144",
+      "source_bytes": 16217,
+      "lines": [
+        416,
+        418
+      ],
+      "raw_utf8_keepends": "   public void setDefaultPickUpDelay() {\n      this.pickupDelay = 10;\n   }\n",
+      "raw_sha256": "d12a8ae7ffa636302120bc9a93dd61cbd9131a3843ee5979f7746e0abe941c0b",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-chicken-eligible-production-clock-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "9895f55b6ff221741a9f33a02b97317870a5745b5719521a8db5e8dfe6d357b9",
+          "bytes": 29616
+        },
+        "entry": "net/minecraft/world/entity/item/ItemEntity.java",
+        "lines": [
+          416,
+          418
+        ],
+        "entry_sha256": "f3c60fa5b8fae64556b5fe31dff59bb1c34fd13d222fe23328f3eda8660c1144",
+        "raw_excerpt_sha256": "d12a8ae7ffa636302120bc9a93dd61cbd9131a3843ee5979f7746e0abe941c0b",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "local_source": null,
+      "source_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "source_bytes": 67036,
+      "lines": [
+        814,
+        816
+      ],
+      "raw_utf8_keepends": "   public boolean addFreshEntity(Entity p_8837_) {\n      return this.addEntity(p_8837_);\n   }\n",
+      "raw_sha256": "7dfb6807ef9e18033ddd08b52c3bc8b689d437c00006fc3d6f1fd822b5a5fb03",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-chicken-eligible-production-clock-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "9895f55b6ff221741a9f33a02b97317870a5745b5719521a8db5e8dfe6d357b9",
+          "bytes": 29616
+        },
+        "entry": "net/minecraft/server/level/ServerLevel.java",
+        "lines": [
+          814,
+          816
+        ],
+        "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "raw_excerpt_sha256": "7dfb6807ef9e18033ddd08b52c3bc8b689d437c00006fc3d6f1fd822b5a5fb03",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+        "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+        "bytes": 7546864
+      },
+      "entry": "net/minecraft/server/level/ServerLevel.java",
+      "local_source": null,
+      "source_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+      "source_bytes": 67036,
+      "lines": [
+        855,
+        867
+      ],
+      "raw_utf8_keepends": "   private boolean addEntity(Entity p_8873_) {\n      if (p_8873_.isRemoved()) {\n         LOGGER.warn(\"Tried to add entity {} but it was marked as removed already\", (Object)EntityType.getKey(p_8873_.getType()));\n         return false;\n      } else {\n         if (this.entityManager.addNewEntity(p_8873_)) {\n            p_8873_.onAddedToWorld();\n            return true;\n         } else {\n            return false;\n         }\n      }\n   }\n",
+      "raw_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+      "whole_file_actually_read": false,
+      "author_previous_support_reuse_descriptor": {
+        "previous_actual_same_turn_study": {
+          "path": "build/cod4-ecology-chicken-eligible-production-clock-whole-source-read-v1-20261112/whole-source-reading.json",
+          "sha256": "9895f55b6ff221741a9f33a02b97317870a5745b5719521a8db5e8dfe6d357b9",
+          "bytes": 29616
+        },
+        "entry": "net/minecraft/server/level/ServerLevel.java",
+        "lines": [
+          855,
+          867
+        ],
+        "entry_sha256": "27bd1217bf3ae58fa5990bec342fbe1b4d5136dd1db6c92ccb27fee78a310350",
+        "raw_excerpt_sha256": "dd1ecb807175853f14206fcea029bb5bfbf1115dcb4dd8833e02656013d846f1",
+        "new_source_reading_credit": 0,
+        "support_credit": 0
+      },
+      "Main_actually_read_this_scope_now": true,
+      "credit_from_range": 0
+    }
+  ],
+  "raw_base_resources_actually_read": [
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+        "sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+        "bytes": 10436626
+      },
+      "entry": "data/minecraft/tags/blocks/beehives.json",
+      "sha256": "f3da4490467e3cd1512d348a0c6fc007531de4709abc5503331db32759cd27e6",
+      "bytes": 71,
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:bee_nest\",\n    \"minecraft:beehive\"\n  ]\n}",
+      "parsed": {
+        "values": [
+          "minecraft:bee_nest",
+          "minecraft:beehive"
+        ]
+      },
+      "actually_read": true,
+      "current_merged_membership_proved": false,
+      "credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+        "sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+        "bytes": 10436626
+      },
+      "entry": "data/minecraft/tags/blocks/campfires.json",
+      "sha256": "32cb4dd3346afa7bf10901cb37304e6208e6c10dd63c88b1767d693d27b22c1d",
+      "bytes": 77,
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:campfire\",\n    \"minecraft:soul_campfire\"\n  ]\n}",
+      "parsed": {
+        "values": [
+          "minecraft:campfire",
+          "minecraft:soul_campfire"
+        ]
+      },
+      "actually_read": true,
+      "current_merged_membership_proved": false,
+      "credit": 0
+    },
+    {
+      "archive": {
+        "path": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+        "sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+        "bytes": 10436626
+      },
+      "entry": "data/minecraft/tags/entity_types/beehive_inhabitors.json",
+      "sha256": "0bf0d08d43ac9c7564bc3a9ad0e3cd987d922f39c5b3ad191dd5f77258f33cb1",
+      "bytes": 41,
+      "raw_utf8": "{\n  \"values\": [\n    \"minecraft:bee\"\n  ]\n}",
+      "parsed": {
+        "values": [
+          "minecraft:bee"
+        ]
+      },
+      "actually_read": true,
+      "current_merged_membership_proved": false,
+      "credit": 0
+    }
+  ],
+  "complete_selected_old_business_judgments": {
+    "carson-EA0010.json": {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/carson-EA0010.json",
+        "sha256": "cbabe881bad52a6922f3125238a968730a5a59e477f24ef918c097f1e29cd577",
+        "bytes": 51356
+      },
+      "actual_complete_selected_business_judgments": {
+        "id": "EA-0010",
+        "semantic_key": "anthill-live-entity-to-stored-colony-and-commit-on-add-release",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION_WITH_EXPLICIT_LIMITS",
+        "observed_complete_chain": [
+          "实际mod constructor注册block/entity/BE/POI；BlockLeafcutterAnthill.newBlockEntity绑定类型，getTicker在server且type匹配时给serverTick→tickAnts。EntityLeafcutterAnt.registerGoals确实以priority1注册ReturnToHiveGoal，不是无调用的工具代码。",
+          "ReturnToHiveGoal在stayOut计时到期且有叶或queen才工作；现存有效hive优先，否则搜索cooldown后查100格POI并选最近。canUse不检查容量或目标寻路成功，canContinue只用距离；tick要求靠近且脚下运动影响方块等于hive才进巢。未把Goal有注册/找到POI推断成必然入巢。",
+          "tryEnterHive先ants.size<colonySize，stop/eject riding并save实体NBT；带叶者可能growFungus、累加feedings，在现有queen及32格活体+储存队列较少时加一条空NBT新worker，然后再add原蚁wrapper并DISCARDED原实体。补充+入巢两个add在同一次入口，容量条件不是全局cap、也非硬队列上限。原活体去除非死亡/KILLED。",
+          "worker占巢timer严格>minOccupationTicks时逐tick尝试addAntToWorld；出口支持形状非空且非EMERGENCY则失败。去Passengers/Leash/UUID，注册的EntityLeafcutterAnt.create并load；loadRuntimeException转empty，null重建或add=false时队列项保留。成功add才iterator.remove，失败无限跨tick可重试；有限的是当前list遍历，不是总尝试次数或生命周期上限。",
+          "gameEvent/sound以及可选的列表add均先于真正addFreshEntity返回，不是出生成功证明。无UUID重用保证：Ant构造、存档及出巢均去UUID。重建后的Queen实体字段由EntityData读写保留，但wrapper Queen在load中读取、getAnts中漏写；reload将wrapper默认false，可改变hasQueen/自动放行逻辑，不能说实体Queen属性必消失。",
+          "入巢/计时/成功出巢方法未显式setChanged。setChanged覆写被调用才检查附近火并super.setChanged；不能从存在该方法推出每次变化必落盘。tickAnts取HasNectar，而EntityLeafcutterAnt写Leaf；当前addAntToWorld对HONEY_DELIVERED支路为空体，不把名称不一致夸大成已证实资源损失。growFungus完整辅助方法仅支持生态循环，0额外信用。"
+        ],
+        "semantic_deduplication": "完整活体→巢内NBT队列→按占巢时间/出口条件重建→实际add成功才消费的玩法状态转换是一项，与EA1天气遇见、EA2唯一habitat选择、EA3表替换、EA4/5/6/9生成期cohort、EA7/8谓词filter不同。注册/POI/AI/dirty/NBT/局域补充/每只worker或queen全合并。EA-C001将来补自然巢部署也不能把本储存释放链再计一次。",
+        "remaining_gaps": [
+          "自然anthill configured/placed feature与biome modifier JSON未展开，本项只接受实际注册的巢内玩法链，不替EA-C001自然部署缺口。",
+          "vanilla导航/POI内部和NaturalSpawner实体计数未全文读，未证明释放豁免cap、寻路公平性或同UUID持续活体。",
+          "Queen wrapper漏保存、无每次显式dirty、软容量和无总重试上限为已读源码限制；不实施修复。"
+        ],
+        "dedup_scope": "对照已接受EA1-3报告、本轮亲读EA4/5/6/10/11，以及EA7/8/9提案边界；不声称代替别岗对EA7/8/9的独立全文审。",
+        "application": "用于区分生态人口的存储/重建、事件副作用、真正加入提交、持久化和退场；不据此实现绕过cap或回填本项目运行成功。",
+        "provenance": "缓存官方仓库固定40位revision/tree/blob关联及原文件/excerpt字节复核；没有新在线fetch/远端commit object独立验证。完整性不是自动语义验收。",
+        "full_read_scope": "本项chain所有完整方法/内部类与supporting范围从source_local原文读取；42或19个range不是42或19个参考。"
+      },
+      "selected_fields_canonical_sha256": "b2f0d81382eacc857340ac8706429942be8ebb60c11f6d8bbc3972005a9b4a9d",
+      "comparison_credit": 0,
+      "old_raw_source_chains_reread": false
+    },
+    "general-EA0042.json": {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0042.json",
+        "sha256": "538a0f208aaf986008ca2915e9337a96b379dbfd77b2ab86d2a6add544e8dcf3",
+        "bytes": 555453
+      },
+      "actual_complete_selected_business_judgments": {
+        "id": "EA-0042",
+        "semantic_key": "profession-worksite-reserved-inventory-to-compost-ready-world-product-and-local-harvest-fertilization-service",
+        "observed_chain": [
+          "One related native material-service family: finite villager inventory and JOB_SITE work turn reserved inputs into attempted bread, staged compost and ordinary world-item pickup, with local harvest/plant/fertilizer behavior. No class, seed, helper, timing threshold or unchecked-write defect is separately credited.",
+          "WorkAtPoi debits lastCheck after the random half gate but before dimension/distance validation. Registered LOOK does not mean absent or owned LOOK. LAST_WORKED/sound/restock and requested movement are independent of actual production success. Prior full Behavior/GoalPackages/Villager contexts are exact own Main reused reads, not new source credit.",
+          "WorkAtComposter revalidates the current COMPOSTER block at remembered JOB_SITE. Bread count<=36 permits at most3 newly created bread and thus39. Wheat removal precedes add/remainder-drop request, with removal result and spawn success unchecked; no atomic inventory/output or actual player payment claim.",
+          "Reverse inventory scanning reserves10 per wheat/beetroot seed type and debits a20-attempt budget before the insertion loop. Reserve and attempt arithmetic is not proof20items were consumed. Wider plantable tag membership does not widen these two literal compost inputs.",
+          "Composter insert shrinks1 after addItem even if chance fails; level0 positive-chance first stage differs from subsequent probability. The local computed blockstate can advance despite ignored setBlock return; a level7 schedule request is not committed readiness. Literal0.3 seed entries alone do not prove current bootstrap/map membership.",
+          "Level7 callback requests8 after scheduled20 and asks ready sound. Extract requests world bone-meal ItemEntity/default pickup delay before resetting to0 through unchecked writes. Accepted item admission and real reset may diverge; no native duplicate/loss exploit reproduced.",
+          "Mob aiStep pickup is independently server/alive/notdead/canpickup/griefing/reach/no-delay gated. Villager wanted/requested items also require inventory capacity. InventoryCarrier adds a copy and uses returned remainder for take/discard/ground-stack update. This source chain is not a witnessed pickup by that villager or the intended player.",
+          "HarvestFarmland requires own FARMER/griefing and the exact memory statuses. The27 sampled positions are local to the actor, not remembered SECONDARY_JOB_SITE coordinates. Mature CropBlock and air-above-FarmBlock eligibility differ. Selecting a site proves neither ownership nor navigation.",
+          "The state read before destroyBlock is reused for the following air test, so same-call mature harvest then replant is not established. Plant branches mark local success and shrink1 after an unchecked block-write request; sound and seed debit do not prove accepted placement or harvested loot.",
+          "Harvest own timeWorked increments only in the near/null branch; its200 counter and UseBonemeal80 counter differ from the parent Behavior default60 deadline. Movement-memory requests, stop erasure and nextOk+40 are not guaranteed continuous world-tick work or scheduling fairness.",
+          "UseBonemeal has no own profession or griefing check; enclosing role-package wiring is separate. Its10-tick predicate/160-session gate and inventory count are entry conditions. Reservoir selection of a nearby immature CropBlock is not reachable-field proof.",
+          "UseBonemeal start replaces MAINHAND with a newly constructed visual stack; actual growCrop receives the real inventory stack. Stop empties the hand without restoring prior equipment or proving ownership. True response schedules next work+40 and requests event1505; false leaves next-work clock unchanged, potentially retrying on later eligible near updates.",
+          "Forge growCrop obtains the Minecraft FakePlayer for ServerLevel, not actual villager/player attribution. Canceled BonemealEvent returns-1; ALLOW shrinks on server and returns1 without default growth; other result states return0, so noncancel DENY is not itself a local veto. Default valid target can consume and returntrue even when isBonemealSuccess isfalse.",
+          "Base CropBlock growth adds random2..5 capped at max and ignores setBlock return. Default success=true is only this base behavior; subclass/event/current loaded data and final world state remain outside. No fertilizer or growth response grants a quest, payment, harvest or intended-player receipt.",
+          "Container.countItem sums exact item identity rather than NBT equality. SimpleContainer merges sameItemSameTags with capacities and moves a copy to empty slots, returning remainder. The bounded source does not establish every corrupt-stack/backend/capability serialization or lossless inventory invariant.",
+          "The full actual base villager_plantable_seeds tag was read and archive/entry bound: wheat_seeds,potato,carrot,beetroot_seeds,torchflower_seeds,pitcher_pod. It is a six-member source parameter, not six mechanisms or a current merged-tag guarantee.",
+          "All18 current selected native ranges/14entries/5wholefiles/882lines were independently read. UseBonemeal76-94 was explicitly recovered after clipped output. Raw keepends excerpts, actual source bytes and all archive hashes match; nine older own Main source contexts are exact bound reuse0, not newly reread chains.",
+          "Complete current EA22 selected judgment fields were independently read: all34 observed-chain paragraphs, all21 limits and resource/raw-normalization/identity boundaries. This is decision comparison only, not rereading its old upstream source chains. Field-equality and whole-receipt hash are exact.",
+          "Whole-policy difference from EA22 is material custody/conversion readiness: farmer real reserved inventory, compost stages and returned world-product/pickup remainder versus externally player-filled feeder and persistent shared visitation counter using constructed bone meal. Shared crop helpers, AI memories, timers and failures support0. Max1 pending formal packaging; no global uniqueness, generalized migration or current playable economic closure."
+        ],
+        "mandatory_constraints": [
+          "Whole farmer material-service family max1, never separate bread/compost/harvest/fertilizer/tag/crop/helper/seed references; global novelty/new migration/native gameplay/runtime player material credit0.",
+          "18 actual new selected source ranges/14 entries/5 fullfiles/882 citedlines; three prior GoalPackages/Behavior/Villager contexts and six prior block-write contexts support0, no old source replay claim. One raw derived base tag support0, never Git or current loaded data.",
+          "JOB_SITE present and LOOK registered only; lastCheck debited after random pass but before dimension/distance validation; no job-site ownership/path/reservation/exclusive LOOK or guaranteed restock/product.",
+          "Preserve bread<=36 allowing39, real wheat removal return unchecked, bread add/drop remainder caller boundaries; no atomic debit/output or player payment.",
+          "Only wheat/beetroot seed compost paths here; pertype10 reserve, global20 attempt budget and reverse slot order. Blocked states can spend attempts without consuming. No20guaranteed items or allplantables compostable claim.",
+          "Composter initial0 positivechance local success versus later chance, shrink1 even insertion chance failure. Literal0.3 registrations do not prove bootstrap invocation/current mutable compost map. Return computed state/setBlock ignored, no committed block equivalence.",
+          "Level7 schedules20 and scheduled callback requests8. Product ItemEntity/add request precedes reset0 write; pickupdelay added but admission/reset not verified. No sustainable bonemeal proof, rollback or live duplication exploit claim.",
+          "Ordinary native loot pickup has server/alive/canpickup/griefing/wants/capacity/reach/delay gates and returned-remainder handling. Actual world product/entity/inventory/player pickup not witnessed; complete inherited save callers/backend remain unexpanded.",
+          "Harvest own FARMER/griefing and absent LOOK/WALK plus SECONDARY_JOB_SITE presence; actual27 local positions ignore secondary coordinates. Current mature-crop selection versus emptyaboveFarmBlock differs, not allcrops require native farmland.",
+          "Harvest uses stale pre-destroy state for following air test: no samecall guaranteed harvest+replant. Seed branch shrinks after request/sound flag independently of block-write return; no validated harvest loot/placement/refund/readback.",
+          "Behavior default60 timeout and own nearwork counters200/80 are distinct; no guaranteed continuous field work/worldticks. Movement/LOOK/WALK writes/erasure do not establish ownership or navigation success.",
+          "UseBonemeal own predicate lacks profession/griefing guard; enclosing package wires expected farmer behavior but no universal authorization proof. Visual new MAINHAND stack differs from inventory stack; stop clears without original hand restore/ownership check.",
+          "Fertilizer false response does not advance nextWorkCycleTime; true response can advance after hook ALLOW or default valid but unsuccessful grow. Preserve Forge canceled=-1, ALLOW consumes/returns1, other results0 including noncancel DENY; no universal DENY veto or growth receipt.",
+          "FakePlayerFactory.getMinecraft actor differs from actual player. Default crop random2..5/cap and unchecked write, subclass/events/current loaded data outside; no actual material payment/quest reward/native yield.",
+          "Base six-entry villager_plantable_seeds tag and finite itemidentity counters are parameters/support0; no NBT-equivalence/current membership/exhaustive seed ownership claim. SimpleContainer merges sameItemSameTags, returned remainder handling does not prove all backend losslessness.",
+          "Complete current EA22 facility/visitation-counter judgment and explicit limits retained for whole comparison. No old source-chain reread, no additional credit from resource typos, unchecked writes, generic crop helper or numeric differences.",
+          "No production/art/models/textures/buildings/sharedJar/world/game/UI/Git/session/master/checklist edits; no duration-hour claim. Applicable1000 gate not met and no prompt deletion."
+        ],
+        "resource_membership_boundary": {
+          "raw_base_resources": [
+            {
+              "archive": "tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_repo/versions/1.20.1/client-extra.jar",
+              "archive_sha256": "f43d1ac034a8907edab190a17501fd4ca2b0af107d4231da364eeca8ab5ee317",
+              "entry": "data/minecraft/tags/items/villager_plantable_seeds.json",
+              "entry_sha256": "ac4666ae419e4190b8755904d90f35107ef61d2ad260195ad5ca4de5024b9dd9",
+              "raw_utf8": "{\n  \"values\": [\n    \"minecraft:wheat_seeds\",\n    \"minecraft:potato\",\n    \"minecraft:carrot\",\n    \"minecraft:beetroot_seeds\",\n    \"minecraft:torchflower_seeds\",\n    \"minecraft:pitcher_pod\"\n  ]\n}",
+              "full_file": true,
+              "loaded_current_membership_proved": false,
+              "credit": 0
+            }
+          ],
+          "source_kind": "fixed_local_derived_archive_entry_not_Git_or_published_coordinate",
+          "loaded_current_membership_proved": false,
+          "supporting_credit": 0
+        },
+        "limits": [
+          "Only bounded pinned local-source policy, no upstream code executed, downloaded or newly authenticated remotely.",
+          "No complete Brain scheduling/goal arbitration/pathfinding/collision/crop subclass/event listener/ItemStack capability/network/chunk commit audit; ordinary calls may fail or throw and source-order claims assume prior calls return normally.",
+          "No actual farmer job assignment/biome/survival inputs/current datapack/registry mutation/composter bootstrap or production installation proved.",
+          "No committed wheat/bread/world bone meal/pickup/crop/seed/harvest/player payment/reward/quest result, no sustainable economic balance or native availability acceptance.",
+          "No full inherited inventory save caller chain/world save-reload, hand restore fairness or multi-actor contention guarantee.",
+          "Names and a bounded accepted-metadata screen do not prove global uniqueness. No new global owner is assigned; a future discovered whole equivalent must merge.",
+          "One proposal only with formal_candidate_id null, accepted/applied0; current35/1000 ledger unchanged. Distinct Main complete judgment required before minimum package authorization.",
+          "Main author-independent static source acceptance only; no formal ID assigned, no new package authorized by this receipt. Existing pending Gorilla source-index schema failure must be resolved first.",
+          "Exact own prior source reuse and old whole-decision comparison earn0; no hash or range count can substitute for semantic study."
+        ]
+      },
+      "selected_fields_canonical_sha256": "1fe70adbf33131f203ce17acd19e655ef6bca91eb2f4f967be8e4095ddf5786a",
+      "comparison_credit": 0,
+      "old_raw_source_chains_reread": false
+    },
+    "general-EA0050.json": {
+      "binding": {
+        "path": "docs/cod4/audit-20261022/ecology-availability-research/independent-reviews/general-EA0050.json",
+        "sha256": "a816858856509b5bca4398baaf45bc7dc47f0650c175b61ba88c54d5c09d542b",
+        "bytes": 1342649
+      },
+      "actual_complete_selected_business_judgments": {
+        "id": "EA-0050",
+        "semantic_key": "adult-living-resource-extraction-through-mode-sensitive-container-exchange-to-selective-event-vetoable-curative-consumption",
+        "decision": "ACCEPT_ONE_RELATED_IMPLEMENTATION_GENERAL_WITH_EXPLICIT_LIMITS",
+        "observed_chain": [
+          "One related living-provider mode-dependent container-exchange whole policy at most. Qualifying adult Cow/Goat can request fresh default milk without mutating a finite provider stock; creative existence-sensitive inventory admission differs from survival bucket debit and hand-or-overflow output. Consumer cure/container return is traced as output use and qualification, not an independently novel cure mechanism.",
+          "Cow whole94 and Goat interaction192-207 are read. Both literal BUCKET&&!isBaby paths play sound before constructing default milk, call same createFilledResult and set actual hand, then sidedSuccess. Cow breed/AI and Goat fallback food sound do not become extra resource policies; no own milk stock/feeding/cooldown debit is shown.",
+          "No own authoritative-server guard in those interaction branches. Enclosing dispatch, permissions, prediction and callbacks are not expanded; the source branch alone proves neither exploitable client duplication nor unlimited current-survival acquisition.",
+          "Items registers milk as MilkBucketItem with bucket crafting remainder and maxstack1. Default-instance invokes ItemStack(this)->count1 constructor, delegate lookup/forgeInit and damage hooks. This is a source construction chain; loaded registry/capability/current-player acquisition are separate.",
+          "createFilledResult default enables creative duplicate check. Creative returns the exact input reference unchanged; contains across items/armor/offhand can skip adding output entirely. Its predicate compares item/tag/caps without count; add return ignored. Sound and success can therefore coexist with no positive output request or inventory delta.",
+          "Noncreative createFilledResult shrinks input first. If empty, returns output to the subsequent hand assignment; otherwise inventory-add may mutate output, and false invokes Toss with remaining output. Output request, actual hand replacement, positive inventory delta, world admission and intended-player later pickup are separate evidence.",
+          "Inventory merge capacity checks stackability/maxstack/maxcontainer and item/tag/caps. addResource copies original stack preserving caps into empty destination, count0 then grow. Main/offhand/general slot selection and fallback free slot are ordered, not player preference or lossless arbitrary-backend guarantee.",
+          "Inventory.add ordinary loop returns whether the last attempted iteration reduced remainder. Earlier partial progress can end with false and a remaining stack; creative no-progress may clear count and returntrue without storing. Damaged-stack branch separately uses a free main slot or creative discard. No universal positive-admission receipt from boolean alone.",
+          "Living setItemInHand selects main/offhand or throws; Player setItemSlot verifies then mutates inventory before onEquipItem. A returned filled result is not itself committed slot state; failures/hooks/reentrancy/authoritative sync are outside this bounded path.",
+          "Overflow two-argument Player.drop invokes onPlayerTossEvent. Temporary captureDrops list is installed then reset null without visible restoration of an earlier capture collector in this method. Three-arg drop constructs ItemEntity/pickupDelay40 and does not spawn it itself. Toss cancel returnsnull; otherwise only nonclient requests unchecked addFreshEntity. No native loss/reentrancy exploit is asserted.",
+          "createFilledResult calls drop(output,false), so Toss includeNamefalse leaves this constructor path without thrower assignment. It does not set an intended-player ownership target or establish actual UUID pickup; motion, delay and nonnull event entity are not positive admitted-world custody.",
+          "Milk.use only requests startUsingItem/consume result. DRINK/duration32 do not close the enclosing use interruption/tick/finish lifecycle or prove elapsed real time. Full MilkBucketItem read is not full native use engine audit.",
+          "Milk finish server cure occurs before ServerPlayer criterion/stat and before survival-player shrink. This retains the curative stack type during matching. All source-order statements assume previous callbacks complete normally; neither criterion nor stat proves paid resource or effect removal.",
+          "curePotionEffects server-only iteration requires item-type curative match and noncanceled per-effect Remove, then onEffectRemoved, iterator.remove and dirty. No harmful-only filter appears; matching beneficial effects can also be removed. Removal helper requests attributes/passenger packets; actual listeners/network/effect-attribute internals are not all audited.",
+          "Milk ignores cure bool; survival-player shrink follows even for zero matching effects or all vetoed removals. Nonplayer and instabuild branches do not shrink through this conditional; empty result returns fresh BUCKET, otherwise original stack. No atomic cost-benefit/refund or universal one-bucket delivery claim.",
+          "Effect curative null lazily asks effect defaults; Forge default returns fresh milk list. Instance setters can replace it including empty. isCurativeItem uses isSameItem only, unlike creative inventory.contains tags/caps. These are different authorization equivalence relations, not per-stack UUID or per-source effect ownership.",
+          "Full curative interface writes each stack save; bounded read helper accepts CurativeItems TAG_LIST then reads compound entries and replaces list. Wrong list element type can produce an empty compound-list view; exact getter implementation not re-expanded, so no malformed-save or unknown-item recovery promise. Absent list allows lazy default conditional on other callers, not a full save roundtrip.",
+          "Existing complete TConstruct StrongBones whole owner already includes milk Finish, helmet item-type curative rewrite and equipped-item replacement release with same native cure consumer. Main103 complete four-field judgment is reused0, including update-retains-old-curative-list caveat. Generic milk cure/itemtype/remove callbacks are already owned0; novel related scope here is only living-provider/container-mode material exchange whole, with the consumer boundary retained.",
+          "Current EA23 Platypus paid-site digging, EA42 reserved farmer inventory/converter readiness, EA43 cat-rest attempt, EA45 peer overflow, Seal treatment and newly accepted EA49 habitat/timed-reel whole differ in qualified provider/material custody. EA42 complete selected judgment newly read; other3 and Seal/Fishing Main own complete judgments reused0, not old source rereading or global uniqueness theorem.",
+          "Three whole migration decisions actually read: paid-flower deferred stew effect identity fallback, finite version-upgraded goat horns, harvested sheep wool/regrowth. Milk does not debit those provider resource flags or create new migration; species reuse, same class or no finite flag alone cannot earn another credit.",
+          "All25 listed ranges751 line-occurrences15entries5wholeclasses/interfaces were actually read in two bounded outputs without clipping. Raw source excerpt keepends and all archive entry hashes are exact. MobEffectEvent1-80 includes complete base/Remove inner class only; outer class further events not claimed read. Prior ItemEntity/ServerLevel supports remain exact own reuse0.",
+          "Future quest integration must keep material provider -> existing prerequisites -> actual bucket/container debit -> admitted intended-player output -> conditional curative benefit distinct; original IDs/NBT variants/rewards/progress are preserved. This review implements no task or recipe, grants no current native economy acceptance and assigns no formal ID."
+        ],
+        "mandatory_constraints": [
+          "At most one parameterized living-provider/container-exchange/conditional-curative-consumer policy. Cow and Goat, inventory branches, effect types, default wrapper, helper/ranges and source counts each add0.",
+          "Fixed mapped Forge archive coordinate and byte ranges only; no invented Git revision/tree/blob, fresh remote verification or current loaded resource/registry guarantee.",
+          "Keep bucket+!isBaby predicate, own side-guard absence and enclosing interaction prediction/permissions unexpanded. No demonstrated server exploit or blanket all-current adult-milker success.",
+          "Do not invent finite milk receipt/cooldown/feeding payment from horn/wool/stew states or names. No proven unlimited natural survival availability either.",
+          "Creative createFilledResult preserves bucket, contains uses item+tags+caps without counts and can skip addition. Inventory.add true can clear creative remainder without storing. No positive delta receipt from returntrue alone.",
+          "Survival input shrink precedes output-hand return/inventory-add/toss. Full default1 milk stack path is read but current item hooks/capabilities/event exceptions/authoritative hand/persistence are not transactions.",
+          "Overflow Toss cancellation/nonclient unchecked admission and no includeName thrower must remain. Full pickup is separate old support0; not an intended recipient UUID/payment/reward acknowledgement.",
+          "Milk duration32/DRINK/use-start is not wallclock or guaranteed finish. Consume criterion/stat do not prove actual effect removal or paid cost.",
+          "Server cure before shrink preserves milk identity; matching curative uses item only and cancellable Remove. No all/harmful-only cure promise or positive benefit receipt.",
+          "Milk ignores cure bool; survival player shrink can follow zero removal. Nonplayer/creative conditional consumption differs; returned container depends on resulting stack emptiness. No invented refund or atomic benefit guarantee.",
+          "Lazy curative defaults/replaced typed list and helperwrite/read do not justify new effect migration or lossless save/reload. Full active effect/hidden-chain/default subtype/loaded overrides not expanded.",
+          "Registered fluid capability constructor is not full FluidBucketWrapper compatible-IO proof. No new fluid mechanism or current-mod compatibility claim.",
+          "All selected whole ecological/global judgments remain complete with full limits. Different species/class/helper, numeric properties or absence of own budget alone are insufficient semantic distinctness; distinct Main must decide.",
+          "Material source -> existing prerequisites -> actual craft/trade/container debit -> native intended-player acquisition and benefit stay separate for future Dynasty integration. Preserve IDs/NBT variants/rewards/progress; no duplicate rewards.",
+          "Applicable1000 unmet. No production/runtime/asset/shared Jar/validator/fixture/aggregate/master/Git or checklist edits from candidate; General original author is not independent reviewer."
+        ],
+        "mandatory_corrections": [
+          {
+            "subject": "Whole scope limited to living provider and mode-dependent container exchange; curative already owned",
+            "exact_Main_finding": "Existing complete TConstruct StrongBones whole owner already includes milk Finish, helmet item-type curative rewrite and equipped-item replacement release with same native cure consumer. Main103 complete four-field judgment is reused0, including update-retains-old-curative-list caveat. Generic milk cure/itemtype/remove callbacks are already owned0; novel related scope here is only living-provider/container-mode material exchange whole, with the consumer boundary retained.",
+            "complete_TConstruct_owner": {
+              "id": "tconstruct-native-milk-resistance-item-type-curative-key-and-equipment-replacement-release",
+              "full_object_canonical_sha256": "247163f29788f2539a842962fae7cb8a3f859ba31fd07694126441128ddcd3c3",
+              "complete_substantive_judgment": {
+                "full_chain_observation": "實際註冊StrongBones建構子→Forge Finish事件只接受MILK_BUCKET→讀取HEAD MODIFIABLE物品NBT詞條等級→建立600+600*level tick、預設amp0的Resistance→將可治療物品清空並改為頭盔item type→實際addEffect；同詞條註冊CureOnRemovalModule.HELMET，原生裝備事件由Watcher分派onUnequip→替換非modifiable、失去詞條或不同item時以舊物品類型curePotionEffects。 Main native consumer closure: server-only itemtype curative matching and cancellable Remove; existing effect update retains prior curative list; amp0 eligible damage20percent reduction.",
+                "concrete_observation": "同物品類型且仍有詞條的替換不解除；比較的是Item identity，不是stack UUID、NBT或特定施法來源。治療key可匹配其他效果，不是只remove Resistance。 主技能讀原始modifier NBT等級；Watcher對original的onUnequip路徑只檢查合法裝備槽，不檢查broken。不能把其他module的未broken條件套進本鏈。 主入口沒有顯式server-only判斷；Watcher在Forge裝備事件雙端分派，另以client END tick比較ItemStack.matches副本。沒有5tick或10tick節流，源碼註釋與實作不同。 Resistance是傷害減免，不是全免疫或Boss免控。副支CALCIFIABLE提供額外Calcified，流體SIMULATE/EXECUTE封裝不另計數。 同一效果自然到期及更換裝備解除共用原版效果系統；此鏈無專用網路成功回執、世界灰字或自訂清理管理器。",
+                "application_to_boss_immune": "程序P08/P10/P11可借鑑：保留/解除要對應真正狀態資格，換同類物品是否續存必須明定；效果申請、音效和實際接納不可混為一談。相關性及能否計入免疫研究仍待主協調審核。",
+                "limitations": "未讀Forge/Minecraft本體的curePotionEffects與addEffect底層，故只證明實際呼叫及選擇政策，不聲稱取消事件下必能清除或網路同步已驗。 未啟動Java、遊戲或伺服器；無實機、視覺品質、TCP、跨維度、斷線、死亡清理保證。 實際詞條已註冊，未把未取得的generated material JSON說成正常遊戲合成可達證明。 不以四種裝備enum、兩個奶入口、共享Watcher或忽略bool另增研究信用。 Main independently actually read all10 proposed TConstruct scopes486 lines, verified full-file SHA256 and Git blob against fixed source.json mapping, not fresh remote Git tree. Additionally read8 native support scopes310 lines (not extra mechanisms). Fixed upstreamcommit and cached47.4.10 support compared as source semantics; not exact runtime dependency/binary compatibility proof. Native LivingEntity.curePotionEffects is explicitly server-only and can be cancelled per effect via MobEffectEvent.Remove; client Watcher calls can returnfalse without curing. Setter ignores boolean, no success receipt; same itemtype can cure other effects sharingthatkey. Forge IForgeMobEffectInstance uses ItemStack.isSameItem, ignoresstackNBT/UUID/count; this confirms itemtype-keyed authority, not per-effect-caster ownership. CRITICAL native addEffect with pre-existing same effect calls existing.update(new), whose whole body81-125 updates amplifier/duration/flags/hidden chain but NOTcurativeItems. Existing default-milk-key Resistance can remain so even if duration extends; later helmet removal may not cure it. Conversely oldhelmet-key can survive a newhelmet-key grant throughsameeffect merge. Newobject insertion carries newkey; sameeffectupdate does not universally retag. Stronger shorter incoming may push copy hidden with oldcurative list. No dedicated owner-aware effect layer guarantee. Native defaultamp0 Resistance reduces ordinary eligible incoming by20percent, BYPASSES_EFFECTS/BYPASSES_RESISTANCE bypass; no fullimmunity/Bosscontrol promise. Arithmeticduration600+600*level uncheckedint; ModifierUtil returns first matching raw NBT level, no normalize duplicate/oversized. No productionfix or runtime assertion. Whole removal eligibility tied to matching original item type and replacement stillhavingmodifier, not exactstack/source. Watcher original/replace onEquip path onlyvalidslot, no broken guard; other slots usegetValidTool but not this release predicate. Sameitem replacement can legitimately keep effect and therefore isnot no-opproof ofstuckstate. Existing equipped-effect-immunity threshold owner merely gates incoming effects; ColdSweat cachedmodifieradmission owner isdifferent temperature modifier cache. Ars Dispel active pre/allow/deny/post clear and Artifacts Antidote finite duration cap different. Whole allcurative slots/milkfluid/helpers give1total not extra. Existing tconstruct equipped-effect immunity row client5tick statement corrected to everyclientEND tick based actual full Watcher83-88 and146-158; source comments5/twice second not runtimeconditions. Correction adds0credit. This is research erratum not production code repair."
+              },
+              "reading_scope": "allfourfields actually read in bounded targeted outputs;101 additionally read for102currenthandoff; no oldsource replay",
+              "whole_comparison": "StrongBones actual milkFinish+helmetitemtype curative/equipmentreplacement release differs from Witch bypassing PotionItemfinish and no equipped curative release.",
+              "credit_from_comparator": 0
+            },
+            "owner_binding": {
+              "path": "docs/cod4/audit-20261022/coordinator-program103-witch-whole-review-20261110.json",
+              "sha256": "88ff6884e4e56c88f8fae92bead3b368e33cd5ae68c7130b2cf46faa1fcaa733",
+              "bytes": 239963
+            },
+            "generic_cure_policy_credit": 0,
+            "equipment_replacement_policy_credit": 0,
+            "instruction": "Original semantic key and source observations remain sealed. Only living-provider/container exchange may receive at most1 related whole; consumer cure is output-use boundary, not a new cure or immunity mechanism."
+          }
+        ],
+        "limits": [
+          "Actual fixed local mapped Forge source only; no new network/Git revision/current loaded modpack authentication. No upstream code/game/Java/Gradle/UI/process/audio/brightness or world/production execution.",
+          "Five full classes/interfaces plus explicit partial native method groups. Cow full, Goat only interaction. Inventory, LivingEntity, Player, MobEffectInstance and other containing classes are not whole-read claims; metadata discovery/neighboring prefixes add0.",
+          "Inventory/static state changes inspected but no native positive player amount/UUID/world admission/durable payment/actual cured effect/food health/authoritative interaction or save-reload tested.",
+          "Milk use completion, packet sync, lower equipment/effect attribute/event listeners/entity-manager admission, current custom stack/curative/capability composition and FluidBucketWrapper not fully expanded. Source-order statements assume prior callbacks return normally.",
+          "No claim of unlimited current survival material, unconditional all-effect cure, no-cost creative acquisition success, atomic cost-benefit/refund or reproduced duplication/loss.",
+          "Current full ecological/global comparison judgments pending; no distinct whole reference yet proposed or accepted. All source ranges/helpers/species/containers/curative items/counters are support0.",
+          "1000 gate unmet; do not modify production probabilities/caps/categories/recipes/quests/assets/shared Jar/master or delete prompts. No runtime/material/acquisition/new migration/global novelty or active-hour completion credit.",
+          "Independent material-policy relatedness must be judged against exact selected complete owners; distinctness may be rejected/merged. No formal candidate ID/package/author acceptance/fixture/aggregate from this proposal.",
+          "Fixed local mapped Forge1.20.1/47.4.10 archive identity and exact source bytes only, no fresh remote authenticity/Git commit/tree/current loaded pack registration guarantee.",
+          "At most1related provider/container whole in principle, formal/applied0. Cow/Goat, slots, loops, effects, timing/ranges/classes/cure helpers and source checks add0. Existing TConstruct cure/replacement whole is retained0; not a new cure or immunity reference.",
+          "All25listed source ranges actually read, five complete files/interfaces only. Remaining containing classes, full interaction/use engine, hook listeners, capabilities/FluidBucketWrapper/attribute packet machinery and current mod overrides not all read or run.",
+          "No authoritative player inventory delta, paid prerequisite, admitted ItemEntity, actual intended-player UUID pickup, actual removed effect or persisted return container; no all-effect/unconditional/harmful-only cure promise.",
+          "No-cost sound/sidedSuccess/criterion/stat/add boolean do not establish output; survival shrink may precede rejected overflow and may follow zero curative benefit, source callbacks can throw or mutate. No live duplication/loss exploit or general rollback/refund proved.",
+          "Curative helper read/write is not full effect/hidden-chain/stack capability/registry save roundtrip. Existing same-effect update may retain old curative list per already-owned TConstruct judgment; no per-caster or per-stack state authority implied.",
+          "EA42 full selected judgment newly read; three other selected whole judgments/Seal/currentFishing and TConstruct Main103 complete judgment reused0 with full limitations. Old source chains not reread, all48 ecology identity integrity is not48whole semantic review.",
+          "Original candidate historical47/gap953 and limits saying comparison pending retained verbatim. Current48/gap952/fishing closure supersedes numeric baseline only; original20/7 plus23/15/8 all preserved, no rewriting sealed history.",
+          "Native/runtime material survival/current loot or model UV/performance acceptance0. Ecological24/30 births9/10sameUUIDpickup/run12onGroundfalse remain unchanged. No game/process/display query or runtime marker consumed.",
+          "No production/quest/cap/probability/art/sharedJar/originalsave/master task list edits, no completed game-task deletion, no commit/push/publish/newchat/automation. Applicable1000 ecology gatefalse.",
+          "No quantified active hours; interruption/wait/download/parallel/wallclock excluded and tenhour total remains unverified. Author must confirm full Main whole judgment and normalize current48 before a separate reviewable minimum research package; no blanket package/validator/aggregation grant here."
+        ],
+        "migration_owner": [
+          {
+            "candidate_id": "b35db56f4e42c890c7f9",
+            "canonical_complete_row_sha256": "e48f92f7f0e8d9a69ce7a9d935c1811b8d140ffeba95c019b2276518e94dddc3",
+            "actual_current_non_evidence_decision_fields": {
+              "candidate_id": "b35db56f4e42c890c7f9",
+              "status": "accepted",
+              "family": "native-mooshroom-paid-flower-next-stew-effect-identity-fallback",
+              "trigger": "MushroomCow read/write and full mobInteract; ForgeHooks effect helpers",
+              "input": "paid flower-derived EffectId+forge:effect_id and EffectDuration, cow variant",
+              "output": "numeric effect fallback overridden by namespaced Forge ID when usable; next bowl consumes stored effect exactly by clearing field",
+              "preservation": "Full pair, full payment/payout method and effect helper bodies read. Flower shrunk only when no effect already stored; next suspicious stew gets effect/duration then clears receipt. This is a paid deferred output, distinct from entity-active buff timer. Namespaced registry encoding supports numeric ID movement.",
+              "application_limit": "Reader gates Forge override on presence numeric EffectId, so namespaced-only record ignored. Missing fields on reused cow leave stale effect/duration. Registry key bad/unresolved fallback behavior limited to helper source; no native old-save test. All effect types one chain.",
+              "supporting_candidates": [],
+              "credit": 1
+            },
+            "actual_complete_judgment_read": true,
+            "old_source_chains_reread": false,
+            "rationale": "Whole mooshroom paid-flower pending next-stew effect, registry fallback and one-shot clearing own that deferred receipt. Bucket milk is not a new stew/variant/effect-ID migration: it does not spend pending flower or preserved chosen effect; consumed milk selectively removes current active effects subject to veto. Common animal food/container material path alone may not be enough; Main must judge whole relatedness.",
+            "new_credit": 0
+          },
+          {
+            "candidate_id": "b5cf8998b62cb8f65d45",
+            "canonical_complete_row_sha256": "b74b8a55ff48fd54a4f5db46cd5abb4bf54a2e35d2fb2319bf923c800959aa2e",
+            "actual_current_non_evidence_decision_fields": {
+              "candidate_id": "b5cf8998b62cb8f65d45",
+              "status": "accepted",
+              "family": "native-goat-finite-horn-resource-legacy-availability-upgrade",
+              "trigger": "Whole EntityGoatMissingStateFix + DataFixers3093 + Goat complete writer/reader/dropHorn/add/remove/ageBoundaryReached",
+              "input": "pre-horn-format goat with no saved left/right horn availability",
+              "output": "versioned upgrade sets both available true; current reader restores two actual finite horn receipts; dropHorn clears selected receipt before spawning actual horn item",
+              "preservation": "Actual consumable resource restored, not merely visible model horns. Missing current booleans alone would override synchronized true defaults tofalse, so version gate carries compatibility semantics. Horn sides and screaming variant not separate credits.",
+              "application_limit": "Fix unconditionally sets true; running against current false receipt would replenish resources, so never general missing-data fallback. Drop clears before unchecked entity spawn; age transitions intentionally reset horn availability. Horn instrument selection internals not read, not needed to claim receipt behavior.",
+              "supporting_candidates": [],
+              "credit": 1
+            },
+            "actual_complete_judgment_read": true,
+            "old_source_chains_reread": false,
+            "rationale": "Whole finite two-horn availability and version-gated refill owner retained0. Goat milk shares actor class but does not spend or restore horns; no side/species/version credit from same class, and no new migration.",
+            "new_credit": 0
+          },
+          {
+            "candidate_id": "37d01f2c5955fb8e026e",
+            "canonical_complete_row_sha256": "5b71e3a51888a79c9e5e0d4764cbff22e61b2457c3ee7d1a0b2205adf817ba48",
+            "actual_current_non_evidence_decision_fields": {
+              "candidate_id": "37d01f2c5955fb8e026e",
+              "status": "accepted",
+              "family": "native-sheep-harvested-wool-receipt-and-regrowth-restoration",
+              "trigger": "Sheep full pair/readyForShearing/shear/ate + actual Forge isShearable/onSheared",
+              "input": "Sheared consumed resource flag plus bounded dye ID",
+              "output": "restore wool availability and dye; actual server Forge shear returns colored wool and sets receipt, eating explicitly regrows resource",
+              "preservation": "Not cosmetic-only color: actual harvested wool entitlement and physical item output read. Independent owner/consumer from goat horn irreversible version default; both not counted as multiple sides/colors. Native mobInteract shear branch disabled by Forge, actual callback checked.",
+              "application_limit": "Missing Shearedfalse replenishes if saved receipt omitted; raw dye uses byId fallback. Returned callback items require caller emission (caller not traced); no exactly-once item delivery claim. Resource intentionally renews on ate, not permanent player progress.",
+              "supporting_candidates": [],
+              "credit": 1
+            },
+            "actual_complete_judgment_read": true,
+            "old_source_chains_reread": false,
+            "rationale": "Whole wool sheared flag/regrowth earned stock owns its resource receipt. Milk branch has no shown finite harvested availability mutation and converts player bucket mode-dependently; default output consumer is curative, not repeated wool color/regrowth. Current native runtime unproved in both.",
+            "new_credit": 0
+          }
+        ],
+        "application": [
+          "A source-dependent renewable input, container exchange, overflow drop, actual recipient acquisition, consumption and selective successful benefit must be separately acknowledged; default boolean or feedback is not a quest completion receipt.",
+          "Do not substitute plain milk/vanilla bucket for a specific Dynasty NBT variant or invent registered materials. Keep existing reward/prerequisite/progress and require current native validation after applicable1000."
+        ],
+        "resource_membership_boundary": "Source default MilkBucket construction and mode-related container exchange only; no actual player inventory delta, world admission, UUID pickup, paid prerequisite, current loaded compatibility or curative benefit proof.",
+        "framework_dependency_boundary": [
+          "Fixed local mapped Forge1.20.1/47.4.10 archive identity and exact source bytes only, no fresh remote authenticity/Git commit/tree/current loaded pack registration guarantee.",
+          "At most1related provider/container whole in principle, formal/applied0. Cow/Goat, slots, loops, effects, timing/ranges/classes/cure helpers and source checks add0. Existing TConstruct cure/replacement whole is retained0; not a new cure or immunity reference.",
+          "All25listed source ranges actually read, five complete files/interfaces only. Remaining containing classes, full interaction/use engine, hook listeners, capabilities/FluidBucketWrapper/attribute packet machinery and current mod overrides not all read or run.",
+          "No authoritative player inventory delta, paid prerequisite, admitted ItemEntity, actual intended-player UUID pickup, actual removed effect or persisted return container; no all-effect/unconditional/harmful-only cure promise.",
+          "No-cost sound/sidedSuccess/criterion/stat/add boolean do not establish output; survival shrink may precede rejected overflow and may follow zero curative benefit, source callbacks can throw or mutate. No live duplication/loss exploit or general rollback/refund proved.",
+          "Curative helper read/write is not full effect/hidden-chain/stack capability/registry save roundtrip. Existing same-effect update may retain old curative list per already-owned TConstruct judgment; no per-caster or per-stack state authority implied.",
+          "EA42 full selected judgment newly read; three other selected whole judgments/Seal/currentFishing and TConstruct Main103 complete judgment reused0 with full limitations. Old source chains not reread, all48 ecology identity integrity is not48whole semantic review.",
+          "Original candidate historical47/gap953 and limits saying comparison pending retained verbatim. Current48/gap952/fishing closure supersedes numeric baseline only; original20/7 plus23/15/8 all preserved, no rewriting sealed history.",
+          "Native/runtime material survival/current loot or model UV/performance acceptance0. Ecological24/30 births9/10sameUUIDpickup/run12onGroundfalse remain unchanged. No game/process/display query or runtime marker consumed.",
+          "No production/quest/cap/probability/art/sharedJar/originalsave/master task list edits, no completed game-task deletion, no commit/push/publish/newchat/automation. Applicable1000 ecology gatefalse.",
+          "No quantified active hours; interruption/wait/download/parallel/wallclock excluded and tenhour total remains unverified. Author must confirm full Main whole judgment and normalize current48 before a separate reviewable minimum research package; no blanket package/validator/aggregation grant here."
+        ]
+      },
+      "selected_fields_canonical_sha256": "e8b8e6fbda64e171971eb3893628c09c922389c73faf49c0e77e068166f9bcc3",
+      "comparison_credit": 0,
+      "old_raw_source_chains_reread": false
+    }
+  },
+  "complete_old_global_migration_judgment": {
+    "binding": {
+      "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+      "sha256": "98daffb246d62cf1f2a4a964eb36b64be2d3d9ea93b2423c91f5fdd74f1ff7b0",
+      "bytes": 18357046
+    },
+    "line1based": 404,
+    "canonical_complete_row_sha256": "ab2a38ad4a74f24dff99db95a324278a39d81613e33f1ee0c5d6225804e5cbec",
+    "actual_complete_non_evidence_judgment": {
+      "candidate_id": "0f7accb8420e38b2f8e2",
+      "status": "accepted",
+      "family": "native-beehive-serialized-inhabitant-resource-release-receipt",
+      "trigger": "BeehiveBlockEntity load/save/writeBees/BeeData/releaseOccupant/tickOccupants",
+      "input": "captured entity compound, ticks/minOccupation, optional flower position",
+      "output": "clears stored list; retains entity biological state but strips explicit temporary movement/UUID fields; only removes stored record when addFreshEntity succeeds",
+      "preservation": "Full reader/writer/helper/constructor and complete release/tick consumer read. Release works on copied compound and rebuilds hive position; nectar delivery changes honey and bee age/cooldowns before world spawn. Whole captured inhabitant chain1, no per bee/species credit.",
+      "application_limit": "Honey block may be incremented before addFreshEntity failure while stored bee remains; retry could replay honey, so successful entity receipt alone not full transaction atomicity. No MAX_OCCUPANTS load bound; constructor strips passed compound in place. Transient exclusion policy is bee-specific, not wholesale player NBT copy.",
+      "supporting_candidates": [],
+      "credit": 1
+    },
+    "old_credit_retained": 1,
+    "new_global_credit": 0,
+    "new_migration_credit": 0,
+    "cannot_narrow": "Entire captured living inhabitant/release attempt/nectar-honey side effects/lifecycle is owned, not only serialization."
+  },
+  "complete_author24_findings": [
+    "At most one honey-reservoir extraction whole: stored-nectar facility produces blockstate honey, full reservoir permits exclusive tool-action or bottle extraction, smoke controls release/retaliation path, reset request is separate from admitted material, and selected native consumers request poison removal or waxed-state change. Not separate credits for honeycomb/bottle/poison/wax.",
+    "Whole BeehiveBlock295/BeehiveBlockEntity342/HoneyBottleItem67/HoneycombItem71 actually read, six other containing classes bounded13fresh ranges total. Nine exact previously read same-turn food/drop/pickup/admission ranges reused0. No new credit from file/range/helper counts.",
+    "Honey level declaration is integer property0..5 and default0; full branch qualifies supplied statelevel>=5. Actual base BEEHIVES has bee_nest/beehive, CAMPFIRES campfire/soulcampfire, inhabitants onlybee. Raw source tags are not current merged memberships, active facility population or natural sustainable nectar proof.",
+    "Native colony ingress normal own branch storedsize<3, saves entityNBT, stores wrapper(min2400 or600 from callerflag), optional flower update, discards actor and superdirty. PublicstoreBee has no owncap and load clears then accepts allcompound listentries; isFull uses==3, not general>=3. These belong existing complete releasewhole0, no cap repair or extra reference.",
+    "Release copies saved entity payload, strips temporary fields includingUUID, rebuilds hivepos, rejects normal night/rain or blockedexit but EMERGENCY bypasses these two. Loaded type must inhabitortag; no actual current tag/type resolution or natural acquisition proved. This is old global whole not new spawning credit.",
+    "For HONEY_DELIVERED Bee, dropOffNectar then tagged hive honey+1 or rare+2 capped5 setBlockAndUpdate occurs BEFORE addFreshEntity. Stored record removed only when actualaddreturnstrue; refusedadd can leave old storedHasNectar for retry after prior world increment. This is oldowner explicit nontransaction boundary, not a newly reproduced exploit.",
+    "Tick loop passes same supplied blockstate snapshot to each release; do not assume independent reads sum every simultaneous nectar increment. Wrappermin condition strictlyticks>min then iterationcount++, normal failure retriable with no totalattempt cap. Sound/returned Bee list additions can precede actualworldadd; nonemptyrelease list is not admitted-colony proof.",
+    "Harvest tool predicate is dynamic canPerformAction SHEARS_HARVEST, not only item==SHEARS. Tool path sound -> request3HONEYCOMB -> hurtAndBreak1 -> flagtrue/event, no successful output readback before cost/reset. Current toolaction backend/durabilityhooks/full dispatcher unexpanded.",
+    "Honeycomb drop uses popResource: server/nonemptystack/DO_BLOCK_DROPS/!restoringBlockSnapshots before constructing default-delay ItemEntity then uncheckedadd. Thus source branch may request sound/durability/reset even when actual3comb worldoutput is suppressed. No native rejection/loss reproduced; no guaranteed3recipient items.",
+    "Bottle branch literallyshrinks1 before sound and hand-or-inventory/newdrop HONEY_BOTTLE, with no own instabuild guard. Do not silently replace it with ItemUtils creativecontains policy or claim final creative economic cost outside surrounding dispatcher. Actual input debit is not an output receipt.",
+    "Bottle output when inputempty sets currenthand; otherwise inventory.add newlyconstructed honey and onfalse Player.drop anothernew default honey. Earlier EA50 full inventory/toss constraints apply0; directhand/inventory/requestedtoss is not positive intended-player UUID acquisition or guaranteed quantity. Both harvestbranches can complete sourceflag without admittedoutput.",
+    "Only awardStat has explicit !client guard here; ownuse action/cost/reset paths lack independent universalserver guard. Enclosing nativeinteraction/permissions/currenthooks unexpanded. No clientduplicate/exploit asserted.",
+    "After actionflag, smoke false optionallyangersnearby if storedhive nonempty, then calls releaseBeesAndResetHoneyLevel, which requests level0 BEFORE releasing occupantsEMERGENCY. Smoke true only reset. Both setBlockreturn ignored, so requested reward/reset/colony mutation are not atomic commit/refund. Sound/stat/sidedSuccess not completion receipt.",
+    "angerNearbyBees uses rectangularinflate8/6/8 Bee/Player queries, randomPlayer per currentlytargetnull Bee and Forgeemptyplayer earlyreturn. Not automatically only actual harvester, not exact sphere, no alive/owner/attack success proof. Release helper can later assign suppliedplayer within distanceSquared<=16 unless sedated; full target/event/cap behavior not audited.",
+    "Campfire smoke helper scans below1..5 for lit tagged campfire; virtualcenterpost collision causes immediate check of one lowerblock andreturn. At i5 this can inspect below6; no simplistic unobstructed5block rule. Only hasLIT/tag/true qualifies; not visible smoke particles, fuel drain or universal protectionproof.",
+    "BE load clears stored and savedFlower then restores list/rawcounters; BeeData mutates passedcompound bystriplist. honeylevel lives blockstate, not this BE savepair. Nativechunk/blockproperty save, generic actorNBT/subtype and fullrestart unexpanded; oldstoredentity fields not allportable playerNBT.",
+    "HoneyBottle registration actualfood6/saturation0.1/maxstack16/remainderGLASS_BOTTLE. Ownuse calls startUsingInstantly and bypasses inheritedcanEat check locally; nominaldrink40/DRINK not real elapsedseconds or guaranteedfinish. Currentstack-sensitive food/backend/lifecycle not complete.",
+    "HoneyBottle finish invokes super first (ignores returnedstack), then additionalServerPlayer consumecriterion/stat, then serverremoveEffect POISON. Earlier native Item/Player/Living eat source shows food/stat/criterion/defaulteffect and noncreative/nonplayer shrink; duplicate criterion/stat calls are source requests, not duplicated rewards or reproducedruntimebug.",
+    "Poison removeEffect posts cancellableRemove then removesmapentry/callbackonlyifnotcancelled; HoneyBottle ignoresbool. Consumption/bottle return may therefore occur with no removedpoison; this is ordinary consumer boundary0, not new cure/immunity owner or actual beneficialreceipt.",
+    "If consumedstackempty returnsnewglassbottle; otherwise survivalPlayer triesinventory/addthenactualremainderdrop, creativePlayer keepsstack/noextraemptybottle, nonplayer nonempty similarlyretainsstack. Return value/containerconstruction not authoritativecommittedhand, acquisition or refund; full usecaller notread.",
+    "Honeycomb useOn mappedWAXABLES transformsblockstate withPropertiesOf, criterion before shrink1, then uncheckedsetBlockflags11/event/success. Failedwrite can coexist with localcost/feedback under normalcallbacks. Sixteencopper mappings/inverse are oneparameterizedutility0, not16references or newbuilding production.",
+    "FullHoneycomb signmethods only delegate setWaxed andreturntrue/false withlevelEvent; SignBlock/SignBlockEntity authorization/debit/command-edit consumers not expanded, no complete signwax global novelty or materialusecost claimed from these methods alone.",
+    "Existing0f7 full captured-inhabitant/nectarreleasewhole alreadyglobal1, preserveall fields/limits andnewglobal/migration0. Currentecological material-harvest linkage only max1orMERGE0 afterMainwhole review. No natural currentfixture/spawn/flower/paidmaterial/playerreceipt proof.",
+    "FutureDynasty needs genuine sourcefixture/requiredregisteredmaterial/NBT -> existingprerequisite -> actualtool/containerdebit -> provedrecipientoutput -> separatelyacceptedcure/waxbenefit; preserveIDs/rewards/progress. No actualrecipe/quest/asset/gamechanges from this research."
+  ],
+  "complete_author12_limits": [
+    "Fixed local source/base resources identity only, no fresh upstream/Git/tree/currentmergedconfig/tag/feature/registry proof.",
+    "Whole nativeforaging/pollination/returngoal, naturalsupplies, fullblockplacement/destructionloot/dispensers/sign caller/protection/currentdurability/inventory/stackhooks/chunkIO not audited. No currentplayable renewableeconomy or ecologyopportunity proof.",
+    "MaxoneharvestwholeorMERGE0, authoraccepted/applied0/noID/append. Existing0f7 complete capturedinhabitant/honeyretrywhole1 retained; newglobal/migration0, channels/rawtags/16maps/helpers/failures0.",
+    "Actionflag/stat/sound/outputobject/requestedworldreset do not prove actualpayment/nativeadmission/intendedplayerUUIDpickup or committedconsumerbenefit. Source callbacks maythrow/reenter; no atomicity/rollback/refund/nativeexploit proof.",
+    "popResource DO_BLOCK_DROPS/restoringSnapshots differ from bottle directinventory/toss; do not transfer skippedoutput/worlddropdelay/capturebehavior indiscriminately. Inputshrink/durability and honeyreset order are sourceconditions, finalcreative/authoritativecallerunexpanded.",
+    "Smokeprobe1..5 pluscollisionlookbelow mayreach6; lit-tagged-state test not actual smoke display/fuel/newglobalimmunity. Angerquery/randomtargets/returnedlist not complete owner/activeattack/admittedBeeproof.",
+    "Storedpayloadminflag andactualHasNectar maydiffer viaexternalcall; publicstore/loadcap behavior kept. Honeyprewrite/releaseaddfailure/snapshotmultioccupant update remain oldwholeboundary, no newcap or growth/probability fix.",
+    "HoneyBottle food/criterion/stat/poisonrequest/containerreceipt are separate; cancellableRemove ignoredbool. Noactualfoodhealing/poisoncure/drinkfinish/containersaveacceptance; nominal40 notseconds.",
+    "Honeycomb mappedwax requests uncheckedsetBlock aftershrink; signhelperdelegate not fullsignauthorization/debit/saveconsumer. Wax/poison are output-use qualification0 not separate semanticmechanisms.",
+    "Selected3completeold ecologicaljudgments only, notall57source re-audit/globalnovelty. Oldwholebusinessandlimits retained, exactsame-turn9source scopes reused0.",
+    "Nativeavailability24/30,sameItemEntityUUIDactualpickup9/10,separateoilsource/kill/drop/acquisitiongap andrun12onGroundfalse remainopen. No nativegameplay/birth/kill/material/taskdeletion credit.",
+    "Only newprivateJSON research. No oldtool/once/import/help/validator/summary/marker/grant/executor, Java/Gradle/game/process/UI/display/network/audio/brightness/wake/focus,formal/master/session/active/ownership/prompts/production/assets/cache/sharedJar/world/Gitwrites. No1000/alltasks/activehourcompletion/newchat/automation."
+  ],
+  "complete_author2_applications": [
+    "Keep facilitystoredpopulation, worldhoneybudget, selectedtool/containercost, recipientadmission and finalcure/waxbenefit separate; feedback/Optional/uncheckedwrite not taskreceipts.",
+    "Preserve originalregisteredIDs/NBTvariants/prerequisites/rewards/progress; shared native helpers/sideeffects are support0 and no production permitted until applicable1000+actualnativeacceptance."
+  ],
+  "Main24_findings": [
+    "One whole material-reservoir harvest linkage at most: supplied honey-level qualification→exclusive tool/container extraction→smoke-conditioned reset/occupant response→conditional native material use. Captured-bee entry/release/nectar production remains complete old migration0f7 owner1/new0. Honeycomb, bottles, poison, wax, tags, timers and helpers are not split credits.",
+    "Main actually read all four complete focal classes295/342/67/71 plus nine other ranges:10source entries13ranges831lines. Author-reused nine support ranges were additionally actually read by Main now, not assumed read from an author same-turn claim:209lines/5extra containing sources,22ranges1040unique lines15sources5whole incl ItemUtils53. Coverage is not semantic credit.",
+    "Property honey_level0..5/default0 and ownuse suppliedstate>=5 qualify reservoir, not actual population or refill proof. Three base raw tag bodies are fixed archive parameters only, not current merged tag membership, fresh Git or current loaded fixture verification.",
+    "Old ingress whole saves actor, stores2400/600 wrapper from callerflag, possibly remembersflower, discards original and marksdirty; public storeBee/load do not impose normal entry<3 capacity. isFull==3 is not universal>=3. loadstrips explicit fields and accepts list entries; bee-specific transient exclusion is not playerClone whitelist.",
+    "Old release keeps night/rain/collision gates except EMERGENCY, requires loaded inhabitortype; HONEY_DELIVERED clears nectar and requests worldhoney increment before actualadd. Stored record consumed only on true add; failedadmission can retain original savednectar. This entire nontransaction boundary remains oldowner, no new spawning/migration credit.",
+    "Loop reuses supplied BlockState across occupant attempts, strict ticks>min then postiteration increment. Optional returned list and sound can precede failedadmission; nonempty list and superdirty do not prove admitted colony. No sustainable foraging, natural hive deployment or current cap opportunity researched.",
+    "Harvest tool is dynamic SHEARS_HARVEST action, not only literal shears. Sound→popResource3comb→hurtAndBreak1→flag/event has no successful admitted-output check before cost/reset. Durability callbacks and toolaction dispatch not expanded.",
+    "Block.popResource server/nonempty/DO_BLOCK_DROPS/!restoringBlockSnapshots gates construction; item defaultdelay10 then addFreshEntity bool ignored. Block-drop suppression can coexist with sourceflag, durability, sound and reservoir reset request. No actual material loss/duplication/exploit or guaranteed3recipient items is demonstrated.",
+    "Bottle branch own literal shrink1 precedes sound and output, has no own instabuild guard. It does not call ItemUtils.createFilledResult: creative contains-dedup behavior from milk cannot be substituted here. Surrounding interaction/creative hooks are unexpanded, so final paidcost is not certified.",
+    "If inputempty, hand assignment gets a fresh honey bottle; otherwise inventory.add(new) then drop(anothernew,false) onfalse. Bounded ItemUtils and oldEA50 distinguish outputreturn/partialinventory/drop/admission/recipient. Main has not newly audited fullInventory/Player.drop/Toss listeners; no intended-player UUID custody or refund is claimed.",
+    "Only stats have explicit own!client guard; own interaction action/cost/reset has no universal serverguard. Enclosing native dispatcher/protection/prediction/currentlisteners remain unexpanded. Local sidedSuccess is no authority or native success receipt.",
+    "After flag smoke false may anger nearby if storedhive nonempty, then resetHoneyLevel requests0 before EMERGENCY release; smoke true only reset. Both writes ignorebool. Inputcost, rewardrequest, worldreset and occupantmutation are not an atomic commit; exceptions/reentry can interrupt sourceorder.",
+    "Nearby anger queries inflated8/6/8 boxes, each targetnull bee picks random queried Player with Forgeemptylist earlyreturn, not uniquely actualharvester. Release helper separately targets suppliedplayer at squared<=16 unlesssedated; that list can include pre-admission beeobjects. No actual attack/owner agreement is proved.",
+    "Smoke loop probes below1..5, firstlit tagged state true; center virtualpost collision returns whether one furtherbelow islit, including below6 at i5. Not a simple unobstructed5block sphere, actual rendered smoke, fuel guarantee or blanket immunity; collision shape and LIT/tag are source conditions only.",
+    "BE list/flower/counters restore separate from blockstate honey. Normal class code does not prove chunk/blockproperty save consistency, inherited entitypayload or restart exactlyonce; publicstore/minflag and HasNectar may differ. No portable playerprogress/escrow conclusion.",
+    "Honey bottle actualregistration food6/saturation.1/stack16/craftremainderGLASS_BOTTLE, ownuse delegates startUsingInstantly not inheritedcanEat. Nominalduration40/DRINK requests do not prove real2seconds or uninterruptible finish. FoodData internals and stack-sensitive hooks not fully expanded.",
+    "Finish invokes super then extraServerPlayer consumecriterion/stat, server Poison remove and containerselection. Item.finish→Player.eat→Living.eat has ordinary food/stat/criterion/conditionalshrink; duplicated source requests are not duplicated quest rewards. Ignored superreturn/currentstack hooks are not transaction closure.",
+    "Living.removeEffect posts cancelable Remove, removes mapentry/callbackonlyifnotvetoed and present. Honey ignoresbool; consumedresource/returnedglass can coexist with unchangedpoison. Cure/immunity consumer is oldgeneric support0, no new control-refusal credit or benefit guarantee.",
+    "Empty consumedstack returnsfreshglass; nonempty survivalPlayer attempts inventory/add→drop, creative/nonplayernonempty retainsstack withoutthis extraempty. Returnobject is not actual committedhand/save or compensation. Nativeuse caller, outputcapabilities and eventlisteners unexpanded.",
+    "Honeycomb getWaxed maps16copperstates and copiesproperties, criterion→shrink1→uncheckedsetBlockflags11→events/success. Differentmaterials/mappings/failedwrite are not sixteen references. No outputstate readback or actual preserved blockentity data is proved.",
+    "Full signhelper only setWaxed(true) and levelEvent orfalse, canApplyalways true. FullSignBlock/BE permissions, edit/debit/commands/savecallers not read, so this is not complete signwax or spendone assurance.",
+    "All selectedEA10 full6chain/3gaps,EA42 full19chain/17constraints/9limits/resourcebody andEA50 full22chain/15constraints/correctionfullTConstructowner/19limits/3migrationowners/framework read as complete business judgments and deepmatched their fixed receipts. Original underlying sources not reread; remaining58 ecology not exhaustively semantically compared.",
+    "Migration line404 full11 non-evidence fields actually read and complete rowcanonical matched currentledger. Preserve whole liveinhabitant/nectar/honey retryowner1, not narrow toserializer. Different whole here, if accepted, is reservoir-qualified custody conversion and smokeconditioned reset/retaliation plus conditional consumption; generic worldwrite/outputcure support0 and global/migration/NBT credit0.",
+    "Original24/12/2 candidate remains sealed with historical520 programcontext and earlier57 ecology context. CurrentMain521/249 andecology58 added separately; no fresh ID/append/execution authorized before authorpointwiseACK and later exactdatareview. No current material availability or questdone claim."
+  ],
+  "Main12_limits": [
+    "Fixed local mappedForge/client-extra archive-only exact source identities; local_source null is truthful. No freshremoteGit/tree/registry/currentdata/config verification.",
+    "Main15sources22ranges1040unique lines5whole plus3raw tags are actual reading coverage only. Four focalclasses and ItemUtils whole; othercontainingclasses partial. Oldcomparator sources not newly read and full58 semantic novelty not proved.",
+    "Maximum1 related reservoir-harvest whole pending actualoriginalauthorACK, canMERGE0; accepted/formal/applied0, no formalID/reservation/append/marker authority.",
+    "Oldglobal0f7 capturedinhabitant and nectar sideeffect lifecycle remainswhole1/new0; ecologicalEA10/42/50 entirejudgments preserved. Timers/tags/16mappings/channels/cure/worlddrop helpers add0; no new migration/NBT gate credit.",
+    "Wholeforaging/pollination/returngoal/naturaldeploy/vanilla loot and chunkrestart not expanded; no current renewable source/cap/cycle/survival economy proof.",
+    "Actionflag/criterion/stat/sound/worldwriterequest/Optional/returnobject/admissionbool are not intendedplayer material amount/UUID pickup/payment/savedquest receipt. Callbacknormalreturn order only, no rollback/refund/exactlyonce or native exploit proof.",
+    "popResource block-drop rule and restoringSnapshot gates cannot be transferred to bottle directhand/inventory/toss. MainoldEA50 complete judgment is comparison, not fullfresh inventory/toss source reading.",
+    "Creative branch direct bottle shrink versus milkhelper differs; enclosing serverinteraction/creative/event/runtimepermissions still unknown, no demonstratedclientduplication or final economic cost guarantee.",
+    "Smoke below6 collisionlookahead, pre-admission returnedbees and randomnearbyplayer targeting retained; no visible smoke/fire safety/actualattack/control immunity proof.",
+    "Poison removal cancelable and ignoredbool; food/criterion/containers/wax request not actualHP/benefit or antidote completion. Honeycomb signhelper not fullsign authorization/debit consumer.",
+    "No game/Java/Gradle/network/ps/display/wake/unlock/audio/brightness/focus/userinstance/originalsave/production/asset/sharedJar/Git/push/publish/automation/newchat/checklist changes. Actualec24/30birth9/10sameUUIDpickup0strictkills/oilgap/run12false remain.",
+    "No quantifiedactivehours or allCODcompletion. Applicable1000 unmet for ecology/newNBT; preserve all originalIDs/rewards/prerequisites/progress, no task deletion or productionfabrication from this research."
+  ],
+  "Main2_applications": [
+    "任务衔接区分蜂群/蜂蜜预算、实际工具或容器付款、成功世界或背包准入、意图玩家原生取得以及随后功能生效；蜂蜜重置/声音/统计不能代替材料回执。",
+    "新增内容继续材料来源→已有前置→实际制作/交易付款→功能性注册/NBT输出→意图玩家原生获取；此原生参考不授权改概率/cap、创造物品ID或用基础物品替代四NBT变体。"
+  ],
+  "current_program_formal": 521,
+  "current_ecology_formal": 58,
+  "current_ecology_gap": 942,
+  "maximum_related_whole": 1,
+  "accepted_credit_added": 0,
+  "formal_credit_added": 0,
+  "new_global_credit": 0,
+  "new_migration_credit": 0,
+  "new_NBT_credit": 0,
+  "formal_id": null,
+  "append_authorized": false,
+  "production_changes": false,
+  "tasks_deleted": 0,
+  "native_acceptance": false,
+  "actual_active_hours_claimed": null,
+  "all_tasks_complete": false
+}
