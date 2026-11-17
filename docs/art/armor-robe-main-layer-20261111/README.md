@@ -1,0 +1,13 @@
+# D44：长袍常规主层与Forge取消分支
+
+在固定本地Forge 1.20.1-47.4.10源码缓存中实际阅读 HumanoidArmorLayer.renderArmorPiece / usesInnerModel / getArmorResource，ForgeHooksClient.getArmorTexture / getArmorModel，模型扩展默认方法；复用D43原图已看记录，不把本轮源码核对当新增图片或设计。
+
+常规路径：材质名robe没有命名空间时域为minecraft；LEGS取robe_layer_2，其余槽取robe_layer_1。DyeableLeatherItem以实际color乘底图RGB，overlay为白色乘色；Forge还允许物品覆盖纹理字符串。因此不能跳过hook把拼接路径当最终真实资源。
+
+更关键的是模组本身：CommonForge静态初始化将Main.FORGE设true；其@Mod声明为immersive_armors。MixinArmorFeatureRenderer在renderArmor入口，对FORGE=true且当前槽物品为ExtendedArmorItem时调用CallbackInfo.cancel。另一个render入口负责遍历装备槽的Piece。D43的四组分层片引用仍成立，普通minecraft命名空间四图不能当作Forge取消分支生效时必经的主层。
+
+本轮读取原始refmap，两个选择器映射到m_6494_和m_117118_，两者完整参数/返回描述符均在选定本地Forge SRG类中存在。只读javap方法签名，未运行模组或混入；名称签名匹配不证明加载成功。
+
+D43“主层消费者未闭合”现补至上述有限静态分支关系。仍未做混入转换、真实生命周期、跨平台注册实现、运行资源包覆盖或穿戴/五视角验收，不报告模组bug，也不报告原图全球无用。旧冻结收据保留，本补充独立冻结。
+
+本轮保留289条生产资源哈希；累计654名称族/640盔甲名称族/215保守组未变，独立设计信用新增0，1000适用参考仍不足。未制作、未开游戏、未改主清单。
