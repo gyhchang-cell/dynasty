@@ -1,0 +1,31 @@
+import json,hashlib,math
+from pathlib import Path
+OUT=Path(__file__).resolve().parent;ROOT=OUT.parents[2]
+assert not (OUT/'RECEIPT.json').exists()
+def put(n,v):(OUT/n).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+def bind(p):
+ p=Path(p);b=p.read_bytes();return {'path':str(p),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+sources=json.loads((OUT/'sources.json').read_text())['candidates'];raw=json.loads((OUT/'raw-source-audit.json').read_text())['candidates'];functional=[]
+for a in raw:
+ d=a['nbt_decoded_original'];pal=d.get('palette')or d['palettes'][0]
+ items=[{'pos':b['pos'],'state':pal[b['state']],'original_block_entity':b.get('nbt')}for b in d['blocks']if b.get('nbt')or any(w in pal[b['state']]['Name']for w in ['door','furnace','smithing','anvil','ladder','stairs','lava_cauldron','scaffolding'])]
+ functional.append({'id':a['id'],'stored_records':len(d['blocks']),'declared_volume':math.prod(d['size']),'omitted_positions':math.prod(d['size'])-len(d['blocks']),'explicit_air':a['air'],'nonair':a['nonair'],'entities_original':d.get('entities',[]),'functional_states':items})
+put('functional-evidence.json',{'candidates':functional,'sparse_omission_not_air':True,'entity_outer_and_inner_positions_preserved_not_normalized':True,'native_function_not_verified':True})
+obs=[
+{'layout':'8×7紧凑甲匠房：西三格深低敞棚接东侧围护作业/储藏室，东炉与高双箱沿后壁，西前场无门扇，整块平顶/小垛口不是两栋。','proportion':'8×8×7，270记录=203非air+67air，178省略；炉y1、箱y3只是家具垂直错层，最高y6烟帽，模板height8非8层，无床/梯/上层居住。','facade':'smooth_sandstone68/cut_sandstone36围东室，jungle_fence8前棚柱，西3面敞口，3brown_wall_banner均原无图案数据；挂牌Armorer只原装饰，不是实际职业/任务回执。','roof':'东砂岩平顶/间隔小垛、西低birch_slab遮棚17片（通用灰色不是石）；没有登顶梯，垛口不等于可用屋顶平台，顶campfire(6,6,2)north/littrue/Items空不证明排烟。','materials':'blast_furnace(6,1,2)west/litfalse/空；后箱(6,3,3/4)west/right,left原armorer loot/seed，高双箱下有closed top jungle_trapdoor家具承托，不把双箱作两奖励。','circulation':'入口(0,1,3)west_up empty/finalstructure_void→敞棚→东室西墙(3,1,3)air、(3,2,3)air、上(3,3,3)closed top trapdoor为内口依据；炉服务面和高箱交互/低顶净空未运行。室内砂岩/花岗阶为柜/边座不当楼梯。','terrain':'砂9加砂岩整基，前场与后室一体纳入原源；无额外村民池或必接房翼，原刚性地表投射并不证明山脚承托、风雨避难或冷热安全。'},
+{'layout':'9×5长窄工具匠棚，西敞口与三格木前场→后段窄室，东smithing_table(6,1,2)紧邻lava_cauldron(7,1,2)，北高箱(6,3,1)south，无床/门/梯。','proportion':'9×8×5，275记录=184非air+91air，85省略；室内狭长中轴仅单站立层y1，箱y3非二层，y6营火/烟帽非8格楼内。','facade':'cut_sandstone58竖边与pink_terracotta25板墙，jungle_planks9前坪，侧开窗/无遮门，原双面Toolsmith挂牌未转为中文指南针/职业逻辑；宽窄差或粉色本身不增加信用。','roof':'birch_slab40一整片平遮盖（分类图灰不当石），东侧鹅卵石小烟道和四臂spruce_trapdoor帽，顶部campfire(7,6,2)north/littrue空；无可用屋顶路径。','materials':'工作台配熔岩锅仍非水锅/高炉/铁砧，未证明完整热锻；原toolsmith箱loot/seed保留，高箱旁closed top trapdoor(6,2,1)为家具承托，不当上阁盖。','circulation':'入口(0,0,2)jointrollable/empty，final_state原一对方括号jungle_stairs east bottom（与071F02末尾]]不同），两侧(0,0,1/3)同向阶→木前场→后段中轴；狭口和工作台旁实际净空/门/寻路未验。','terrain':'砂岩底板及前木坪完整保存，不把当前窄长边界解释为缺失房翼；没运行原NBT/处理器/碰撞/地形生成，不能凭完整包围盒承诺具体坡地摆放。'}]
+comparisons=[
+'与057F01经典敞热角+后冷室，本例主要炉/高双箱都在小东围室，西仅低敞服务前棚，空间职能顺序不同；与068F01西双门封闭单室+L台亦不同。最多1待独立审查是否足够不同且适用匠铺；平顶垛口/砂岩/双箱/尺寸均不单独计数，主审可因家族近似hold。',
+'与071F02及072F02西口→东并列工作台/熔岩锅组织仍近，本例窄长/无门/平檐与高箱不足证明新空间家族。保留完整研究，不以砂岩/粉墙/3格宽/入口joint差记信用，hold0。']
+bindings=[bind(next((ROOT/'docs/architecture').glob(f'research-*smithy-{n}/manual-review.json')))for n in ['057','068','071','072']]
+cases=[]
+for i,(a,o,c)in enumerate(zip(sources,obs,comparisons)):
+ proposed=int(i==0)
+ cases.append({**a,'observations':o,'images_actually_viewed':[bind(p)for p in sorted(OUT.glob(a['id']+'-*.png'))],'whole_boundary':'完整底板/前棚/后室/平檐与工作储藏在单源，入口empty无必接房翼；原省略位置不虚填air，非专业功能验收。','semantic_family_comparison':{'comparison':c,'saved_existing_judgments_reused_not_reaccepted':bindings,'proposal_maximum':proposed},'credit_proposal_maximum':proposed,'formal_credit_added':0,'status':'PENDING_INDEPENDENT_SCOPE_AND_FAMILY_ADMISSION'if proposed else'HELD_FAMILY_INDEPENDENCE_UNPROVEN_ZERO','native_acceptance':False})
+put('manual-review.json',{'cases':cases,'source_bodies_studied':2,'whole_smithy_bodies_studied':2,'actual_current_images_viewed':14,'manual_observations':14,'pending_maximum':1,'held_zero':1,'formal_credit_added':0,'no_independent_self_admission':True})
+context=json.loads((OUT/'source-context.json').read_text());put('source-context-reading.json',{'metadata':'固定Trek1-B0.6.1原mods.toml全文/hash保存，作者hotsuop/Hugger/ALDgamer，MIT本地声明，非外网最新验证。','pre_render':'289历史archive/member及兼容别名排除后生成；两目标原member未研究，不把候选数/文件数作信用。','actual_entries':'desert houses两源各weight1/single_pool_element/rigid/actualprocessorsempty，整池其他zombie_desert处理不是当前屋体。','roots':'minecraft:jigsaw,size6,max80,start0,WORLD_SURFACE_WG,beard_thin,use_expansion_hack，#minecraft:has_structure/village_desert原版tag未在当前Jar补造。','missing':{a['id']:a['missing']for a in context['candidates']},'compatibility':'两源DV3953、新物品/标牌数据未在1.20.1验证；F01入口structure_void，F02入口rollablestraightjungle阶，原字串保留；两源原entities空，原loot在当前Jar缺失不代表游戏回执通过。','view_limits':'14张PNG已实际查看，分类色与全方块近似不证明半砖/柜台/高箱/低口碰撞和实际地形/火/烟通过。'})
+put('applicable-principles.json',{'principles':['低敞前棚与小围护炉储室的职能顺序需要和经典敞热前棚/后冷室区分，外观不同不保证独立家族。','窄长工作室侧壁高箱和东端并置工作台/熔岩锅可学紧凑组织，不能凭缩宽/换材新增信用。','平遮棚主要是木半砖，分类灰不解释为石；屋顶小垛和高箱不是楼层。','原source兼容/地形/低口碰撞/热工均未验；1000适用完整不同建筑前不制作。'],'implemented_product':False})
+put('task-scope-boundary.json',{'target':'COD3 NPC01 老陈 山脚铁匠铺空间研究','original_line':1122,'implemented':False,'outstanding':['1000适用完整不同建筑与独立复核','原创制作','材料/前置/付款/获取回执','中文指南针','昼夜雨险/水锤世界状态','原生最终验收'],'COD4_ledger':{'accepted':153,'target':1000,'gap':847,'increment':0},'masterlist_deletions':0,'cod5_missing_not_invented':True})
+previous=ROOT/'docs/architecture/research-20261104-smithy-072/latest-independent-admissions.json';put('latest-independent-admissions.json',{**json.loads(previous.read_text()),'previous_binding':bind(previous)})
+put('session.json',{'batch':73,'status':'MANUAL_STUDY_COMPLETE_VERIFICATION_PENDING','source_bodies_studied':2,'actual_images_viewed':14,'pending_maximum':1,'held_zero':1,'formal_credit_added':0,'newly_notified_main_061_increment':2,'not_total_cumulative':True,'latest_independent_admission_binding':bind(OUT/'latest-independent-admissions.json'),'cumulative_not_reset':True,'java_run':False,'product_files_written':False,'masterlists_edited':False,'native_acceptance':False,'all_tasks_complete':False,'next':'继续未研究完整匠铺，先历史与兼容别名排除；不等独立复核，不制作/改主清单。'})
+print('14 viewedPNG,14 observations,1pending1held,0formal.')

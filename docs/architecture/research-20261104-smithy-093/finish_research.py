@@ -1,0 +1,38 @@
+import json,hashlib,math
+from pathlib import Path
+OUT=Path(__file__).resolve().parent;ROOT=OUT.parents[2]
+assert not (OUT/'RECEIPT.json').exists()
+def put(n,v):(OUT/n).write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n')
+def bind(p):
+ p=Path(p);b=p.read_bytes();return {'path':str(p),'sha256':hashlib.sha256(b).hexdigest(),'bytes':len(b)}
+sources=json.loads((OUT/'sources.json').read_text())['candidates'];raw=json.loads((OUT/'raw-source-audit.json').read_text())['candidates'];functional=[]
+for a in raw:
+ d=a['nbt_decoded_original'];pal=d.get('palette')or d['palettes'][0]
+ functional.append({'id':a['id'],'stored_records':len(d['blocks']),'declared_volume':math.prod(d['size']),'omitted_positions':math.prod(d['size'])-len(d['blocks']),'explicit_air':a['air'],'nonair':a['nonair'],'entities_original':d.get('entities',[]),'functional_states':[{'pos':b['pos'],'state':pal[b['state']],'original_block_entity':b.get('nbt')}for b in d['blocks']if b.get('nbt')or any(w in pal[b['state']]['Name']for w in ['door','furnace','smithing','grindstone','bed','lava','water','stairs','ladder','anvil'])]})
+put('functional-evidence.json',{'candidates':functional,'sparse_omission_not_air':True,'native_function_not_verified':True})
+obs=[
+{'layout':'17×17菌底托圆折单室，东门入地面工住室；西高炉、北箱/高损坏砧、南单粉床、中央陈列桌。与070F01同源菌柄地面工作/床箱一室近族，换工具台为高炉/砧和新冠盖不计新的空间参考，hold0。',
+'proportion':'17×17×17/DV3465，体积4913，4817records=977非air3840air，96省略；8原item_frame非人物。地板y1/使用y2，功能主层只有底部一层；高冠盖/藤株/烟构至y16不叫17层。',
+'facade':'原未带namespace的smooth_quartz126另有minecraft:smooth_quartz27，保留不合并/补命名空间。白陶土96、泥砖58、真bricks40和mycelium193构石英混菌柄与西红烟构；东单spruce门(12,2/3,8)east/right/closed，4红glasspane为窗。',
+'roof':'白陶土/白混材台阶冠盖配黄色玻璃4/endrod6及藤蔓，西砖烟构接空lit营火(5,13,7)east。无梯/爬梯到冠盖，盖内空腔不是二层房；4smoothquartzstairs及多mudbrickstairs是围护/细部，不能全叫登楼阶。',
+'materials':'blast(6,2,8)east/unlit/Items空/BurnCook0，南粉床foot(7,2,10)head(7,2,11)south为1床，北箱(9,2,5)south/armorerloot无seed。3损坏砧分(7,3,5)/(7,5,6)east和(10,5,9)south，高位是陈列/细部，不编3可用锻台；无lava/water。5playerhead是原装饰，不生成/改人形建模。',
+'circulation':'东门内(11/10,2,8)air，中(9,2,8)blankwall_sign非整块隔墙，再西(8/7,2,8)air到炉east服务面；只原格态非实际碰撞。东入口(16,1,8)empty/finalair，内(9,1,7)原NPCpool minecraft:village/mushroom/villagers/finalspruceplanks，不擅自改成同Jar trek池或宣称已生成。',
+'terrain':'mycelium完整小基裙/底屋/冠盖一体，无必接房翼。8itemframes原relativepos和内部worldPos分别保存；1可见stone_slab、7不可见展示(2ironnugget/3ironingot/2rawiron)不当真实生产掉落或8NPC。原灰材示意不渲染实体/skin/纹理，山脚/雨天/炉开关原生未验。'},
+{'layout':'17×17圆折单室菌柄屋，东门横入宽公共空地，西磨工/西南低损坏砧，北箱、南单黑床，室内另有高砧/装饰架；无热炉、分室或上层通路。与070F01同源地面工住单室及本批F01同族，宽室/高菇顶/换磨工不单独增信用，hold0。',
+'proportion':'17×23×17/DV3465体积6647，6583records=1465非air5118air，64省略；entities空。地板y1/使用y2，3损坏砧高至y5仍非第二经营层，无床梯到高盖；原非air边界最高y22植饰不当23层/净高。',
+'facade':'带namespace smoothquartz367与原无namespace smooth_quartz83均保留；brownconcrete201为上大菌盖，shroomlight21/pointeddripstone26和石材变体、红玻璃4。东门(13,2/3,8)east/left/closed，12playerheads只是陈设，不当12人物或取得贴图新稿。',
+'roof':'上部大棕混凝土菌冠含照明/尖滴水石下缘和藤植，高盖中大量白石英实构不等有可达房。无梯，西(5,14/15/16,8)3叠原lit营火/空Items不是3炉或3建筑；通用灰色图将棕混凝土归灰，不能称全石冠。',
+'materials':'grindstone(5,2,8)floor/west，低损坏砧(6,2,10)north；另(10,4,10)west/(10,5,6)east为高位陈设，未证玩家可触达。北箱(9,2,4)south/weaponsmithloot无seed，blackbedfoot(8,2,12)/head(9,2,12)east为1床。无furnace/smithingtable/lava/water，顶营火不当热加工实现。',
+'circulation':'东empty入口(16,1,8)finalair→东门→(12..6,2,8)全原air→西磨；磨facewest向西服务面，不能说沿东向路线直接正对磨正面。内NPCsocket(8,1,11)原minecraft:village/mushroom/villagers/finalstone；同Jar trek池是不同ID，未改、未测依赖解析。4原双面空字sign不冒中文招牌/营业与指南针。',
+'terrain':'mycelium225基裙、底部封闭工住主室与大菌盖一体，床/箱无独立睡翼。原3有图案banner只装饰，未转角色身份。root只mushroomfields/max80/size6/expansionhacktrue不套092独屋size1/max64；山脚位置、NPC工作/日夜与任务付款链未验。'}]
+bindings=[bind(next((ROOT/'docs/architecture').glob(f'research-*smithy-{n}/manual-review.json')))for n in ['063','068','070','071','087','092']]
+cases=[]
+for a,o in zip(sources,obs):
+ cases.append({**a,'observations':o,'images_actually_viewed':[bind(p)for p in sorted(OUT.glob(a['id']+'-*.png'))],'whole_boundary':'原单体地板围护/屋盖完整，empty建筑入口无必接房翼；NPC池解析未证与sourcebody完整性分开。','semantic_family_comparison':{'comparison':'与070F01同源圆折菌柄地面工作/床箱一室+无可用冠层的保存判断相比，当前仍是东门→单室壁侧工作/床箱，盖/工位/尺寸/陈设变化不计新族。与092F02菌柄内竖梯→上盖唯一工住主室的访问与经营标高不同；不得把其待审1移给当前或因工位丰富重复计数。','saved_existing_judgments_reused_not_reaccepted':bindings,'proposal_maximum':0},'credit_proposal_maximum':0,'formal_credit_added':0,'status':'HELD_ZERO_EXISTING_GROUND_MUSHROOM_WORK_LIVING_ROOM_FAMILY','native_acceptance':False})
+put('manual-review.json',{'cases':cases,'source_bodies_studied':2,'whole_smithy_bodies_studied':2,'generated_current_png':19,'actual_current_images_viewed':19,'manual_observations':14,'pending_maximum':0,'held_zero':2,'formal_credit_added':0,'no_independent_self_admission':True})
+put('source-context-reading.json',{'discovery':'重用092实际name-negative功能预筛，选择原名blust_furnace（拼写不改）与grindstone；327历史来源+所有同源字节别名/rawroleoccupancy在渲染前排除，非旧接受重跑。19当前PNG实际查看/14观察，bothhold0。','metadata':'Trek1-B0.6.1/hotsuop,Hugger,ALDgamer/MIT，Forge+fabric+原pack10支持10..102全文保存，不用新图冒原材质。','selected_pool':'两屋weight2/legacy_single_pool_element/rigid/minecraftempty。housefallback原trek:village/plains/terminators（非mushroom），完整fallback池4weight1singleelement/terrainmatching/street_plains processor引用另存只上下文，未展开其processor规则、不套选屋empty。','root':'实际village/mushroom vanilla jigsaw/size6/max80/biome#trek:is_mushroom_fields→minecraftmushroomfields/WORLDSURFACEWG/start0/beardthin/useexpansionhacktrue；towncenters3元素各weight50不是3新整屋已查看。不套092独屋size1/max64或T&T116。','namespace_dependency':'两原NPCjigsaw指minecraft:village/mushroom/villagers，在单TrekJar缺；同Jar实际trek:village/mushroom/villagers另池 nitwit1/baby1/unemployed10，仅对照命名空间，不擅自等同/修源/称12NPC。原lootarmorer/weaponsmith同样不在单modJar不冒环境缺失。','material_namespace':'F01原smooth_quartz126+namespacedsmoothquartz27、F02原83+namespaced367不合并/补修，原potential资源解析风险与研究/原生成功分开。','entities_visual':'F01 8itemframes含外层相对pos与内worldPos、UUID/Item/Invisible等完整保存，不渲染实体则不冒全部实际外观已验。2nugget/3ingot/2rawiron为7隐框加1可见stoneslab框，非真实材料产出或人物。F02无entities但12playerhead原纹理payload完整，未取远程skin/改贴图。','functional_boundary':'两底层使用y2/床箱同室，高位损坏砧/冠盖无梯不作上层。F01炉空未lit，F02无炉而高3叠营火非作业炉。小半块/门/根藤/实体示意不当真实碰撞/原生图。','runtime':'无Java/Gradle/游戏/QA/声音亮度唤醒；无原存档/用户实例/共享Jar或产品、任务、指南针、清单写入。'})
+put('applicable-principles.json',{'principles':['同源职业和高盖变体要按完整空间/访问路径去重，不凭工作台、陈设、材质或高度计新建筑。','完整NBT不代表引用ID正确；minecraft与trek命名空间不自动做alias。','原多铁砧/高营火/实体陈列要看可达标高与用途，不能把原装饰当工作层或产出。','已有不同标高/竖向路径候选的待审额度不转移给相近变体；旧接受继续累计保留。'],'implemented_product':False})
+prev=ROOT/'docs/architecture/research-20261104-smithy-092';put('task-scope-boundary.json',json.loads((prev/'task-scope-boundary.json').read_text()));latest=json.loads((prev/'latest-independent-admissions.json').read_text());latest['previous_binding']=bind(prev/'latest-independent-admissions.json');put('latest-independent-admissions.json',latest)
+put('carried-forward-pending.json',{'previous_batch_receipt':bind(prev/'RECEIPT.json'),'current_batch_new_pending':0,'prior_unreviewed_proposals_preserved':[{'batch':92,'id':'F02','maximum':1,'manual':bind(prev/'manual-review.json'),'independent_credit_claimed':0}],'not_a_master_todo_or_backup':True})
+put('session.json',{'batch':93,'status':'MANUAL_STUDY_COMPLETE_VERIFICATION_PENDING','source_bodies_studied':2,'whole_smithy_bodies_studied':2,'generated_png':19,'actual_images_viewed':19,'pending_maximum':0,'held_zero':2,'formal_credit_added':0,'previous092_F02_max1_still_pending_not_recounted':True,'latest_independent_admission_binding':bind(OUT/'latest-independent-admissions.json'),'cumulative_not_reset':True,'java_run':False,'product_files_written':False,'masterlists_edited':False,'native_acceptance':False,'all_tasks_complete':False,'next':'094从092功能预筛找其他真正完整相关且空间不同来源，当前两变体不反复生成/接受；保留092F02待Main审查。不Java/制作/删清单。'})
+print('19actualPNG;14observations;2whole held0;prior092 F02max1 preserved pending')
