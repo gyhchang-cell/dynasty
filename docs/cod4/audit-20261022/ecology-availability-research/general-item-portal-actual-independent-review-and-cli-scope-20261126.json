@@ -1,0 +1,587 @@
+{
+  "status": "ACTUAL_INDEPENDENT_CUSTODY_SOURCE_REVIEW_COMPLETE_FORMAL_INTAKE_PENDING",
+  "recorded_on": "2026-11-26",
+  "date_zone": "Asia/Shanghai",
+  "counts_retained": {
+    "formal": 83,
+    "target": 1000,
+    "gap": 917,
+    "native_births": "24/30",
+    "same_uuid_pickups": "9/10"
+  },
+  "fixed_candidate": {
+    "path": "docs/cod4/audit-20261022/ecology-availability-research/general-item-portal-dimension-original-uuid-candidate-20261123.json",
+    "sha256": "7b6042a3100187d7e1be83f7550a5120d34b898214cd1e1695d401108e36e815"
+  },
+  "code_binding": {
+    "path": "/Users/a15356015027/Desktop/dynasty/tools/cod4/mob-load-acceptance/.work/gradle-home/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar",
+    "sha256": "1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0",
+    "primary_member_count": 8,
+    "exact_range_count": 28
+  },
+  "actual_independent_review": {
+    "agent_id": "01a217bc-f6e3-7580-a1f4-bfae1d3af93b",
+    "verbatim_sha256": "0af0594c57d8db8c2e3869eac9f256a9b8259403f9fea44a2f4692580d4d7a3d",
+    "verbatim": "**Verdict: one distinct custody comparator.** The default portal path reconstructs a loose item in another `ServerLevel` with its original UUID, discards the source without an admission acknowledgment, and immediately attempts a destination merge. EA-0020 covers exposure-driven species replacement. EA-0066 covers Allay pickup and redelivery. Legacy row `6e3238ecb552b7f6385d` already owns the item NBT reader. The distinct evidence here is the cross-level handoff and its admission-to-merge ordering. [EA-0020](/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/batch-015.json:21) · [Prior custody comparison](/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/general-item-portal-dimension-original-uuid-candidate-20261123.json:239) · [Legacy item reader](/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl:262)\n\n- **Gate and restore.** `NetherPortalBlock.java:71–75` and `Entity.java:2048–2087,2546–2548` gate the attempt on portal eligibility, cooldown, and the target level. `Entity.java:2454–2463` exits before source removal on a Forge travel veto or null `PortalInfo`. With a valid exit, the default callback creates the same type in the destination, calls `restoreFrom`, applies portal pose and velocity, and requests admission. `restoreFrom` round-trips source NBT with `Dimension` removed. The base reader restores the UUID, and the item reader restores the stack, age, pickup delay, lifespan, health, and optional owner and thrower. This produces a new Java object with the original UUID. [Entity transfer source](/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/Entity.java:2442)\n- **Admission and conversion exits.** `ServerLevel.java:822–824,855–867` shows that `addDuringTeleport` discards the `addEntity` boolean. The join event precedes UUID uniqueness and section insertion (`PersistentEntitySectionManager.java:61–104`). After `placeEntity` returns normally, the original is removed with `CHANGED_DIMENSION`, even if the default factory returned null or destination admission failed (`Entity.java:2465–2494`). A custom teleporter returning null or a non-item replacement also skips the item merge. Its identity and placement behavior require separate evidence. [Admission source spans](/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/general-item-portal-dimension-original-uuid-candidate-20261123.json:214)\n- **Immediate merge.** `ItemEntity.java:379–385` calls `mergeWithNeighbours` on the returned item after source removal. The merge uses compatible stacks and matching pickup target, with the larger stack receiving and ties favoring the neighbor (`ItemEntity.java:202–267`). A join veto or duplicate UUID can leave the returned object unadmitted but still eligible to merge, because `isAlive()` checks removal rather than registration. This is a static possibility. Future evidence needs the destination admission result **before** the inline merge, then both participant UUIDs and stack counts. [Item merge source](/Users/a15356015027/Desktop/dynasty/tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/item/ItemEntity.java:202)\n- **Oil CLI boundary.** `dynasty-oil-contact-v1` requires the contact’s world and dimension to equal the origin’s. A cross-level contact yields `contact_not_original_item`. Its lineage schema accepts `merge` and `debit` only, so it cannot represent a portal handoff or prove continuity through a round trip with matching endpoints. [CLI lineage rules](/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/general_oil_pickup_audit_20261126.py:105) · [CLI contact binding](/Users/a15356015027/Desktop/dynasty/docs/cod4/audit-20261022/ecology-availability-research/general_oil_pickup_audit_20261126.py:156)\n\nVerified the pinned Forge archive SHA-256 `1b3fbc4e77b7523058b8c03ee4c9f8d9db2a6c9bb41f4afc5277f968ad1070e0` and all 8 members and 28 spans in the prior receipt. Review was offline and read-only, with no historical log review, runtime, or formal intake.",
+    "verdict": "One fixed-source candidate, pending Main formal intake."
+  },
+  "old_legacy_reader": {
+    "path": "docs/cod4/audit-20261022/legacy-migration-acceptance/reviewed.jsonl",
+    "line": 262,
+    "line_sha256": "e0c197d5c1d4f3ddee10620b5b586bfe77104cc3d9f638efb6cde354a650dc42",
+    "id": "6e3238ecb552b7f6385d",
+    "disposition": "Exclude already-owned generic ItemEntity persistent field read from credit."
+  },
+  "retained_critical_boundary": "Cache default path creates another object with the original UUID, requests add before old removal but ignores the accept boolean. The returned unadmitted item can still attempt a neighbor merge under static conditions because the living check is not a registration check. Proof needs both destination admission result before merge and paired world objects. Canceling before normal travel callback differs from an unacknowledged destination add.",
+  "future_single_dimension_tool": {
+    "existing_consumer_receipt": {
+      "path": "docs/cod4/audit-20261022/ecology-availability-research/general-lantern-oil-normalized-input-cli-and-independent-cases-20261126.json",
+      "sha256": "470ead950a44a3869a2f3154670a6f83536e538a586a4958c8a363d39c4ea20f"
+    },
+    "limit": "Schema v1 is intentionally single-dimension, no portal edges. Even equal endpoints after a round trip are insufficient if the exporter cannot prove continuous coverage. The exporter should set completeness false for uncovered cross-level transfer. Candidate verdict uses that asserted contract rather than guessing it from matching snapshots.",
+    "extra_synthetic_cli_cases": [
+      {
+        "test": "other_dimension_same_original_uuid",
+        "verdict": "contact_not_original_item",
+        "synthetic_schema_input": {
+          "schema": "dynasty-oil-contact-v1",
+          "session_uuid": "00000000-0000-0000-0000-000000000006",
+          "expected_player": "00000000-0000-0000-0000-000000000003",
+          "origin": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "item_uuid": "00000000-0000-0000-0000-000000000001",
+            "mob_uuid": "00000000-0000-0000-0000-000000000004",
+            "world_uuid": "00000000-0000-0000-0000-000000000005",
+            "dimension": "minecraft:overworld",
+            "item_id": "dynasty:lantern_oil",
+            "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "units": 2,
+            "admission_position": [
+              67,
+              3
+            ],
+            "natural_source": true,
+            "item_admitted": true
+          },
+          "contact": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "item_uuid": "00000000-0000-0000-0000-000000000001",
+            "player_uuid": "00000000-0000-0000-0000-000000000003",
+            "world_uuid": "00000000-0000-0000-0000-000000000005",
+            "dimension": "minecraft:the_nether",
+            "position": [
+              81,
+              10
+            ],
+            "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "lineage": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "complete": true,
+            "from_position": [
+              67,
+              3
+            ],
+            "through_position": [
+              81,
+              12
+            ],
+            "mutations": []
+          },
+          "inventory": {
+            "scope": {
+              "session_uuid": "00000000-0000-0000-0000-000000000006",
+              "item_uuid": "00000000-0000-0000-0000-000000000001",
+              "player_uuid": "00000000-0000-0000-0000-000000000003",
+              "world_uuid": "00000000-0000-0000-0000-000000000005",
+              "dimension": "minecraft:the_nether",
+              "position": [
+                81,
+                10
+              ],
+              "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "actual_original_stack_call": true,
+            "before_position": [
+              81,
+              12
+            ],
+            "after_position": [
+              81,
+              13
+            ],
+            "before_world_units": 2,
+            "after_world_units": 0,
+            "before_slots": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0,
+              "16": 0,
+              "17": 0,
+              "18": 0,
+              "19": 0,
+              "20": 0,
+              "21": 0,
+              "22": 0,
+              "23": 0,
+              "24": 0,
+              "25": 0,
+              "26": 0,
+              "27": 0,
+              "28": 0,
+              "29": 0,
+              "30": 0,
+              "31": 0,
+              "32": 0,
+              "33": 0,
+              "34": 0,
+              "35": 0,
+              "40": 40
+            },
+            "after_slots": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0,
+              "16": 0,
+              "17": 0,
+              "18": 0,
+              "19": 0,
+              "20": 0,
+              "21": 0,
+              "22": 0,
+              "23": 0,
+              "24": 0,
+              "25": 0,
+              "26": 0,
+              "27": 0,
+              "28": 0,
+              "29": 0,
+              "30": 0,
+              "31": 0,
+              "32": 0,
+              "33": 0,
+              "34": 0,
+              "35": 0,
+              "40": 42
+            },
+            "attributed_slot_gains": {
+              "40": 2
+            },
+            "add_return": true
+          },
+          "pickup_receipt": {
+            "scope": {
+              "session_uuid": "00000000-0000-0000-0000-000000000006",
+              "item_uuid": "00000000-0000-0000-0000-000000000001",
+              "player_uuid": "00000000-0000-0000-0000-000000000003",
+              "world_uuid": "00000000-0000-0000-0000-000000000005",
+              "dimension": "minecraft:the_nether",
+              "position": [
+                81,
+                10
+              ],
+              "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "observed_position": [
+              81,
+              14
+            ],
+            "units": 2
+          }
+        }
+      },
+      {
+        "test": "explicit_unsupported_round_trip",
+        "verdict": "schema_rejected",
+        "synthetic_schema_input": {
+          "schema": "dynasty-oil-contact-v1",
+          "session_uuid": "00000000-0000-0000-0000-000000000006",
+          "expected_player": "00000000-0000-0000-0000-000000000003",
+          "origin": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "item_uuid": "00000000-0000-0000-0000-000000000001",
+            "mob_uuid": "00000000-0000-0000-0000-000000000004",
+            "world_uuid": "00000000-0000-0000-0000-000000000005",
+            "dimension": "minecraft:overworld",
+            "item_id": "dynasty:lantern_oil",
+            "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "units": 2,
+            "admission_position": [
+              67,
+              3
+            ],
+            "natural_source": true,
+            "item_admitted": true
+          },
+          "contact": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "item_uuid": "00000000-0000-0000-0000-000000000001",
+            "player_uuid": "00000000-0000-0000-0000-000000000003",
+            "world_uuid": "00000000-0000-0000-0000-000000000005",
+            "dimension": "minecraft:overworld",
+            "position": [
+              81,
+              10
+            ],
+            "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "lineage": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "complete": true,
+            "from_position": [
+              67,
+              3
+            ],
+            "through_position": [
+              81,
+              12
+            ],
+            "mutations": [
+              {
+                "kind": "portal_transfer",
+                "donor_uuid": "00000000-0000-0000-0000-000000000001",
+                "receiver_uuid": null,
+                "units": 2,
+                "position": [
+                  76,
+                  5
+                ]
+              }
+            ]
+          },
+          "inventory": {
+            "scope": {
+              "session_uuid": "00000000-0000-0000-0000-000000000006",
+              "item_uuid": "00000000-0000-0000-0000-000000000001",
+              "player_uuid": "00000000-0000-0000-0000-000000000003",
+              "world_uuid": "00000000-0000-0000-0000-000000000005",
+              "dimension": "minecraft:overworld",
+              "position": [
+                81,
+                10
+              ],
+              "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "actual_original_stack_call": true,
+            "before_position": [
+              81,
+              12
+            ],
+            "after_position": [
+              81,
+              13
+            ],
+            "before_world_units": 2,
+            "after_world_units": 0,
+            "before_slots": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0,
+              "16": 0,
+              "17": 0,
+              "18": 0,
+              "19": 0,
+              "20": 0,
+              "21": 0,
+              "22": 0,
+              "23": 0,
+              "24": 0,
+              "25": 0,
+              "26": 0,
+              "27": 0,
+              "28": 0,
+              "29": 0,
+              "30": 0,
+              "31": 0,
+              "32": 0,
+              "33": 0,
+              "34": 0,
+              "35": 0,
+              "40": 40
+            },
+            "after_slots": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0,
+              "16": 0,
+              "17": 0,
+              "18": 0,
+              "19": 0,
+              "20": 0,
+              "21": 0,
+              "22": 0,
+              "23": 0,
+              "24": 0,
+              "25": 0,
+              "26": 0,
+              "27": 0,
+              "28": 0,
+              "29": 0,
+              "30": 0,
+              "31": 0,
+              "32": 0,
+              "33": 0,
+              "34": 0,
+              "35": 0,
+              "40": 42
+            },
+            "attributed_slot_gains": {
+              "40": 2
+            },
+            "add_return": true
+          },
+          "pickup_receipt": {
+            "scope": {
+              "session_uuid": "00000000-0000-0000-0000-000000000006",
+              "item_uuid": "00000000-0000-0000-0000-000000000001",
+              "player_uuid": "00000000-0000-0000-0000-000000000003",
+              "world_uuid": "00000000-0000-0000-0000-000000000005",
+              "dimension": "minecraft:overworld",
+              "position": [
+                81,
+                10
+              ],
+              "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "observed_position": [
+              81,
+              14
+            ],
+            "units": 2
+          }
+        }
+      },
+      {
+        "test": "incomplete_round_trip_same_endpoints",
+        "verdict": "lineage_incomplete_or_inconsistent",
+        "synthetic_schema_input": {
+          "schema": "dynasty-oil-contact-v1",
+          "session_uuid": "00000000-0000-0000-0000-000000000006",
+          "expected_player": "00000000-0000-0000-0000-000000000003",
+          "origin": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "item_uuid": "00000000-0000-0000-0000-000000000001",
+            "mob_uuid": "00000000-0000-0000-0000-000000000004",
+            "world_uuid": "00000000-0000-0000-0000-000000000005",
+            "dimension": "minecraft:overworld",
+            "item_id": "dynasty:lantern_oil",
+            "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "units": 2,
+            "admission_position": [
+              67,
+              3
+            ],
+            "natural_source": true,
+            "item_admitted": true
+          },
+          "contact": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "item_uuid": "00000000-0000-0000-0000-000000000001",
+            "player_uuid": "00000000-0000-0000-0000-000000000003",
+            "world_uuid": "00000000-0000-0000-0000-000000000005",
+            "dimension": "minecraft:overworld",
+            "position": [
+              81,
+              10
+            ],
+            "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "lineage": {
+            "session_uuid": "00000000-0000-0000-0000-000000000006",
+            "complete": false,
+            "from_position": [
+              67,
+              3
+            ],
+            "through_position": [
+              81,
+              12
+            ],
+            "mutations": []
+          },
+          "inventory": {
+            "scope": {
+              "session_uuid": "00000000-0000-0000-0000-000000000006",
+              "item_uuid": "00000000-0000-0000-0000-000000000001",
+              "player_uuid": "00000000-0000-0000-0000-000000000003",
+              "world_uuid": "00000000-0000-0000-0000-000000000005",
+              "dimension": "minecraft:overworld",
+              "position": [
+                81,
+                10
+              ],
+              "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "actual_original_stack_call": true,
+            "before_position": [
+              81,
+              12
+            ],
+            "after_position": [
+              81,
+              13
+            ],
+            "before_world_units": 2,
+            "after_world_units": 0,
+            "before_slots": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0,
+              "16": 0,
+              "17": 0,
+              "18": 0,
+              "19": 0,
+              "20": 0,
+              "21": 0,
+              "22": 0,
+              "23": 0,
+              "24": 0,
+              "25": 0,
+              "26": 0,
+              "27": 0,
+              "28": 0,
+              "29": 0,
+              "30": 0,
+              "31": 0,
+              "32": 0,
+              "33": 0,
+              "34": 0,
+              "35": 0,
+              "40": 40
+            },
+            "after_slots": {
+              "0": 0,
+              "1": 0,
+              "2": 0,
+              "3": 0,
+              "4": 0,
+              "5": 0,
+              "6": 0,
+              "7": 0,
+              "8": 0,
+              "9": 0,
+              "10": 0,
+              "11": 0,
+              "12": 0,
+              "13": 0,
+              "14": 0,
+              "15": 0,
+              "16": 0,
+              "17": 0,
+              "18": 0,
+              "19": 0,
+              "20": 0,
+              "21": 0,
+              "22": 0,
+              "23": 0,
+              "24": 0,
+              "25": 0,
+              "26": 0,
+              "27": 0,
+              "28": 0,
+              "29": 0,
+              "30": 0,
+              "31": 0,
+              "32": 0,
+              "33": 0,
+              "34": 0,
+              "35": 0,
+              "40": 42
+            },
+            "attributed_slot_gains": {
+              "40": 2
+            },
+            "add_return": true
+          },
+          "pickup_receipt": {
+            "scope": {
+              "session_uuid": "00000000-0000-0000-0000-000000000006",
+              "item_uuid": "00000000-0000-0000-0000-000000000001",
+              "player_uuid": "00000000-0000-0000-0000-000000000003",
+              "world_uuid": "00000000-0000-0000-0000-000000000005",
+              "dimension": "minecraft:overworld",
+              "position": [
+                81,
+                10
+              ],
+              "stack_key": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "observed_position": [
+              81,
+              14
+            ],
+            "units": 2
+          }
+        }
+      }
+    ]
+  },
+  "formal_credit_delta": 0,
+  "native_birth_credit_delta": 0,
+  "same_uuid_pickup_credit_delta": 0
+}
