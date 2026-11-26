@@ -40,6 +40,51 @@ class ChenshaQuestTest(unittest.TestCase):
         links={json.loads(t)['clickEvent']['value'] for t in guide['description'] if t.startswith('{"')}
         self.assertTrue({quest_journey.ident('cod2:chensha:'+role) for role in ('jinwu','hammer')}<=links)
 
+    def test_artisan_route_opens_the_existing_gear_objective(self):
+        guide = self.quests[quest_journey.ident('cod2:chensha:route')]
+        gear = next(q for q in self.quests.values() if q.get('cod4_item') == 'qimen_gear')
+        links = [json.loads(line)['clickEvent']['value'] for line in guide['description'] if line.startswith('{"')]
+        self.assertIn(gear['id'], links)
+        self.assertEqual('dynasty:cod4_obtain_qimen_gear', gear['target'])
+        self.assertNotIn(guide['id'], gear['deps'])
+
+    def test_wheel_and_cable_guides_link_in_both_directions(self):
+        site = next(q for q in self.quests.values() if q.get('cod4_item') == 'broken_waterwheel')
+        cable = next(q for q in self.quests.values() if q.get('cod4_item') == 'qimen_cable')
+        for source, destination in ((site, cable), (cable, site)):
+            links = [json.loads(line)['clickEvent']['value'] for line in source['description'] if line.startswith('{"')]
+            self.assertIn(destination['id'], links)
+        self.assertEqual('dynasty:cod4_broken_waterwheel', site['target'])
+
+    def test_both_rubbing_pages_point_to_the_mob_that_drops_the_item(self):
+        mob = 'juli_bixi_kuilei'
+        rubbing = 'dynasty:ancient_stele_rubbing'
+        loot = json.loads((quest_story.DATA / f'loot_tables/entities/{mob}.json').read_text())
+        drops = [e['name'] for pool in loot['pools'] for e in pool['entries']]
+        self.assertIn(rubbing, drops)
+        pages = [q for q in self.quests.values() if q['target'] == rubbing]
+        self.assertEqual(2, len(pages))
+        for page in pages:
+            text = ' '.join(page['description'])
+            self.assertIn(quest_story.LANG['entity.dynasty.' + mob], text)
+            self.assertIn(quest_story.LANG['structure.dynasty.imperial_tomb'], text)
+            self.assertNotIn('界碑', text)
+
+    def test_named_recipe_results_are_shown_on_their_ingredient_pages(self):
+        ordinary = quest_story.recipe_index()
+        for material, variant in [('wolf_fang', 'gray_wolf_fang_charm'),
+                                  ('crab_shell', 'crab_soldier_shell_charm'),
+                                  ('python_gall', 'warm_wine'),
+                                  ('locust_dust', 'poison_smoke_bomb')]:
+            with self.subTest(variant=variant):
+                recipe_id = 'cod4/' + variant
+                recipe = json.loads((quest_story.DATA / 'recipes' / (recipe_id + '.json')).read_text())
+                result = recipe['result']
+                self.assertNotIn(recipe_id, [r['id'] for r in ordinary.get(result['item'], [])])
+                name = quest_story.LANG[json.loads(result['nbt']['display']['Name'])['translate']]
+                page = next(q for q in self.quests.values() if q.get('cod4_item') == material)
+                self.assertTrue(any('→' in line and name in line for line in page['description']))
+
     def test_exported_book_and_c9_chapter_match_the_generator(self):
         actual=json.loads((ROOT/'docs/quests-remaster/book.json').read_text())
         exported=next(c for c in actual if c['file']=='dynasty_c9')

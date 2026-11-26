@@ -750,6 +750,15 @@ class QuestJourneyTest(unittest.TestCase):
             self.assertNotIn('自然生成',text);self.assertNotIn('亲自击败',text)
         army=(story.ROOT/'src/main/java/com/dynasty/army/ArmyEncounters.java').read_text()
         self.assertIn('"army_clear_"+id',army);self.assertIn('troops.isEmpty()',army)
+        bosses = re.search(r'String\[\] BOSSES=\{([^}]+)\}', army)
+        self.assertEqual(re.findall(r'"([^"]+)"', bosses[1]), list(QUESTS.values()))
+        previous_id = '100000000000012a'
+        for qid, boss in QUESTS.items():
+            q = self.after[qid]
+            self.assertEqual(q['target'], 'dynasty:' + boss)
+            links = [json.loads(s) for s in q['description'] if s.startswith('{"')]
+            self.assertIn(previous_id, [link['clickEvent']['value'] for link in links])
+            previous_id = qid
 
     def test_brewing_filters_require_the_actual_potion_and_keep_legacy_identity(self):
         c=next(c for c in self.book if c['file']=='dynasty_c1')

@@ -42,6 +42,20 @@ class WorldMainlineTest(unittest.TestCase):
         for i in (14,24,34,44,51):
             self.assertTrue(rows[code(1,0x90000+i)]['target'].startswith('dynasty:ritual_'))
 
+    def test_encounter_directions_use_searchable_structure_names(self):
+        pages = {q['target']: q for c in story.build_book() for q in c['quests']}
+        for group, enemies in [
+            ('ritual_sites', ['zuwu_daoshou', 'fufa_jijiu']),
+            ('military_sites', ['ludun_jiashi', 'juma_changqiangbing', 'liannu_zhenzu']),
+        ]:
+            tag = story.DATA / 'tags/worldgen/structure/blueprint' / (group + '.json')
+            for site in json.loads(tag.read_text())['values']:
+                label = story.LANG['structure.' + site.replace(':', '.')]
+                for enemy in enemies:
+                    with self.subTest(site=site, enemy=enemy):
+                        page = pages['dynasty:story_slay_' + enemy]
+                        self.assertIn(label, ' '.join(page['description']))
+
     def test_six_cod1_branches_have_real_hooks_without_changing_main_gates(self):
         rows={q['id']:q for q in self.rows}
         ids={code(1,0xA0000+i) for i in range(6,12)}

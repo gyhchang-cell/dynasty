@@ -65,7 +65,7 @@ MATERIAL_SOURCES = {
  'sky_token':'进入九霄天界，用自然指南针搜索“九霄仙岛”，探索并击败九霄天将，每次必掉天将令×1；首次不需要令牌召唤。',
  'sea_token':'讨伐东海龙王取得此信物。',
  'dragon_emperor_seal':'讨伐龙帝取得龙帝印，先留一枚作复战信物。',
- 'ancient_stele_rubbing':'带纸到官道驿站，按破损界碑的倒计时交互取得拓片。',
+ 'ancient_stele_rubbing':'在主世界用结构罗盘搜索「帝陵」，进入地宫。击败巨力赑屃傀儡有机会取得一张上古石刻拓片。先放入背包登记，再与一张纸无序合成四张符纸。',
  'marble_block':'在主世界平原、草甸或热带草原找书院，带石镐采白色地面或石栏；直接掉汉白玉，无须精准采集。',
  'crimson_pillar':'书院围墙和廊下的红色立柱可采成朱红柱；用镐较快，无须精准采集。',
  'xuanniao_shenyu':'主世界白天，离出生点至少512格且累计击败100只敌对怪后，有机会遇到玄鸟止戈。进入天象64格内参与，天象开始约20秒后结算；15%取得神羽，非必出。',
@@ -84,7 +84,8 @@ WILD_HELP = {
  'locust_dust':('沙漠、恶地或热带草原的蝗群', '蝗粉用于淬毒矢、毒烟弹，也有避毒丹配方。'),
 }
 COD4_OPERATIONS = {
- 'qimen_gear':['机括用于连弩、鸳鸯钺和流星锤。'],
+ 'qimen_gear':['初次进工坊，用精钢配方做两件机括。想做连弩可先留一件，备齐弩、奇门钢索和玉后再组装。',
+               '若已在沉沙玄宫工匠室取得高阶机关图纸，也可把图纸与铁锭×4、铜锭×2、红石粉×1合成奇门机括×8。'],
  'qimen_cable':['钢索用于绳镖、飞爪和流星锤；修复残破水车也要一条。'],
  'repeating_crossbow':[
     '背包带箭。按住右键蓄满后松手装填，再按住右键依次发射，最多装3发。',
@@ -133,8 +134,24 @@ def cod4_help(q):
     references=[s for s in q['description'] if s.startswith('{')]
     if item in WILD_HELP:
         source,use=WILD_HELP[item]
+        variant = {
+            'wolf_fang': 'gray_wolf_fang_charm',
+            'crab_shell': 'crab_soldier_shell_charm',
+            'python_gall': 'warm_wine',
+            'locust_dust': 'poison_smoke_bomb',
+        }.get(item)
+        extra = []
+        if variant:
+            from collections import Counter
+            from quest_story import DATA, LANG
+            recipe = json.loads((DATA / 'recipes/cod4' / (variant + '.json')).read_text())
+            quantities = Counter(entry['item'] for entry in recipe['ingredients'])
+            materials = '、'.join(f'{display_name(key)}×{n}' for key, n in quantities.items())
+            result = recipe['result']
+            label_key = json.loads(result['nbt']['display']['Name'])['translate']
+            extra.append(f'工作台无序合成：{materials} → {LANG[label_key]}×{result["count"]}。')
         q['description']=[f'&e取得{label}×1，放入背包；不收走物品。',
-            f'主世界寻找{source}；击败后有概率掉落。自然指南针只定位群系。',use,*references]
+            f'主世界寻找{source}；击败后有概率掉落。自然指南针只定位群系。',use,*extra,*references]
         return
     recipes=[s.replace(' + ','＋') for s in q['description'] if '→' in s and '×' in s]
     crafted=item in COD4_CONSUMABLES
@@ -244,15 +261,27 @@ def simplify(q):
     army=re.search(r'advancement: "dynasty:army_clear_([a-z_]+)"',q['tasks'])
     if army:
         from boss_quest_guides import jump
+        from quest_cod6 import QUESTS
         from quest_journey import ident
-        boss=display_name('dynasty:'+army[1]);milestone=q['id']=='100000000000014b'
+        boss=display_name('dynasty:'+army[1])
+        stage_ids=list(QUESTS)
+        stage=stage_ids.index(q['id'])
         q.update(title='军阵 · '+boss,display_title='军阵 · '+boss)
         q['description']=['&e完成'+boss+'军阵关卡。',
-            '科举中第后，在募兵台用银币购兵。手持虎符选关卡，入场后编队、出阵，再点开战。',
-            '开战至少部署1名士兵。关卡结算胜利才记录；野外击杀不算本节点，战损会保留。',
+            '科举中第后到募兵台买兵。先用虎符收回野外部队，再选关卡。入场后有2分钟备战，编好队，点「出阵」，至少部署1名士兵，再点「部署后开战」。',
+            '击败场内首领并保住至少一名士兵，关卡结算胜利才记录。野外击杀不算本节点，战损会保留。',
+            jump('备战 · 买兵与出阵','1000000000000147'),
             jump('首领招式应对',ident('boss:'+army[1]+':应对')),
             f'{{image:{ASSET}army_stage.png width:220 height:110 align:center fit:true}}']
-        if milestone:q['description'].insert(3,'首次领取本节点奖励：永久增加1个万能饰品槽。')
+        if stage == 0:
+            q['description'].insert(3,'首次领取本节点奖励：永久增加1个万能饰品槽。')
+            q['description'].insert(4,jump('军阵入场 · 科举中第','100000000000012a'))
+        else:
+            previous_id=stage_ids[stage-1]
+            previous=display_name('dynasty:'+QUESTS[previous_id])
+            q['description'][1:1]=[
+                f'入场条件：你已取得{previous}的首杀记录，或已打赢{previous}军阵。',
+                jump('上一场军阵 · '+previous,previous_id)]
     # Keep stage effects and one actual smithing recipe; remove duplicate prose.
     if q.get('route') and q.get('subtitle')=='进阶饰品':
         from boss_quest_guides import jump
@@ -266,7 +295,7 @@ def simplify(q):
         'dynasty:story_visit_yunqi_manor':('进入主世界云栖庄园。',
             '用探险者指南针搜索云栖庄园，在新生成区块寻找。进入建筑范围自动记录，无须提交建筑材料。'),
         'dynasty:visit_ruined_battlefield':('进入主世界焦土古战场。',
-            '用探险者指南针搜索焦土古战场，在新生成区块寻找。进入残营即可记录；夜间会有军兵，先留退路。'),
+            '用结构罗盘搜索焦土古战场，白天即可进入残营完成探访。要找军兵，可在夜间回到遗迹，在亮度不超过7的空地留出通路。队伍陆续出现：先是掌旗官和祭酒，随后是两名斥候和三名死士。'),
         'dynasty:story_visit_longque_sanctuary':('进入主世界龙阙。',
             '击败龙帝后，用探险者指南针搜索龙阙。进入巨龙头建筑范围自动记录；供台位于龙嘴内。'),
     }
@@ -380,6 +409,19 @@ def add_operation_steps(chapters):
     from quest_journey import node,ASSET
     from boss_quest_guides import jump
     byfile={c['file']:c for c in chapters}
+    equipment = {q['cod4_item']: q for chapter in chapters for q in chapter['quests'] if q.get('cod4_item')}
+    wheel = equipment['broken_waterwheel']
+    cable = equipment['qimen_cable']
+    wheel['description'].append(jump('出发前备料 · 奇门钢索', cable['id']))
+    cable['description'].append(jump('钢索用途 · 修复林间药庐水车', wheel['id']))
+    supplies = next(q for chapter in chapters for q in chapter['quests'] if q['id'] == '1000000000072011')
+    herbs = equipment['herb_spot']
+    herbs['description'].append(jump('用茶制药 · 药庐备药', supplies['id']))
+    supplies['description'].append(jump('准备茶叶 · 林间药庐药草点', herbs['id']))
+    gear = equipment['qimen_gear']
+    armory = equipment['abandoned_armory']
+    armory['description'].append(jump('拆解所得 · 奇门机括', gear['id']))
+    gear['description'].append(jump('探索取材 · 沙海商旅院废弃军械', armory['id']))
     c=byfile['dynasty_story_02']
     original=next(q for q in c['quests'] if q['id']=='100000000001000b')
     helpers=[]

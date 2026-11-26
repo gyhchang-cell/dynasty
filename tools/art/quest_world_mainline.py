@@ -16,11 +16,11 @@ def add_world_mainline(chapters):
     beast = quest(1, '山林试锋 · 山精山魈', 'story_slay_shanjing_shanxiao',
         '在主世界森林或山地（高度 50～240）寻找山精山魈，亲自击败一只。夜间更容易遇到；注意攀爬与扑击，先准备盾牌、照明和撤退路线。和平难度或关闭生物生成时不会自然出现。', 'dynasty:mu_mao')
     swords = quest(2, '破阵先锋 · 卒伍刀手', 'story_slay_zuwu_daoshou',
-        '前往主世界观星祭坛或林间药庐（star_altar / herbal_retreat），寻找护卫符法祭酒的两名卒伍刀手。先处理一名刀手，观察攻击前摇再反击；敌群受生成上限与冷却保护，不会无限增援。', 'dynasty:tong_dao')
+        '用结构罗盘搜索主世界的九霄星坛或林间药庐。进入遗迹范围后留意祭酒身边的刀手。一队先出现祭酒，再陆续出现两名刀手；亲自击败一名刀手即可。', 'dynasty:tong_dao')
     shield = quest(3, '侧击破盾 · 橹盾甲士', 'story_slay_ludun_jiashi',
-        '前往主世界长城关隘或天工城（great_wall_gate / tiangong_citadel），寻找橹盾甲士；不要一直正面硬打，绕侧面并留意盾击。击败一名后再推进符法敌人的调查。', 'minecraft:shield')
+        '用结构罗盘搜索主世界的长城关隘或天工山城。进入遗迹寻找持盾的橹盾甲士，绕侧面避开盾击，亲自击败一名。', 'minecraft:shield')
     priest = quest(4, '断符寻源 · 符法祭酒', 'story_slay_fufa_jijiu',
-        '用探险者指南针寻找主世界观星祭坛或草庐（star_altar / herbal_retreat），进入建筑寻找符法祭酒。躲开符弹并打断施法，击败一名，再按旧主线挑战叛将。怪物需要非和平难度并开启生物生成。', 'dynasty:talisman_pouch')
+        '回到九霄星坛或林间药庐，寻找与卒伍刀手同队的符法祭酒。也可在夜间的焦土古战场寻找祭酒。躲开符弹，亲自击败一名。', 'dynasty:talisman_pouch')
     dragon = quest(5, '龙阙寻源 · 深入巨龙遗迹', 'story_visit_longque_sanctuary',
         '击败龙帝后回到主世界，用探险者指南针寻找龙阙（dynasty:longque_sanctuary），进入巨型龙头建筑范围。找到龙嘴内供台，接下来打开第 09 章四象镇渊；朱雀羽、玄武壳等仍按现有供台真实归位，不是交任务扣物品。自然生成和本版本完成的 place 均可检测。', 'dynasty:zhenyuan_node')
     # Insert only after side branches have bound their stable anchors.
@@ -37,11 +37,11 @@ def add_world_mainline(chapters):
         (6, '焦土寻旗 · 古战场', 'visit_ruined_battlefield', 'minecraft:black_banner',
          '用探险者指南针寻找主世界焦土古战场（dynasty:ruined_battlefield）。只在新生成区块出现；进入残营即可记录。夜间低光时生成一名掌旗官、一名祭酒、两名斥候和三名死士；最后一员被清理后，整组至少等待十分钟再生。', shield['id']),
         (7, '破枪阵 · 拒马长枪兵', 'story_slay_juma_changqiangbing', 'minecraft:iron_sword',
-         '在长城关隘或天工城寻找盾甲士身后的拒马长枪兵。不要正面疾跑撞入枪阵，观察突刺后绕侧反击，亲自击败一名。', shield['id']),
+         '在长城关隘或天工山城寻找盾甲士身后的拒马长枪兵。不要正面疾跑撞入枪阵，观察突刺后绕侧反击，亲自击败一名。', shield['id']),
         (8, '断箭雨 · 连弩阵卒', 'story_slay_liannu_zhenzu', 'minecraft:crossbow',
-         '同一军事遗迹中有两名连弩阵卒。借掩体避开三连弩，注意翻滚留下的铁蒺藜，亲自击败一名。', shield['id']),
+         '在长城关隘或天工山城寻找连弩阵卒，每队有两名。借掩体避开三连弩，注意翻滚留下的铁蒺藜，亲自击败一名。', shield['id']),
         (9, '避飞爪 · 铁索斥候', 'story_slay_tiesuo_chihou', 'minecraft:tripwire_hook',
-         '夜间在主世界森林、山地（高度60～220）或焦土古战场寻找铁索斥候。躲开飞爪，别在其贴近时停留；亲自击败一名。', swords['id']),
+         '夜间到主世界森林、山地的昏暗处寻找铁索斥候（高度60～220，亮度不超过7）。也可在焦土古战场寻找随掌旗官出现的斥候。躲开飞爪，别在其贴近时停留；亲自击败一名。', swords['id']),
         (10, '断引信 · 溃军死士', 'story_slay_kuijun_sishi', 'minecraft:gunpowder',
          '夜间进入焦土古战场。死士连续贴近三秒会自爆；拉开三格距离或利用遮挡打断引信，再亲自击败一名。远程击杀后仍须离开尸体，防备延迟的小范围爆炸。', code(1,0xA0006)),
         (11, '拔残旗 · 阵亡掌旗官', 'story_slay_zhenwang_zhangqiguan', 'minecraft:black_banner',

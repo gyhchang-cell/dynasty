@@ -40,7 +40,7 @@ def add_branches(chapters,recipes,name):
         # Separate vertical lane preserves the established story IDs and links.
         explorations={
             0:('post_house','官道驿站','平原或向日葵平原','minecraft:smoker','驿站伙房','备一座烟熏炉，旅途中也能快速烹饪食物。'),
-            1:('herbal_retreat','林间药庐','森林、白桦林或繁花森林','dynasty:healing_salve','药庐备药','采集药庐农田作物，另按配方准备金创药，出门前留一份恢复品。'),
+            1:('herbal_retreat','林间药庐','森林、白桦林或繁花森林','dynasty:healing_salve','药庐备药','有药浴盆时，用主手依次投入朱砂×2、茶×2，每次右键投入一份。制好后站直，主手空手右键领取金创药×2。也可使用下面的工作台配方。'),
             2:('desert_caravan','沙海商旅院','沙漠','minecraft:map','商旅地图','利用商旅院的制图工位整理探索地图；先制作空地图，再选择记录远征区域。'),
         }
         if ci in explorations:

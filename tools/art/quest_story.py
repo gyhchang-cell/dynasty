@@ -87,6 +87,10 @@ def recipe_index():
     for path in sorted(paths):
         data = json.loads(path.read_text())
         output = data.get("result")
+        # Item-only pages describe the plain stack. A named infusion or potion
+        # sharing its registry ID has its own recipe and material guidance.
+        if isinstance(output, dict) and output.get("nbt"):
+            continue
         target = output.get("item") if isinstance(output, dict) else output
         if not target:
             continue
