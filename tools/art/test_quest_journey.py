@@ -555,6 +555,13 @@ class QuestJourneyTest(unittest.TestCase):
         self.assertEqual('',bronze['gate']);self.assertEqual(1,bronze['capacityCost'])
         text=' '.join(infusion['description'])
         self.assertIn('青铜锭×2',text);self.assertIn('3级经验',text);self.assertIn('确认一次炼入',text)
+        self.assertIn('1000000000000005',text)
+        table_help=' '.join(table['description'])
+        self.assertIn('另留两枚青铜锭',table_help)
+        self.assertIn('1000000000000008',table_help)
+        lang=json.loads((story.ROOT/'src/main/resources/assets/dynasty/lang/zh_cn.json').read_text())
+        self.assertIn(lang['infusion.dynasty.apply'],text)
+        self.assertIn(lang['infusion.dynasty.remove'],table_help)
         menu=(story.ROOT/'src/main/java/com/dynasty/infusion/InfusionMenu.java').read_text()
         self.assertIn('if(!remove&&p instanceof',menu);self.assertIn('award(sp,"first_infusion")',menu)
 
