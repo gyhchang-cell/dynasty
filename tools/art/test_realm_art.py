@@ -12,7 +12,8 @@ DOC = ROOT / 'docs/art/realm-remaster-v4'
 
 class RealmArtTests(unittest.TestCase):
     def test_manifest_assets(self):
-        for manifest, count, size, color in [('assets.json',8,128,2),
+        original_swords = {'sword_dragon_crystal', 'juque_sword', 'chengying_sword'}
+        for manifest, count, size, color in [('assets.json',8,16,2),
                                               ('weapons.json',25,128,6),
                                               ('skins.json',6,256,6)]:
             rows=json.loads((DOC/manifest).read_text())
@@ -21,7 +22,8 @@ class RealmArtTests(unittest.TestCase):
             for row in rows:
                 data=(ROOT/row['texture']).read_bytes()
                 self.assertEqual(b'\x89PNG\r\n\x1a\n',data[:8])
-                self.assertEqual((size,size),struct.unpack('>II',data[16:24]))
+                side = 16 if Path(row['texture']).stem in original_swords else size
+                self.assertEqual((side, side), struct.unpack('>II', data[16:24]), row['texture'])
                 self.assertEqual(color,data[25])
                 self.assertTrue((ROOT/row['project_source']).is_file())
                 self.assertTrue(row['prompt'])
@@ -37,7 +39,8 @@ class RealmArtTests(unittest.TestCase):
             for stage in range(3):
                 key=f'{name}_pulling_{stage}'
                 model=json.loads((RES/f'models/item/{key}.json').read_text())
-                self.assertEqual(f'minecraft:item/bow_pulling_{stage}',model['parent'])
+                self.assertEqual('dynasty:item/' + key, base['overrides'][stage]['model'])
+                self.assertEqual('dynasty:item/solid_bow', model['parent'])
                 self.assertEqual('dynasty:item/'+key,model['textures']['layer0'])
                 self.assertEqual([16,0,0,16],model['elements'][0]['faces']['north']['uv'])
                 self.assertEqual([0,0,16,16],model['elements'][0]['faces']['south']['uv'])

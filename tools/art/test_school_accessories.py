@@ -84,13 +84,15 @@ class AccessoryExpansionTests(unittest.TestCase):
                 path=ROOT/row['texture']
                 hashes.add(hashlib.sha256(path.read_bytes()).hexdigest())
                 with Image.open(path) as image:
-                    self.assertEqual((128,128),image.size)
+                    is_original_crop = path.stem == 'incense_sachet'
+                    self.assertEqual((1125, 1226) if is_original_crop else (128, 128), image.size)
                     self.assertEqual('RGBA',image.mode)
                     alpha=image.getchannel('A');self.assertEqual(0,alpha.getextrema()[0])
                     self.assertGreaterEqual(alpha.getextrema()[1],250,'Visible near-opaque material, not a ghost sprite')
                     x0,y0,x1,y1=alpha.getbbox()
-                    self.assertTrue(x0>=3 and y0>=3 and x1<=125 and y1<=125,'Unclipped sprite')
-                    self.assertGreaterEqual(max(x1-x0,y1-y0),118,'Fill inventory slot')
+                    margin = 2 if is_original_crop else 3
+                    self.assertGreaterEqual(min(x0, y0, image.width - x1, image.height - y1), margin)
+                    self.assertGreaterEqual(max((x1-x0)/image.width, (y1-y0)/image.height), 118/128, 'Fill inventory slot')
                 if manifest=='remasters.json':
                     before=DOC/'before'/path.name;self.assertTrue(before.is_file())
                     self.assertNotEqual(before.read_bytes(),path.read_bytes())

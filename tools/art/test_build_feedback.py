@@ -25,13 +25,16 @@ class FeedbackTests(unittest.TestCase):
             lines=[l for l in refining_costs(end,lambda s:s) if l.startswith('+')]
             self.assertEqual(end-start,len(lines));self.assertTrue(lines[0].startswith(f'+{start} → +{start+1}'))
     def test_side_meshes_cover_only_real_silhouette_pixels(self):
+        model_dir = RES / 'assets/dynasty/models/item'
+        bows = {'zhuque_bow', 'lie_gong', 'tianlang_bow', 'luoyan_bow', 'sunbow'}
+        self.assertEqual('dynasty:item/solid_handheld', json.loads((model_dir / 'solid_bow.json').read_text())['parent'])
+        self.assertNotIn('parent', json.loads((model_dir / 'solid_handheld.json').read_text()))
         count=0
-        for p in (RES/'assets/dynasty/models/item').glob('*.json'):
+        for p in model_dir.glob('*.json'):
             m=json.loads(p.read_text())
             if not m.get('dynasty_solid_edges'):continue
-            self.assertEqual('dynasty:item/solid_handheld',m['parent'],p.name)
-            parent=json.loads((RES/'assets/dynasty/models/item/solid_handheld.json').read_text())
-            self.assertNotIn('parent',parent,'builtin/generated ancestors discard explicit elements at runtime')
+            parent = 'solid_bow' if p.stem.partition('_pulling_')[0] in bows else 'solid_handheld'
+            self.assertEqual('dynasty:item/' + parent, m['parent'], p.name)
             count+=1;png=RES/('assets/'+m['textures']['layer0'].replace(':','/textures/',1)+'.png')
             w,h=map(int,subprocess.check_output(['magick','identify','-format','%w %h',str(png)]).split())
             rgba=subprocess.check_output(['magick',str(png),'-alpha','on','-depth','8','RGBA:-'])

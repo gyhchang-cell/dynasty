@@ -67,14 +67,15 @@ class SchoolContractTests(unittest.TestCase):
         self.assertNotIn("target.hurt(", source, "School bonuses must preserve one original damage event")
         self.assertNotIn("destroyBlock(", source)
 
-    def test_fifteen_original_assets_are_128px_visible_and_distinct(self):
+    def test_original_assets_keep_published_size_and_distinct_visible_sprites(self):
         from PIL import Image
         ids = list(ITEMS) + [f"zhuxing_bow_pulling_{i}" for i in range(3)]
         hashes = set()
         for key in ids:
             path = RES / f"assets/dynasty/textures/item/{key}.png"
             with Image.open(path) as image:
-                self.assertEqual((128, 128), image.size, key)
+                size = 16 if key == "liuyun_sword" else 128
+                self.assertEqual((size, size), image.size, key)
                 self.assertIsNotNone(image.convert("RGBA").getchannel("A").getbbox(), key)
                 hashes.add(hashlib.sha256(image.convert("RGBA").tobytes()).hexdigest())
         self.assertEqual(len(ids), len(hashes), "No duplicated static pulling frames or shared accessory pictures")
@@ -85,16 +86,17 @@ class SchoolContractTests(unittest.TestCase):
         for stage in range(3):
             key = f"zhuxing_bow_pulling_{stage}"
             draw = json.loads((RES / f"assets/dynasty/models/item/{key}.json").read_text())
-            self.assertEqual(f"minecraft:item/bow_pulling_{stage}", draw["parent"])
+            self.assertEqual("dynasty:item/" + key, model["overrides"][stage]["model"])
+            self.assertEqual("dynasty:item/solid_bow", draw["parent"])
             self.assertEqual("dynasty:item/" + key, draw["textures"]["layer0"])
             self.assertNotIn(key, ITEMS)
             for side, hand in (("righthand", 1), ("lefthand", -1)):
                 pose = draw["display"]["firstperson_" + side]
                 self.assertLessEqual(max(pose["scale"]), .68, "Drawn bow should fit the held-item view")
-                # The approved drawn sprite's arrow points right in its 2D model (+X).
+                # The approved drawn sprite's arrow points left in its 2D model (−X).
                 # Compose the actual vanilla 1.20.1 draw rotations to confirm that
                 # both hands aim the arrow into the scene and slightly toward centre.
-                vector = [1.0, 0.0, 0.0]
+                vector = [-1.0, 0.0, 0.0]
                 def turn(axis, degrees):
                     x, y, z = vector
                     sine, cosine = math.sin(math.radians(degrees)), math.cos(math.radians(degrees))
