@@ -362,6 +362,13 @@ def simplify(q):
         q['icon']='{ id: "'+('dynasty:immortal_peach' if target.endswith('beast_friend') else 'dynasty:copper_coin')+'" }'
     if target=='dynasty:army_led':
         q['description']=[s for s in q['description'] if not s.startswith('上：官道驿站；')]
+    if q['id']=='100000000000013a':
+        q['description'].append('手里只有铜钱时，在工作台九格各放一枚铜钱，取出一枚银币。')
+        q['description'].append(jump('铜钱从哪里来','1000000000000012'))
+    if q['id']=='1000000000000146':
+        q['description'].extend([
+            '把兑换好的银币放进背包或快捷栏再购买。钱会在购买时扣除，新兵先进入兵册待命。',
+            jump('筹军费 · 银币兑换','100000000000013a')])
     cod4_help(q)
     amounts=item_requirements(q['tasks'])
     if len(amounts)>1:
