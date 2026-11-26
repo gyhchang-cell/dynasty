@@ -1,0 +1,257 @@
+{
+  "date": "2026-11-26",
+  "scope": "COD4 免疫外部固定参考，Relics 麻痹尝试账本与实际效果回执",
+  "status": "ADJACENT_PARALYSIS_ATTEMPT_CONSUMPTION_REFUSAL_CONTRAST_SUPPORT_ONLY",
+  "observations": [
+    "JellyfishNecklaceItem 的项链环分支经过可伤害选择和接触环判定。服务端 addHarmfulEffect 的返回值没有被读取；效果时长指标随后增加，setDeltaMovement、电花生成和 affected UUID 并无成功控制关联，整轮只减一枚环。资源支出、位移、反馈和麻痹应用分开。",
+    "附着充能的 LivingDamageEvent.Pre 路径限定 direct entity、正在穿戴的启用项链、有效持续时间、窗口内首见目标 UUID；直接调用 addEffect，随后累计时长和经验、登记 UUID。它不消费该效果的成功返回，记录代表本次尝试已用掉机会，Pre 阶段不为原伤害落盘背书。",
+    "LeafyMantle 的原生叶片用带 owner 与 stack 的投射实体。撞击门排除自身及曾尝试的 UUID，hurt 成功才尝试麻痹，但仍不核对该次 addHarmfulEffect，麻痹指标可以增长；目标 UUID 在外层登记。",
+    "麻痹真正存在时，LivingEntityMixin 在 aiStep 的 isImmobile 查询返回 true；客户端按效果存在抑制移动输入。onEffectAdded/Updated/Removed 的同步包是另一条生命周期路径，客户端虽接收仍走本地 addEffect/removeEffect，不能把粒子或统计当作实体终态。"
+  ],
+  "applicability": "Boss 灰字应来自实际拒绝该次指定控制的证据。普通着色、击退变化、尝试计数与实际已应用状态是独立观察。Relics 只说明这些边界，对当前 Dynasty 的控制和普通阴阳不产生规则授权。",
+  "semantic_dedup": "和已接受的 Relics 目标筛选、状态到渲染、树叶救命及已有替身拒控后尝试计数比较。Jellyfish 两分支和树叶弹体一组支持证据，不拆重复效果类、包或注册，正式新增0。",
+  "limits": [
+    "固定上游 NeoForge 源与本项目 Forge 1.20.1 分开，未执行该版本的原生回调及客户端网络。",
+    "没有 Boss 专用灰字、嗡鸣或跨客户端实际反馈的生产/验证回执。"
+  ],
+  "preservation": {
+    "game_started": false,
+    "source_writes": 0,
+    "shared_pack_writes": 0,
+    "formal_credit_added": 0
+  },
+  "source_pin": {
+    "repo": "Octo-Studios/relics",
+    "commit": "da846fcb3223e88d7c926b4478506b3089caff51",
+    "input": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/sources.json",
+      "sha256": "cf750007451b80edfd6f8f1b088cf617399c967b7ecb96d6209dd818554e5166"
+    }
+  },
+  "sources": [
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/items/relics/necklace/JellyfishNecklaceItem.java",
+      "sha256": "d83ee4fa0da79e723b7b0f4b05fbf406c95f8d30b12036252d1f45ffe70b6747",
+      "git_blob": "7016aaa05ba87bae85eade1e15873737dab605b9",
+      "read_ranges": [
+        [
+          318,
+          439
+        ],
+        [
+          533,
+          576
+        ]
+      ],
+      "line_anchors": {
+        "322": "isControllerStack",
+        "362": "TargetingUtils.canHarm",
+        "373": "addHarmfulEffect",
+        "375": "\"rings_paralysis\"",
+        "378": "setDeltaMovement",
+        "392": "addFreshEntity(spark)",
+        "394": "addAffectedEntities",
+        "400": "addRings(stack, -1)",
+        "419": "setDamagedEntities",
+        "432": "setCooldown(equippedStack",
+        "534": "LivingDamageEvent.Pre",
+        "535": "getDirectEntity()",
+        "556": "getDuration(stack) <= 0",
+        "567": "target.addEffect",
+        "570": "\"hit_paralysis\"",
+        "574": "addDamagedEntities(stack, uuid)"
+      },
+      "lines": 166
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/items/relics/back/LeafyMantleItem.java",
+      "sha256": "e544f9d8dfe97d4e24d57b84a13555169fb449a5d0b44203dc5e573d0454494c",
+      "git_blob": "d902f5811e37416b58e209a935e3f4551413201b",
+      "read_ranges": [
+        [
+          369,
+          400
+        ]
+      ],
+      "line_anchors": {
+        "381": "ServerScheduler.schedule",
+        "390": "setParalysis",
+        "396": "setOwner(entity)",
+        "398": "setStack(stack)",
+        "400": "level.addFreshEntity"
+      },
+      "lines": 32
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/entities/LeavesBlockEntity.java",
+      "sha256": "3e409c8494ca13af3c7c2cc38497bc0f02d3752f82cb3b8dfeba72358a93914f",
+      "git_blob": "0350d951707cf5346586ece675e6a5fbda73827d",
+      "read_ranges": [
+        [
+          123,
+          152
+        ]
+      ],
+      "line_anchors": {
+        "125": "impactedEntities.contains",
+        "127": "TargetingUtils.canHarm",
+        "134": "TargetingUtils.hurtEnemy",
+        "138": "TargetingUtils.addHarmfulEffect",
+        "147": "\"paralysis_duration\"",
+        "151": "impactedEntities.add"
+      },
+      "lines": 30
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/utils/TargetingUtils.java",
+      "sha256": "9d3c2d86b0486912b7552696c6e6f10b064a9190c887905e3c482dad4717eac8",
+      "git_blob": "72d192302c8a9178ff7195a5c947a69313cfb77e",
+      "read_ranges": [
+        [
+          60,
+          67
+        ],
+        [
+          78,
+          92
+        ],
+        [
+          110,
+          122
+        ]
+      ],
+      "line_anchors": {
+        "82": "!targeting.isActive()",
+        "85": "isSelfTarget",
+        "88": "canHarmVanillaPlayer",
+        "114": "return target.hurt",
+        "121": "return target.addEffect"
+      },
+      "lines": 36
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/init/RelicsMobEffects.java",
+      "sha256": "5ab3ba7edb9fed545ffad20caea632b4c9d7d8714e69b7f71fa75b1f80537c98",
+      "git_blob": "66bfb2c1c6f68d275fa7b9139e05deda7a7f8f18",
+      "read_ranges": [
+        [
+          12,
+          23
+        ]
+      ],
+      "line_anchors": {
+        "16": "\"paralysis\", ParalysisEffect::new"
+      },
+      "lines": 12
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/init/RelicsItems.java",
+      "sha256": "425ebccef9bf51fffbad10a26a760d2f20d2ab65c50285e0d3955ee85b325cb4",
+      "git_blob": "5691b4fc409dbdd29438d232e4291d648dc72523",
+      "read_ranges": [
+        [
+          59,
+          66
+        ]
+      ],
+      "line_anchors": {
+        "59": "LeafyMantleItem::new",
+        "63": "JellyfishNecklaceItem::new"
+      },
+      "lines": 8
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/effects/ParalysisEffect.java",
+      "sha256": "b0d5b7cc3d1deb38e7d4a68ee7dfa365067205923939fa8e478cec5fa6d7a4f1",
+      "git_blob": "04d1434bf1ef325512c55997476b8e68ca8a0077",
+      "read_ranges": [
+        [
+          14,
+          36
+        ]
+      ],
+      "line_anchors": {
+        "19": "Dist.CLIENT",
+        "25": "hasEffect(RelicsMobEffects.PARALYSIS)",
+        "31": "forwardImpulse = 0"
+      },
+      "lines": 23
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/mixin/LivingEntityMixin.java",
+      "sha256": "0df187798f00babf4edb96db0c59225383a0eb6147b97ea00fb7ccc5e97bb802",
+      "git_blob": "b5cc0f0c062fbaf7dae90992d6253fa7b03bd6b7",
+      "read_ranges": [
+        [
+          76,
+          120
+        ]
+      ],
+      "line_anchors": {
+        "76": "isImmobile()",
+        "83": "PARALYSIS",
+        "97": "Action.ADD",
+        "108": "Action.UPDATE",
+        "119": "Action.REMOVE"
+      },
+      "lines": 45
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/network/packets/PacketSyncEntityEffects.java",
+      "sha256": "a94f2523e9783a8b62e199fa98be17be36871b600767bd5d86be94977e2ecdde",
+      "git_blob": "5ea083a12c580ab138f44d1bb1214ff417304a28",
+      "read_ranges": [
+        [
+          45,
+          69
+        ]
+      ],
+      "line_anchors": {
+        "48": "level.getEntity",
+        "55": "entity.addEffect",
+        "56": "entity.removeEffect"
+      },
+      "lines": 25
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/Octo-Studios__relics/src/main/java/it/hurts/sskirillss/relics/network/NetworkHandler.java",
+      "sha256": "8afd6a3d2aa2a5e261bcf808cecad841c018cc5b1293a85eed50acc42d78fce5",
+      "git_blob": "c13e5ec0de228cb0d4f12e809b328f5b7b208047",
+      "read_ranges": [
+        [
+          56,
+          61
+        ]
+      ],
+      "line_anchors": {
+        "59": "playToClient(PacketSyncEntityEffects.TYPE"
+      },
+      "lines": 6
+    }
+  ],
+  "comparison": {
+    "immune_ledger": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "958c6393c8aeaeac9c2e740762c3864dbfdd812195df40a0b8fbad4a8340ff0c"
+    },
+    "immune_records": [
+      "relics-native-status-receipt-target-membership-to-stun-render-policy",
+      "relics-native-player-policy-qualified-friendly-target-refusal-with-authoritative-resync",
+      "relics-native-environment-leaf-budget-lethal-truncation-and-deferred-consumption",
+      "relics-native-owner-qualified-decoy-activation-refusal-versus-effect-acceptance"
+    ],
+    "sweep_ledger": {
+      "path": "docs/cod4/audit-20261022/sweep-receipt-research/accepted.jsonl",
+      "sha256": "c13a16d62edf4724f41284e30a78672d862c4b0d3ad7d0cef521a62e9d8feeff"
+    },
+    "sweep_line_356_sha256": "d40e0ef507b8a66ee7307d2479037016ea20cf8bdd122ca079a461ad606bd5c4",
+    "current_implementation_readback": {
+      "path": "docs/cod4/audit-20261022/resume-20261126/boss-immune-wire-admission-readback.json",
+      "sha256": "8d027f01299eb94f014f9f2d2b33f92c127bcdd5870ed85a3884154f814405d6"
+    }
+  },
+  "metrics": {
+    "files": 10,
+    "read_lines": 383
+  }
+}

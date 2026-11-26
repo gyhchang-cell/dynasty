@@ -1,0 +1,282 @@
+{
+  "date": "2026-11-26",
+  "main_commit": "0815fb0d1ed038e730807924834449e6d5f97c83",
+  "scope": "COD4-3 三把重武器固定落点，第13批锻斧实握、延迟命中及碎块路径",
+  "status": "PINNED_WROUGHT_AXE_INPUT_DELAYED_STACK_AND_QUAKE_REVIEWED_SUPPORT_ONLY",
+  "findings": [
+    {
+      "stage": "实握与动作准入",
+      "observation": "ItemWroughtAxe.use 只在主手、满充能、个人动作间隔可用时选择特殊动作。按下潜行且当时 onGround 决定竖向砸击。服务端 AbilityHandler 另做技能 canUse 并激活，但外层不读取返回值，仍能设姿态、30刻锁、开始使用及尝试扣耐久。这些副作用不能单独证明技能生成或碰地。"
+    },
+    {
+      "stage": "武器与玩家归属",
+      "observation": "竖向技能在开始时创建效果实体并用创建当刻的主手栈写 AXE_STACK，代码未显式复制该栈。EntityMagicEffect 按 UUID 解析施术者。延迟直接命中临时把 AXE_STACK 和相应属性换入玩家主手，独立创建 playerAttack(player)，再调用 hurt。伤害布尔决定后续结算，外层几何命中声不依赖该布尔；没有 finally，不能移植临时换手。"
+    },
+    {
+      "stage": "碰地、落点、材质",
+      "observation": "竖向直接伤害定在效果实体 tick 14。地震保存该刻朝向和垂直 AABB，但效果实体跟随玩家，扩散中心每刻重读 X/Z。材质按固定 floor(minY-0.5) 的格状态、遮挡和实心条件挑选；未重查攻击者向下实际碰撞、原始支撑格或半砖高度。碎块以客户端已注册的实体模型渲染从数据字段读取的状态，非普通落地粒子包。"
+    },
+    {
+      "stage": "次数边界",
+      "observation": "tick 16..25 的各扇形样点各自尝试碎块实体与地震伤害，样点循环没有全攻击级实体或方块去重。雷震分支与前置直接 hurt 无共享成功回执，只有对地震目标的击退检查这一轮 hurt。tick 25 在末尾 discard。一次技能开始、范围成功、单一稳定落点和每玩家收到一次仍是不同命题。"
+    }
+  ],
+  "limits": [
+    "源为固定 Mowzie NeoForge 版本样本。仅调用处无显式 copy，不据此外推其他版本数据同步底层的引用保存语义。",
+    "块实体/粒子创建和真实客户端传输未验。未把角色移动、服务器校验、原生碰撞或视觉作为 Dynasty 通过。"
+  ],
+  "dedup": "已接受 0c6a027d05c8a3f1aeec 覆盖原延迟 hurt 与临时换手。此前 WroughtAxeSlamAbility 和玩家 geomancy GroundSlam 作为支持，本次只补实际 ItemStack 入口到地震支撑和显示，整体保留既有族，正式新增0。",
+  "preserved": {
+    "game_starts": 0,
+    "production_writes": 0,
+    "shared_pack_writes": 0,
+    "formal_credit_added": 0
+  },
+  "repo": "BobMowzie/MowziesMobs-Public",
+  "revision": "7aa17309337cbd4102efc418cba12a4983b1540c",
+  "source_index": {
+    "path": "docs/cod4/audit-20261022/immune-feedback-research/sources.json",
+    "sha256": "cf750007451b80edfd6f8f1b088cf617399c967b7ecb96d6209dd818554e5166"
+  },
+  "comparison": [
+    {
+      "path": "docs/cod4/audit-20261022/resume-20261122/heavy-weapon-ground-impact-references-20261122.json",
+      "sha256": "9e0c476028e76aad0ef8ccda5e7c84ca1b0c014db7f1478a0532c9ebe7e97c6b"
+    },
+    {
+      "path": "docs/cod4/audit-20261022/resume-20261125/heavy-weapon-ground-impact-landing-material-batch12-20261125.json",
+      "sha256": "f2f10674bf4e40f940e4f3b98cc4e1e4f2ec50dc30c993d1b96ef31465c8c3c5"
+    }
+  ],
+  "existing_accepted": {
+    "ledger": {
+      "path": "docs/cod4/audit-20261022/sweep-receipt-research/accepted.jsonl",
+      "sha256": "c13a16d62edf4724f41284e30a78672d862c4b0d3ad7d0cef521a62e9d8feeff"
+    },
+    "row_sha256": "6b96433e4daf054d82bf6165a64587908fa2d72363ddffd6d13c96785b307d51",
+    "line": 686,
+    "id": "0c6a027d05c8a3f1aeec"
+  },
+  "sources": [
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/item/ItemWroughtAxe.java",
+      "sha256": "25f02091007c63a45593f36c25c2fbedc7674e08e6482c778ea04d8a8ca36366",
+      "blob": "970d53d7e47d717e0853f9de060fbc3e89b2b1e7",
+      "ranges": [
+        [
+          43,
+          89
+        ]
+      ],
+      "anchors": {
+        "44": "onLeftClickEntity",
+        "63": "hurtEnemy",
+        "73": "InteractionHand.MAIN_HAND",
+        "77": "player.onGround()",
+        "83": "setUntilAxeSwing(30)",
+        "85": "hurtAndBreak(2"
+      },
+      "lines": 47
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/ability/abilities/player/WroughtAxeSlamAbility.java",
+      "sha256": "1c3e84c5649f3077fbb463bfb253ff38c900bc1fa16eeaf6bb742378586f0b53",
+      "blob": "83112651090e974b951dc65e2bc8cfe46fcb2c0d",
+      "ranges": [
+        [
+          13,
+          62
+        ]
+      ],
+      "anchors": {
+        "29": "!getUser().level()",
+        "30": "new EntityAxeAttack",
+        "33": "this.axeAttack",
+        "46": "resetAttackStrengthTicker",
+        "54": "discard()"
+      },
+      "lines": 50
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/ability/AbilityHandler.java",
+      "sha256": "5570c59814f55641f74037602003d0a9fdb093486618b6a737368b6baf2c9bcb",
+      "blob": "7d7aa5e2f3ee63d30d7a26b37666632d0b7ee34a",
+      "ranges": [
+        [
+          67,
+          81
+        ]
+      ],
+      "anchors": {
+        "72": "isClientSide",
+        "77": "instance.canUse()",
+        "79": "sendToPlayersTrackingEntityAndSelf"
+      },
+      "lines": 15
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/capability/AbilityData.java",
+      "sha256": "d01b69d5ef9a0bc1332f2eb0948601deeb150fd37ee753267b945c7e9c00f5d6",
+      "blob": "104cde1a7750dd03a3752688097fd37b28ea1798",
+      "ranges": [
+        [
+          38,
+          55
+        ]
+      ],
+      "anchors": {
+        "41": "ability.tryAbility()",
+        "42": "ability.start()"
+      },
+      "lines": 18
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/ability/Ability.java",
+      "sha256": "4104a05f7178233995d60fadf02376d8dda8900c3fb46fc3df05b5337a21740a",
+      "blob": "b489ce4b298817c288ff4e8475c38ddd167223fd",
+      "ranges": [
+        [
+          129,
+          164
+        ]
+      ],
+      "anchors": {
+        "130": "EffectHandler.FROZEN",
+        "131": "cooldownTimer == 0",
+        "142": "return true;"
+      },
+      "lines": 36
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/entity/effects/EntityMagicEffect.java",
+      "sha256": "06e88b70b1a2bf7c890eb33590512763e723cd37445461733e68029694d8b5c0",
+      "blob": "7bc6c26b814f9fb598251b275194a11961df225e",
+      "ranges": [
+        [
+          43,
+          81
+        ],
+        [
+          122,
+          132
+        ]
+      ],
+      "anchors": {
+        "46": "caster.getUUID()",
+        "72": "getEntity(this.getCasterID()",
+        "75": "MessageLinkEntities",
+        "130": "compound.putUUID"
+      },
+      "lines": 50
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/entity/effects/EntityAxeAttack.java",
+      "sha256": "352f32214082546c10572bd024f493855c731941d5a7ef9993acd2f7ae8d4c6d",
+      "blob": "da8b5b418e1b3169b85201627a35585212fabb24",
+      "ranges": [
+        [
+          54,
+          225
+        ],
+        [
+          230,
+          379
+        ]
+      ],
+      "anchors": {
+        "70": "setAxeStack(caster.getMainHandItem())",
+        "84": "absMoveTo(getCaster().getX()",
+        "89": "SWING_DURATION_VER /2 - 1",
+        "91": "quakeAngle",
+        "92": "quakeBB",
+        "106": "Mth.floor(quakeBB.minY - 0.5)",
+        "107": "tickCount - 15",
+        "116": "getX() + vx * distance",
+        "131": "entity.hurt",
+        "137": "if (hitEntity)",
+        "160": "new EntityFallingBlock",
+        "168": "tickCount > SWING_DURATION_HOR",
+        "193": "attackTargetEntityWithCurrentItem",
+        "197": "hit = true",
+        "220": "AXE_STACK, axeStack",
+        "238": "setItemInHand",
+        "254": "playerAttack(player)",
+        "272": "targetEntity.hurt",
+        "274": "if (wasHurt)",
+        "345": "resetModifiers",
+        "377": "compound.put(\"axe_stack\""
+      },
+      "lines": 322
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/entity/effects/EntityFallingBlock.java",
+      "sha256": "9036a2d2b02bca063a93d48d786e317bfbc40841658ba7373be1ccfdf9d65a7f",
+      "blob": "b8d92d54a839a9019952dd503a796bc141333943",
+      "ranges": [
+        [
+          18,
+          127
+        ]
+      ],
+      "anchors": {
+        "22": "EntityDataSerializers.BLOCK_STATE",
+        "51": "POPUP_ANIM",
+        "65": "setDeltaMovement(0, 0, 0)",
+        "90": "builder.define(BLOCK_STATE",
+        "126": ".set(BLOCK_STATE, block)"
+      },
+      "lines": 110
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/server/entity/EntityHandler.java",
+      "sha256": "918d65d7298cd61aa06e76c54205d31a6230e3c08c682b85752d26b0135fdaad",
+      "blob": "f5f9878d63c2f2b56d330389ac6df6f13456efc2",
+      "ranges": [
+        [
+          138,
+          141
+        ]
+      ],
+      "anchors": {
+        "141": "REG.register(\"falling_block\""
+      },
+      "lines": 4
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/client/ClientEventBusSubscriber.java",
+      "sha256": "cbf1fa1cd1e0bfc11a37827d55a4ab2a3876a630e4d41a01005f4b3ecd2f4600",
+      "blob": "520e4411b9ba594127aa820a45a5f674d2642d62",
+      "ranges": [
+        [
+          55,
+          64
+        ]
+      ],
+      "anchors": {
+        "61": "RenderFallingBlock::new"
+      },
+      "lines": 10
+    },
+    {
+      "path": "tools/cod4/immune-feedback-research/sources/BobMowzie__MowziesMobs-Public/src/main/java/com/bobmowzie/mowziesmobs/client/render/entity/RenderFallingBlock.java",
+      "sha256": "7143ee3cd352d593efb1671f007ec9f07b9424cdca0c56067ba09533f554fc42",
+      "blob": "42cd845e91b21530c6d1303a8fd9a9e4faed8617",
+      "ranges": [
+        [
+          15,
+          42
+        ]
+      ],
+      "anchors": {
+        "30": "entityIn.prevAnimY",
+        "34": "renderSingleBlock(entityIn.getBlock()"
+      },
+      "lines": 28
+    }
+  ],
+  "metrics": {
+    "files": 11,
+    "read_lines": 690,
+    "anchors": 53
+  }
+}

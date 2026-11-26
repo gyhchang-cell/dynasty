@@ -1,0 +1,242 @@
+{
+  "date": "2026-11-26",
+  "scope": "COD4 Boss Immune 截止当前 main 的反馈归属、网络分类与实际拒控对照",
+  "status": "BOSS_AND_QI_SHARE_IMMUNE_WIRE_CURRENT_NATIVE_REFUSAL_AND_SPECIAL_CUE_OPEN",
+  "findings": [
+    "ExpansionEffects.apply 的阴阳体质短路与 Boss SHA/STAGGER 拒绝共用 IMMUNE=9；QiConstitution.Applicable 和抓取 Boss 分支也使用9。反馈编码只有类型与两组坐标，无原因、目标引用或拒控账本。客户端不能据此补出 Boss 专用「免疫」而保持普通阴阳行为。",
+    "当前候选包 ExpansionClient.feedback 的 type 9 进入默认附魔粒子及普通暴击音，也没有灰字消费者。128 粒子预算在方法入口判断，饱和会使本次表现提前返回，包括声音。",
+    "CombatFeedback 以目标持久数据的上次 tick/type 作3刻节流。首次、达到3刻或新类型优先级更高时会送，同目标持续拒绝仍可每3刻发。3刻是原通用政策，不能独自证明 Boss 无刷屏。",
+    "Forge LivingEntity.canBeAffected 在完整派发后读取最终事件结果；QiConstitution 在自己的 LOWEST 处理器内写 DENY 后立即发包。观察到提示不单独证明该次效果最终未接纳，且原生 addEffect 的 false 也可能是既有状态未更新。",
+    "需按控制类型核验实际拒绝。Boss 分支在绳镖/飞爪保留普通发射、冷却和耐久，不做拉动；灌注 heavy_stagger 对 Boss 仍可尝试短缓速，跳过停手和击退。原有减时效果与完全拒绝、普通伤害和控制分开验，不扩大设计范围。"
+  ],
+  "required_native_evidence": [
+    "同一次真实输入匹配唯一目标、拒绝原因及原生最终结果。至少区分击退、拉动、停手、硬控制与原有缩短的减益，分别观察位置、速度、状态和持续刻。",
+    "同一成功拒控有 Boss 专用灰字、微光、嗡声及确定节流。普通阴阳免疫、允许的缓速、非控制伤害和普通目标不可混入。",
+    "短时间密集、目标切换、跨客户端和客户端预算饱和，分别记录逻辑生产、每个接收端及实际渲染/声音。通用类型9或队列写入不构成验收。"
+  ],
+  "benchmark_boundary": "只静态反汇编候选包，未加载模组、未启动 Java 游戏、未跑既有 GameTest。旧样本支持反馈方法，不转成该修复额外正式参考。",
+  "preserve": {
+    "game_starts": 0,
+    "production_writes": 0,
+    "tasklist_writes": 0,
+    "formal_credit_added": 0
+  },
+  "sources": [
+    {
+      "path": "src/main/java/com/dynasty/expansion/CombatFeedback.java",
+      "sha256": "7ed8e88e3fc96dca90ac4498bf339e64e7a90a0cdf0989b6618ea671dca1088c",
+      "ranges": [
+        [
+          20,
+          45
+        ],
+        [
+          64,
+          74
+        ]
+      ],
+      "anchors": {
+        "27": "IMMUNE=9",
+        "35": "cod4FeedbackTick",
+        "36": "PacketDistributor.NEAR",
+        "39": ">=3",
+        "64": "writeVarInt",
+        "67": "p.type>17"
+      },
+      "read_lines": 37
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionEffects.java",
+      "sha256": "fe8c30f7e51122824cf9565f6a088c07b131d81af8cd1609b197edc69419f8f2",
+      "ranges": [
+        [
+          43,
+          64
+        ]
+      ],
+      "anchors": {
+        "49": "QiConstitution.immune",
+        "50": "type == SHA || type == STAGGER"
+      },
+      "read_lines": 22
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/QiConstitution.java",
+      "sha256": "c5fb3ab621aaa7642ca842c84ad4a2dd4aa277547bb22efb107e0b3edf5843b9",
+      "ranges": [
+        [
+          17,
+          52
+        ]
+      ],
+      "anchors": {
+        "29": "applicable(",
+        "31": "Event.Result.DENY",
+        "32": "CombatFeedback.IMMUNE"
+      },
+      "read_lines": 36
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionClient.java",
+      "sha256": "379c3355d2d52a815c7da6bf195f7163f52993f0291d03bc77eba39bb5f8f9f9",
+      "ranges": [
+        [
+          57,
+          90
+        ]
+      ],
+      "anchors": {
+        "61": "if(emitted>=128)return",
+        "85": "default->ParticleTypes.ENCHANTED_HIT",
+        "89": "PLAYER_ATTACK_CRIT"
+      },
+      "read_lines": 34
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionWeapons.java",
+      "sha256": "c8a941f03434f4c220d2a9575da0b1689a2e797f79bc6480a3e8229531ca7546",
+      "ranges": [
+        [
+          88,
+          109
+        ]
+      ],
+      "anchors": {
+        "100": "CombatFeedback.IMMUNE",
+        "101": "setDeltaMovement",
+        "108": "hurtAndBreak"
+      },
+      "read_lines": 22
+    },
+    {
+      "path": "src/main/java/com/dynasty/infusion/InfusionCombat.java",
+      "sha256": "9360b2a5a78d51a13b240dad2f4076a345da520cb2d7396fc221e8e3210833e0",
+      "ranges": [
+        [
+          39,
+          47
+        ],
+        [
+          99,
+          108
+        ]
+      ],
+      "anchors": {
+        "45": "boss(e)?Math.min(20,ticks)",
+        "104": "case \"heavy_stagger\""
+      },
+      "read_lines": 19
+    },
+    {
+      "path": "src/main/java/com/dynasty/network/CombatFeedbackNetworkRegistration.java",
+      "sha256": "25c0235ff1c3ae081bc496af3a56851d622bca7af3d70c29b9febcfc358b53fc",
+      "ranges": [
+        [
+          9,
+          20
+        ]
+      ],
+      "anchors": {
+        "14": "registerExtension(16",
+        "16": "PLAY_TO_CLIENT, 2"
+      },
+      "read_lines": 12
+    },
+    {
+      "path": "src/main/java/com/dynasty/expansion/ExpansionGameTests.java",
+      "sha256": "face6649b4ac3704304d44809e1c45b6ba4a1ba06277143bdf772b64da59a9a3",
+      "ranges": [
+        [
+          243,
+          250
+        ]
+      ],
+      "anchors": {
+        "248": "!CombatFeedback.allowsFeedback",
+        "249": "Throttle eventually releases"
+      },
+      "read_lines": 8
+    },
+    {
+      "path": "tools/cod4/legacy-migration-acceptance/.work/sources/minecraft-forge-1.20.1-47.4.10/net/minecraft/world/entity/LivingEntity.java",
+      "sha256": "58e2003cdd30fc8a135c51e4cc5e1a4a16842c68f46b536d5c8c41b5f53f8494",
+      "ranges": [
+        [
+          920,
+          967
+        ]
+      ],
+      "anchors": {
+        "925": "!this.canBeAffected",
+        "929": "MobEffectEvent.Added",
+        "944": "MobEffectEvent.Applicable",
+        "946": "Event.Result.ALLOW",
+        "958": "this.canBeAffected"
+      },
+      "read_lines": 48
+    }
+  ],
+  "fixed_candidate": {
+    "jar": {
+      "path": "build/dynasty-gradle-offline-check-20261122/output/libs/dynasty-1.4.0.jar",
+      "sha256": "6af93944a9059913213977218430a875a80b5087e62dcd0645d3774bafa4e3fa"
+    },
+    "members": {
+      "com/dynasty/expansion/ExpansionClient.class": "848e23469d80f8f06942d96044ce042a77e27d1b2e0368b9150815f273dc6eb5",
+      "com/dynasty/expansion/ExpansionEffects.class": "8687b82b75fe452c7bd121a16c2e52eb9476d4e81b8a5f9c5d71774011082ff7",
+      "com/dynasty/expansion/QiConstitution.class": "7dac6d74977974e918e481db7eaa1cb66ae02bcc49a175750f0cd880af2136e2",
+      "com/dynasty/expansion/CombatFeedback.class": "d9b5f36ff3644caeddab9d8227c28db9527922727f09f96aa1bfae1b20bf8ffe"
+    },
+    "javap_path_and_sha": {
+      "path": "/Library/Java/JavaVirtualMachines/liberica-jdk-17.jdk/Contents/Home/bin/javap",
+      "sha256": "1fab09299a1e4f93c7c0fc104dfa93fa2836722d3b6e1ecacd6ef3dac83b104d"
+    },
+    "method_proof": {
+      "ExpansionClient.feedback": {
+        "sha256_of_javap_text_section": "0936c1a7372511f68a4efda24e6701d54b89353f911757d67e4a6049ad8e9786",
+        "checks": [
+          "9 and default -> pc 594",
+          "normal sound field at pc 801",
+          "client sound call at pc 826",
+          "return at pc 829"
+        ]
+      },
+      "ExpansionEffects.apply": {
+        "sha256_of_javap_text_section": "8d0fe042197011bbec90a8e4166211f10771dd9bd4adab3ffebefe5f8ceb430e",
+        "checks": [
+          "26: bipush        9",
+          "54: bipush        9"
+        ]
+      },
+      "QiConstitution.applicable": {
+        "sha256_of_javap_text_section": "3211e61334732a9a229f718d3c3ecd388e3e1690ab14e04d908a33c3b5781e53",
+        "checks": [
+          "28: bipush        9"
+        ]
+      },
+      "CombatFeedback.encode": {
+        "sha256_of_javap_text_section": "f7459dfa7f12b02e497ecf551385945905118728473bfe9c02e250d4aa56c16e",
+        "checks": [
+          "one type write at entry; six Double writes and return"
+        ]
+      }
+    }
+  },
+  "reference_gate": {
+    "progress": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/progress.json",
+      "sha256": "f9f86c858b1b150815d5e5590cdbb6e2c7183a667a2c2eec19a4a4ab74d5b539"
+    },
+    "reviewed_ledger": {
+      "path": "docs/cod4/audit-20261022/immune-feedback-research/reviewed.json",
+      "sha256": "958c6393c8aeaeac9c2e740762c3864dbfdd812195df40a0b8fbad4a8340ff0c"
+    },
+    "effective_count": 535,
+    "remaining": 465,
+    "satisfied": false
+  },
+  "existing_coverage": {
+    "path": "docs/cod4/audit-20261022/combat-feedback-static/findings.json",
+    "sha256": "13c036066008a2b7c35f73dd554f126b8f2b5a7ebdce9424f52bf8a29974dcc4"
+  }
+}
