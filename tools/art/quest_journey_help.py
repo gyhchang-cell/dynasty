@@ -417,6 +417,13 @@ def add_operation_steps(chapters):
     from boss_quest_guides import jump
     byfile={c['file']:c for c in chapters}
     equipment = {q['cod4_item']: q for chapter in chapters for q in chapter['quests'] if q.get('cod4_item')}
+    sword_upgrades = {
+        q['target']: q for chapter in chapters for q in chapter['quests'] if q.get('evolution_recipe')
+    }
+    for quest in byfile['dynasty_c3']['quests']:
+        if quest['target'] in ('dynasty:seven_star_saber', 'dynasty:supreme_sword') and quest['kind'] == 'item':
+            upgrade = sword_upgrades[quest['target']]
+            quest['description'].append(jump('锻造路线 · ' + upgrade['title'], upgrade['id']))
     wheel = equipment['broken_waterwheel']
     cable = equipment['qimen_cable']
     wheel['description'].append(jump('出发前备料 · 奇门钢索', cable['id']))

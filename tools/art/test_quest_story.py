@@ -125,7 +125,16 @@ class QuestStoryTest(unittest.TestCase):
         for target in ["sunbow","gilded_mace","supreme_sword","seven_star_saber"]:
             q = next(q for c in self.book for q in c["quests"] if q["kind"]=="item" and q["target"]=="dynasty:"+target)
             self.assertFalse(q.get("unverified_source"))
-            self.assertIn("非合成获取", "".join(q["description"]))
+            description = "".join(q["description"])
+            if target in ("sunbow", "gilded_mace"):
+                self.assertIn("非合成获取", description)
+            else:
+                self.assertIn("受赐资格", description)
+                recipe_id = {"supreme_sword": "supreme", "seven_star_saber": "seven_star"}[target]
+                recipe = json.loads((story.DATA / "recipes" / f"evolution_path_sword_{recipe_id}.json").read_text())
+                self.assertEqual("dynasty:" + target, recipe["result"]["item"])
+                for slot in ("template", "base", "addition"):
+                    self.assertIn(story.name(recipe[slot]["item"]), description)
 
     def test_mutating_old_reward_rejected(self):
         book = copy.deepcopy(self.book)
