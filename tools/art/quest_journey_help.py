@@ -371,6 +371,19 @@ def simplify(q):
         q['description'].extend([
             '把兑换好的银币放进背包或快捷栏再购买。钱会在购买时扣除，新兵先进入兵册待命。',
             jump('筹军费 · 银币兑换','100000000000013a')])
+    offering_stands = {
+        'dynasty:ritual_qinglong': ('东', '青龙鳞'),
+        'dynasty:ritual_baihu': ('西', '白虎牙'),
+        'dynasty:ritual_zhuque': ('南', '朱雀羽'),
+        'dynasty:ritual_xuanwu': ('北', '玄武壳'),
+    }
+    if target in offering_stands:
+        direction, offering = offering_stands[target]
+        q['description'].append(f'主手拿一份{offering}，右键龙口祭坛{direction}侧供台的底座。投下后在祭坛旁等小球亮起，这一位的进度记给投放者。')
+    if q['id']=='1000000000090032':
+        q['description'].append('四座供台点亮后，中央还要汇聚约4.5秒。献祭需另备一枚天命玉；四象贡品不会合成它。')
+    if target=='dynasty:ritual_final_offering':
+        q['description'].append('主手持一枚天命玉右键中央底座，由这位玩家开启终战。献祭后留在中央64格内，保持存活并让祭坛区块加载；约12秒后开始转场。')
     cod4_help(q)
     amounts=item_requirements(q['tasks'])
     if len(amounts)>1:
